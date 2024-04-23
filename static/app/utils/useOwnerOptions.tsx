@@ -76,12 +76,12 @@ export function useOwnerOptions({
 
   const options = [
     {
-      label: t('Members'),
-      options: memberOptions,
-    },
-    {
       label: t('My Teams'),
       options: myTeamOptions,
+    },
+    {
+      label: t('Members'),
+      options: memberOptions,
     },
     {
       label: t('Other Teams'),

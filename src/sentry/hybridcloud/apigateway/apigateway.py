@@ -14,8 +14,7 @@ from sentry.hybridcloud.apigateway.proxy import (
     proxy_sentryapp_request,
     proxy_sentryappinstallation_request,
 )
-from sentry.silo import SiloMode
-from sentry.silo.base import SiloLimit
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -60,8 +59,10 @@ def proxy_request_if_needed(
     if request.resolver_match:
         url_name = request.resolver_match.url_name or url_name
 
-    if "organization_slug" in view_kwargs:
-        org_slug = view_kwargs["organization_slug"]
+    if "organization_slug" in view_kwargs or "organization_id_or_slug" in view_kwargs:
+        org_id_or_slug: str = view_kwargs.get("organization_slug") or view_kwargs.get(
+            "organization_id_or_slug", ""
+        )
 
         metrics.incr(
             "apigateway.proxy_request",
@@ -70,7 +71,7 @@ def proxy_request_if_needed(
                 "kind": "orgslug",
             },
         )
-        return proxy_request(request, org_slug, url_name)
+        return proxy_request(request, org_id_or_slug, url_name)
 
     if (
         "uuid" in view_kwargs

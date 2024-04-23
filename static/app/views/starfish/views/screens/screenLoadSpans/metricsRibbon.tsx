@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';

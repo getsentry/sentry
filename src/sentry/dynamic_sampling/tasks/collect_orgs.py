@@ -6,7 +6,7 @@ from sentry.dynamic_sampling.tasks.constants import MAX_PROJECTS_PER_QUERY, MAX_
 from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 

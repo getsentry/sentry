@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import type {IntegrationProvider, PlatformKey} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
 
 type Props = {
   provider: IntegrationProvider;

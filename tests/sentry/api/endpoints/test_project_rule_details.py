@@ -19,7 +19,7 @@ from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import freeze_time
@@ -533,6 +533,43 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert_rule_from_payload(self.rule, payload)
+
+    def test_update_owner_type(self):
+        team = self.create_team(organization=self.organization)
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        payload = {
+            "name": "hello world 2",
+            "owner": f"team:{team.id}",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["owner"] == f"team:{team.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_id
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
+
+        payload = {
+            "name": "hello world 2",
+            "owner": f"user:{self.user.id}",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["owner"] == f"user:{self.user.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_id
+        assert rule.owner_team_id is None
+        assert rule.owner_user_id == self.user.id
 
     def test_update_name(self):
         conditions = [

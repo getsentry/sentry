@@ -1,4 +1,5 @@
-import type {EventMetadata, Group} from 'sentry/types';
+import type {EventMetadata} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 
 export enum DiffFileType {
   ADDED = 'A',

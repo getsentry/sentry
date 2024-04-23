@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import contextlib
 import logging
-import re
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
@@ -19,7 +18,6 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
-from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.tsdb.base import TSDBModel
@@ -30,7 +28,7 @@ from sentry.types.condition_activity import (
 )
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
-from sentry.utils.snuba import options_override
+from sentry.utils.snuba import RateLimitExceeded, options_override
 
 STANDARD_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "1m": ("one minute", timedelta(minutes=1)),
@@ -143,7 +141,12 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             return False
 
         # TODO(mgaeta): Bug: Rule is optional.
-        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore[arg-type, union-attr]
+        try:
+            current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore[arg-type, union-attr]
+        # XXX(CEO): once inc-666 work is concluded, rm try/except
+        except RateLimitExceeded:
+            metrics.incr("rule.event_frequency.snuba_query_limit")
+            return False
         logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
 
@@ -183,15 +186,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         Queries Snuba for a unique condition for a single group.
         """
-        query_result = self.query_hook(event, start, end, environment_id)
-        metrics.incr(
-            "rules.conditions.queried_snuba",
-            tags={
-                "condition": re.sub("(?!^)([A-Z]+)", r"_\1", self.__class__.__name__).lower(),
-                "is_created_on_project_creation": self.is_guessed_to_be_created_on_project_creation,
-            },
-        )
-        return query_result
+        return self.query_hook(event, start, end, environment_id)
 
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
@@ -208,15 +203,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         Queries Snuba for a unique condition for multiple groups.
         """
-        batch_query_result = self.batch_query_hook(group_ids, start, end, environment_id)
-        metrics.incr(
-            "rules.conditions.queried_snuba",
-            tags={
-                "condition": re.sub("(?!^)([A-Z]+)", r"_\1", self.__class__.__name__).lower(),
-                "is_created_on_project_creation": self.is_guessed_to_be_created_on_project_creation,
-            },
-        )
-        return batch_query_result
+        return self.batch_query_hook(group_ids, start, end, environment_id)
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
@@ -300,22 +287,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             )
             batch_totals.update(result)
         return batch_totals
-
-    @property
-    def is_guessed_to_be_created_on_project_creation(self) -> bool:
-        """
-        Best effort approximation on whether a rule with this condition was
-        created on project creation based on how closely the rule and project
-        are created; and if the label matches the default name used on project
-        creation.
-
-        :return:
-            bool: True if rule is approximated to be created on project creation, False otherwise.
-        """
-        # TODO(mgaeta): Bug: Rule is optional.
-        delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore[union-attr]
-        guess: bool = delta.total_seconds() < 30 and self.rule.label == [DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW]  # type: ignore[union-attr]
-        return guess
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
