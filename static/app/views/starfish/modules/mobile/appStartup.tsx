@@ -5,8 +5,9 @@ import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -65,10 +66,14 @@ export default function InitializationModule() {
                 />
                 <Layout.Title>{ROUTE_NAMES['app-startup']}</Layout.Title>
               </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <ButtonBar gap={1}>
+                  <FeedbackWidgetButton />
+                </ButtonBar>
+              </Layout.HeaderActions>
             </Layout.Header>
 
             <Layout.Body>
-              <FloatingFeedbackWidget />
               <Layout.Main fullWidth>
                 <PageFiltersContainer>
                   <Container>

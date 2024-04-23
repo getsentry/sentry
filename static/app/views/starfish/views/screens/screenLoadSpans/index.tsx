@@ -5,8 +5,9 @@ import omit from 'lodash/omit';
 
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -113,9 +114,13 @@ function ScreenLoadSpans() {
                   isCrossPlatform(project) && <PlatformSelector />}
               </HeaderWrapper>
             </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
-            <FloatingFeedbackWidget />
             <Layout.Main fullWidth>
               <PageAlert />
               <StarfishPageFiltersContainer>
