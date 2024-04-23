@@ -260,36 +260,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         return result
 
-    def get_rate_bulk(
-        self,
-        duration: timedelta,
-        comparison_interval: timedelta,
-        group_ids: set[int],
-        environment_id: int,
-        comparison_type: str,
-    ) -> dict[int, int]:
-        start, end = self.get_comparison_start_end(timedelta(), duration)
-        with self.get_option_override(duration):
-            result = self.batch_query(
-                group_ids=group_ids,
-                start=start,
-                end=end,
-                environment_id=environment_id,
-            )
-        if comparison_type == ComparisonType.PERCENT:
-            start, comparison_end = self.get_comparison_start_end(comparison_interval, duration)
-            comparison_result = self.batch_query(
-                group_ids=group_ids,
-                start=start,
-                end=comparison_end,
-                environment_id=environment_id,
-            )
-            result = {
-                group_id: percent_increase(result[group_id], comparison_result[group_id])
-                for group_id in group_ids
-            }
-        return result
-
     def get_snuba_query_result(
         self,
         tsdb_function: Callable[..., Any],
