@@ -6,6 +6,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {escapeDoubleQuotes} from 'sentry/utils';
 
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
@@ -46,7 +47,7 @@ export function focusIsWithinToken(
 export function escapeTagValue(value: string): string {
   // Wrap in quotes if there is a space
   return value.includes(' ') || value.includes('"')
-    ? `"${value.replace(/"/g, '\\"')}"`
+    ? `"${escapeDoubleQuotes(value)}"`
     : value;
 }
 
