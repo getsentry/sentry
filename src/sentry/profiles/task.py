@@ -652,7 +652,7 @@ def _process_symbolicator_results_for_sample(
 
         new_frames_count = (
             len(raw_frames)
-            + sum([len(frames) for frames in symbolicated_frames_dict.values()])
+            + sum(len(frames) for frames in symbolicated_frames_dict.values())
             - len(symbolicated_frames_dict)
         )
 
@@ -1057,9 +1057,12 @@ def clean_android_js_profile(profile: Profile):
 
 @lru_cache(maxsize=100)
 def get_metrics_dsn(project_id: int) -> str:
-    project_key, _ = ProjectKey.objects.get_or_create(
-        project_id=project_id, use_case=UseCase.PROFILING.value
-    )
+    kwargs = dict(project_id=project_id, use_case=UseCase.PROFILING.value)
+    try:
+        project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
+    except ProjectKey.MultipleObjectsReturned:
+        # See https://docs.djangoproject.com/en/5.0/ref/models/querysets/#get-or-create
+        project_key = ProjectKey.objects.filter(**kwargs).order_by("pk").first()
     return project_key.get_dsn(public=True)
 
 
