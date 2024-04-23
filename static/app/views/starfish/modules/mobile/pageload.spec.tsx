@@ -133,7 +133,7 @@ describe('PageloadModule', function () {
 
     await waitFor(() => {
       expect(eventsMock).toHaveBeenNthCalledWith(
-        3,
+        4,
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
@@ -169,7 +169,7 @@ describe('PageloadModule', function () {
 
     await waitFor(() => {
       expect(eventsMock).toHaveBeenNthCalledWith(
-        3,
+        4,
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
