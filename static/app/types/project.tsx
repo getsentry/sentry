@@ -59,6 +59,8 @@ export type Project = {
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   hasUserReports?: boolean;
+  highlightContext?: Record<string, string[]>;
+  highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
