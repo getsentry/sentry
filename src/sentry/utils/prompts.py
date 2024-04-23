@@ -19,6 +19,7 @@ DEFAULT_PROMPTS = {
     "issue_priority": {"required_fields": ["organization_id"]},
     "data_consent_banner": {"required_fields": ["organization_id"]},
     "data_consent_priority": {"required_fields": ["organization_id"]},
+    "issue_replay_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},
 }
 
 
