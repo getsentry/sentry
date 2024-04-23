@@ -173,7 +173,7 @@ class GroupSnooze(Model):
             referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         )
         cache.set(cache_key, real_count, self.USER_COUNT_CACHE_TIMEOUT)
-        return real_count < threshold
+        return real_count <= threshold
 
 
 post_save.connect(
