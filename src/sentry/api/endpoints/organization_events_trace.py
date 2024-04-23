@@ -60,6 +60,7 @@ SnubaTransaction = TypedDict(
         "project.id": int,
         "project": str,
         "issue.ids": list[int],
+        "id_to_issue_id_map": dict[str, list[int]],
     },
 )
 SnubaError = TypedDict(
@@ -204,27 +205,30 @@ class TraceEvent:
             unique_spans: set[str] = set()
             start: float | None = None
             end: float | None = None
-            for problem in self.event["issue_occurrences"]:
+            suspect_spans: list[str] = []
+            for event_span in self.event["occurrence_spans"]:
+                # Filter for the occurrence_spans that correspond to the current issue
+                if group_id not in self.event["id_to_issue_id_map"][event_span["problem"].id]:
+                    continue
+
+                problem = event_span["problem"]
+                offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
+                if event_span.get("span_id") in offender_span_ids:
+                    start_timestamp = float(event_span.get("precise.start_ts"))
+                    if start is None:
+                        start = start_timestamp
+                    else:
+                        start = min(start, start_timestamp)
+                    end_timestamp = float(event_span.get("precise.finish_ts"))
+                    if end is None:
+                        end = end_timestamp
+                    else:
+                        end = max(end, end_timestamp)
+                    suspect_spans.append(event_span.get("span_id"))
+
                 parent_span_ids = problem.evidence_data.get("parent_span_ids")
                 if parent_span_ids is not None:
                     unique_spans = unique_spans.union(parent_span_ids)
-            span = list(unique_spans)
-            for event_span in self.event["occurrence_spans"]:
-                suspect_spans: list[str] = []
-                for problem in self.event["issue_occurrences"]:
-                    offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
-                    if event_span.get("span_id") in offender_span_ids:
-                        start_timestamp = float(event_span.get("precise.start_ts"))
-                        if start is None:
-                            start = start_timestamp
-                        else:
-                            start = min(start, start_timestamp)
-                        end_timestamp = float(event_span.get("precise.finish_ts"))
-                        if end is None:
-                            end = end_timestamp
-                        else:
-                            end = max(end, end_timestamp)
-                        suspect_spans.append(event_span.get("span_id"))
             # Logic for qualified_short_id is copied from property on the Group model
             # to prevent an N+1 query from accessing project.slug everytime
             qualified_short_id = None
@@ -237,7 +241,7 @@ class TraceEvent:
                     "event_id": self.event["id"],
                     "issue_id": group_id,
                     "issue_short_id": qualified_short_id,
-                    "span": span,
+                    "span": list(unique_spans),
                     "suspect_spans": suspect_spans,
                     "project_id": self.event["project.id"],
                     "project_slug": self.event["project"],
@@ -628,6 +632,10 @@ def query_trace_data(
         occurrence_ids[row["event_id"]].append(row["occurrence_id"])
 
     for result in transformed_results[0]:
+        result["id_to_issue_id_map"] = {}
+        for occurrence in transformed_results[2]:
+            if occurrence["event_id"] == result["id"]:
+                result["id_to_issue_id_map"][occurrence["occurrence_id"]] = occurrence["issue.ids"]
         result["issue.ids"] = occurrence_issue_ids.get(result["id"], [])
         result["occurrence_id"] = occurrence_ids.get(result["id"], [])
         result["trace.parent_transaction"] = None
@@ -824,8 +832,9 @@ def augment_transactions_with_spans(
                 parent = parent_map.get(span_id)
                 if parent is not None:
                     transaction = transaction_problem_map[problem.event_id]
-                    transaction["occurrence_spans"].append(parent)
-                    transaction["issue_occurrences"].append(problem)
+                    occurrence = parent.copy()
+                    occurrence["problem"] = problem
+                    transaction["occurrence_spans"].append(occurrence)
     with sentry_sdk.start_span(op="augment.transactions", description="linking errors"):
         for error in errors:
             parent = parent_map.get(error["trace.span"])
