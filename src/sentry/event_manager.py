@@ -2183,6 +2183,7 @@ def _process_existing_aggregate(
     if (
         event.search_message
         and event.search_message != group.message
+        and not _is_placeholder_title(event.search_message)
         and event.get_event_type() != TransactionEvent.key
     ):
         updated_group_values["message"] = event.search_message
