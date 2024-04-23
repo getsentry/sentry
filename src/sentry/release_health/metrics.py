@@ -121,7 +121,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return projects, org_ids.pop()
 
     @staticmethod
-    def _extract_crash_free_rate_from_result_groups(
+    def _extract_crash_free_rates_from_result_groups(
         result_groups: list[PathSearchable],
     ) -> dict[int, float | None]:
         crash_free_rates: dict[int, float | None] = {}
@@ -169,7 +169,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
         result = get_series(projects=projects, metrics_query=query, use_case_id=USE_CASE_ID)
         result_groups = get_path(result, "groups", default=[])
-        return MetricsReleaseHealthBackend._extract_crash_free_rate_from_result_groups(
+        return MetricsReleaseHealthBackend._extract_crash_free_rates_from_result_groups(
             result_groups=result_groups
         )
 
