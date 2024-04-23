@@ -28,7 +28,6 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -897,12 +896,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def store_event(
-        data: dict[str, Any],
-        project_id: int,
-        assert_no_errors: bool = True,
-        sent_at: datetime | None = None,
-    ) -> Event:
+    def store_event(data, project_id, assert_no_errors=True, sent_at=None):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
         manager = EventManager(data, sent_at=sent_at)
@@ -1368,7 +1362,7 @@ class Factories:
         )
 
         return UserReport.objects.create(
-            group_id=event.group_id,
+            group_id=event.group.id,
             event_id=event.event_id,
             project_id=project.id,
             name="Jane Bloggs",
