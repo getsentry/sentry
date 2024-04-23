@@ -36,7 +36,6 @@ def make_counter_payload(use_case, org_id, rand_str):
 
 
 def make_dist_payload(use_case, org_id, rand_str, value_len, b64_encode):
-    INT_WIDTH = 8
     nums = [random.random() for _ in range(value_len)]
     return {
         "name": f"d:{use_case}/duration@second",
