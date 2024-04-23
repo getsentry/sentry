@@ -549,8 +549,8 @@ class Event(BaseEvent):
         self,
         project_id: int,
         event_id: str,
-        data: NodeData,
         group_id: int | None = None,
+        data: NodeData | None = None,
         snuba_data: Mapping[str, Any] | None = None,
         groups: Sequence[Group] | None = None,
     ):
@@ -566,7 +566,7 @@ class Event(BaseEvent):
         return state
 
     @property
-    def data(self) -> NodeData:
+    def data(self) -> NodeData | None:
         return self._data
 
     @data.setter
@@ -715,7 +715,9 @@ class GroupEvent(BaseEvent):
             project_id=event.project_id,
             event_id=event.event_id,
             group=group,
-            data=deepcopy(event.data),
+            # XXX: The Event class has `data` which can be None, however,
+            # the GroupEvent class requires it
+            data=deepcopy(event.data),  # type: ignore[arg-type]
             snuba_data=deepcopy(event._snuba_data),
         )
         if hasattr(event, "_project_cache"):
