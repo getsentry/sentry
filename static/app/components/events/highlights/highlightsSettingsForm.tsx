@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
-
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contextSummary/utils';
+import Form, {type FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -18,13 +18,30 @@ export default function HighlightsSettingsForm({
   projectSlug,
 }: HighlightsSettingsFormProps) {
   const organization = useOrganization();
-  const {data: project} = useDetailedProject({orgSlug: organization.slug, projectSlug});
+  const {data: project, refetch} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug,
+  });
   if (!organization.features.includes('event-tags-tree-ui') || !project) {
     return null;
   }
   const access = new Set(organization.access.concat(project.access));
+  const formProps: FormProps = {
+    saveOnBlur: true,
+    allowUndo: true,
+    initialData: {
+      highlightTags: project.highlightTags,
+      highlightContext: project.highlightContext,
+    },
+    apiMethod: 'PUT',
+    apiEndpoint: `/projects/${organization.slug}/${projectSlug}/`,
+    onSubmitSuccess: () => {
+      refetch();
+      addSuccessMessage(`Successfully updated highlights for '${project.name}'`);
+    },
+  };
   return (
-    <Fragment>
+    <Form {...formProps}>
       <TextBlock>
         {t(
           `Setup Highlights to promote your event data to the top of the issue page for quicker debugging.`
@@ -83,6 +100,6 @@ export default function HighlightsSettingsForm({
           },
         ]}
       />
-    </Fragment>
+    </Form>
   );
 }
