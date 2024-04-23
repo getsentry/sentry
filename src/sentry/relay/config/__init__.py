@@ -341,8 +341,6 @@ def get_project_config(
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
-        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
-        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
         return {"version": 2, "rules": generate_rules(project)}
 
     return None
