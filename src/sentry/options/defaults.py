@@ -552,6 +552,7 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("github-login.organization", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("github-extension", default=False, flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE)
 
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
