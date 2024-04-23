@@ -155,7 +155,7 @@ class GroupSnooze(Model):
         real_count = group.count_users_seen(
             referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         )
-        return real_count < threshold
+        return real_count <= threshold
 
     def test_user_counts_w_cache(self, group=None):
         metrics.incr("groupsnooze.test_user_counts")
