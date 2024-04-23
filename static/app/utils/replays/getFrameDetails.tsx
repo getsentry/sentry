@@ -380,9 +380,15 @@ function defaultTitle(frame: ReplayFrame) {
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
   const {tagName, attributes} = node ?? {};
   const attributesEntries = Object.entries(attributes ?? {});
-  return `${tagName}${
+  const componentName = node?.attributes['data-sentry-component'];
+
+  return `${componentName ?? tagName}${
     attributesEntries.length
-      ? attributesEntries.map(([attr, val]) => `[${attr}="${val}"]`).join('')
+      ? attributesEntries
+          .map(([attr, val]) =>
+            componentName && attr === 'data-sentry-component' ? '' : `[${attr}="${val}"]`
+          )
+          .join('')
       : ''
   }`;
 }

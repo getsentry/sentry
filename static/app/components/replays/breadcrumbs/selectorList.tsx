@@ -19,7 +19,11 @@ export default function SelectorList({frame}: {frame: ClickFrame}) {
   return componentName ? (
     <Fragment>
       <span>{frame.message.substring(0, lastComponentIndex)}</span>
-      <Tooltip title={t('Search by this component')} isHoverable>
+      <Tooltip
+        title={t('Search by this component')}
+        containerDisplayMode="inline"
+        isHoverable
+      >
         <Link
           to={{
             pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
