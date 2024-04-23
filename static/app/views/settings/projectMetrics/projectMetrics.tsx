@@ -203,14 +203,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
                 hasAccess={hasAccess}
                 disabled={blockMetricMutation.isLoading}
                 isBlocked={isBlocked}
-                aria-label={t('Block Metric')}
-                message={
-                  isBlocked
-                    ? t('Are you sure you want to unblock this metric?')
-                    : t(
-                        'Are you sure you want to block this metric? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
-                      )
-                }
+                blockTarget="metric"
                 onConfirm={() => {
                   blockMetricMutation.mutate({
                     mri,
