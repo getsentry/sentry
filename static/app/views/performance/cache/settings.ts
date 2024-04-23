@@ -11,3 +11,5 @@ export const releaseLevelAsBadgeProps = {
 };
 
 export const MODULE_TITLE = t('Cache');
+
+export const CHART_HEIGHT = 160;
