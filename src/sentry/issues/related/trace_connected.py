@@ -1,10 +1,12 @@
 # Module to evaluate if other errors happened in the same trace.
 #
 # Refer to README in module for more details.
-from sentry.api.endpoints.organization_events_trace import find_errors_for_trace_id
 from sentry.api.utils import default_start_end_dates
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -14,14 +16,19 @@ def trace_connected_analysis(group: Group) -> list[int]:
     if not event or event.trace_id is None:
         return []
 
-    start, end = default_start_end_dates()  # Today to 90 days back
     org_id = group.project.organization_id
     # XXX: Test without a list and validate the data type
     project_ids = list(Project.objects.filter(organization_id=org_id).values_list("id", flat=True))
-    query = find_errors_for_trace_id(
-        params={"start": start, "end": end, "organization_id": org_id, "project_id": project_ids},
-        trace_id=event.trace_id,
-        selected_columns=["issue.id"],
+    start, end = default_start_end_dates()  # Today to 90 days back
+    query = QueryBuilder(
+        Dataset.Events,
+        {"start": start, "end": end, "organization_id": org_id, "project_id": project_ids},
+        query=f"trace:{event.trace_id}",
+        selected_columns=["id", "issue.id"],
+        # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
+        orderby=["id"],
+        limit=100,
+        config=QueryBuilderConfig(auto_fields=False),
     )
     results = bulk_snuba_queries(
         [query.get_snql_query()], referrer=Referrer.API_ISSUES_RELATED_ISSUES.value
