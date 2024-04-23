@@ -556,7 +556,13 @@ def get_relocations_bucket_name():
     """
 
     storage = get_relocation_storage()
-    return "default" if getattr(storage, "bucket_name", None) is None else f"{storage.bucket_name}"
+
+    # Specialize for GCS...
+    if hasattr(storage, "bucket_name"):
+        return f"{storage.bucket_name}"
+
+    # ...and the local filesystem, when testing.
+    return "default"
 
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
