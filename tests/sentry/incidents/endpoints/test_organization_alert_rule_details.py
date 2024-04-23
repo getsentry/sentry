@@ -391,6 +391,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(alert_rule)
 
         # TODO: determine how to convert activated alert into continuous alert and vice versa (see logic.py)
+        # requires creating/disabling activations accordingly
         # assert resp.data["monitorType"] == AlertRuleMonitorType.ACTIVATED.value
         # assert (
         #     resp.data["activationCondition"]

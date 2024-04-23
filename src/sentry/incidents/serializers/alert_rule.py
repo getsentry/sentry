@@ -503,6 +503,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
+        if "monitor_type" in validated_data:
+            """
+            TODO: enable monitor type editing
+            requires creating/disabling activations accordingly
+            """
+            validated_data.pop("monitor_type")
         with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rule = update_alert_rule(
                 instance,
