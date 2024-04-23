@@ -70,6 +70,7 @@ from sentry.issues.grouptype import (
     NoiseConfig,
     PerformanceFileIOMainThreadGroupType,
     PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
@@ -3278,6 +3279,7 @@ class TraceTestCase(SpanTestCase):
         span_id: str | None = None,
         measurements: dict[str, int | float] | None = None,
         file_io_performance_issue: bool = False,
+        slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
     ) -> Event:
@@ -3311,6 +3313,15 @@ class TraceTestCase(SpanTestCase):
             new_span["data"].update({"duration": 1, "blocked_main_thread": True})
             new_span["span_id"] = "0012" * 4
             data["spans"].append(new_span)
+        if slow_db_performance_issue:
+            new_span = data["spans"][0].copy()
+            if "data" not in new_span:
+                new_span["data"] = {}
+            new_span["op"] = "db"
+            new_span["description"] = "SELECT * FROM table"
+            new_span["data"].update({"duration": 10_000})
+            new_span["span_id"] = "0013" * 4
+            data["spans"].append(new_span)
         with self.feature(self.FEATURES):
             with (
                 mock.patch.object(
@@ -3318,10 +3329,16 @@ class TraceTestCase(SpanTestCase):
                     "noise_config",
                     new=NoiseConfig(0, timedelta(minutes=1)),
                 ),
+                mock.patch.object(
+                    PerformanceSlowDBQueryGroupType,
+                    "noise_config",
+                    new=NoiseConfig(0, timedelta(minutes=1)),
+                ),
                 override_options(
                     {
                         "performance.issues.all.problem-detection": 1.0,
                         "performance-file-io-main-thread-creation": 1.0,
+                        "performance.issues.slow_db_query.problem-creation": 1.0,
                     }
                 ),
             ):
@@ -3395,6 +3412,7 @@ class TraceTestCase(SpanTestCase):
             },
             parent_span_id=None,
             file_io_performance_issue=True,
+            slow_db_performance_issue=True,
             project_id=self.project.id,
             milliseconds=3000,
         )

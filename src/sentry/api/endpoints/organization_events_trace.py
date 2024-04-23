@@ -60,6 +60,7 @@ SnubaTransaction = TypedDict(
         "project.id": int,
         "project": str,
         "issue.ids": list[int],
+        "occurrence_to_issue_id": dict[str, list[int]],
     },
 )
 SnubaError = TypedDict(
@@ -177,7 +178,10 @@ class TraceEvent:
         self.fetched_nodestore: bool = span_serialized
         self.span_serialized = span_serialized
         if len(self.event["issue.ids"]) > 0:
-            self.load_performance_issues(light, snuba_params)
+            if self.span_serialized:
+                self.load_span_serialized_performance_issues(light, snuba_params)
+            else:
+                self.load_performance_issues(light, snuba_params)
 
     @property
     def nodestore_event(self) -> Event | None:
@@ -188,6 +192,66 @@ class TraceEvent:
                     self.event["project.id"], self.event["id"]
                 )
         return self._nodestore_event
+
+    def load_span_serialized_performance_issues(
+        self, light: bool, snuba_params: ParamsType
+    ) -> None:
+        """Rewriting load_performance_issues from scratch so the logic is more independent"""
+        memoized_groups = {}
+        for event_span in self.event["occurrence_spans"]:
+            unique_spans: set[str] = set()
+            start: float | None = None
+            end: float | None = None
+            suspect_spans: list[str] = []
+            problem = event_span["problem"]
+            offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
+            for group_id in self.event["occurrence_to_issue_id"][problem.id]:
+                if group_id not in memoized_groups:
+                    memoized_groups[group_id] = Group.objects.filter(
+                        id=group_id, project=self.event["project.id"]
+                    ).first()
+                group = memoized_groups[group_id]
+                if event_span.get("span_id") in offender_span_ids:
+                    start_timestamp = float(event_span.get("precise.start_ts"))
+                    if start is None:
+                        start = start_timestamp
+                    else:
+                        start = min(start, start_timestamp)
+                    end_timestamp = float(event_span.get("precise.finish_ts"))
+                    if end is None:
+                        end = end_timestamp
+                    else:
+                        end = max(end, end_timestamp)
+                    suspect_spans.append(event_span.get("span_id"))
+
+                parent_span_ids = problem.evidence_data.get("parent_span_ids")
+                if parent_span_ids is not None:
+                    unique_spans = unique_spans.union(parent_span_ids)
+
+                # Logic for qualified_short_id is copied from property on the Group model
+                # to prevent an N+1 query from accessing project.slug everytime
+                qualified_short_id = None
+                project_slug = self.event["project"]
+                if group.short_id is not None:
+                    qualified_short_id = f"{project_slug.upper()}-{base32_encode(group.short_id)}"
+
+                self.performance_issues.append(
+                    {
+                        "event_id": self.event["id"],
+                        "issue_id": group_id,
+                        "issue_short_id": qualified_short_id,
+                        "span": list(unique_spans),
+                        "suspect_spans": suspect_spans,
+                        "project_id": self.event["project.id"],
+                        "project_slug": self.event["project"],
+                        "title": group.title,
+                        "level": constants.LOG_LEVELS[group.level],
+                        "culprit": group.culprit,
+                        "type": group.type,
+                        "start": start,
+                        "end": end,
+                    }
+                )
 
     def load_performance_issues(self, light: bool, snuba_params: ParamsType | None) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
@@ -203,29 +267,8 @@ class TraceEvent:
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
-            elif "occurrence_spans" in self.event:
-                for problem in self.event["issue_occurrences"]:
-                    parent_span_ids = problem.evidence_data.get("parent_span_ids")
-                    if parent_span_ids is not None:
-                        unique_spans = unique_spans.union(parent_span_ids)
-                span = list(unique_spans)
-                for event_span in self.event["occurrence_spans"]:
-                    for problem in self.event["issue_occurrences"]:
-                        offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
-                        if event_span.get("span_id") in offender_span_ids:
-                            start_timestamp = float(event_span.get("precise.start_ts"))
-                            if start is None:
-                                start = start_timestamp
-                            else:
-                                start = min(start, start_timestamp)
-                            end_timestamp = float(event_span.get("precise.finish_ts"))
-                            if end is None:
-                                end = end_timestamp
-                            else:
-                                end = max(end, end_timestamp)
-                            suspect_spans.append(event_span.get("span_id"))
             else:
-                if self.nodestore_event is not None or self.span_serialized:
+                if self.nodestore_event is not None:
                     occurrence_query = QueryBuilder(
                         Dataset.IssuePlatform,
                         snuba_params,
@@ -483,6 +526,7 @@ def update_params_with_trace_timestamp_projects(
     params["project_id"] = project_ids
 
 
+@sentry_sdk.tracing.trace
 def query_trace_data(
     trace_id: str,
     params: Mapping[str, str],
@@ -580,11 +624,21 @@ def query_trace_data(
     ]
 
     # Join group IDs from the occurrence dataset to transactions data
-    occurrence_issue_ids = {row["event_id"]: row["issue.ids"] for row in transformed_results[2]}
-    occurrence_ids = {row["event_id"]: row["occurrence_id"] for row in transformed_results[2]}
+    occurrence_issue_ids = defaultdict(list)
+    occurrence_ids = defaultdict(list)
+    for row in transformed_results[2]:
+        occurrence_issue_ids[row["event_id"]].extend(row["issue.ids"])
+        occurrence_ids[row["event_id"]].append(row["occurrence_id"])
+
     for result in transformed_results[0]:
-        result["issue.ids"] = occurrence_issue_ids.get(result["id"], {})
-        result["occurrence_id"] = occurrence_ids.get(result["id"])
+        result["occurrence_to_issue_id"] = {}
+        for occurrence in transformed_results[2]:
+            if occurrence["event_id"] == result["id"]:
+                result["occurrence_to_issue_id"][occurrence["occurrence_id"]] = occurrence[
+                    "issue.ids"
+                ]
+        result["issue.ids"] = occurrence_issue_ids.get(result["id"], [])
+        result["occurrence_id"] = occurrence_ids.get(result["id"], [])
         result["trace.parent_transaction"] = None
         if use_spans:
             result["measurements"] = {
@@ -636,6 +690,7 @@ def pad_span_id(span):
     return span.rjust(16, "0")
 
 
+@sentry_sdk.tracing.trace
 def augment_transactions_with_spans(
     transactions: Sequence[SnubaTransaction],
     errors: Sequence[SnubaError],
@@ -685,7 +740,7 @@ def augment_transactions_with_spans(
             if project not in problem_project_map:
                 problem_project_map[project] = []
             if transaction["occurrence_id"] is not None:
-                problem_project_map[project].append(transaction["occurrence_id"])
+                problem_project_map[project].extend(transaction["occurrence_id"])
 
             if not transaction["trace.parent_span"]:
                 continue
@@ -778,8 +833,9 @@ def augment_transactions_with_spans(
                 parent = parent_map.get(span_id)
                 if parent is not None:
                     transaction = transaction_problem_map[problem.event_id]
-                    transaction["occurrence_spans"].append(parent)
-                    transaction["issue_occurrences"].append(problem)
+                    occurrence = parent.copy()
+                    occurrence["problem"] = problem
+                    transaction["occurrence_spans"].append(occurrence)
     with sentry_sdk.start_span(op="augment.transactions", description="linking errors"):
         for error in errors:
             parent = parent_map.get(error["trace.span"])
