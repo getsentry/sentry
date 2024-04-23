@@ -1,6 +1,7 @@
 import uuid
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence
+from typing import Any
 from unittest import mock
 
 import msgpack
