@@ -60,8 +60,8 @@ def proxy_request_if_needed(
         url_name = request.resolver_match.url_name or url_name
 
     if "organization_slug" in view_kwargs or "organization_id_or_slug" in view_kwargs:
-        org_id_or_slug: str = view_kwargs.get("organization_slug") or view_kwargs.get(
-            "organization_id_or_slug", ""
+        org_id_or_slug = str(
+            view_kwargs.get("organization_slug") or view_kwargs.get("organization_id_or_slug", "")
         )
 
         metrics.incr(
@@ -89,11 +89,13 @@ def proxy_request_if_needed(
         return proxy_sentryappinstallation_request(request, install_uuid, url_name)
 
     if (
-        "sentry_app_slug" in view_kwargs
+        ("sentry_app_slug" in view_kwargs or "sentry_app_id_or_slug" in view_kwargs)
         and request.resolver_match
         and request.resolver_match.url_name in SENTRY_APP_REGION_URL_NAMES
     ):
-        app_slug = view_kwargs["sentry_app_slug"]
+        app_id_or_slug = str(
+            view_kwargs.get("sentry_app_slug") or view_kwargs.get("sentry_app_id_or_slug", "")
+        )
         metrics.incr(
             "apigateway.proxy_request",
             tags={
@@ -101,7 +103,7 @@ def proxy_request_if_needed(
                 "kind": "sentryapp",
             },
         )
-        return proxy_sentryapp_request(request, app_slug, url_name)
+        return proxy_sentryapp_request(request, app_id_or_slug, url_name)
 
     if (
         request.resolver_match
