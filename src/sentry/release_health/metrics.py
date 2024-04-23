@@ -46,7 +46,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.dates import to_datetime
-from sentry.utils.safe import PathSearchable, get_path
+from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
 
 SMALLEST_METRICS_BUCKET = 10
@@ -122,7 +122,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _extract_crash_free_rates_from_result_groups(
-        result_groups: list[PathSearchable],
+        result_groups: Sequence[Any],
     ) -> dict[int, float | None]:
         crash_free_rates: dict[int, float | None] = {}
         for result_group in result_groups:
@@ -145,7 +145,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
         rollup: int,
-    ) -> dict[int, float]:
+    ) -> dict[int, float | None]:
 
         project_ids = [p.id for p in projects]
 
