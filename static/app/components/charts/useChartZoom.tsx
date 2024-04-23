@@ -22,6 +22,8 @@ import type {
 } from 'sentry/types/echarts';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
+// TODO: replace usages of ChartZoom with useChartZoom
+
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
