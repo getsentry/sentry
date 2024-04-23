@@ -149,16 +149,13 @@ def _batch_write_to_redis(
 
         # Collects "first_seen" timestamps for each segment in batch.
         # Batch step doesn't guarantee order, so pick lowest ts.
-        if not segment_first_seen_ts.get(key) or timestamp < segment_first_seen_ts[key]:
+        if key not in segment_first_seen_ts or timestamp < segment_first_seen_ts[key]:
             segment_first_seen_ts[key] = timestamp
 
         # Collects latest timestamps processed in each partition. It is
         # important to keep track of this per partition because message
         # timestamps are guaranteed to be monotonic per partition only.
-        if (
-            not latest_ts_by_partition.get(partition)
-            or timestamp > latest_ts_by_partition[partition]
-        ):
+        if partition not in latest_ts_by_partition or timestamp > latest_ts_by_partition[partition]:
             latest_ts_by_partition[partition] = timestamp
 
     client = RedisSpansBuffer()
