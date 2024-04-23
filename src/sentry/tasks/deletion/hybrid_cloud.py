@@ -22,6 +22,7 @@ from django.db.models import Max, Min
 from django.db.models.manager import BaseManager
 from django.utils import timezone
 
+from sentry import options
 from sentry.db.models import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.tombstone import TombstoneBase
@@ -315,24 +316,48 @@ def _get_ids_to_delete(
 
     to_delete_ids = []
     oldest_seen: datetime.datetime = timezone.now()
-    with connections[router.db_for_read(model)].cursor() as conn:
-        conn.execute(
-            f"""
-            SELECT r.id, t.created_at
-            FROM {model._meta.db_table} r
-            JOIN {tombstone_cls._meta.db_table} t
-                ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
-            WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
-        """,
-            {
-                "table_name": field.foreign_table_name,
-                "low": watermark_batch.low,
-                "up": watermark_batch.up,
-            },
-        )
+    models_belong_to_same_database = router.db_for_read(model) == router.db_for_read(tombstone_cls)
 
-        for (row_id, tomb_created) in conn.fetchall():
-            to_delete_ids.append(row_id)
-            oldest_seen = min(oldest_seen, tomb_created)
+    if models_belong_to_same_database:
+        with connections[router.db_for_read(model)].cursor() as conn:
+            conn.execute(
+                f"""
+                    SELECT r.id, t.created_at
+                    FROM {model._meta.db_table} r
+                    JOIN {tombstone_cls._meta.db_table} t
+                        ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
+                    WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
+                """,
+                {
+                    "table_name": field.foreign_table_name,
+                    "low": watermark_batch.low,
+                    "up": watermark_batch.up,
+                },
+            )
 
-        return to_delete_ids, oldest_seen
+            for (row_id, tomb_created) in conn.fetchall():
+                to_delete_ids.append(row_id)
+                oldest_seen = min(oldest_seen, tomb_created)
+
+            return to_delete_ids, oldest_seen
+
+    if not options.get("hybrid_cloud.allow_cross_db_tombstones"):
+        raise Exception("Cannot process tombstones due to model living in separate database.")
+
+    # Because tombstones can span multiple databases, we can't always rely on
+    # the join code above. Instead, we have to manually query the tombstone IDs
+    # first, then query the model for matching rows.
+    tombstone_entries = tombstone_cls.objects.filter(
+        id_lte=watermark_batch.up, id_gt=watermark_batch.low
+    ).values_list("object_identifier", "created_at", flat=True)
+
+    ids_to_check = []
+    for object_id, created_at in tombstone_entries:
+        ids_to_check.append(object_id)
+        oldest_seen = min(oldest_seen, created_at)
+
+    field_name = f"{field.name}__in"
+    query_kwargs = {field_name: ids_to_check}
+    rows_to_delete = list(model.objects.filter(**query_kwargs))
+
+    return rows_to_delete, oldest_seen

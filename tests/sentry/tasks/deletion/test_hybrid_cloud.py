@@ -13,6 +13,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.user import User
+from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     get_watermark,
@@ -24,7 +25,12 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    control_silo_test,
+    region_silo_test,
+)
 from sentry.types.region import find_regions_for_user
 
 
@@ -274,3 +280,51 @@ def test_set_null_deletion_behavior(task_runner):
     # Deletion set field to null
     saved_query = DiscoverSavedQuery.objects.get(id=saved_query.id)
     assert saved_query.created_by_id is None
+
+
+def setup_cross_db_deletion_data():
+    user = Factories.create_user()
+    organization = Factories.create_organization(owner=user, name="Delete Me")
+    project = Factories.create_project(organization=organization)
+    group = Factories.create_group(project=project)
+    with assume_test_silo_mode_of(DiscoverSavedQuery, Monitor):
+        saved_query = DiscoverSavedQuery.objects.create(
+            name="disco-query",
+            organization=organization,
+            created_by_id=user.id,
+        )
+        monitor = Monitor.objects.create(
+            organization_id=organization.id,
+            project_id=project.id,
+            slug="test-monitor",
+            name="Test Monitor",
+            owner_user_id=user.id,
+        )
+
+    return dict(
+        user=user,
+        organization=organization,
+        project=project,
+        monitor=monitor,
+        group=group,
+        saved_query=saved_query,
+    )
+
+
+@django_db_all
+@region_silo_test
+def test_cross_database_same_silo_deletion(task_runner):
+    data = setup_cross_db_deletion_data()
+    user = data["user"]
+    monitor = data["monitor"]
+
+    with assume_test_silo_mode_of(User), outbox_runner():
+        user.delete()
+
+    with BurstTaskRunner() as burst:
+        schedule_hybrid_cloud_foreign_key_jobs()
+
+    burst()
+    updated_monitor = Monitor.objects.get(id=monitor.id)
+
+    assert updated_monitor.owner_user_id is None
