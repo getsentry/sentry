@@ -102,12 +102,22 @@ def get_frames(
     return frames[::-1]
 
 
-def get_crash_event(handled=False, function="-[Sentry]", **kwargs) -> dict[str, Collection[str]]:
-    return get_crash_event_with_frames(get_frames(function), handled=handled, **kwargs)
+def get_crash_event(
+    handled=False,
+    function="-[Sentry]",
+    registers: Sequence[Mapping[str, str]] | None = None,
+    **kwargs,
+) -> dict[str, Collection[str]]:
+    return get_crash_event_with_frames(
+        get_frames(function), registers=registers, handled=handled, **kwargs
+    )
 
 
 def get_crash_event_with_frames(
-    frames: Sequence[Mapping[str, Any]], handled=False, **kwargs
+    frames: Sequence[Mapping[str, Any]],
+    registers: Sequence[Mapping[str, str]] | None = None,
+    handled=False,
+    **kwargs,
 ) -> dict[str, Collection[str]]:
     result = {
         "event_id": "80e3496eff734ab0ac993167aaa0d1cd",
@@ -121,15 +131,7 @@ def get_crash_event_with_frames(
                 {
                     "stacktrace": {
                         "frames": frames,
-                        "registers": {
-                            "fp": "0x16f8f6e90",
-                            "lr": "0x10050ad74",
-                            "pc": "0x10050ad8c",
-                            "sp": "0x16f8f6e30",
-                            "x0": "0x0",
-                            "x10": "0x2",
-                            "x12": "0x10000000000",
-                        },
+                        "registers": registers,
                     },
                     "type": "EXC_BAD_ACCESS",
                     "value": "crash > crash: > objectAtIndex: >\nAttempted to dereference null pointer.",
