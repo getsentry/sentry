@@ -14,6 +14,7 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "hybridcloud.controlcacheversion": [],
   "hybridcloud.externalactorreplica": [
     "sentry.externalactor",
     "sentry.integration",
@@ -239,8 +240,7 @@
   "sentry.docintegration": [],
   "sentry.docintegrationavatar": [
     "sentry.controlfile",
-    "sentry.docintegration",
-    "sentry.file"
+    "sentry.docintegration"
   ],
   "sentry.email": [],
   "sentry.environment": [
@@ -445,7 +445,8 @@
   "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
-    "sentry.project"
+    "sentry.project",
+    "sentry.user"
   ],
   "sentry.monitorcheckin": [
     "sentry.monitor",
@@ -570,10 +571,6 @@
   "sentry.projectartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization",
-    "sentry.project"
-  ],
-  "sentry.projectavatar": [
-    "sentry.file",
     "sentry.project"
   ],
   "sentry.projectbookmark": [
@@ -737,7 +734,9 @@
   "sentry.rule": [
     "sentry.actor",
     "sentry.environment",
-    "sentry.project"
+    "sentry.project",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.ruleactivity": [
     "sentry.rule",
@@ -765,7 +764,6 @@
   ],
   "sentry.sentryappavatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.sentryapp"
   ],
   "sentry.sentryappcomponent": [
@@ -813,10 +811,6 @@
   "sentry.team": [
     "sentry.organization"
   ],
-  "sentry.teamavatar": [
-    "sentry.file",
-    "sentry.team"
-  ],
   "sentry.teamkeytransaction": [
     "sentry.organization",
     "sentry.projectteam"
@@ -829,7 +823,6 @@
   "sentry.user": [],
   "sentry.useravatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.user"
   ],
   "sentry.useremail": [

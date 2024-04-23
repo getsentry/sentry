@@ -1,3 +1,4 @@
+import atexit
 from typing import Any
 
 from datadog import initialize
@@ -7,6 +8,17 @@ from .base import MetricsBackend, Tags
 
 __all__ = ["DogStatsdMetricsBackend"]
 
+# Set the maximum number of packets to queue for the sender.
+# How may packets to queue before blocking or dropping the packet if the packet queue is already full.
+# 0 means unlimited.
+SENDER_QUEUE_SIZE = 0
+
+# Set timeout for packet queue operations, in seconds
+# How long the application thread is willing to wait for the queue clear up before dropping the metric packet.
+# If set to None, wait forever.
+# If set to zero drop the packet immediately if the queue is full.
+SENDER_QUEUE_TIMEOUT = 0
+
 
 class DogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
@@ -15,6 +27,18 @@ class DogStatsdMetricsBackend(MetricsBackend):
         initialize(**kwargs)
         statsd.disable_telemetry()
         statsd.disable_buffering = False
+
+        # When enabled, a background thread will be used to send metric payloads to the Agent.
+        statsd.enable_background_sender(
+            sender_queue_size=SENDER_QUEUE_SIZE, sender_queue_timeout=SENDER_QUEUE_TIMEOUT
+        )
+        # Applications should call wait_for_pending() before exiting to make sure all pending payloads are sent.
+        atexit.register(statsd.wait_for_pending)
+
+        # Origin detection is enabled after 0.45 by default.
+        # Disable it since it silently fails.
+        # Ref: https://github.com/DataDog/datadogpy/issues/764
+        statsd._container_id = None
         super().__init__(prefix=prefix)
 
     def incr(

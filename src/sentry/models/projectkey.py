@@ -259,6 +259,10 @@ class ProjectKey(Model):
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
     @property
+    def crons_endpoint(self):
+        return f"{self.get_endpoint()}/api/{self.project_id}/cron/___MONITOR_SLUG___/{self.public_key}/"
+
+    @property
     def js_sdk_loader_cdn_url(self) -> str:
         if settings.JS_SDK_LOADER_CDN_URL:
             return f"{settings.JS_SDK_LOADER_CDN_URL}{self.public_key}.min.js"

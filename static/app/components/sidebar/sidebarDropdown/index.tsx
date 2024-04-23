@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {logout} from 'sentry/actionCreators/account';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import Avatar from 'sentry/components/avatar';
+import {Chevron} from 'sentry/components/chevron';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';
@@ -12,7 +13,7 @@ import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.s
 import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconChevron, IconSentry} from 'sentry/icons';
+import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -88,7 +89,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
               <OrgAndUserWrapper>
                 <OrgOrUserName>
                   {hasOrganization ? org.name : user.name}{' '}
-                  <StyledIconChevron color="white" size="xs" direction="down" />
+                  <StyledChevron direction={isOpen ? 'up' : 'down'} />
                 </OrgOrUserName>
                 <UserNameOrEmail>
                   {hasOrganization ? user.name : user.email}
@@ -260,6 +261,6 @@ const OrgAndUserMenu = styled('div')`
   z-index: ${p => p.theme.zIndex.orgAndUserMenu};
 `;
 
-const StyledIconChevron = styled(IconChevron)`
-  margin-left: ${space(0.25)};
+const StyledChevron = styled(Chevron)`
+  transform: translateY(${space(0.25)});
 `;

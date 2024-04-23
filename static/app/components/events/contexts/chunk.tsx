@@ -1,13 +1,17 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {defined, toTitleCase} from 'sentry/utils';
+import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 
-import {getContextComponent, getSourcePlugin} from './utils';
+import {
+  getContextComponent,
+  getContextMeta,
+  getContextTitle,
+  getSourcePlugin,
+} from './utils';
 
 type Props = {
   alias: string;
@@ -16,50 +20,6 @@ type Props = {
   group?: Group;
   value?: Record<string, any>;
 };
-
-function getTitle({value = {}, alias, type}: Pick<Props, 'alias' | 'type' | 'value'>) {
-  if (defined(value.title) && typeof value.title !== 'object') {
-    return value.title;
-  }
-
-  if (!defined(type)) {
-    return toTitleCase(alias);
-  }
-
-  switch (type) {
-    case 'app':
-      return t('App');
-    case 'device':
-      return t('Device');
-    case 'os':
-      return t('Operating System');
-    case 'user':
-      return t('User');
-    case 'gpu':
-      return t('Graphics Processing Unit');
-    case 'runtime':
-      return t('Runtime');
-    case 'trace':
-      return t('Trace Details');
-    case 'otel':
-      return t('OpenTelemetry');
-    case 'unity':
-      return t('Unity');
-    case 'memory_info': // Future new value for memory info
-    case 'Memory Info': // Current value for memory info
-      return t('Memory Info');
-    case 'threadpool_info': // Future new value for thread pool info
-    case 'ThreadPool Info': // Current value for thread pool info
-      return t('Thread Pool Info');
-    case 'default':
-      if (alias === 'state') {
-        return t('Application State');
-      }
-      return toTitleCase(alias);
-    default:
-      return toTitleCase(type);
-  }
-}
 
 export function Chunk({group, type, alias, value = {}, event}: Props) {
   const [pluginLoading, setPluginLoading] = useState(false);
@@ -122,14 +82,19 @@ export function Chunk({group, type, alias, value = {}, event}: Props) {
       type={`context-${alias}`}
       title={
         <Fragment>
-          {getTitle({value, alias, type})}
+          {getContextTitle({value, alias, type})}
           {defined(type) && type !== 'default' && alias !== type && (
             <small>({alias})</small>
           )}
         </Fragment>
       }
     >
-      <ContextComponent alias={alias} event={event} data={value} />
+      <ContextComponent
+        alias={alias}
+        event={event}
+        data={value}
+        meta={getContextMeta(event, type)}
+      />
     </EventDataSection>
   );
 }

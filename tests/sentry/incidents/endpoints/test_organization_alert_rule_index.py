@@ -23,7 +23,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
@@ -82,6 +82,7 @@ class AlertRuleBase(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
+            "activations": [],
         }
 
 
@@ -120,6 +121,19 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
         assert serialize([alert_rule2]) not in resp.data
         assert resp.data == serialize([alert_rule1])
+
+    def test_simple_with_activation(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+        self.create_alert_rule_activation(
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+        )
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data == serialize([alert_rule])
 
 
 @freeze_time()
@@ -991,7 +1005,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "dataset": "sessions",
+            "dataset": "metrics",
             "eventTypes": [],
         }
 

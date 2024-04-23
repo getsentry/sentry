@@ -251,6 +251,12 @@ def create_issue_platform_occurrence(
     if last_successful_checkin:
         last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
 
+    assignee = None
+    # TODO: Remove org fetch after we remove feature flag
+    organization = Organization.objects.get_from_cache(id=monitor_env.monitor.organization_id)
+    if features.has("organizations:crons-ownership", organization):
+        assignee = monitor_env.monitor.owner_actor
+
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         resource_id=None,
@@ -275,6 +281,7 @@ def create_issue_platform_occurrence(
         culprit=occurrence_data["reason"],
         detection_time=current_timestamp,
         level=occurrence_data["level"],
+        assignee=assignee,
     )
 
     if failed_checkin.trace_id:

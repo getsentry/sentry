@@ -16,7 +16,7 @@ import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
 
 export function getTraceDetailsUrl(
-  organization: OrganizationSummary,
+  organization: Pick<OrganizationSummary, 'slug' | 'features'>,
   traceSlug: string,
   dateSelection,
   query: Query,
@@ -35,7 +35,7 @@ export function getTraceDetailsUrl(
 
   if (organization.features.includes('trace-view-v1')) {
     if (spanId) {
-      queryParams.node = [`span:${spanId}`, `txn:${eventId}`];
+      queryParams.node = [`span-${spanId}`, `txn-${eventId}`];
     }
     return {
       pathname: normalizeUrl(

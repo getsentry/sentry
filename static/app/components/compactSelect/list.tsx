@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext, useEffect, useMemo} from 'react';
+import {createContext, useCallback, useContext, useLayoutEffect, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -232,7 +232,7 @@ function List<Value extends SelectKey>({
   });
 
   // Register the initialized list state once on mount
-  useEffect(() => {
+  useLayoutEffect(() => {
     registerListState(compositeIndex, listState);
     saveSelectedOptions(
       compositeIndex,

@@ -10,7 +10,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -24,7 +24,7 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
   return (
     <Fragment>
       <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
-        <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
+        <FeedbackItemUsername feedbackIssue={feedbackItem} />
 
         <StyledTimeSince
           date={feedbackItem.firstSeen}

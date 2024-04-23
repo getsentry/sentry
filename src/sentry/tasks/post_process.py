@@ -23,7 +23,7 @@ from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -361,7 +361,14 @@ def handle_group_owners(
     from sentry.services.hybrid_cloud.user import RpcUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
+    logging_params = {
+        "group": group.id,
+        "project": project.id,
+        "organization": project.organization_id,
+        "issue_owners_length": len(issue_owners) if issue_owners else 0,
+    }
     try:
+        logger.info("handle_group_owners.start", extra=logging_params)
         with (
             metrics.timer("post_process.handle_group_owners"),
             sentry_sdk.start_span(op="post_process.handle_group_owners"),
@@ -383,12 +390,8 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
-                logging_params = {
-                    "group": group.id,
-                    "project": project.id,
-                    "organization": project.organization_id,
-                    "group_owner_id": group_owner.id,
-                }
+                local_logging_params = logging_params.copy()
+                local_logging_params["group_owner_id"] = group_owner.id
                 owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
@@ -405,7 +408,7 @@ def handle_group_owners(
                     group_owner.delete()
                     logger.info(
                         "handle_group_owners.delete_group_owner",
-                        extra={**logging_params, "reason": "assignment_deleted"},
+                        extra={**local_logging_params, "reason": "assignment_deleted"},
                     )
                 else:
                     lookup_key_value = new_owners.get(lookup_key)
@@ -417,7 +420,7 @@ def handle_group_owners(
                     group_owner.delete()
                     logger.info(
                         "handle_group_owners.delete_group_owner",
-                        extra={**logging_params, "reason": "outdated_rule"},
+                        extra={**local_logging_params, "reason": "outdated_rule"},
                     )
                 else:
                     keeping_owners.add(lookup_key)
@@ -459,17 +462,11 @@ def handle_group_owners(
                         instance=go,
                         created=True,
                     )
-                logger.info(
-                    "group_owners.bulk_create",
-                    extra={
-                        "group_id": group.id,
-                        "project_id": project.id,
-                        "organization_id": project.organization_id,
-                        "count": len(new_group_owners),
-                    },
-                )
+                logging_params["count"] = len(new_group_owners)
+                logger.info("group_owners.bulk_create", extra=logging_params)
 
     except UnableToAcquireLock:
+        logger.info("handle_group_owners.lock_failed", extra=logging_params)
         pass
 
 
@@ -747,12 +744,34 @@ def post_process_group(
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
         if not is_reprocessed and event.data.get("received"):
+            duration = time() - event.data["received"]
             metrics.timing(
                 "events.time-to-post-process",
-                time() - event.data["received"],
+                duration,
                 instance=event.data["platform"],
                 tags=metric_tags,
             )
+
+            # We see occasional metrics being recorded with very old data,
+            # temporarily log some information about these groups to help
+            # investigate.
+            if duration and duration > 432_000:  # 5 days (5*24*60*60)
+                logger.warning(
+                    "tasks.post_process.old_time_to_post_process",
+                    extra={
+                        "group_id": group_id,
+                        "project_id": project_id,
+                        "duration": duration,
+                        "received": event.data["received"],
+                        "platform": event.data["platform"],
+                        "reprocessing": json.dumps(
+                            get_path(event.data, "contexts", "reprocessing")
+                        ),
+                        "original_issue_id": json.dumps(
+                            get_path(event.data, "contexts", "reprocessing", "original_issue_id")
+                        ),
+                    },
+                )
 
 
 def run_post_process_job(job: PostProcessJob):
@@ -1081,7 +1100,7 @@ def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.rules.processor import RuleProcessor
+    from sentry.rules.processing.processor import RuleProcessor
 
     group_event = job["event"]
     if isinstance(group_event, Event):
@@ -1438,6 +1457,49 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     return False
 
 
+def check_has_high_priority_alerts(job: PostProcessJob) -> None:
+    """
+    Determine if we should fire a task to check if the new issue
+    threshold has been met to enable high priority alerts.
+    """
+    try:
+        event = job["event"]
+        if event.project.flags.has_high_priority_alerts:
+            return
+
+        from sentry.tasks.check_new_issue_threshold_met import (
+            check_new_issue_threshold_met,
+            new_issue_threshold_key,
+        )
+
+        # If the new issue volume has already been checked today, don't recalculate regardless of the value
+        project_key = new_issue_threshold_key(event.project_id)
+        threshold_met = cache.get(project_key)
+        if threshold_met is not None:
+            return
+
+        try:
+            lock = locks.get(project_key, duration=10)
+            with lock.acquire():
+                # If the threshold has already been calculated today, don't recalculate regardless of the value
+                task_scheduled = cache.get(project_key)
+                if task_scheduled is not None:
+                    return
+
+                check_new_issue_threshold_met.delay(event.project.id)
+
+                # Add the key to cache for 24 hours
+                cache.set(project_key, True, 60 * 60 * 24)
+        except UnableToAcquireLock:
+            pass
+    except Exception as e:
+        logger.warning(
+            "Failed to check new issue threshold met",
+            repr(e),
+            extra={"project_id": event.project_id},
+        )
+
+
 MAX_NEW_ESCALATION_AGE_HOURS = 24
 MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
@@ -1529,6 +1591,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
+        check_has_high_priority_alerts,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,

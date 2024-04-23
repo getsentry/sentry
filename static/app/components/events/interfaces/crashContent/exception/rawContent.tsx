@@ -51,7 +51,9 @@ class RawContent extends Component<Props, State> {
 
   isNative() {
     const {platform} = this.props;
-    return platform === 'cocoa' || platform === 'native';
+    return (
+      platform === 'cocoa' || platform === 'native' || platform === 'nintendo-switch'
+    );
   }
 
   getAppleCrashReportEndpoint(organization: Organization) {

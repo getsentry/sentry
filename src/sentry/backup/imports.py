@@ -381,14 +381,6 @@ def _import(
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
             if scope == ImportScope.Global:
-                confirmed = printer.confirm(
-                    """Proceeding with this operation will irrecoverably delete all existing
-                    low-volume data - are you sure want to continue?"""
-                )
-                if not confirmed:
-                    printer.echo("Import cancelled.")
-                    return
-
                 try:
                     _clear_model_tables_before_import()
                 except DatabaseError:

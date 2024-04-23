@@ -3,6 +3,7 @@ from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.team import Team, TeamStatus
 from sentry.utils.sdk import bind_organization_context
 
@@ -37,11 +38,20 @@ class TeamEndpoint(Endpoint):
 
     def convert_args(self, request: Request, organization_slug, team_slug, *args, **kwargs):
         try:
-            team = (
-                Team.objects.filter(organization__slug=organization_slug, slug=team_slug)
-                .select_related("organization")
-                .get()
-            )
+            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
+                team = (
+                    Team.objects.filter(
+                        organization__slug__id_or_slug=organization_slug, slug__id_or_slug=team_slug
+                    )
+                    .select_related("organization")
+                    .get()
+                )
+            else:
+                team = (
+                    Team.objects.filter(organization__slug=organization_slug, slug=team_slug)
+                    .select_related("organization")
+                    .get()
+                )
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 

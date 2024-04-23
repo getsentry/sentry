@@ -17,20 +17,11 @@ import {
   PerformanceBadge,
 } from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {
-  ORDER,
-  ORDER_WITH_INP_WITHOUT_FID,
-} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {ORDER_WITH_INP_WITHOUT_FID} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -54,19 +45,9 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle} = props;
   const theme = useTheme();
-  const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
-  const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
-    useProjectRawWebVitalsQuery();
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({
-      enabled: shouldUseStoredScores,
-    });
-
-  const projectScore = shouldUseStoredScores
-    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
-    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+    useProjectWebVitalsScoresQuery();
 
   const {data: transactionWebVitals, isLoading: isTransactionWebVitalsQueryLoading} =
     useTransactionWebVitalsQuery({limit: 4});
@@ -77,7 +58,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const order = shouldReplaceFidWithInp ? ORDER_WITH_INP_WITHOUT_FID : ORDER;
+  const order = ORDER_WITH_INP_WITHOUT_FID;
 
   const getAreaChart = _ =>
     function () {
@@ -89,7 +70,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
           data={formatTimeSeriesResultsToChartData(
             timeseriesData,
             segmentColors,
-            !shouldUseStoredScores,
+            false,
             order
           )}
           type={ChartType.AREA}
@@ -112,23 +93,13 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
       listItem =>
         function () {
           const transaction = (listItem.transaction as string | undefined) ?? '';
-          const count = projectData?.data?.[0]?.['count()'] as number;
           const scoreCount = projectScoresData?.data?.[0]?.[
             'count_scores(measurements.score.total)'
           ] as number;
-          const opportunity = shouldUseStoredScores
-            ? scoreCount
-              ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
-                scoreCount
-              : 0
-            : count !== undefined
-              ? calculateOpportunity(
-                  projectScore.totalScore ?? 0,
-                  count,
-                  listItem.totalScore,
-                  listItem['count()']
-                )
-              : 0;
+          const opportunity = scoreCount
+            ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
+              scoreCount
+            : 0;
           return (
             <Fragment>
               <GrowLink
@@ -158,8 +129,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                     </PerformanceBadgeWrapper>
                   </Tooltip>
                 )}
-                {isProjectWebVitalDataLoading ||
-                (isProjectScoresLoading && shouldUseStoredScores) ? (
+                {isProjectScoresLoading ? (
                   <StyledLoadingIndicator size={20} />
                 ) : (
                   <Tooltip

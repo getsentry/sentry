@@ -113,6 +113,7 @@ describe('QuickTraceMeta', function () {
               generation: 0,
               errors: [],
               performance_issues: [],
+              timestamp: 123213123,
             },
           ],
         }}

@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import type {NewQuery, Project} from 'sentry/types';
-import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
+import type {NewQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -53,9 +54,7 @@ export function ScreenLoadEventSamples({
 
   const deviceClass = decodeScalar(location.query['device.class']);
 
-  const hasPlatformSelectFeature = organization.features.includes(
-    'performance-screens-platform-selector'
-  );
+  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
@@ -83,7 +82,7 @@ export function ScreenLoadEventSamples({
     return mutableQuery;
   }, [deviceClass, hasPlatformSelectFeature, platform, project, release, transaction]);
 
-  const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
+  const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
     id: t(

@@ -91,10 +91,10 @@ class EventPerformanceProblem:
         return evidence_hashes
 
     def save(self):
-        nodestore.set(self.identifier, self.problem.to_dict())
+        nodestore.backend.set(self.identifier, self.problem.to_dict())
 
     @classmethod
-    def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem:
+    def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem | None:
         return cls.fetch_multi([(event, problem_hash)])[0]
 
     @classmethod
@@ -102,7 +102,7 @@ class EventPerformanceProblem:
         cls, items: Sequence[tuple[Event, str]]
     ) -> Sequence[EventPerformanceProblem | None]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
-        results = nodestore.get_multi(ids)
+        results = nodestore.backend.get_multi(ids)
         return [
             cls(event, PerformanceProblem.from_dict(results[_id])) if results.get(_id) else None
             for _id, (event, _) in zip(ids, items)
@@ -118,11 +118,12 @@ def detect_performance_problems(
         if rate and rate > random.random():
             # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
-            with metrics.timer(
-                "performance.detect_performance_issue", sample_rate=0.01
-            ), sentry_sdk.start_span(
-                op="py.detect_performance_issue", description="none"
-            ) as sdk_span:
+            with (
+                metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
+                sentry_sdk.start_span(
+                    op="py.detect_performance_issue", description="none"
+                ) as sdk_span,
+            ):
                 return _detect_performance_problems(
                     data, sdk_span, project, is_standalone_spans=is_standalone_spans
                 )
@@ -402,7 +403,7 @@ def run_detector_on_data(detector, data):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event: Event,
+    event: dict[str, Any],
     event_id: str | None,
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
@@ -456,7 +457,7 @@ def report_metrics_for_detectors(
 
     detected_tags = {
         "sdk_name": sdk_name,
-        "is_early_adopter": organization.flags.early_adopter.is_set,
+        "is_early_adopter": bool(organization.flags.early_adopter),
         "is_standalone_spans": is_standalone_spans,
     }
 
@@ -493,7 +494,7 @@ def report_metrics_for_detectors(
 
         set_tag(f"_pi_{detector_key}", span_id)
 
-        op_tags = {}
+        op_tags = {"is_standalone_spans": is_standalone_spans}
         for problem in detected_problems.values():
             op = problem.op
             op_tags[f"op_{op}"] = True

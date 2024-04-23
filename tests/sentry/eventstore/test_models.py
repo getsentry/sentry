@@ -6,8 +6,10 @@ import pytest
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouping.api import GroupingConfig
+from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.result import CalculatedHashes
+from sentry.grouping.utils import hash_from_values
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
@@ -20,6 +22,8 @@ from sentry.utils import snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+NEWSTYLE_GROUPING_CONFIG = "newstyle:2023-01-11"
 
 
 class EventTest(TestCase, PerformanceIssueTestCase):
@@ -392,6 +396,65 @@ class EventTest(TestCase, PerformanceIssueTestCase):
 
         assert sorted(v.as_dict()["hash"] for v in variants1.values()) == sorted(
             v.as_dict()["hash"] for v in variants2.values()
+        )
+
+    def test_get_hashes_pulls_existing_hashes(self):
+        hashes = ["04e89719410791836f0a0bbf03bf0d2e"]
+        event = Event(
+            event_id="11212012123120120415201309082013",
+            data={
+                "message": "Dogs are great!",
+                "hashes": hashes,
+            },
+            project_id=self.project.id,
+        )
+
+        assert event.get_hashes() == CalculatedHashes(hashes, [], [], None)
+
+    def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
+        self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)
+        event = Event(
+            event_id="11212012123120120415201309082013",
+            data={"message": "Dogs are great!"},
+            project_id=self.project.id,
+        )
+
+        calculated_hashes = event.get_hashes()
+        expected_hash_values = [hash_from_values(["Dogs are great!"])]
+        expected_variants = list(get_grouping_variants_for_event(event).items())
+
+        assert calculated_hashes.hashes == expected_hash_values
+        assert (
+            calculated_hashes.variants is not None
+            and len(calculated_hashes.variants) == len(expected_variants) == 1
+        )
+
+        variant_key, variant = calculated_hashes.variants[0]
+        expected_variant_key, expected_variant = expected_variants[0]
+        variant_dict = variant._get_metadata_as_dict()
+        expected_variant_dict = expected_variant._get_metadata_as_dict()
+
+        assert variant_key == expected_variant_key == "default"
+        assert (
+            variant_dict["config"]["id"]
+            == expected_variant_dict["config"]["id"]
+            == NEWSTYLE_GROUPING_CONFIG
+        )
+        assert (
+            variant_dict["component"]["id"] == expected_variant_dict["component"]["id"] == "default"
+        )
+        assert (
+            len(variant_dict["component"]["values"])
+            == len(expected_variant_dict["component"]["values"])
+            == 1
+        )
+
+        component_value = variant_dict["component"]["values"][0]
+        expected_component_value = expected_variant_dict["component"]["values"][0]
+
+        assert component_value["id"] == expected_component_value["id"] == "message"
+        assert (
+            component_value["values"] == expected_component_value["values"] == ["Dogs are great!"]
         )
 
 

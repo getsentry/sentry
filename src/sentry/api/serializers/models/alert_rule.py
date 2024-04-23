@@ -5,7 +5,8 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
-from django.db.models import Max, Q, prefetch_related_objects
+from django.db.models import F, Max, Q, Window, prefetch_related_objects
+from django.db.models.functions import RowNumber
 from drf_spectacular.utils import extend_schema_serializer
 
 from sentry import features
@@ -19,6 +20,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
@@ -80,10 +82,15 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     dateCreated: datetime
     createdBy: dict
     monitorType: int
+    activations: list[dict]
 
 
 @register(AlertRule)
 class AlertRuleSerializer(Serializer):
+    """
+    Serializer for returning an alert rule to the client
+    """
+
     def __init__(self, expand: list[str] | None = None):
         self.expand = expand or []
 
@@ -127,19 +134,32 @@ class AlertRuleSerializer(Serializer):
                     ).get("uuid")
             alert_rule_triggers.append(serialized)
 
+        alert_activations_ranked = AlertRuleActivations.objects.annotate(
+            rank=Window(
+                expression=RowNumber(),
+                partition_by=[F("alert_rule_id")],
+                order_by=F("date_added").desc(),
+            )
+        )
+        activations = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
+        activations_by_alert_rule_id = defaultdict(list)
+        for activation in activations:
+            activations_by_alert_rule_id[activation.alert_rule_id].append(activation)
+
         alert_rule_projects = set()
         for alert_rule in alert_rules.values():
-            try:
-                alert_rule_projects.add([alert_rule.id, alert_rule.projects.get().slug])
-            except Exception:
-                pass
+            if alert_rule.projects.exists():
+                for project in alert_rule.projects.all():
+                    alert_rule_projects.add((alert_rule.id, project.slug))
 
         # TODO - Cleanup Subscription Project Mapping
         snuba_alert_rule_projects = AlertRule.objects.filter(
             id__in=[item.id for item in item_list]
         ).values_list("id", "snuba_query__subscriptions__project__slug")
 
-        alert_rule_projects.update(snuba_alert_rule_projects)
+        alert_rule_projects.update(
+            [(id, project_slug) for id, project_slug in snuba_alert_rule_projects if project_slug]
+        )
 
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
@@ -171,6 +191,13 @@ class AlertRuleSerializer(Serializer):
         for item in item_list:
             if item.owner_id is not None:
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
+
+            activations = sorted(
+                activations_by_alert_rule_id.get(item.id, []),
+                key=lambda x: x.date_added,
+                reverse=True,
+            )
+            result[item]["activations"] = serialize(activations, **kwargs)
 
         resolved_actors: dict[str, dict[int | None, int | None]] = {}
         for k, v in ACTOR_TYPES.items():
@@ -228,6 +255,7 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(
             obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
         )
+
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,
@@ -255,6 +283,7 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
+            "activations": attrs.get("activations", None),
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj

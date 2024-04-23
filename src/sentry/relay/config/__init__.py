@@ -52,26 +52,31 @@ from sentry.utils.options import sample_modulo
 
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
-#: These features will be listed in the project config
+#: These features will be listed in the project config.
+#
+# NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
-    "projects:profiling-ingest-unsampled-profiles",
-    "projects:span-metrics-extraction",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-resource",
+    "organizations:continuous-profiling",
+    "organizations:custom-metrics",
+    "organizations:device-class-synthesis",
+    "organizations:metric-meta",
+    "organizations:profiling",
+    "organizations:session-replay-combined-envelope-items",
+    "organizations:session-replay-recording-scrubbing",
+    "organizations:session-replay-video",
+    "organizations:session-replay",
+    "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
-    "organizations:profiling",
-    "organizations:session-replay",
-    "organizations:session-replay-combined-envelope-items",
     "organizations:user-feedback-ingest",
-    "organizations:session-replay-recording-scrubbing",
-    "organizations:device-class-synthesis",
-    "organizations:custom-metrics",
-    "organizations:metric-meta",
-    "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
-    "organizations:continuous-profiling",
+    "projects:extract-transaction-from-segment-span",
+    "projects:profiling-ingest-unsampled-profiles",
+    "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-ga-modules",
+    "projects:span-metrics-extraction-resource",
+    "projects:span-metrics-extraction",
+    "projects:span-metrics-double-write-distributions-as-gauges",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -165,7 +170,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
         error_messages += [
             "ChunkLoadError: Loading chunk *",
-            "Uncaught *: ChunkLoadError: Loading chunk *",
+            "*Uncaught *: ChunkLoadError: Loading chunk *",
         ]
 
     if error_messages:
@@ -409,13 +414,6 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 
 
 def _get_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
-    if not features.has("organizations:performance-calculate-score-relay", organization):
-        return []
-
-    shouldIncludeFid = not features.has(
-        "organizations:deprecate-fid-from-performance-score", organization
-    )
-
     return [
         {
             "name": "Chrome",
@@ -433,13 +431,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "p10": 1200.0,
                     "p50": 2400.0,
                     "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
                 },
                 {
                     "measurement": "cls",
@@ -477,13 +468,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
                     "optional": True,
                 },
                 {
@@ -525,13 +509,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "optional": False,
                 },
                 {
-                    "measurement": "fid",
-                    "weight": 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {
                     "measurement": "cls",
                     "weight": 0.0,
                     "p10": 0.1,
@@ -570,13 +547,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "optional": False,
                 },
                 {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
@@ -613,13 +583,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "p10": 1200.0,
                     "p50": 2400.0,
                     "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
                 },
                 {
                     "measurement": "cls",

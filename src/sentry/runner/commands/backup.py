@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from io import BytesIO
 from threading import Event, Thread
 from time import sleep, time
-from typing import IO
+from typing import IO, Any
 
 import click
 
@@ -25,7 +25,9 @@ from sentry.backup.findings import Finding, FindingJSONEncoder
 from sentry.backup.helpers import ImportFlags, Printer, Side
 from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
+from sentry.silo.base import SiloMode
 from sentry.utils import json
+from sentry.utils.env import is_split_db
 
 DEFAULT_INDENT = 2
 
@@ -256,8 +258,7 @@ def print_elapsed_time(kind: str, interval_ms: int, done_event: Event, printer: 
     """
     start_time = time()
     last_print_time = start_time
-    # TODO(azaslavsky): adjust this to a more reasonable figure
-    check_interval = 0.1  # Check every second if we should exit
+    check_interval = 1  # Check every second if we should exit
 
     while not done_event.is_set():
         current_time = time()
@@ -279,7 +280,9 @@ def write_import_findings(
     from sentry.backup.imports import ImportingError
 
     done_event = Event()
-    updater_thread = Thread(target=print_elapsed_time, args=("Importing", 100, done_event, printer))
+    updater_thread = Thread(
+        target=print_elapsed_time, args=("Still importing", 5000, done_event, printer)
+    )
 
     try:
         updater_thread.start()
@@ -306,7 +309,9 @@ def write_export_findings(
     from sentry.backup.exports import ExportingError
 
     done_event = Event()
-    updater_thread = Thread(target=print_elapsed_time, args=("Exporting", 100, done_event, printer))
+    updater_thread = Thread(
+        target=print_elapsed_time, args=("Still exporting", 5000, done_event, printer)
+    )
 
     try:
         updater_thread.start()
@@ -375,7 +380,7 @@ def compare(
     # the way.
     def load_data(
         side: Side, src: IO[bytes], decrypt_with: IO[bytes], decrypt_with_gcp_kms: IO[bytes]
-    ) -> json.JSONData:
+    ) -> dict[str, Any]:
         decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
 
         # Decrypt the tarball, if the user has indicated that this is one by using either of the
@@ -385,6 +390,7 @@ def compare(
                 input: IO[bytes] = BytesIO(decrypt_encrypted_tarball(src, decryptor))
             except DecryptionError as e:
                 click.echo(f"Invalid {side.name} side tarball: {str(e)}", err=True)
+                raise
         else:
             input = src
 
@@ -393,22 +399,29 @@ def compare(
             data = json.load(input)
         except json.JSONDecodeError:
             click.echo(f"Invalid {side.name} JSON", err=True)
+            raise
 
         return data
 
-    with left:
-        left_data = load_data(Side.left, left, decrypt_left_with, decrypt_left_with_gcp_kms)
-    with right:
-        right_data = load_data(Side.right, right, decrypt_right_with, decrypt_right_with_gcp_kms)
+    try:
+        with left:
+            left_data = load_data(Side.left, left, decrypt_left_with, decrypt_left_with_gcp_kms)
+        with right:
+            right_data = load_data(
+                Side.right, right, decrypt_right_with, decrypt_right_with_gcp_kms
+            )
 
-    printer = InputOutputPrinter()
-    res = validate(left_data, right_data, get_default_comparators())
-    if res:
-        click.echo(f"\n\nDone, found {len(res.findings)} differences:")
-        write_findings(findings_file, res.findings, printer)
-    else:
-        click.echo("\n\nDone, found 0 differences!")
-        write_findings(findings_file, [], printer)
+        printer = InputOutputPrinter()
+        res = validate(left_data, right_data, get_default_comparators())
+        if res:
+            click.echo(f"\n\nDone, found {len(res.findings)} differences:")
+            write_findings(findings_file, res.findings, printer)
+        else:
+            click.echo("\n\nDone, found 0 differences!")
+            write_findings(findings_file, [], printer)
+    except (DecryptionError, json.JSONDecodeError):
+        # Already reported to the user from the `load_data` function.
+        pass
 
 
 @backup.command(name="decrypt")
@@ -449,9 +462,9 @@ def decrypt(
         decrypted = decrypt_encrypted_tarball(src, decryptor)
     except DecryptionError as e:
         click.echo(f"Invalid tarball: {str(e)}", err=True)
-
-    with dest:
-        dest.write(decrypted)
+    else:
+        with dest:
+            dest.write(decrypted)
 
 
 @backup.command(name="encrypt")
@@ -492,10 +505,10 @@ def encrypt(
         data = json.load(src)
     except json.JSONDecodeError:
         click.echo("Invalid input JSON", err=True)
-
-    encrypted = create_encrypted_export_tarball(data, encryptor)
-    with dest:
-        dest.write(encrypted.getbuffer())
+    else:
+        encrypted = create_encrypted_export_tarball(data, encryptor)
+        with dest:
+            dest.write(encrypted.getbuffer())
 
 
 @click.group(name="import")
@@ -761,6 +774,15 @@ def import_global(
     from sentry.backup.imports import import_in_global_scope
 
     printer = get_printer(silent=silent, no_prompt=no_prompt)
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
+        confirmed = printer.confirm(
+            """Proceeding with this operation will irrecoverably delete all existing
+            low-volume data - are you sure want to continue?"""
+        )
+        if not confirmed:
+            printer.echo("Import cancelled.")
+            return
+
     with write_import_findings(findings_file, printer):
         import_in_global_scope(
             src,

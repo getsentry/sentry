@@ -1,4 +1,4 @@
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 
 export function GlobalSelectionFixture(params: Partial<PageFilters> = {}): PageFilters {
   return {

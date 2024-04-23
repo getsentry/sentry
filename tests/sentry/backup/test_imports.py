@@ -1112,7 +1112,7 @@ class FilterTests(ImportTestCase):
             assert not User.objects.filter(username="user_1").exists()
             assert User.objects.filter(username="user_2").exists()
 
-    def test_export_filter_users_shared_email(self):
+    def test_import_filter_users_shared_email(self):
         self.create_exhaustive_user("user_1", email="a@example.com")
         self.create_exhaustive_user("user_2", email="b@example.com")
         self.create_exhaustive_user("user_3", email="a@example.com")
@@ -1893,13 +1893,23 @@ class CollisionTests(ImportTestCase):
         self, expected_models: list[type[Model]]
     ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
-        self.create_organization("some-org", owner=owner)
+        org = self.create_organization("some-org", owner=owner)
+        old_org_membership = OrganizationMember.objects.get(organization=org)
+        old_org_membership.regenerate_token()
+        old_org_membership.save()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
             with open(tmp_path, "rb") as tmp_file:
                 owner = self.create_exhaustive_user(username="owner", email="existing@example.com")
-                self.create_organization("some-org", owner=owner)
+                org = self.create_organization("some-org", owner=owner)
+
+                # Re-insert colliding tokens, pointed at the new user and org.
+                new_org_membership = OrganizationMember.objects.get(organization=org)
+                new_org_membership.token = old_org_membership.token
+                new_org_membership.token_expires_at = old_org_membership.token_expires_at
+                new_org_membership.save()
+
                 import_in_organization_scope(
                     tmp_file,
                     flags=ImportFlags(merge_users=True),
@@ -1948,6 +1958,10 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
+            # Expect one of the tokens to be nulled out due to collision.
+            assert OrganizationMember.objects.filter(token=old_org_membership.token).count() == 1
+            assert OrganizationMember.objects.filter(token__isnull=True).count() == 1
+
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert OrganizationMapping.objects.count() == 2
                 assert OrganizationMemberMapping.objects.count() == 2  # Same user in both orgs
@@ -1966,13 +1980,23 @@ class CollisionTests(ImportTestCase):
         self, expected_models: list[type[Model]]
     ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
-        self.create_organization("some-org", owner=owner)
+        org = self.create_organization("some-org", owner=owner)
+        old_org_membership = OrganizationMember.objects.get(organization=org)
+        old_org_membership.regenerate_token()
+        old_org_membership.save()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
             with open(tmp_path, "rb") as tmp_file:
                 owner = self.create_exhaustive_user(username="owner", email="existing@example.com")
-                self.create_organization("some-org", owner=owner)
+                org = self.create_organization("some-org", owner=owner)
+
+                # Re-insert colliding tokens, pointed at the new user and org.
+                new_org_membership = OrganizationMember.objects.get(organization=org)
+                new_org_membership.token = old_org_membership.token
+                new_org_membership.token_expires_at = old_org_membership.token_expires_at
+                new_org_membership.save()
+
                 import_in_organization_scope(
                     tmp_file,
                     flags=ImportFlags(merge_users=False),
@@ -2025,6 +2049,10 @@ class CollisionTests(ImportTestCase):
                 ).count()
                 == 1
             )
+
+            # Expect one of the tokens to be nulled out due to collision.
+            assert OrganizationMember.objects.filter(token=old_org_membership.token).count() == 1
+            assert OrganizationMember.objects.filter(token__isnull=True).count() == 1
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert OrganizationMapping.objects.count() == 2

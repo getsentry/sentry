@@ -26,13 +26,11 @@ import {FID_DEPRECATION_DATE} from 'sentry/views/performance/browser/webVitals/c
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
@@ -41,7 +39,6 @@ export default function WebVitalsLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
-  const shouldUseStoredScores = useStoredScoresSetting();
 
   const router = useRouter();
 
@@ -57,16 +54,14 @@ export default function WebVitalsLandingPage() {
 
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({enabled: shouldUseStoredScores});
+    useProjectWebVitalsScoresQuery();
 
   const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
 
   const projectScore =
-    (shouldUseStoredScores && isProjectScoresLoading) || isLoading || noTransactions
+    isProjectScoresLoading || isLoading || noTransactions
       ? undefined
-      : shouldUseStoredScores
-        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-        : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
   const fidDeprecationTimestampString =
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
@@ -75,7 +70,7 @@ export default function WebVitalsLandingPage() {
     <ModulePageProviders
       title={[t('Performance'), t('Web Vitals')].join(' — ')}
       baseURL="/performance/browser/pageloads"
-      features="starfish-browser-webvitals"
+      features="spans-first-ui"
     >
       <Layout.Header>
         <Layout.HeaderContent>
@@ -152,9 +147,7 @@ export default function WebVitalsLandingPage() {
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
-                  isProjectScoreLoading={
-                    isLoading || (shouldUseStoredScores && isProjectScoresLoading)
-                  }
+                  isProjectScoreLoading={isLoading || isProjectScoresLoading}
                   webVital={state.webVital}
                 />
               </PerformanceScoreChartContainer>

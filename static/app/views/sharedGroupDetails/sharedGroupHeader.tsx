@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 
 type Props = {
   group: Group;

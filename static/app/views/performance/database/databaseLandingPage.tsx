@@ -13,8 +13,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {fromSorts} from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,7 +48,7 @@ export function DatabaseLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
-  let sort = fromSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
     sort = DEFAULT_SORT;
   }
@@ -261,7 +260,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), t('Database')].join(' — ')}
       baseURL="/performance/database"
-      features="performance-database-view"
+      features="spans-first-ui"
     >
       <DatabaseLandingPage />
     </ModulePageProviders>

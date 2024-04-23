@@ -14,7 +14,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, quotas
+from sentry import analytics, audit_log, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
@@ -467,7 +467,6 @@ query_datasets_to_type = {
     Dataset.Events: SnubaQuery.Type.ERROR,
     Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
-    Dataset.Sessions: SnubaQuery.Type.CRASH_RATE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
 }
 
@@ -533,10 +532,6 @@ def create_alert_rule(
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
-    if dataset == Dataset.Sessions and features.has(
-        "organizations:alert-crash-free-metrics", organization, actor=user
-    ):
-        dataset = Dataset.Metrics
 
     actor = None
     if owner and not isinstance(owner, Actor):
@@ -730,11 +725,6 @@ def update_alert_rule(
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
     if dataset is not None:
-        if dataset == Dataset.Sessions and features.has(
-            "organizations:alert-crash-free-metrics", alert_rule.organization, actor=user
-        ):
-            dataset = Dataset.Metrics
-
         if dataset.value != alert_rule.snuba_query.dataset:
             updated_query_fields["dataset"] = dataset
     if query_type is not None:
@@ -835,15 +825,27 @@ def update_alert_rule(
                     sub for sub in existing_subs if sub.project_id in excluded_project_ids
                 ]
         elif projects is not None:
+            # All project slugs that currently exist for the alert rule
             existing_project_slugs = {sub.project.slug for sub in existing_subs}
-            # Determine whether we've added any new projects as part of this update
+
+            # All project slugs being provided as part of the update
+            updated_project_slugs = {project.slug for project in projects}
+
+            # Set of projects provided in the update, but don't already exist
             new_projects = [
                 project for project in projects if project.slug not in existing_project_slugs
             ]
-            updated_project_slugs = {project.slug for project in projects}
 
-            AlertRuleProjects.objects.exclude(project__slug__in=updated_project_slugs).delete()
-            for project in projects:
+            # Delete any projects for the alert rule that were removed as part of this update
+            AlertRuleProjects.objects.filter(
+                alert_rule_id=alert_rule.id,  # for the alert rule
+                project__slug__in=existing_project_slugs,  # that are in the existing project slugs
+            ).exclude(
+                project__slug__in=updated_project_slugs  # but not included with the updated project slugs
+            ).delete()
+
+            # Add any new projects to the alert rule
+            for project in new_projects:
                 alert_rule.projects.add(project)
             # Find any subscriptions that were removed as part of this update
             deleted_subs = [

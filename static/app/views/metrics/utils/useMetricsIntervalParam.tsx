@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/charts/utils';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useUpdateQuery} from 'sentry/utils/metrics';
 import {parseMRI} from 'sentry/utils/metrics/mri';
@@ -79,9 +79,23 @@ export function getIntervalOptionsForStatsPeriod(
   });
 }
 
+export function validateInterval(
+  interval: string,
+  options: {label: string; value: string}[]
+) {
+  const isPeriod = !!parseStatsPeriod(interval);
+  const currentIntervalValues = options.map(option => option.value);
+  return isPeriod && currentIntervalValues.includes(interval)
+    ? interval
+    : // Take the 2nd most granular option if available
+      options[1]?.value ?? options[0].value;
+}
+
 export function useMetricsIntervalParam() {
   const {datetime} = usePageFilters().selection;
   const {interval} = useLocationQuery({fields: {interval: decodeScalar}});
+  const updateQuery = useUpdateQuery();
+
   const {widgets} = useMetricsContext();
 
   const isCustomMetricsOnly = useMemo(() => {
@@ -91,33 +105,58 @@ export function useMetricsIntervalParam() {
     );
   }, [widgets]);
 
-  const currentIntervalOptions = useMemo(
-    () => getIntervalOptionsForStatsPeriod(datetime, isCustomMetricsOnly),
-    [datetime, isCustomMetricsOnly]
-  );
-
-  const updateQuery = useUpdateQuery();
-  const setInterval = useCallback(
+  const handleIntervalChange = useCallback(
     (newInterval: string) => {
       updateQuery({interval: newInterval}, {replace: true});
     },
     [updateQuery]
   );
 
-  const validatedInterval = useMemo(() => {
-    const isPeriod = !!parseStatsPeriod(interval);
-    const currentIntervalValues = currentIntervalOptions.map(option => option.value);
-    return isPeriod && currentIntervalValues.includes(interval)
-      ? interval
-      : // Take the 2nd most granular option if available
-        currentIntervalOptions[1]?.value ?? currentIntervalOptions[0].value;
-  }, [currentIntervalOptions, interval]);
+  const metricsIntervalOptions = useMetricsIntervalOptions({
+    interval,
+    datetime,
+    isCustomMetricsOnly,
+    onIntervalChange: handleIntervalChange,
+  });
 
   useEffect(() => {
-    if (interval !== validatedInterval) {
-      setInterval(validatedInterval);
+    if (interval !== metricsIntervalOptions.interval) {
+      handleIntervalChange(metricsIntervalOptions.interval);
     }
-  }, [interval, validatedInterval, setInterval]);
+  }, [interval, metricsIntervalOptions.interval, handleIntervalChange]);
+
+  return metricsIntervalOptions;
+}
+
+export interface MetricsIntervalParamProps {
+  datetime: PageFilters['datetime'];
+  interval: string;
+  onIntervalChange: (interval: string) => void;
+  isCustomMetricsOnly?: boolean;
+}
+
+export function useMetricsIntervalOptions({
+  interval,
+  datetime,
+  onIntervalChange,
+  isCustomMetricsOnly = false,
+}: MetricsIntervalParamProps) {
+  const currentIntervalOptions = useMemo(
+    () => getIntervalOptionsForStatsPeriod(datetime, isCustomMetricsOnly),
+    [datetime, isCustomMetricsOnly]
+  );
+
+  const setInterval = useCallback(
+    (newInterval: string) => {
+      onIntervalChange(newInterval);
+    },
+    [onIntervalChange]
+  );
+
+  const validatedInterval = useMemo(
+    () => validateInterval(interval, currentIntervalOptions),
+    [interval, currentIntervalOptions]
+  );
 
   return {
     interval: validatedInterval,

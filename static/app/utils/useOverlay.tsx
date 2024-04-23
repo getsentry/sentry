@@ -251,6 +251,7 @@ function useOverlay({
           onInteractOutside?.();
           interactedOutside.current = false;
 
+          interactOutsideTrigger.current?.focus();
           interactOutsideTrigger.current?.click();
           interactOutsideTrigger.current = null;
         }
@@ -272,7 +273,7 @@ function useOverlay({
           // should activate that trigger after this overlay has closed (see the onClose
           // prop above). This allows users to quickly jump between adjacent overlays.
           const closestOverlayTrigger = target.closest?.<HTMLButtonElement>(
-            'button[aria-expanded="false"]'
+            'button[aria-expanded="false"], input[role="combobox"][aria-expanded="false"]'
           );
           if (closestOverlayTrigger && closestOverlayTrigger !== triggerRef.current) {
             interactOutsideTrigger.current = closestOverlayTrigger;

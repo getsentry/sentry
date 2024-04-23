@@ -10,23 +10,25 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
-import {
-  GridLineOverlay,
-  GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
-import {TimelinePlaceholder} from 'sentry/views/monitors/components/overviewTimeline/timelinePlaceholder';
+import {CheckInPlaceholder} from 'sentry/views/monitors/components/timeline/checkInPlaceholder';
+import {CheckInTimeline} from 'sentry/views/monitors/components/timeline/checkInTimeline';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/views/monitors/components/timeline/gridLines';
 import type {
   MonitorBucketData,
   TimeWindow,
-} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {getConfigFromTimeRange} from 'sentry/views/monitors/components/overviewTimeline/utils';
-import {getTimeRangeFromEvent} from 'sentry/views/monitors/utils/getTimeRangeFromEvent';
+} from 'sentry/views/monitors/components/timeline/types';
+import {getConfigFromTimeRange} from 'sentry/views/monitors/components/timeline/utils/getConfigFromTimeRange';
+import {getTimeRangeFromEvent} from 'sentry/views/monitors/components/timeline/utils/getTimeRangeFromEvent';
 
 interface Props {
   event: Event;
@@ -125,7 +127,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
             </FadeInContainer>
           </Fragment>
         ) : (
-          <TimelinePlaceholder />
+          <CheckInPlaceholder />
         )}
       </TimelineContainer>
     </EventDataSection>
@@ -139,7 +141,7 @@ const TimelineContainer = styled(Panel)`
   align-items: center;
 `;
 
-const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
+const StyledGridLineTimeLabels = styled(GridLineLabels)`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 

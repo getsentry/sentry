@@ -14,6 +14,54 @@ stackframe_function_name = lambda i: Function(
 )
 
 
+class SimpleLanguageParser(ABC):
+    regexes: list[str]
+
+    @classmethod
+    def extract_functions_from_patch(cls, patch: str) -> set[str]:
+        functions = set()
+        for regex in cls.regexes:
+            functions.update(set(re.findall(regex, patch, flags=re.M)))
+
+        return functions
+
+    @classmethod
+    def generate_multi_if(cls, function_names: list[str]) -> list[Function]:
+        """
+        Fetch the function name from the stackframe that matches a name within the list of function names.
+        """
+        multi_if = []
+        for i in range(-STACKFRAME_COUNT, 0):
+            # if, then conditions
+            multi_if.extend(
+                [
+                    Function(
+                        "in",
+                        [
+                            stackframe_function_name(i),
+                            function_names,
+                        ],
+                    ),
+                    stackframe_function_name(i),
+                ]
+            )
+        # else condition
+        multi_if.append(stackframe_function_name(-1))
+
+        return multi_if
+
+    @classmethod
+    def generate_function_name_conditions(
+        cls, function_names: list[str], stack_frame: int
+    ) -> Condition:
+        """Check if the function name in the stack frame is within the list of function names."""
+        return Condition(
+            stackframe_function_name(stack_frame),
+            Op.IN,
+            function_names,
+        )
+
+
 class LanguageParser(ABC):
     regexes: list[str]
     function_prefix: str
@@ -120,7 +168,7 @@ class LanguageParser(ABC):
         )
 
 
-class PythonParser(LanguageParser):
+class PythonParser(SimpleLanguageParser):
     issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
 
     r"""
@@ -142,41 +190,23 @@ class PythonParser(LanguageParser):
 
     regexes = [python_function_regex]
 
-    @classmethod
-    def generate_multi_if(cls, function_names: list[str]) -> list[Function]:
-        """
-        Fetch the function name from the stackframe that matches a name within the list of function names.
-        """
-        multi_if = []
-        for i in range(-STACKFRAME_COUNT, 0):
-            # if, then conditions
-            multi_if.extend(
-                [
-                    Function(
-                        "in",
-                        [
-                            stackframe_function_name(i),
-                            function_names,
-                        ],
-                    ),
-                    stackframe_function_name(i),
-                ]
-            )
-        # else condition
-        multi_if.append(stackframe_function_name(-1))
 
-        return multi_if
+class RubyParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
 
-    @classmethod
-    def generate_function_name_conditions(
-        cls, function_names: list[str], stack_frame: int
-    ) -> Condition:
-        """Check if the function name in the stack frame is within the list of function names."""
-        return Condition(
-            stackframe_function_name(stack_frame),
-            Op.IN,
-            function_names,
-        )
+    function_prefix = "."
+
+    function_declaration_regex = r"^@@.*@@\s+def\s+(?:\w+\.)?(?P<fnc>\w+).*$"
+    dynamic_method_declaration_regex = r"^@@.*@@\s+define_method\s+:(?P<fnc>\w+).*$"
+    lambda_arrow_function_regex = r"^@@.*@@\s+(?P<fnc>\w+)\s*=\s*->.*$"
+    lambda_word_function_regex = r"^@@.*@@\s+(?P<fnc>\w+)\s*=\s*lambda.*$"
+
+    regexes = [
+        function_declaration_regex,
+        dynamic_method_declaration_regex,
+        lambda_arrow_function_regex,
+        lambda_word_function_regex,
+    ]
 
 
 class JavascriptParser(LanguageParser):
@@ -239,14 +269,5 @@ PATCH_PARSERS: dict[str, Any] = {
     "ts": JavascriptParser,
     "tsx": JavascriptParser,
     "php": PHPParser,
-}
-
-# for testing new parsers
-BETA_PATCH_PARSERS: dict[str, Any] = {
-    "py": PythonParser,
-    "js": JavascriptParser,
-    "jsx": JavascriptParser,
-    "ts": JavascriptParser,
-    "tsx": JavascriptParser,
-    "php": PHPParser,
+    "rb": RubyParser,
 }

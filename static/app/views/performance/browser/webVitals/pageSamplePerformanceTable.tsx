@@ -17,12 +17,8 @@ import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -45,10 +41,7 @@ import type {
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
-  SORTABLE_INDEXED_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -103,8 +96,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const {replayExists} = useReplayExists();
   const routes = useRoutes();
   const router = useRouter();
-  const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   let datatype = Datatype.PAGELOADS;
   switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
@@ -115,11 +106,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       datatype = Datatype.PAGELOADS;
   }
 
-  const sortableFields = shouldUseStoredScores
-    ? SORTABLE_INDEXED_FIELDS
-    : SORTABLE_INDEXED_FIELDS.filter(
-        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
-      );
+  const sortableFields = SORTABLE_INDEXED_FIELDS;
 
   const sort = useWebVitalsSort({
     defaultSort: DEFAULT_INDEXED_SORT,
@@ -168,7 +155,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
   function renderHeadCell(col: Column | InteractionsColumn) {
     function generateSortLink() {
-      const key = col.key === 'inpScore' ? 'measurements.score.total' : col.key;
+      const key = ['totalScore', 'inpScore'].includes(col.key)
+        ? 'measurements.score.total'
+        : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
       if (sort?.field === key) {
         if (sort.kind === 'desc') {
@@ -376,9 +365,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'id' && 'id' in row) {
       const eventTarget = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug({...row, project: row.projectSlug}),
-        dataRow: row,
-        eventView: EventView.fromLocation(location),
+        projectSlug: row.projectSlug,
+        traceSlug: row.trace,
+        eventId: row.id,
+        timestamp: row.timestamp,
         organization,
         location,
       });
@@ -406,31 +396,33 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   return (
     <span>
       <SearchBarContainer>
-        {shouldReplaceFidWithInp && (
-          <SegmentedControl
-            size="md"
-            value={datatype}
-            onChange={newDataSet => {
-              // Reset pagination and sort when switching datatypes
-              router.replace({
-                ...location,
-                query: {
-                  ...location.query,
-                  sort: undefined,
-                  cursor: undefined,
-                  [DATATYPE_KEY]: newDataSet,
-                },
-              });
-            }}
+        <SegmentedControl
+          size="md"
+          value={datatype}
+          aria-label={t('Data Type')}
+          onChange={newDataSet => {
+            // Reset pagination and sort when switching datatypes
+            router.replace({
+              ...location,
+              query: {
+                ...location.query,
+                sort: undefined,
+                cursor: undefined,
+                [DATATYPE_KEY]: newDataSet,
+              },
+            });
+          }}
+        >
+          <SegmentedControl.Item key={Datatype.PAGELOADS} aria-label={t('Pageloads')}>
+            {t('Pageloads')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item
+            key={Datatype.INTERACTIONS}
+            aria-label={t('Interactions')}
           >
-            <SegmentedControl.Item key={Datatype.PAGELOADS}>
-              {t('Pageloads')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key={Datatype.INTERACTIONS}>
-              {t('Interactions')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        )}
+            {t('Interactions')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
 
         <StyledSearchBar
           query={query}

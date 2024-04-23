@@ -59,9 +59,9 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
 
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(5, 86400),
-            RateLimitCategory.USER: RateLimit(5, 86400),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 86400),
+            RateLimitCategory.IP: RateLimit(limit=5, window=86400),
+            RateLimitCategory.USER: RateLimit(limit=5, window=86400),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=86400),
         }
     }
 

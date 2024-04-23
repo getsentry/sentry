@@ -201,11 +201,7 @@ class RpcImportRetryTests(TestCase):
                     max_source_pk=9,
                     min_inserted_pk=123,
                     max_inserted_pk=123,
-                    inserted_map={
-                        "sentry.controloption": {
-                            9: 123,
-                        },
-                    },
+                    inserted_map={9: 123},
                 )
 
             result = import_export_service.import_by_model(

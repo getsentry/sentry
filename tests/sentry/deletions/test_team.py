@@ -2,6 +2,7 @@ from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.team import Team
+from sentry.monitors.models import Monitor, MonitorType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -44,3 +45,22 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
         rule.refresh_from_db()
         assert rule.owner_id is None, "Should be blank when team is deleted."
         assert alert_rule.owner_id is None, "Should be blank when team is deleted."
+
+    def test_monitor_blanking(self):
+        team = self.create_team(name="test")
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            name="My Awesome Monitor",
+            owner_team_id=team.actor.id,
+        )
+        self.ScheduledDeletion.schedule(team, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Team.objects.filter(id=team.id).exists()
+
+        monitor.refresh_from_db()
+        assert monitor.owner_team_id is None, "Should be blank when team is deleted."

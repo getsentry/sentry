@@ -108,9 +108,7 @@ function ScreenLoadSpans() {
               <Breadcrumbs crumbs={crumbs} />
               <HeaderWrapper>
                 <Layout.Title>{transactionName}</Layout.Title>
-                {organization.features.includes(
-                  'performance-screens-platform-selector'
-                ) &&
+                {organization.features.includes('spans-first-ui') &&
                   project &&
                   isCrossPlatform(project) && <PlatformSelector />}
               </HeaderWrapper>

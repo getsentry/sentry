@@ -6,7 +6,8 @@ import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import type {Organization as TOrganization, Project} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 // Workaround react-router PlainRoute type not covering redirect routes.
 type RouteShape = {
@@ -54,6 +55,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     orgRoleList: OrgRoleListFixture(),
     teamRoleList: TeamRoleListFixture(),
   });
+
   const router = RouterFixture({
     ...additionalRouter,
     params: {

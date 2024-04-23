@@ -10,6 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_sentry_function import SentryFunctionSerializer
 from sentry.api.serializers import serialize
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.sentryfunction import SentryFunction
 from sentry.utils.cloudfunctions import delete_function, update_function
 
@@ -27,9 +28,14 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         try:
-            function = SentryFunction.objects.get(
-                slug=function_slug, organization=kwargs["organization"].id
-            )
+            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
+                function = SentryFunction.objects.get(
+                    slug__id_or_slug=function_slug, organization=kwargs["organization"].id
+                )
+            else:
+                function = SentryFunction.objects.get(
+                    slug=function_slug, organization=kwargs["organization"].id
+                )
         except SentryFunction.DoesNotExist:
             raise Http404
 

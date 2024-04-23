@@ -23,7 +23,7 @@ class Buffer(Service):
     keep up with the updates.
     """
 
-    __all__ = ("get", "incr", "process", "process_pending", "validate")
+    __all__ = ("get", "incr", "process", "process_pending", "process_batch", "validate")
 
     def get(
         self,
@@ -62,6 +62,9 @@ class Buffer(Service):
         )
 
     def process_pending(self, partition: int | None = None) -> None:
+        return
+
+    def process_batch(self, partition: int | None = None) -> None:
         return
 
     def process(

@@ -269,23 +269,32 @@ export function NativeContent({
   }
 
   return (
-    <Wrapper className={wrapperClassName} data-test-id="native-stack-trace-content">
+    <Wrapper>
       {hideIcon ? null : (
         <StacktracePlatformIcon
           platform={stackTracePlatformIcon(platform, data.frames ?? [])}
         />
       )}
-
-      <Frames data-test-id="stack-trace">
-        {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-      </Frames>
+      <ContentPanel
+        className={wrapperClassName}
+        data-test-id="native-stack-trace-content"
+      >
+        <Frames data-test-id="stack-trace">
+          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+        </Frames>
+      </ContentPanel>
     </Wrapper>
   );
 }
 
-const Wrapper = styled(Panel)`
+const Wrapper = styled('div')`
+  position: relative;
+`;
+
+const ContentPanel = styled(Panel)`
   position: relative;
   border-top-left-radius: 0;
+  overflow: hidden;
 `;
 
 export const Frames = styled('ul')`

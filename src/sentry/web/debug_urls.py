@@ -17,6 +17,7 @@ from sentry.web.frontend.debug.debug_cron_broken_monitor_email import (
 )
 from sentry.web.frontend.debug.debug_cron_muted_monitor_email import DebugCronMutedMonitorEmailView
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
+from sentry.web.frontend.debug.debug_feedback_issue import DebugFeedbackIssueEmailView
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
@@ -83,6 +84,7 @@ from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
     re_path(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
+    re_path(r"^debug/mail/feedback-alert/$", DebugFeedbackIssueEmailView.as_view()),
     re_path(
         r"^debug/mail/performance-alert/(?P<sample_name>[^\/]+)?/$",
         DebugPerformanceIssueEmailView.as_view(),

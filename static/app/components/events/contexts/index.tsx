@@ -1,9 +1,13 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import type {Group} from 'sentry/types';
+import ContextCard from 'sentry/components/events/contexts/contextCard';
+import ContextDataSection from 'sentry/components/events/contexts/contextDataSection';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
+import useProjects from 'sentry/utils/useProjects';
 
 import {Chunk} from './chunk';
 
@@ -13,6 +17,9 @@ type Props = {
 };
 
 export function EventContexts({event, group}: Props) {
+  const hasNewTagsUI = useHasNewTagsUI();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === event.projectID);
   const {user, contexts, sdk} = event;
 
   const {feedback, response, ...otherContexts} = contexts ?? {};
@@ -30,6 +37,40 @@ export function EventContexts({event, group}: Props) {
       transaction.tags.otel_sdk_version = sdk?.version;
     }
   }, [usingOtel, sdk]);
+
+  if (hasNewTagsUI) {
+    const orderedContext: [string, any][] = [
+      ['response', response],
+      ['feedback', feedback],
+      ['user', user],
+      ...Object.entries(otherContexts),
+    ];
+    // For these context keys, use 'key' as 'type' rather than 'value.type'
+    const overrideTypes = new Set(['response', 'feedback', 'user']);
+    const cards = orderedContext
+      .filter(([_k, v]) => {
+        const contextKeys = Object.keys(v ?? {});
+        const isInvalid =
+          // Empty context
+          contextKeys.length === 0 ||
+          // Empty aside from 'type' key
+          (contextKeys.length === 1 && contextKeys[0] === 'type');
+        return !isInvalid;
+      })
+      .map(([k, v]) => (
+        <ContextCard
+          key={k}
+          type={overrideTypes.has(k) ? k : v?.type ?? ''}
+          alias={k}
+          value={v}
+          event={event}
+          group={group}
+          project={project}
+        />
+      ));
+
+    return <ContextDataSection cards={cards} />;
+  }
 
   return (
     <Fragment>

@@ -6,7 +6,6 @@ import * as qs from 'query-string';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -16,9 +15,9 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {IssueCategory} from 'sentry/types/group';
+import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -49,7 +48,7 @@ import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {getSampleSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
+import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
@@ -358,7 +357,7 @@ export default function EndpointOverview() {
   );
   const sampleData: Series[] = data.map(
     ({timestamp, 'transaction.duration': duration, id}) => {
-      const {symbol, color} = getSampleSymbol(
+      const {symbol, color} = getSampleChartSymbol(
         duration,
         aggregatesData?.['avg(transaction.duration)'],
         theme

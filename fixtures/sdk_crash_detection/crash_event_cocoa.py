@@ -127,6 +127,7 @@ def get_crash_event_with_frames(
                     "mechanism": {
                         "handled": handled,
                         "type": "mach",
+                        "synthetic": False,
                         "meta": {
                             "signal": {
                                 "number": 11,
@@ -139,6 +140,10 @@ def get_crash_event_with_frames(
                                 "code": 1,
                                 "subcode": 0,
                                 "name": "EXC_BAD_ACCESS",
+                            },
+                            "errno": {
+                                "number": 10,
+                                "name": "EACCES",
                             },
                         },
                     },

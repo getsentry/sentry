@@ -1,4 +1,4 @@
-import type {MRI, PageFilters} from 'sentry/types';
+import type {MRI, Organization, PageFilters} from 'sentry/types';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
@@ -7,15 +7,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {getMetaDateTimeParams} from './index';
 
-export function useMetricsTags(
+export function getMetricsTagsQueryKey(
+  organization: Organization,
   mri: MRI | undefined,
-  pageFilters: Partial<PageFilters>,
-  filterBlockedTags = true,
-  blockedTags?: string[]
+  pageFilters: Partial<PageFilters>
 ) {
-  const {slug} = useOrganization();
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-
   const queryParams = pageFilters.projects?.length
     ? {
         metric: mri,
@@ -29,13 +26,25 @@ export function useMetricsTags(
         ...getMetaDateTimeParams(pageFilters.datetime),
       };
 
+  return [
+    `/organizations/${organization.slug}/metrics/tags/`,
+    {
+      query: queryParams,
+    },
+  ] as const;
+}
+
+export function useMetricsTags(
+  mri: MRI | undefined,
+  pageFilters: Partial<PageFilters>,
+  filterBlockedTags = true,
+  blockedTags?: string[]
+) {
+  const organization = useOrganization();
+  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
+
   const tagsQuery = useApiQuery<MetricTag[]>(
-    [
-      `/organizations/${slug}/metrics/tags/`,
-      {
-        query: queryParams,
-      },
-    ],
+    getMetricsTagsQueryKey(organization, mri, pageFilters),
     {
       enabled: !!mri,
       staleTime: Infinity,

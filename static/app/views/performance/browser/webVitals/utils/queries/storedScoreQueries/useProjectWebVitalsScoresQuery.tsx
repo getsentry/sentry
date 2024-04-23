@@ -7,7 +7,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 type Props = {
   dataset?: DiscoverDatasets;
@@ -27,8 +26,6 @@ export const useProjectWebVitalsScoresQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
-  const inpOrFid = shouldReplaceFidWithInp ? 'inp' : 'fid';
 
   const search = new MutableSearch([]);
   if (transaction) {
@@ -43,13 +40,13 @@ export const useProjectWebVitalsScoresQuery = ({
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',
         'performance_score(measurements.score.cls)',
-        `performance_score(measurements.score.${inpOrFid})`,
+        `performance_score(measurements.score.inp)`,
         'performance_score(measurements.score.ttfb)',
         'avg(measurements.score.total)',
         'avg(measurements.score.weight.lcp)',
         'avg(measurements.score.weight.fcp)',
         'avg(measurements.score.weight.cls)',
-        `avg(measurements.score.weight.${inpOrFid})`,
+        `avg(measurements.score.weight.inp)`,
         'avg(measurements.score.weight.ttfb)',
         'count()',
         'count_scores(measurements.score.total)',
@@ -57,7 +54,7 @@ export const useProjectWebVitalsScoresQuery = ({
         'count_scores(measurements.score.fcp)',
         'count_scores(measurements.score.cls)',
         'count_scores(measurements.score.ttfb)',
-        `count_scores(measurements.score.${inpOrFid})`,
+        `count_scores(measurements.score.inp)`,
         ...(weightWebVital !== 'total'
           ? [`sum(measurements.score.weight.${weightWebVital})`]
           : []),

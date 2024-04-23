@@ -4,7 +4,7 @@ from time import time
 from unittest.mock import MagicMock, patch
 
 from sentry.event_manager import EventManager
-from sentry.grouping.ingest import (
+from sentry.grouping.ingest.hashing import (
     _calculate_background_grouping,
     _calculate_event_grouping,
     _calculate_secondary_hash,
@@ -18,7 +18,7 @@ pytestmark = [requires_snuba]
 
 class BackgroundGroupingTest(TestCase):
     @patch(
-        "sentry.grouping.ingest._calculate_background_grouping",
+        "sentry.grouping.ingest.hashing._calculate_background_grouping",
         wraps=_calculate_background_grouping,
     )
     def test_applies_background_grouping(self, mock_calc_background_grouping: MagicMock) -> None:
@@ -45,7 +45,7 @@ class BackgroundGroupingTest(TestCase):
         background_grouping_error = Exception("nope")
 
         with patch(
-            "sentry.grouping.ingest._calculate_background_grouping",
+            "sentry.grouping.ingest.hashing._calculate_background_grouping",
             side_effect=background_grouping_error,
         ):
             manager = EventManager({"message": "foo 123"})
@@ -64,7 +64,7 @@ class BackgroundGroupingTest(TestCase):
             # This proves the background grouping crash didn't crash the overall grouping process
             assert event.group
 
-    @patch("sentry.grouping.ingest._calculate_background_grouping")
+    @patch("sentry.grouping.ingest.hashing._calculate_background_grouping")
     def test_background_grouping_can_be_disabled_via_sample_rate(
         self, mock_calc_background_grouping: MagicMock
     ) -> None:
@@ -131,7 +131,9 @@ class SecondaryGroupingTest(TestCase):
         assert event3.group_id == event2.group_id
 
     @patch("sentry_sdk.capture_exception")
-    @patch("sentry.grouping.ingest._calculate_secondary_hash", wraps=_calculate_secondary_hash)
+    @patch(
+        "sentry.grouping.ingest.hashing._calculate_secondary_hash", wraps=_calculate_secondary_hash
+    )
     def test_handles_errors_with_secondary_grouping(
         self,
         mock_calculate_secondary_hash: MagicMock,
@@ -154,7 +156,7 @@ class SecondaryGroupingTest(TestCase):
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         with patch(
-            "sentry.grouping.ingest._calculate_event_grouping",
+            "sentry.grouping.ingest.hashing._calculate_event_grouping",
             wraps=mock_calculate_event_grouping,
         ):
             manager = EventManager({"message": "foo 123"})

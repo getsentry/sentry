@@ -12,7 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRuleMonitorType
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
@@ -24,7 +24,7 @@ from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -392,17 +392,23 @@ class Fixtures:
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
     def create_alert_rule_activation(
-        self, alert_rule=None, query_subscriptions=None, project=None, *args, **kwargs
+        self,
+        alert_rule=None,
+        query_subscriptions=None,
+        project=None,
+        monitor_type=AlertRuleMonitorType.ACTIVATED,
+        *args,
+        **kwargs,
     ):
         if not alert_rule:
             alert_rule = self.create_alert_rule(
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=monitor_type,
             )
         if not query_subscriptions:
             projects = [project] if project else [self.project]
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=monitor_type,
             )
 
         created_activations = []
@@ -553,7 +559,7 @@ class Fixtures:
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:
-            kwargs["actor"] = Actor.objects.get(id=get_actor_id_for_user(self.user))
+            kwargs["actor"] = Actor.objects.get(id=get_actor_for_user(self.user).id)
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):

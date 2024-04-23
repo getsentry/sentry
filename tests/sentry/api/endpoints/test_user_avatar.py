@@ -1,8 +1,6 @@
 from base64 import b64encode
 from io import BytesIO
-from unittest import mock
 
-from django.test import override_settings
 from django.urls import reverse
 
 from sentry import options as options_store
@@ -67,7 +65,9 @@ class UserAvatarTest(APITestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             photo = File.objects.create(name="test.png", type="avatar.file")
             photo.putfile(BytesIO(b"test"))
-        UserAvatar.objects.create(user=user, file_id=photo.id, avatar_type=UserAvatarType.UPLOAD)
+        UserAvatar.objects.create(
+            user=user, control_file_id=photo.id, avatar_type=UserAvatarType.UPLOAD
+        )
 
         self.login_as(user=user)
 
@@ -89,7 +89,6 @@ class UserAvatarTest(APITestCase):
 
         avatar = UserAvatar.objects.create(
             user=user,
-            file_id=photo.id,
             control_file_id=controlphoto.id,
             avatar_type=UserAvatarType.UPLOAD,
         )
@@ -161,52 +160,6 @@ class UserAvatarTest(APITestCase):
         assert avatar.control_file_id
         assert isinstance(avatar.get_file(), ControlFile)
         assert ControlFile.objects.filter(id=avatar.control_file_id).exists()
-
-    @mock.patch("sentry.tasks.files.copy_file_to_control_and_update_model.apply_async")
-    def test_do_not_copy_file_to_control(self, mock_task):
-        user = self.create_user(email="a@example.com")
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            photo = File.objects.create(name="test.png", type="avatar.file")
-            photo.putfile(BytesIO(b"test"))
-        avatar = UserAvatar.objects.create(
-            user=user, file_id=photo.id, avatar_type=UserAvatarType.UPLOAD
-        )
-
-        assert avatar
-        assert avatar.get_file_id()
-        assert avatar.file_id
-        assert not avatar.control_file_id
-        with assume_test_silo_mode(SiloMode.REGION):
-            assert isinstance(avatar.get_file(), File)
-
-        self.login_as(user=user)
-
-        url = reverse("sentry-api-0-user-avatar", kwargs={"user_id": "me"})
-
-        mock_task.reset_mock()
-        with assume_test_silo_mode(SiloMode.CONTROL), override_settings(SILO_MODE=SiloMode.CONTROL):
-            response = self.client.put(
-                url,
-                data={
-                    "avatar_type": "upload",
-                    "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
-                },
-                format="json",
-            )
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(user.id)
-        assert response.data["avatar"]["avatarType"] == "upload"
-        assert response.data["avatar"]["avatarUuid"]
-        assert mock_task.call_count == 0
-
-        avatar = UserAvatar.objects.get(user=user)
-        assert avatar
-        assert avatar.get_file_id()
-        assert avatar.file_id is None, "non-control file relation be removed."
-        assert avatar.control_file_id
-        assert isinstance(avatar.get_file(), ControlFile)
 
     def test_put_upload_saves_to_control_file_with_separate_storage(self):
         with self.options(

@@ -96,7 +96,7 @@ class GroupOwner(Model):
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.models.actor import ActorTuple
+        from sentry.utils.actor import ActorTuple
 
         if not self.owner_id():
             return None
@@ -186,7 +186,7 @@ def get_owner_details(group_list: list[Group], user: Any) -> dict[int, list[Owne
         owner_details[go.group_id].append(
             OwnersSerialized(
                 type=GROUP_OWNER_TYPE[GroupOwnerType(go.type)],
-                owner=go.owner().get_actor_identifier(),
+                owner=go.owner().identifier,
                 date_added=go.date_added,
             ),
         )

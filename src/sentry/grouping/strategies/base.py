@@ -217,7 +217,7 @@ class Strategy(Generic[ConcreteInterface]):
         prevent_contribution = None
 
         for variant, component in variants.items():
-            is_mandatory = variant[:1] == "!"
+            is_mandatory = variant.startswith("!")
             variant = variant.lstrip("!")
 
             if is_mandatory:
@@ -252,8 +252,8 @@ class Strategy(Generic[ConcreteInterface]):
                     ),
                 )
             else:
-                hash = component.get_hash()
-                duplicate_of = mandatory_contributing_hashes.get(hash)
+                hash_value = component.get_hash()
+                duplicate_of = mandatory_contributing_hashes.get(hash_value)
                 if duplicate_of is not None:
                     component.update(
                         contributes=False,

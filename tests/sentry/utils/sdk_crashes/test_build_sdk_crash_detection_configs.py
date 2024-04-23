@@ -15,12 +15,15 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
         "issues.sdk_crash_detection.java.project_id": 3,
         "issues.sdk_crash_detection.java.sample_rate": 0.3,
         "issues.sdk_crash_detection.java.organization_allowlist": [2],
+        "issues.sdk_crash_detection.native.project_id": 4,
+        "issues.sdk_crash_detection.native.sample_rate": 0.4,
+        "issues.sdk_crash_detection.native.organization_allowlist": [3],
     }
 )
 def test_build_sdk_crash_detection_configs():
     configs = build_sdk_crash_detection_configs()
 
-    assert len(configs) == 3
+    assert len(configs) == 4
 
     cocoa_config = configs[0]
     assert cocoa_config.sdk_name == SdkName.Cocoa
@@ -40,6 +43,12 @@ def test_build_sdk_crash_detection_configs():
     assert java_config.sample_rate == 0.3
     assert java_config.organization_allowlist == [2]
 
+    native_config = configs[3]
+    assert native_config.sdk_name == SdkName.Native
+    assert native_config.project_id == 4
+    assert native_config.sample_rate == 0.4
+    assert native_config.organization_allowlist == [3]
+
 
 @override_options(
     {
@@ -51,6 +60,9 @@ def test_build_sdk_crash_detection_configs():
         "issues.sdk_crash_detection.java.project_id": 0,
         "issues.sdk_crash_detection.java.sample_rate": 0.0,
         "issues.sdk_crash_detection.java.organization_allowlist": [],
+        "issues.sdk_crash_detection.native.project_id": 0,
+        "issues.sdk_crash_detection.native.sample_rate": 0.0,
+        "issues.sdk_crash_detection.javnativea.organization_allowlist": [],
     }
 )
 def test_build_sdk_crash_detection_configs_only_react_native():
@@ -74,6 +86,9 @@ def test_build_sdk_crash_detection_configs_only_react_native():
         "issues.sdk_crash_detection.java.project_id": 3,
         "issues.sdk_crash_detection.java.sample_rate": 0.0,
         "issues.sdk_crash_detection.java.organization_allowlist": [2],
+        "issues.sdk_crash_detection.native.project_id": 4,
+        "issues.sdk_crash_detection.native.sample_rate": 0.0,
+        "issues.sdk_crash_detection.native.organization_allowlist": [3],
     }
 )
 def test_build_sdk_crash_detection_configs_no_sample_rate():
@@ -97,6 +112,9 @@ def test_build_sdk_crash_detection_configs_no_sample_rate():
         "issues.sdk_crash_detection.java.project_id": 0,
         "issues.sdk_crash_detection.java.sample_rate": 0.0,
         "issues.sdk_crash_detection.java.organization_allowlist": [1],
+        "issues.sdk_crash_detection.native.project_id": 0,
+        "issues.sdk_crash_detection.native.sample_rate": 0.0,
+        "issues.sdk_crash_detection.native.organization_allowlist": [],
     }
 )
 def test_build_sdk_crash_detection_default_configs():

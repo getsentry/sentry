@@ -10,15 +10,15 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -88,9 +88,7 @@ export function SpanOperationTable({
     secondaryRelease
   );
 
-  const sort = fromSorts(
-    decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
-  )[0] ?? {
+  const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
     field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
   };

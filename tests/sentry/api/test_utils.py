@@ -12,11 +12,13 @@ from sentry.api.utils import (
     customer_domain_path,
     get_date_range_from_params,
     handle_query_errors,
+    id_or_slug_path_params_enabled,
     print_and_capture_handler_exception,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -253,3 +255,30 @@ class HandleQueryErrorsTest:
                     raise ex
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
+
+
+class IdOrSlugPathParamsEnabledTest(TestCase):
+    def test_no_options_enabled(self):
+        assert not id_or_slug_path_params_enabled("TestEndpoint.convert_args")
+
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_ga_option_enabled(self):
+        assert id_or_slug_path_params_enabled(convert_args_class="TestEndpoint.convert_args")
+
+    @override_options({"api.id-or-slug-enabled-ea-endpoints": ["TestEndpoint.convert_args"]})
+    def test_ea_endpoint_option_enabled(self):
+        assert not id_or_slug_path_params_enabled(convert_args_class="NotTestEndpoint.convert_args")
+        assert id_or_slug_path_params_enabled(convert_args_class="TestEndpoint.convert_args")
+
+    @override_options({"api.id-or-slug-enabled-ea-org": ["sentry"]})
+    def test_ea_org_option_enabled(self):
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "not-sentry")
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "sentry")
+
+    @override_options({"api.id-or-slug-enabled-ea-org": ["sentry"]})
+    @override_options({"api.id-or-slug-enabled-ea-endpoints": ["TestEndpoint.convert_args"]})
+    def test_ea_org_and_endpoint_option_enabled(self):
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "not-sentry")
+        assert not id_or_slug_path_params_enabled("NotTestEndpoint.convert_args", "sentry")
+        assert not id_or_slug_path_params_enabled("TestEndpoint.convert_args", "not-sentry")
+        assert id_or_slug_path_params_enabled("TestEndpoint.convert_args", "sentry")

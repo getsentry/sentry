@@ -50,6 +50,7 @@ ElementResponseType = TypedDict(
         "alt": str,
         "aria_label": str,
         "class": list[str],
+        "component_name": str,
         "id": str,
         "role": str,
         "tag": str,
@@ -253,6 +254,7 @@ def query_selector_dataset(
                 Column("click_testid"),
                 Column("click_aria_label"),
                 Column("click_title"),
+                Column("click_component_name"),
                 Function("sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"),
                 Function("sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"),
             ],
@@ -285,6 +287,7 @@ def query_selector_dataset(
                 Column("click_testid"),
                 Column("click_aria_label"),
                 Column("click_title"),
+                Column("click_component_name"),
             ],
             granularity=Granularity(3600),
             **query_options,
@@ -315,6 +318,8 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
             selector = selector + f'[aria="{row["click_aria_label"]}"]'
         if row["click_title"]:
             selector = selector + f'[title="{row["click_title"]}"]'
+        if row["click_component_name"]:
+            selector = selector + f'[component_name="{row["click_component_name"]}"]'
 
         return selector
 
@@ -333,6 +338,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
                 "tag": row["click_tag"],
                 "testid": row["click_testid"],
                 "title": row["click_title"],
+                "component_name": row["click_component_name"],
             },
             "project_id": row["project_id"],
         }

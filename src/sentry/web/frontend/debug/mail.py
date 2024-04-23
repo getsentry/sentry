@@ -57,6 +57,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
 from sentry.testutils.helpers.notifications import (  # NOQA:S007
     SAMPLE_TO_OCCURRENCE_MAP,
+    TEST_FEEDBACK_ISSUE_OCCURENCE,
     TEST_ISSUE_OCCURRENCE,
 )
 from sentry.types.group import GroupSubStatus
@@ -104,6 +105,8 @@ COMMIT_EXAMPLE = """[
     }
 }
 ]"""
+
+REPLAY_ID = "9188182919744ea987d8e4e58f4a6dec"
 
 
 def get_random(request) -> Random:
@@ -248,6 +251,28 @@ def make_generic_event(project: Project):
     assert group_info is not None
     generic_group = group_info.group
     return generic_group.get_latest_event()
+
+
+def make_feedback_issue(project):
+    event_id = uuid.uuid4().hex
+    occurrence_data = TEST_FEEDBACK_ISSUE_OCCURENCE.to_dict()
+    occurrence_data["event_id"] = event_id
+    occurrence_data["fingerprint"] = [
+        md5(part.encode("utf-8")).hexdigest() for part in occurrence_data["fingerprint"]
+    ]
+    occurrence, group_info = process_event_and_issue_occurrence(
+        occurrence_data,
+        {
+            "event_id": event_id,
+            "project_id": project.id,
+            "timestamp": before_now(minutes=1).isoformat(),
+            "tags": [("logger", "javascript"), ("environment", "prod"), ("replayId", REPLAY_ID)],
+        },
+    )
+    if not group_info:
+        raise ValueError("No group found")
+    feedback_issue = group_info.group
+    return feedback_issue.get_latest_event()
 
 
 def get_shared_context(rule, org, project: Project, group, event):
@@ -423,9 +448,6 @@ class ActivityMailDebugView(View):
         )
 
 
-replay_id = "9188182919744ea987d8e4e58f4a6dec"
-
-
 @login_required
 def alert(request):
     random = get_random(request)
@@ -463,7 +485,7 @@ def alert(request):
             "culprit": random.choice(["sentry.tasks.culprit.culprit", None]),
             "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
-            "replay_id": replay_id,
+            "replay_id": REPLAY_ID,
             "issue_replays_url": get_issue_replay_link(group, "?referrer=alert_email"),
         },
     ).render(request)

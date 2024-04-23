@@ -21,7 +21,11 @@ from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
 
-dropped_outcomes = [Outcome.INVALID.api_name(), Outcome.RATE_LIMITED.api_name()]
+dropped_outcomes = [
+    Outcome.INVALID.api_name(),
+    Outcome.RATE_LIMITED.api_name(),
+    Outcome.CARDINALITY_LIMITED.api_name(),
+]
 
 
 """
@@ -639,6 +643,7 @@ def massage_sessions_result_summary(
                 "invalid": 0,
                 "abuse": 0,
                 "client_discard": 0,
+                "cardinality_limited": 0,
               },
               "totals": {
                 "dropped": 1,

@@ -10,9 +10,10 @@ export type FeedbackIssue = Overwrite<
     metadata: {
       contact_email: null | string;
       message: string;
-      name: string;
+      name: null | string;
       title: string;
       value: string;
+      initial_priority?: number;
       sdk?: {
         name: string;
         name_normalized: string;

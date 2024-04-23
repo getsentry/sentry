@@ -26,6 +26,7 @@ class SdkName(Enum):
     Cocoa = "cocoa"
     ReactNative = "react-native"
     Java = "java"
+    Native = "native"
 
 
 @dataclass
@@ -84,7 +85,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # the frames contain the full paths required for detecting system frames in is_system_library_frame.
             # Therefore, we require at least sentry-cocoa 8.2.0.
             min_sdk_version="8.2.0",
-            system_library_path_patterns={r"/System/Library/*", r"/usr/lib/*"},
+            system_library_path_patterns={r"/System/Library/**", r"/usr/lib/**"},
             sdk_frame_config=SDKFrameConfig(
                 function_patterns={
                     r"*sentrycrash*",
@@ -117,8 +118,8 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # We require at least sentry-react-native 4.0.0 to only detect SDK crashes for not too old versions.
             min_sdk_version="4.0.0",
             system_library_path_patterns={
-                r"*/react-native/Libraries/*",
-                r"*/react-native-community/*",
+                r"**/react-native/Libraries/**",
+                r"**/react-native-community/**",
             },
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
@@ -199,6 +200,61 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             sdk_crash_ignore_functions_matchers=set(),
         )
         configs.append(java_config)
+
+    native_options = _get_options(sdk_name=SdkName.Native, has_organization_allowlist=True)
+
+    if native_options:
+        native_config = SDKCrashDetectionConfig(
+            sdk_name=SdkName.Native,
+            project_id=native_options["project_id"],
+            sample_rate=native_options["sample_rate"],
+            organization_allowlist=native_options["organization_allowlist"],
+            sdk_names=[
+                "sentry.native",
+                "sentry.native.android",
+                "sentry.native.android.capacitor",
+                "sentry.native.android.flutter",
+                "sentry.native.android.react-native",
+                "sentry.native.android.unity",
+                "sentry.native.android.unreal",
+                "sentry.native.dotnet",
+                "sentry.native.unity",
+                "sentry.native.unreal",
+            ],
+            # 0.6.0 was released in Feb 2023, see https://github.com/getsentry/sentry-native/releases/tag/0.6.0.
+            min_sdk_version="0.6.0",
+            system_library_path_patterns={
+                # well known locations for unix paths
+                r"/lib/**",
+                r"/usr/lib/**",
+                r"/usr/local/lib/**",
+                r"/usr/local/Cellar/**",
+                r"linux-gate.so*",
+                # others
+                r"/System/Library/Frameworks/**",  # macOS
+                r"C:/Windows/**",
+                r"/system/**",
+                r"/vendor/**",
+                r"**/libart.so",
+                r"/apex/com.android.*/lib*/**",  # Android
+            },
+            sdk_frame_config=SDKFrameConfig(
+                function_patterns={
+                    r"sentry_*",  # public interface
+                    r"sentry__*",  # module level interface
+                    r"Java_io_sentry_android_ndk_*",  # JNI interface
+                },
+                path_patterns=set(),
+                path_replacer=KeepAfterPatternMatchPathReplacer(
+                    patterns={
+                        r"sentry_.*",
+                    },
+                    fallback_path="sentry",
+                ),
+            ),
+            sdk_crash_ignore_functions_matchers=set(),
+        )
+        configs.append(native_config)
 
     return configs
 

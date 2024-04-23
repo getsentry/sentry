@@ -300,7 +300,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
 
         def frames_differ(a, b):
             return (
-                a.get("lineno") != b.get("lineno")
+                a.get("lineno", 0) != b.get("lineno", 0)
                 or a.get("abs_path") != b.get("abs_path")
                 or a.get("function") != b.get("function")
                 or a.get("filename") != b.get("filename")
@@ -312,13 +312,16 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         def exceptions_differ(a, b):
             return a.get("type") != b.get("type") or a.get("module") != b.get("module")
 
-        different_frames = []
-        for symbolicator_stacktrace, stacktrace_info in zip(
-            symbolicator_stacktraces, self.stacktrace_infos
-        ):
-            # NOTE: lets hope that `stacktrace_info` has the already processed frames
-            python_stacktrace = stacktrace_info.container.get("stacktrace")
+        # During symbolication, empty stacktrace_infos are disregarded. We need to do that here as well or results
+        # won't line up.
+        python_stacktraces = [
+            sinfo.stacktrace for sinfo in self.stacktrace_infos if sinfo.stacktrace is not None
+        ]
 
+        different_frames = []
+        for symbolicator_stacktrace, python_stacktrace in zip(
+            symbolicator_stacktraces, python_stacktraces
+        ):
             for symbolicator_frame, python_frame in zip(
                 symbolicator_stacktrace, python_stacktrace["frames"]
             ):

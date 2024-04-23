@@ -18,12 +18,13 @@ from sentry.event_manager import (
     _get_or_create_group_release,
     _increment_release_associated_counts,
     _process_existing_aggregate,
-    _save_grouphash_and_group,
     get_event_type,
+    save_grouphash_and_group,
 )
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
@@ -199,16 +200,16 @@ def save_issue_from_occurrence(
             metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
-        with sentry_sdk.start_span(
-            op="issues.save_issue_from_occurrence.transaction"
-        ) as span, metrics.timer(
-            "issues.save_issue_from_occurrence.transaction",
-            tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
-            sample_rate=1.0,
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
+            metrics.timer(
+                "issues.save_issue_from_occurrence.transaction",
+                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
+                sample_rate=1.0,
+            ) as metric_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            group, is_new = _save_grouphash_and_group(
+            group, is_new = save_grouphash_and_group(
                 project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
             )
             is_regression = False
@@ -237,6 +238,14 @@ def save_issue_from_occurrence(
                         "sdk": normalized_sdk_tag_from_event(event),
                     },
                 )
+        if is_new and occurrence.assignee:
+            try:
+                # Since this calls hybrid cloud it has to be run outside the transaction
+                assignee = occurrence.assignee.resolve()
+                GroupAssignee.objects.assign(group, assignee, create_only=True)
+            except Exception:
+                logger.exception("Failed process assignment for occurrence")
+
     else:
         group = existing_grouphash.group
         if group.issue_category.value != occurrence.type.category:

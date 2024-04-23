@@ -88,6 +88,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
+    free_text_key = "message"
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
     entity: Entity | None = None
@@ -201,6 +202,10 @@ class BaseQueryBuilder:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
+        if self.builder_config.parser_config_overrides is None:
+            self.builder_config.parser_config_overrides = {}
+        self.builder_config.parser_config_overrides["free_text_key"] = self.free_text_key
+
         self.dataset = dataset
 
         # filter params is the older style params, shouldn't be used anymore
@@ -302,13 +307,11 @@ class BaseQueryBuilder:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
         column_name = column_resolver(col)
-
         # If the original column was passed in as tag[X], then there won't be a conflict
         # and there's no need to prefix the tag
         if not col.startswith("tags[") and column_name.startswith("tags["):
             self.prefixed_to_tag_map[f"tags_{col}"] = col
             self.tag_to_prefixed_map[col] = f"tags_{col}"
-
         return column_name
 
     def resolve_query(
@@ -1086,7 +1089,6 @@ class BaseQueryBuilder:
         :param name: The unresolved sentry name.
         :param alias: The expected alias in the result.
         """
-
         # TODO: This method should use an aliased column from the SDK once
         # that is available to skip these hacks that we currently have to
         # do aliasing.
@@ -1573,7 +1575,7 @@ class QueryBuilder(BaseQueryBuilder):
                 raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
 
         # Validate event ids, trace ids, and profile ids are uuids
-        if name in {"id", "trace", "profile.id"}:
+        if name in {"id", "trace", "profile.id", "replay.id"}:
             if search_filter.value.is_wildcard():
                 raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
@@ -1581,6 +1583,8 @@ class QueryBuilder(BaseQueryBuilder):
                     label = "Filter Trace ID"
                 elif name == "profile.id":
                     label = "Filter Profile ID"
+                elif name == "replay.id":
+                    label = "Filter Replay ID"
                 else:
                     label = "Filter ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))

@@ -43,4 +43,8 @@ class RelatedIssuesTest(APITestCase):
         # The UI will then make normal calls to get issues-stats
         # For instance, this URL
         # https://us.sentry.io/api/0/organizations/sentry/issues-stats/?groups=4741828952&groups=4489703641&statsPeriod=24h
-        assert response.json() == {"same_root_cause": [1, 5]}
+        assert response.json() == {
+            "data": [
+                {"type": "same_root_cause", "data": [1, 5]},
+            ],
+        }

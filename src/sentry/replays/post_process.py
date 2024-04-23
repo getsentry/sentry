@@ -73,6 +73,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     info_ids: list[str] | None
     count_warnings: int | None
     count_infos: int | None
+    has_viewed: bool
 
 
 def process_raw_response(
@@ -101,7 +102,7 @@ def _strip_dashes(field: str) -> str:
 
 
 def generate_normalized_output(
-    response: list[dict[str, Any]],
+    response: list[dict[str, Any]]
 ) -> Generator[ReplayDetailsResponse, None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
@@ -181,6 +182,8 @@ def generate_normalized_output(
         ret_item["info_ids"] = item.pop("info_ids", None)
         ret_item["count_infos"] = item.pop("count_infos", None)
         ret_item["count_warnings"] = item.pop("count_warnings", None)
+        # Returns a UInt8 of either 0 or 1. We coerce to a bool.
+        ret_item["has_viewed"] = bool(item.get("has_viewed", 0))
         yield ret_item
 
 

@@ -19,7 +19,7 @@ from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import freeze_time
@@ -1002,9 +1002,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
-    @with_feature({"organizations:slack-block-kit": False})
     def test_slack_confirmation_notification_contents(self):
-        # TODO: make this a block kit test
         conditions = [
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
         ]
@@ -1093,7 +1091,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert rendered_blocks[0]["text"]["text"] == message
         changes = "*Changes*\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
-        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] in notification* to *Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] in notification*\n"
+        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] and notes  in notification* to *Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] and notes  in notification*\n"
         changes += "• Changed frequency from *5 minutes* to *3 hours*\n"
         changes += f"• Added *{staging_env.name}* environment\n"
         changes += "• Changed rule name from *my rule* to *new rule*\n"

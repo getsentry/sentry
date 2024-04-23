@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 import pickle
 import threading
+from collections.abc import Callable
 from datetime import date, datetime, timezone
 from enum import Enum
 from time import time
-from typing import Any
+from typing import Any, TypeVar
 
+import rb
 from django.utils.encoding import force_bytes, force_str
+from rediscluster import RedisCluster
 
 from sentry.buffer.base import Buffer
 from sentry.db import models
@@ -30,6 +33,7 @@ _local_buffers_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T", str, bytes)
 # Debounce our JSON validation a bit in order to not cause too much additional
 # load everywhere
 _last_validation_log: float | None = None
@@ -52,11 +56,40 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
 
 
+class BufferHookEvent(Enum):
+    FLUSH = "flush"
+
+
+class BufferHookRegistry:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
+
+    def add_handler(self, key: BufferHookEvent) -> Callable[..., Any]:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            self._registry[key] = func
+            return func
+
+        return decorator
+
+    def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
+        try:
+            callback = self._registry[buffer_hook_event]
+        except KeyError:
+            return False
+
+        return callback(data)
+
+
+redis_buffer_registry = BufferHookRegistry()
+
+
 class RedisOperation(Enum):
-    SET_ADD = "sadd"
-    SET_GET = "smembers"
+    SORTED_SET_ADD = "zadd"
+    SORTED_SET_GET_RANGE = "zrange"
+    SORTED_SET_DELETE_RANGE = "zremrangebyscore"
     HASH_ADD = "hset"
     HASH_GET_ALL = "hgetall"
+    HASH_DELETE = "hdel"
 
 
 class PendingBuffer:
@@ -142,6 +175,15 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
 
+    def _lock_key(
+        self, client: RedisCluster[T] | rb.RoutingClient, key: str, ex: int
+    ) -> None | str:
+        lock_key = self._make_lock_key(key)
+        # prevent a stampede due to celerybeat + periodic task
+        if not client.set(lock_key, "1", nx=True, ex=ex):
+            return None
+        return lock_key
+
     @classmethod
     def _dump_values(cls, values: dict[Any, Any]) -> dict[Any, tuple[str, str]]:
         result = {}
@@ -202,13 +244,7 @@ class RedisBuffer(Buffer):
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
         """
         key = self._make_key(model, filters)
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            pipe = self.cluster.pipeline(transaction=False)
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            conn = self.cluster.get_local_client_for_key(key)
-            pipe = conn.pipeline()
-        else:
-            raise AssertionError("unreachable")
+        pipe = self.get_redis_connection(key, transaction=False)
 
         for col in columns:
             pipe.hget(key, f"i+{col}")
@@ -218,7 +254,7 @@ class RedisBuffer(Buffer):
             col: (int(results[i]) if results[i] is not None else 0) for i, col in enumerate(columns)
         }
 
-    def get_redis_connection(self, key: str) -> Pipeline | None:
+    def get_redis_connection(self, key: str, transaction: bool = True) -> Pipeline:
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             conn = self.cluster
         elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
@@ -226,23 +262,38 @@ class RedisBuffer(Buffer):
         else:
             raise AssertionError("unreachable")
 
-        pipe = conn.pipeline()
+        pipe = conn.pipeline(transaction=transaction)
         return pipe
 
-    def _execute_redis_operation(self, key: str, operation: RedisOperation, *args: Any) -> Any:
+    def _execute_redis_operation(
+        self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
+    ) -> Any:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        if pipe:
-            getattr(pipe, operation.value)(key, *args)
-            if args:
-                pipe.expire(key, self.key_expire)
-            return pipe.execute()
+        getattr(pipe, operation.value)(key, *args, **kwargs)
+        if args:
+            pipe.expire(key, self.key_expire)
+        return pipe.execute()
 
-    def push_to_set(self, key: str, value: list[int] | int) -> None:
-        self._execute_redis_operation(key, RedisOperation.SET_ADD, value)
+    def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
 
     def get_set(self, key: str) -> list[set[int]]:
-        return self._execute_redis_operation(key, RedisOperation.SET_GET)
+        return self._execute_redis_operation(
+            key, RedisOperation.SORTED_SET_GET_RANGE, start=0, end=-1, withscores=True
+        )
+
+    def delete_key(self, key: str, min: int, max: int) -> None:
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
+
+    def delete_hash(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        field: str,
+    ) -> None:
+        key = self._make_key(model, filters)
+        self._execute_redis_operation(key, RedisOperation.HASH_DELETE, field)
 
     def push_to_hash(
         self,
@@ -256,9 +307,32 @@ class RedisBuffer(Buffer):
 
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> dict[str, str]:
+    ) -> list[dict[str, str]]:
         key = self._make_key(model, field)
         return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+
+    def handle_pending_partitions(self, partition: int | None) -> None:
+        if partition is None and self.pending_partitions > 1:
+            # If we're using partitions, this one task fans out into
+            # N subtasks instead.
+            for i in range(self.pending_partitions):
+                process_pending.apply_async(kwargs={"partition": i})
+            # Explicitly also run over the unpartitioned buffer as well
+            # to ease in transition. In practice, this should just be
+            # super fast and is fine to do redundantly.
+
+    def process_batch(self, partition: int | None = None) -> None:
+        self.handle_pending_partitions(partition)
+        pending_key = self._make_pending_key(partition)
+        client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
+        lock_key = self._lock_key(client, pending_key, ex=10)
+        if not lock_key:
+            return
+
+        try:
+            redis_buffer_registry.callback(BufferHookEvent.FLUSH, self)
+        finally:
+            client.delete(lock_key)
 
     def incr(
         self,
@@ -273,7 +347,7 @@ class RedisBuffer(Buffer):
         Increment the key by doing the following:
 
         - Insert/update a hashmap based on (model, columns)
-            - Perform an incrby on counters
+            - Perform an incrby on counters if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             - Perform a set (last write wins) on extra
             - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
@@ -283,8 +357,6 @@ class RedisBuffer(Buffer):
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
         pipe = self.get_redis_connection(key)
-        if not pipe:
-            return
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 
@@ -321,20 +393,12 @@ class RedisBuffer(Buffer):
         )
 
     def process_pending(self, partition: int | None = None) -> None:
-        if partition is None and self.pending_partitions > 1:
-            # If we're using partitions, this one task fans out into
-            # N subtasks instead.
-            for i in range(self.pending_partitions):
-                process_pending.apply_async(kwargs={"partition": i})
-            # Explicitly also run over the unpartitioned buffer as well
-            # to ease in transition. In practice, this should just be
-            # super fast and is fine to do redundantly.
+        self.handle_pending_partitions(partition)
 
         pending_key = self._make_pending_key(partition)
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._make_lock_key(pending_key)
-        # prevent a stampede due to celerybeat + periodic task
-        if not client.set(lock_key, "1", nx=True, ex=60):
+        lock_key = self._lock_key(client, pending_key, ex=60)
+        if not lock_key:
             return
 
         pending_buffer = PendingBuffer(self.incr_batch_size)
@@ -401,10 +465,8 @@ class RedisBuffer(Buffer):
 
     def _process_single_incr(self, key: str) -> None:
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._make_lock_key(key)
-        # prevent a stampede due to the way we use celery etas + duplicate
-        # tasks
-        if not client.set(lock_key, "1", nx=True, ex=10):
+        lock_key = self._lock_key(client, key, ex=10)
+        if not lock_key:
             metrics.incr("buffer.revoked", tags={"reason": "locked"}, skip_internal=False)
             logger.debug("buffer.revoked.locked", extra={"redis_key": key})
             return
@@ -412,13 +474,7 @@ class RedisBuffer(Buffer):
         pending_key = self._make_pending_key_from_key(key)
 
         try:
-            if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-                pipe = self.cluster.pipeline(transaction=False)
-            elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-                conn = self.cluster.get_local_client_for_key(key)
-                pipe = conn.pipeline()
-            else:
-                raise AssertionError("unreachable")
+            pipe = self.get_redis_connection(key, transaction=False)
             pipe.hgetall(key)
             pipe.zrem(pending_key, key)
             pipe.delete(key)

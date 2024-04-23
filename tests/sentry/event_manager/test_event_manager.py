@@ -38,10 +38,10 @@ from sentry.dynamic_sampling import (
 from sentry.event_manager import (
     EventManager,
     _get_event_instance,
-    _save_grouphash_and_group,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
+    save_grouphash_and_group,
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
@@ -1387,6 +1387,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("metadata") == {
             "type": "Foo",
             "value": "bar",
+            "initial_priority": PriorityLevel.HIGH,
             "display_title_with_tree_label": False,
         }
 
@@ -1412,6 +1413,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("type") == "csp"
         assert group.data.get("metadata") == {
             "directive": "script-src",
+            "initial_priority": PriorityLevel.HIGH,
             "uri": "example.com",
             "message": "Blocked 'script' from 'example.com'",
         }
@@ -2462,14 +2464,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 issue_type=PerformanceSlowDBQueryGroupType,
             )
 
-        # Should not create the group without the feature flag
         last_event = attempt_to_generate_slow_db_issue()
-        assert not last_event.group
-
-        with self.feature({"organizations:performance-slow-db-issue": True}):
-            last_event = attempt_to_generate_slow_db_issue()
-            assert last_event.group
-            assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
+        assert last_event.group
+        assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
 
     @patch("sentry.event_manager.metrics.incr")
     def test_new_group_metrics_logging(self, mock_metrics_incr: MagicMock) -> None:
@@ -3390,13 +3387,13 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
-        group, created = _save_grouphash_and_group(self.project, event, group_hash)
+        group, created = save_grouphash_and_group(self.project, event, group_hash)
         assert created
-        group_2, created = _save_grouphash_and_group(self.project, event, group_hash)
+        group_2, created = save_grouphash_and_group(self.project, event, group_hash)
         assert group.id == group_2.id
         assert not created
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
-        group_3, created = _save_grouphash_and_group(self.project, event, "new_hash")
+        group_3, created = save_grouphash_and_group(self.project, event, "new_hash")
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1

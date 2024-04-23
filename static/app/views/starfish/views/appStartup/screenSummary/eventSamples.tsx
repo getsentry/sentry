@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -69,7 +69,7 @@ export function EventSamples({
     // }`,
   ]);
 
-  const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
+  const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
     'transaction.id': t(

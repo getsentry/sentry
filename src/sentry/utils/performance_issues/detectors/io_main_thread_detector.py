@@ -3,11 +3,14 @@ from __future__ import annotations
 import hashlib
 import os
 from collections import defaultdict
+from typing import Any
 
 import sentry_sdk
+from symbolic.proguard import ProguardMapper
 
 from sentry import features, options
 from sentry.issues.grouptype import (
+    GroupType,
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
 )
@@ -29,21 +32,29 @@ from ..types import Span
 
 
 class BaseIOMainThreadDetector(PerformanceDetector):
-    __slots__ = ("spans_involved", "stored_problems")
+    __slots__ = ("stored_problems",)
 
-    def init(self):
-        self.spans_involved = {}
-        self.most_recent_start_time = {}
-        self.most_recent_hash = {}
+    SPAN_PREFIX: str  # abstract
+    group_type: type[GroupType]  # abstract
+
+    def _is_io_on_main_thread(self, span: Span) -> bool:
+        raise NotImplementedError
+
+    def _fingerprint(self, span_list: list[Span]) -> str:
+        raise NotImplementedError
+
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
-        self.mapper = None
-        self.parent_to_blocked_span = defaultdict(list)
+        self.mapper: ProguardMapper | None = None
+        self.parent_to_blocked_span: dict[str, list[Span]] = defaultdict(list)
 
     def visit_span(self, span: Span):
         if self._is_io_on_main_thread(span) and span.get("op", "").lower().startswith(
             self.SPAN_PREFIX
         ):
-            parent_span_id = span.get("parent_span_id")
+            parent_span_id = span["parent_span_id"]
             self.parent_to_blocked_span[parent_span_id].append(span)
 
     def on_complete(self):
@@ -62,7 +73,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                 offender_spans = [span for span in span_list if "span_id" in span]
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
-                    op=span_list[0].get("op"),
+                    op=span_list[0].get("op", ""),
                     desc=span_list[0].get("description", ""),
                     parent_span_ids=[parent_span_id],
                     type=self.group_type,
@@ -104,7 +115,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     Checks for a file io span on the main thread
     """
 
-    __slots__ = ("spans_involved", "stored_problems")
+    __slots__ = ("stored_problems",)
 
     IGNORED_EXTENSIONS = {".nib", ".plist"}
     SPAN_PREFIX = "file"
@@ -145,7 +156,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
                     self.mapper = mapper
                     return
 
-    def _deobfuscate_module(self, module: str) -> str:
+    def _deobfuscate_module(self, module: str) -> str | None:
         if self.mapper is not None:
             return self.mapper.remap_class(module)
         else:
@@ -160,7 +171,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         else:
             return frame.get("function", "")
 
-    def _fingerprint(self, span_list) -> str:
+    def _fingerprint(self, span_list: list[Span]) -> str:
         call_stack_strings = []
         overall_stack = []
         # only prepare deobfuscation once we need to fingerprint cause its expensive
@@ -199,17 +210,16 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
     Checks for a DB span on the main thread
     """
 
-    __slots__ = ("spans_involved", "stored_problems")
+    __slots__ = ("stored_problems",)
 
     SPAN_PREFIX = "db"
     type = DetectorType.DB_MAIN_THREAD
     settings_key = DetectorType.DB_MAIN_THREAD
     group_type = PerformanceDBMainThreadGroupType
 
-    def init(self):
-        self.spans_involved = {}
-        self.most_recent_start_time = {}
-        self.most_recent_hash = {}
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.mapper = None
         self.parent_to_blocked_span = defaultdict(list)

@@ -1,13 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {
   MultipleSelectProps,
   SelectOption,
   SingleSelectProps,
 } from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 

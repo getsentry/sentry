@@ -6,8 +6,9 @@ from django.test import override_settings
 from django.urls import get_resolver, reverse
 from rest_framework.response import Response
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -105,6 +106,76 @@ class ApiGatewayTest(ApiGatewayTestCase):
 
         with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(region_url)
+            assert resp.status_code == 200
+            assert resp.data["proxy"] is False
+
+    @responses.activate
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_proxy_check_org_id_or_slug_url_with_params(self):
+        """Test the logic of when a request should be proxied"""
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
+            json={"proxy": True},
+        )
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/organizations/{self.organization.slug}/control/",
+            json={"proxy": True},
+        )
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/organizations/{self.organization.id}/region/",
+            json={"proxy": True},
+        )
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/organizations/{self.organization.id}/control/",
+            json={"proxy": True},
+        )
+
+        region_url_slug = reverse(
+            "region-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.slug}
+        )
+        control_url_slug = reverse(
+            "control-endpoint-id-or-slug",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+        region_url_id = reverse(
+            "region-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.id}
+        )
+        control_url_id = reverse(
+            "control-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.id}
+        )
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(region_url_slug)
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
+
+            resp = self.client.get(control_url_slug)
+            assert resp.status_code == 200
+            assert resp.data["proxy"] is False
+
+        with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(region_url_slug)
+            assert resp.status_code == 200
+            assert resp.data["proxy"] is False
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(region_url_id)
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
+
+            resp = self.client.get(control_url_id)
+            assert resp.status_code == 200
+            assert resp.data["proxy"] is False
+
+        with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(region_url_id)
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
 

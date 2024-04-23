@@ -19,6 +19,9 @@ NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 
 
 def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]:
+    """
+    Given a mock metrics function, grab only the calls which record the metric with the given key.
+    """
     return [call for call in mock_fn.call_args_list if call.args[0] == key]
 
 
@@ -198,7 +201,7 @@ class EventManagerGroupingMetricsTest(TestCase):
                     )
 
     @mock.patch("sentry.event_manager.metrics.incr")
-    @mock.patch("sentry.grouping.ingest.is_in_transition", return_value=True)
+    @mock.patch("sentry.grouping.ingest.hashing.is_in_transition", return_value=True)
     def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
         project = self.project
         project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
@@ -215,13 +218,13 @@ class EventManagerGroupingMetricsTest(TestCase):
 
         for primary_hashes, secondary_hashes, expected_tag in cases:
             with mock.patch(
-                "sentry.grouping.ingest._calculate_primary_hash",
+                "sentry.grouping.ingest.hashing._calculate_primary_hash",
                 return_value=CalculatedHashes(
                     hashes=primary_hashes, hierarchical_hashes=[], tree_labels=[]
                 ),
             ):
                 with mock.patch(
-                    "sentry.grouping.ingest._calculate_secondary_hash",
+                    "sentry.grouping.ingest.hashing._calculate_secondary_hash",
                     return_value=CalculatedHashes(
                         hashes=secondary_hashes, hierarchical_hashes=[], tree_labels=[]
                     ),

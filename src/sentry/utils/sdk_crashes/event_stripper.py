@@ -61,6 +61,7 @@ EVENT_DATA_ALLOWLIST = {
             "type": Allow.SIMPLE_TYPE,
             "mechanism": {
                 "handled": Allow.SIMPLE_TYPE,
+                "synthetic": Allow.SIMPLE_TYPE,
                 "type": Allow.SIMPLE_TYPE,
                 "meta": {
                     "signal": {
@@ -73,6 +74,10 @@ EVENT_DATA_ALLOWLIST = {
                         "exception": Allow.SIMPLE_TYPE,
                         "code": Allow.SIMPLE_TYPE,
                         "subcode": Allow.SIMPLE_TYPE,
+                        "name": Allow.SIMPLE_TYPE,
+                    },
+                    "errno": {
+                        "number": Allow.SIMPLE_TYPE,
                         "name": Allow.SIMPLE_TYPE,
                     },
                 },

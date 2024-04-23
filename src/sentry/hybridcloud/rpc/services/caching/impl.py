@@ -3,9 +3,13 @@ from typing import TypeVar
 
 from django.core.cache import cache
 
-from sentry.hybridcloud.models.cacheversion import CacheVersionBase, RegionCacheVersion
+from sentry.hybridcloud.models.cacheversion import (
+    CacheVersionBase,
+    ControlCacheVersion,
+    RegionCacheVersion,
+)
 from sentry.hybridcloud.rpc.services.caching import ControlCachingService, RegionCachingService
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 _V = TypeVar("_V")
 
@@ -21,7 +25,7 @@ def _consume_generator(g: Generator[None, None, _V]) -> _V:
             return e.value
 
 
-def _set_cache(key: str, value: str, version: int) -> Generator[None, None, bool]:
+def _set_cache(key: str, value: str | None, version: int) -> Generator[None, None, bool]:
     result = cache.add(_versioned_key(key, version), value)
     yield
     return result
@@ -34,6 +38,8 @@ def _versioned_key(key: str, version: int) -> str:
 def _version_model(mode: SiloMode) -> type[CacheVersionBase]:
     if mode == SiloMode.REGION:
         return RegionCacheVersion
+    if mode == SiloMode.CONTROL:
+        return ControlCacheVersion
     raise ValueError
 
 

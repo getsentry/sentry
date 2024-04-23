@@ -45,7 +45,7 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
     props.organization.features.includes('performance-new-trends') &&
     canUseMetricsData(props.organization)
   ) {
-    if (props.organization.features.includes('performance-database-view')) {
+    if (props.organization.features.includes('spans-first-ui')) {
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
@@ -53,10 +53,7 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
     }
-
-    if (
-      props.organization.features.includes('starfish-browser-webvitals-pageoverview-v2')
-    ) {
+    if (props.organization.features.includes('starfish-browser-webvitals')) {
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE);
     }
   } else {

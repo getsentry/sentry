@@ -94,6 +94,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         tags: Sequence[tuple[str, Any]] | None = None,
         release: str | None = None,
         user: dict[str, Any] | None = None,
+        event_data: dict[str, Any] | None = None,
     ) -> tuple[Event, IssueOccurrence, GroupInfo | None]:
         from sentry.utils import snuba
 
@@ -103,6 +104,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         event_data = {
             "tags": [("sentry:user", user_id_val)],
             "timestamp": iso_format(insert_timestamp),
+            **(event_data or {}),
         }
         if tags:
             event_data["tags"].extend(tags)

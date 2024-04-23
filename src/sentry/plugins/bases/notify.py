@@ -43,7 +43,7 @@ class NotificationPlugin(Plugin):
         "already resolved event has changed back to unresolved."
     )
     # site_conf_form = NotificationConfigurationForm
-    project_conf_form = NotificationConfigurationForm
+    project_conf_form: type[forms.Form] = NotificationConfigurationForm
 
     def configure(self, project, request):
         return react_plugin_config(self, project, request)
