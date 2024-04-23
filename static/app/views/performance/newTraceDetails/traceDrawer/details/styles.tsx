@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 import {Button as CommonButton, LinkButton} from 'sentry/components/button';
 import {DataSection} from 'sentry/components/events/styles';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -254,12 +255,14 @@ function TableRow({
   children,
   prefix,
   extra = null,
+  toolTipText,
 }: {
   children: React.ReactNode;
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
   prefix?: JSX.Element;
+  toolTipText?: string;
 }) {
   if (!keep && !children) {
     return null;
@@ -271,15 +274,16 @@ function TableRow({
         <Flex>
           {prefix}
           {title}
+          {toolTipText ? <StyledQuestionTooltip size="xs" title={toolTipText} /> : null}
         </Flex>
       </td>
       <ValueTd className="value">
-        <ValueRow>
+        <TableValueRow>
           <StyledPre>
             <span className="val-string">{children}</span>
           </StyledPre>
-          <ButtonContainer>{extra}</ButtonContainer>
-        </ValueRow>
+          <TableRowButtonContainer>{extra}</TableRowButtonContainer>
+        </TableValueRow>
       </ValueTd>
     </tr>
   );
@@ -303,7 +307,7 @@ const Flex = styled('div')`
   align-items: center;
 `;
 
-const ValueRow = styled('div')`
+const TableValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
   gap: ${space(1)};
@@ -313,12 +317,16 @@ const ValueRow = styled('div')`
   margin: 2px;
 `;
 
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
+`;
+
 const StyledPre = styled('pre')`
   margin: 0 !important;
   background-color: transparent !important;
 `;
 
-const ButtonContainer = styled('div')`
+const TableRowButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 
@@ -343,6 +351,8 @@ const TraceDrawerComponents = {
   Duration,
   TableRow,
   LAZY_RENDER_PROPS,
+  TableRowButtonContainer,
+  TableValueRow,
 };
 
 export {TraceDrawerComponents};
