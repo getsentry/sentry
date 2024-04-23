@@ -100,14 +100,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        member_id: str = "me",
-        team_slug: str = None,
+        organization_slug: str | int | None = None,
         *args: Any,
         **kwargs: Any,
-    ) -> tuple[Any, Any]:
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        member_id = kwargs.get("member_id", "me")
         args, kwargs = super().convert_args(request, organization_slug, member_id, *args, **kwargs)
 
+        team_slug = kwargs["team_slug"]
         organization = kwargs["organization"]
         member = kwargs["member"]
 
