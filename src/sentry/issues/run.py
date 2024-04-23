@@ -1,5 +1,7 @@
+import functools
 import logging
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
 
 from arroyo.backends.kafka import KafkaPayload
@@ -35,7 +37,14 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.output_block_size = output_block_size
         if num_processes is not None:
             self.pool = MultiprocessingPool(num_processes)
+        else:
+            self.pool = None
+
         self.batched = mode == "batched-parallel"
+        if self.batched:
+            self.occurrence_worker = ThreadPoolExecutor()
+        else:
+            self.occurrence_worker = None
 
     def crate_parallel_worker(
         self,
@@ -53,7 +62,7 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def creat_batched_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         batch_processor = RunTask(
-            function=process_batch,
+            function=functools.partial(process_batch, self.occurrence_worker),
             next_step=CommitOffsets(commit),
         )
         return BatchStep(
@@ -75,6 +84,8 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def shutdown(self) -> None:
         if self.pool:
             self.pool.close()
+        if self.occurrence_worker:
+            self.occurrence_worker.shutdown()
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
@@ -89,12 +100,12 @@ def process_message(message: Message[KafkaPayload]) -> None:
         logger.exception("failed to process message payload")
 
 
-def process_batch(messages: list[Message[KafkaPayload]]) -> None:
+def process_batch(occurrence_worker, messages: list[Message[KafkaPayload]]) -> None:
     from sentry.issues.occurrence_consumer import _process_batch
     from sentry.utils import metrics
 
     try:
         with metrics.timer("occurrence_consumer.process_batch"):
-            _process_batch(messages)
+            _process_batch(occurrence_worker, messages)
     except Exception:
         logger.exception("failed to process batch payload")

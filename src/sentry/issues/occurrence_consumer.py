@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import wait
 from typing import Any
 from uuid import UUID
 
@@ -31,9 +31,6 @@ from sentry.utils import json, metrics
 from sentry.utils.actor import parse_and_validate_actor
 
 logger = logging.getLogger(__name__)
-
-
-_occurrence_worker = ThreadPoolExecutor()
 
 
 class InvalidEventPayloadError(Exception):
@@ -367,14 +364,14 @@ def _process_message(
     return None
 
 
-def _process_batch(message: Message[ValuesBatch[KafkaPayload]]):
+def _process_batch(_occurrence_worker, message: Message[ValuesBatch[KafkaPayload]]):
     """
-    Receives batches of check-in messages. This function will take the batch
-    and group them together by monitor ID (ensuring order is preserved) and
+    Receives batches of occurrences. This function will take the batch
+    and group them together by fingerprint (ensuring order is preserved) and
     execute each group using a ThreadPoolWorker.
 
-    By batching we're able to process check-ins in parallel while guaranteeing
-    that no check-ins are processed out of order per monitor environment.
+    By batching we're able to process occurrences in parallel while guaranteeing
+    that no occurrences are processed out of order per group.
     """
     batch = message.payload
 
@@ -395,7 +392,6 @@ def _process_batch(message: Message[ValuesBatch[KafkaPayload]]):
 
     # Number of check-in groups we've collected to be processed in parallel
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
-
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
         futures = [
