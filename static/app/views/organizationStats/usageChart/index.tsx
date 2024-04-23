@@ -105,10 +105,11 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
   },
 ];
 
-export enum SeriesTypes {
+const enum SeriesTypes {
   ACCEPTED = 'Accepted',
   DROPPED = 'Dropped',
   PROJECTED = 'Projected',
+  RESERVED = 'Reserved',
   FILTERED = 'Filtered',
 }
 
@@ -166,6 +167,7 @@ export type UsageChartProps = {
    * Display datetime in UTC
    */
   usageDateShowUtc?: boolean;
+  yAxisFormatter?: (val: number) => string;
 };
 
 /**
@@ -181,6 +183,8 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
     dropped: [],
     projected: [],
     filtered: [],
+    reserved: [],
+    onDemand: [],
   };
   const isCumulative = transform === ChartDataTransform.CUMULATIVE;
 
@@ -201,11 +205,20 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
   return chartData;
 };
 
+const getUnitYaxisFormatter =
+  (dataCategory: UsageChartProps['dataCategory']) => (val: number) =>
+    formatUsageWithUnits(val, dataCategory, {
+      isAbbreviated: true,
+      useUnitScaling: true,
+    });
+
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
   dropped: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
+  onDemand?: NonNullable<BarSeriesOption['data']>;
+  reserved?: NonNullable<BarSeriesOption['data']>;
 };
 
 function chartMetadata({
@@ -238,7 +251,6 @@ function chartMetadata({
   xAxisData: string[];
   xAxisLabelInterval: number;
   xAxisTickInterval: number;
-  yAxisFormatter: (val: number) => string;
   yAxisMinInterval: number;
 } {
   const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
@@ -299,11 +311,6 @@ function chartMetadata({
     xAxisTickInterval,
     xAxisLabelInterval,
     yAxisMinInterval,
-    yAxisFormatter: (val: number) =>
-      formatUsageWithUnits(val, dataCategory, {
-        isAbbreviated: true,
-        useUnitScaling: true,
-      }),
     tooltipValueFormatter: getTooltipFormatter(dataCategory),
   };
 }
@@ -337,6 +344,7 @@ function UsageChartBody({
   categoryOptions = CHART_OPTIONS_DATACATEGORY,
   usageDateInterval = '1d',
   usageDateShowUtc = true,
+  yAxisFormatter,
   handleDataTransformation = cumulativeTotalDataTransformation,
 }: UsageChartProps) {
   const theme = useTheme();
@@ -361,6 +369,8 @@ function UsageChartBody({
     );
   }
 
+  const yAxisLabelFormatter = yAxisFormatter ?? getUnitYaxisFormatter(dataCategory);
+
   const {
     chartData,
     tooltipValueFormatter,
@@ -368,7 +378,6 @@ function UsageChartBody({
     xAxisTickInterval,
     xAxisLabelInterval,
     yAxisMinInterval,
-    yAxisFormatter,
   } = chartMetadata({
     categoryOptions,
     dataCategory,
@@ -383,9 +392,13 @@ function UsageChartBody({
 
   function chartLegendData() {
     const legend: LegendComponentOption['data'] = [
-      {
-        name: SeriesTypes.ACCEPTED,
-      },
+      chartData.reserved && chartData.reserved.length > 0
+        ? {
+            name: SeriesTypes.RESERVED,
+          }
+        : {
+            name: SeriesTypes.ACCEPTED,
+          },
     ];
 
     if (chartData.filtered && chartData.filtered.length > 0) {
@@ -454,7 +467,7 @@ function UsageChartBody({
   return (
     <BaseChart
       colors={colors}
-      grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
+      grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
       xAxis={xAxis({
         show: true,
         type: 'category',
@@ -474,7 +487,7 @@ function UsageChartBody({
         min: 0,
         minInterval: yAxisMinInterval,
         axisLabel: {
-          formatter: yAxisFormatter,
+          formatter: yAxisLabelFormatter,
           color: theme.chartLabel,
         },
       }}
