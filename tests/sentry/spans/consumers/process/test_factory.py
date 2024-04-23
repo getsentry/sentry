@@ -10,8 +10,7 @@ from sentry.spans.buffer.redis import get_redis_client
 from sentry.spans.consumers.detect_performance_issues.factory import BUFFERED_SEGMENT_SCHEMA
 from sentry.spans.consumers.process.factory import (
     ProcessSpansStrategyFactory,
-    ProduceSegmentContext,
-    accumulator,
+    batch_write_to_redis,
     expand_segments,
 )
 from sentry.testutils.helpers.options import override_options
@@ -157,7 +156,10 @@ def test_produces_valid_segment_to_kafka():
         strategy.terminate()
 
         mock_producer.produce.assert_called_once()
-        BUFFERED_SEGMENT_SCHEMA.decode(mock_producer.produce.call_args.args[1].value)
+        decoded_segment = BUFFERED_SEGMENT_SCHEMA.decode(
+            mock_producer.produce.call_args.args[1].value
+        )
+        assert len(decoded_segment["spans"]) == 2
         assert mock_producer.produce.call_args.args[0] == ArroyoTopic("buffered-segments")
 
 
@@ -338,23 +340,15 @@ def test_commit_and_produce_with_multiple_partitions():
         strategy.join(1)
         strategy.terminate()
 
-        # max batch size is 2, so 8 calls during poll, 8 during submit, 1 during join
+        # max batch size is 2, one commit per batch, 1 during join
         calls = [
-            mock.call({partition_1: 2}),
             mock.call({partition_1: 3}),
-            mock.call({partition_1: 4}),
             mock.call({partition_1: 5}),
-            mock.call({partition_1: 6}),
             mock.call({partition_1: 7}),
-            mock.call({partition_1: 8}),
             mock.call({partition_1: 9}),
-            mock.call({partition_2: 2}),
             mock.call({partition_2: 3}),
-            mock.call({partition_2: 4}),
             mock.call({partition_2: 5}),
-            mock.call({partition_2: 6}),
             mock.call({partition_2: 7}),
-            mock.call({partition_2: 8}),
             mock.call({partition_2: 9}),
             mock.call({}, force=True),
         ]
@@ -382,8 +376,9 @@ def test_with_multiple_partitions():
     factory = process_spans_strategy()
     mock_commit = mock.Mock()
     with mock.patch(
-        "sentry.spans.consumers.process.factory.accumulator", wraps=accumulator
-    ) as mock_accumulator:
+        "sentry.spans.consumers.process.factory.batch_write_to_redis",
+        wraps=batch_write_to_redis,
+    ) as mock_batch_write_and_check_processing:
         with mock.patch.object(
             factory,
             "producer",
@@ -422,24 +417,17 @@ def test_with_multiple_partitions():
             mock_commit.assert_has_calls(calls=calls, any_order=True)
 
             context_calls = [
-                ProduceSegmentContext(False, int(now.timestamp()), 0),
-                ProduceSegmentContext(False, int(now.timestamp()), 0),
-                ProduceSegmentContext(False, int(now.timestamp()), 1),
-                ProduceSegmentContext(False, int(now.timestamp()), 1),
-                ProduceSegmentContext(True, int(now_plus_one_second.timestamp()), 1),
+                {partition_1: 3},
+                {partition_2: 3},
+                {partition_2: 4},
             ]
-            assert all([c.args[1].payload in context_calls for c in mock_accumulator.mock_calls])
             assert all(
                 [
-                    c.args[0]
-                    in [
-                        {},
-                        {1: ProduceSegmentContext(True, int(now_plus_one_second.timestamp()), 1)},
-                    ]
-                    for c in mock_accumulator.mock_calls
+                    c.args[0].committable in context_calls
+                    for c in mock_batch_write_and_check_processing.mock_calls
                 ]
             )
-            assert mock_accumulator.call_count == 5
+            assert mock_batch_write_and_check_processing.call_count == 3
 
             assert redis_client.lrange("segment:89225fa064375ee5:1:process-segment", 0, -1) == [
                 message1.value().encode("utf-8"),
@@ -512,31 +500,3 @@ def test_with_expand_segment():
         ]
 
         assert redis_client.ttl("segment:a96c2bcd49de0c43:1:process-segment") == -2
-
-
-def test_accumulator():
-    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_SPANS)["real_topic_name"])
-    partition = Partition(topic, 0)
-
-    def _make_message(segment_context):
-        return Message(
-            BrokerValue(
-                segment_context,
-                partition,
-                1,
-                datetime.now() + timedelta(minutes=1),
-            )
-        )
-
-    result = accumulator({}, _make_message(ProduceSegmentContext(False, 1, 1)))
-    assert result == {}
-
-    result = accumulator(result, _make_message(ProduceSegmentContext(True, 1, 1)))
-    assert result == {1: ProduceSegmentContext(True, 1, 1)}
-
-    result = accumulator(result, _make_message(ProduceSegmentContext(True, 2, 2)))
-    result = accumulator(result, _make_message(ProduceSegmentContext(False, 2, 2)))
-    assert result == {1: ProduceSegmentContext(True, 1, 1), 2: ProduceSegmentContext(True, 2, 2)}
-
-    result = accumulator(result, _make_message(ProduceSegmentContext(True, 3, 2)))
-    assert result == {1: ProduceSegmentContext(True, 1, 1), 2: ProduceSegmentContext(True, 3, 2)}
