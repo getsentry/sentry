@@ -673,6 +673,14 @@ class GroupEvent(BaseEvent):
         self.data = data
         self._occurrence = occurrence
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, GroupEvent):
+            return False
+        return other.event_id == self.event_id and other.group_id == self.group_id
+
+    def __hash__(self) -> int:
+        return hash((self.group_id, self.event_id))
+
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
         if template:
@@ -684,14 +692,6 @@ class GroupEvent(BaseEvent):
         return cast(
             str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
         )
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, GroupEvent):
-            return False
-        return other.event_id == self.event_id and other.group_id == self.group_id
-
-    def __hash__(self) -> int:
-        return hash((self.group_id, self.event_id))
 
     @property
     def group_id(self) -> int:
