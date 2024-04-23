@@ -903,7 +903,6 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.active_incident is not None
 
     @with_feature("organizations:issue-platform")
-    @with_feature("organizations:crons-ownership")
     def test_mark_failed_issue_assignment(self):
         monitor = Monitor.objects.create(
             name="test monitor",
