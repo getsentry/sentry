@@ -155,7 +155,7 @@ class GroupSnooze(Model):
         real_count = group.count_users_seen(
             referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         )
-        return real_count >= threshold
+        return real_count < threshold
 
     def test_user_counts_w_cache(self, group=None):
         metrics.incr("groupsnooze.test_user_counts")
@@ -166,14 +166,14 @@ class GroupSnooze(Model):
         if cache.get(cache_key, float("inf")) < threshold:
             # if we've seen less than that many events, we can't possibly have seen enough users
             cache.increment(cache_key)
-            return False
+            return True
 
         metrics.incr("groupsnooze.test_user_counts.real_count")
         real_count = group.count_users_seen(
             referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         )
         cache.set(cache_key, real_count, self.USER_COUNT_CACHE_TIMEOUT)
-        return real_count >= threshold
+        return real_count < threshold
 
 
 post_save.connect(
