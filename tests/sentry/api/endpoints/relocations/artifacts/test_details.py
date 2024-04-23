@@ -107,11 +107,12 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
     def test_good_unencrypted_with_superuser(
         self, fake_kms_client: FakeKeyManagementServiceClient
     ) -> None:
+        self.mock_kms_client(fake_kms_client)
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(str(self.relocation.uuid), "somedir", "file.json")
 
-        # assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
         assert (
             response.data["contents"] == f'"runs/{self.relocation.uuid}/somedir/file.json"'.encode()
         )
@@ -139,11 +140,12 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
     def test_good_unencrypted_with_staff(
         self, fake_kms_client: FakeKeyManagementServiceClient
     ) -> None:
+        self.mock_kms_client(fake_kms_client)
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(str(self.relocation.uuid), "somedir", "file.json")
 
-        # assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
         assert (
             response.data["contents"] == f'"runs/{self.relocation.uuid}/somedir/file.json"'.encode()
         )
