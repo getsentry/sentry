@@ -14,9 +14,12 @@ from django.utils import timezone as django_timezone
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.monitors.models import (
     CheckInStatus,
+    Monitor,
     MonitorCheckIn,
     MonitorEnvBrokenDetection,
     MonitorIncident,
@@ -80,6 +83,32 @@ def update_user_monitor_dictionary(
     )
     if len(user_monitor_entry["environment_names"]) < MAX_ENVIRONMENTS_IN_MONITOR_LINK:
         user_monitor_entry["environment_names"].append(environment_name)
+
+
+def get_user_emails_from_monitor(
+    monitor: Monitor,
+):
+    try:
+        if monitor.owner_user_id:
+            organization_member = OrganizationMember.objects.get(
+                user_id=monitor.owner_user_id, organization_id=monitor.organization_id
+            )
+            return [organization_member.user_email]
+        elif monitor.owner_team_id:
+            team = Team.objects.get_from_cache(id=monitor.owner_team_id)
+            return team.member_set.values_list("user_email", flat=True)
+    except (OrganizationMember.DoesNotExist, Team.DoesNotExist):
+        logger.info(
+            "monitors.broken_detection.invalid_owner",
+            extra={
+                "id": monitor.id,
+                "owner_user_id": monitor.owner_user_id,
+                "owner_team_id": monitor.owner_team_id,
+            },
+        )
+
+    project = Project.objects.get_from_cache(id=monitor.project_id)
+    return project.member_set.values_list("user_email", flat=True)
 
 
 def generate_monitor_email_context(
@@ -194,12 +223,13 @@ def detect_broken_monitor_envs_for_org(org_id: int):
         if not detection.user_notified_timestamp:
             environment_name = open_incident.monitor_environment.get_environment().name
             project = Project.objects.get_from_cache(id=open_incident.monitor.project_id)
-            for user in project.member_set:
-                if not user.user_email:
+
+            for email in get_user_emails_from_monitor(open_incident.monitor):
+                if not email:
                     continue
 
                 update_user_monitor_dictionary(
-                    user_broken_envs, user.user_email, open_incident, project, environment_name
+                    user_broken_envs, email, open_incident, project, environment_name
                 )
         elif (
             not detection.env_muted_timestamp
@@ -213,12 +243,12 @@ def detect_broken_monitor_envs_for_org(org_id: int):
                 open_incident.monitor_environment.update(is_muted=True)
                 detection.update(env_muted_timestamp=django_timezone.now())
 
-            for user in project.member_set:
-                if not user.user_email:
+            for email in get_user_emails_from_monitor(open_incident.monitor):
+                if not email:
                     continue
 
                 update_user_monitor_dictionary(
-                    user_muted_envs, user.user_email, open_incident, project, environment_name
+                    user_muted_envs, email, open_incident, project, environment_name
                 )
 
         metrics.timing(
