@@ -7,6 +7,7 @@ from hashlib import sha1
 from typing import IO, TYPE_CHECKING, TypeVar
 
 from django.conf import settings
+from django.core.files.storage import Storage
 from django.utils import timezone
 
 from sentry.utils.imports import import_string
@@ -92,7 +93,7 @@ def get_storage(config=None):
     return storage(**options)
 
 
-def get_relocation_storage(config=None):
+def get_relocation_storage(config=None) -> Storage:
     from sentry import options as options_store
 
     backend = options_store.get("filestore.relocation-backend")
