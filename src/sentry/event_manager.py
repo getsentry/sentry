@@ -2126,6 +2126,48 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
     return is_regression
 
 
+def _is_placeholder_title(title):
+    return title in PLACEHOLDER_EVENT_TITLES
+
+
+def _is_real_title(title):
+    return bool(title) and title not in PLACEHOLDER_EVENT_TITLES
+
+
+def _get_updated_group_title(existing_container, incoming_container):
+    """
+    Given either `group.data` or `group.data["metadata"]`, in both existing and incoming forms, pick
+    the correct title to use when updating the group. Uses the incoming title (or `None` if there
+    isn't one) except in  the case where a placeholder title (`<unlabeled event>`, `<untitled>`,
+    etc) would be replacing a non-placeholder title (either `None` or a real title).
+
+    This stems from an incident during which we were interpreting error events as default-type
+    events and thereby overwriting good titles with placeholder ones and inserting placeholder
+    titles where there shouldn't have been a title at all. (The second case matters because
+    default-type and error-type events differ in where they include a `title` attribute, and we
+    count on the lack of a `title` attribute in certain cases as well as the presence of one.) This
+    prevents that from happening in the future and will delete errant placeholder titles by
+    overwriting them with `None`.
+    """
+
+    existing_title = existing_container.get("title")
+    incoming_title = incoming_container.get("title")
+
+    return (
+        incoming_title
+        if (
+            # Real titles beat both placeholder and non-existent titles
+            _is_real_title(incoming_title)
+            or
+            # Conversely, placeholder titles lose to both real titles and lack of a title (the
+            # latter in order to fix the regression caused by error events being interpreted as
+            # default-type events)
+            _is_placeholder_title(existing_title)
+        )
+        else existing_title
+    )
+
+
 def _process_existing_aggregate(
     group: Group,
     event: BaseEvent,
