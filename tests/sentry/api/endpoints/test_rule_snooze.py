@@ -15,7 +15,10 @@ from sentry.utils.actor import ActorTuple
 class BaseRuleSnoozeTest(APITestCase):
     def setUp(self):
         self.issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=self.team.actor
+            label="test rule",
+            project=self.project,
+            owner=self.team.actor,
+            owner_team_id=self.team.id,
         )
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]
@@ -216,7 +219,10 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         """Test that if a user doesn't belong to the team that can edit an issue alert rule, they can still mute it for just themselves."""
         other_team = self.create_team()
         other_issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=other_team.actor
+            label="test rule",
+            project=self.project,
+            owner=other_team.actor,
+            owner_team_id=other_team.id,
         )
         data = {"target": "me"}
         response = self.get_response(

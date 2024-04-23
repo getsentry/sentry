@@ -234,15 +234,25 @@ class ProjectTest(APITestCase, TestCase):
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
+        rule1 = Rule.objects.create(
+            label="another test rule", project=project, owner=team.actor, owner_team=team
+        )
         rule2 = Rule.objects.create(
-            label="rule4", project=project, owner=get_actor_for_user(from_user)
+            label="rule4",
+            project=project,
+            owner=get_actor_for_user(from_user),
+            owner_user_id=from_user.id,
         )
 
         # should keep their owners
-        rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
+        rule3 = Rule.objects.create(
+            label="rule2", project=project, owner=to_team.actor, owner_team=to_team
+        )
         rule4 = Rule.objects.create(
-            label="rule3", project=project, owner=get_actor_for_user(to_user)
+            label="rule3",
+            project=project,
+            owner=get_actor_for_user(to_user),
+            owner_user_id=to_user.id,
         )
 
         assert EnvironmentProject.objects.count() == 1

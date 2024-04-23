@@ -182,7 +182,10 @@ class RuleSerializer(RuleSetSerializer):
         if self.validated_data.get("frequency"):
             rule.data["frequency"] = self.validated_data["frequency"]
         if self.validated_data.get("owner"):
-            rule.owner = self.validated_data["owner"].resolve_to_actor()
+            actor = self.validated_data["owner"].resolve_to_actor()
+            rule.owner_id = actor.id
+            rule.owner_user_id = actor.user_id
+            rule.owner_team_id = actor.team_id
         rule.save()
         return rule
 
