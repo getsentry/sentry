@@ -76,7 +76,7 @@ export function OverviewRow({
         <DetailsContainer>
           <OwnershipDetails>
             <ProjectBadge project={monitor.project} avatarSize={12} disableLink />
-            {organization.features.includes('crons-ownership') && monitor.owner ? (
+            {monitor.owner ? (
               <ActorBadge actor={monitor.owner} avatarSize={12} />
             ) : (
               <UnassignedLabel>
