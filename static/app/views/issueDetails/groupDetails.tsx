@@ -42,7 +42,6 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -376,9 +375,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const router = useRouter();
   const params = router.params;
 
-  const [error, setError] = useState<boolean>(false);
-  const [errorType, setErrorType] = useState<Error | null>(null);
-  const [event, setEvent] = useState<Event | null>(null);
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
   const environments = useEnvironmentsFromUrl();
@@ -386,7 +382,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const groupId = params.groupId;
 
   const {
-    data: eventData,
+    data: event,
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
@@ -422,12 +418,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   useSyncGroupStore(environments);
 
   useEffect(() => {
-    if (eventData) {
-      setEvent(eventData);
-    }
-  }, [eventData]);
-
-  useEffect(() => {
     if (group && event) {
       const reprocessingNewRoute = getReprocessingNewRoute({
         group,
@@ -438,7 +428,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
       if (reprocessingNewRoute) {
         browserHistory.push(reprocessingNewRoute);
-        return;
       }
     }
   }, [group, event, router, organization]);
@@ -500,18 +489,12 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [allProjectsFlag, group?.project.id, allProjectChanged]);
 
-  const handleError = useCallback((e: RequestError) => {
-    Sentry.captureException(e);
-
-    setErrorType(getFetchDataRequestErrorType(e?.status));
-    setError(true);
-  }, []);
-
+  const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
   useEffect(() => {
     if (isGroupError) {
-      handleError(groupError);
+      Sentry.captureException(groupError);
     }
-  }, [isGroupError, groupError, handleError]);
+  }, [isGroupError, groupError]);
 
   const refetchGroup = useCallback(() => {
     if (group?.status !== GroupStatus.REPROCESSING || loadingGroup || loadingEvent) {
@@ -522,21 +505,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [group, loadingGroup, loadingEvent, refetchGroupCall]);
 
   const refetchData = useCallback(() => {
-    // Set initial state
-    setError(false);
-    setErrorType(null);
-
     refetchEvent();
     refetchGroup();
   }, [refetchGroup, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {
-    if (group) {
-      if ((group as Group & {stale?: boolean}).stale) {
-        refetchGroup();
-        return;
-      }
+    if (group && (group as Group & {stale?: boolean}).stale) {
+      refetchGroup();
     }
   }, [refetchGroup, group]);
 
@@ -552,9 +528,9 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     loadingGroup,
     loadingEvent,
     group,
-    event,
+    event: event ?? null,
     errorType,
-    error,
+    error: isGroupError,
     eventError: isError,
     refetchData,
     refetchGroup,
