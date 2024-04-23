@@ -462,6 +462,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
+/static/app/views/settings/projectMetrics/*                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 
 /static/app/components/metrics/                                                  @getsentry/telemetry-experience
