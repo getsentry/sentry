@@ -57,6 +57,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             project=self.project,
             name="getsentry/sentry",
             provider="integrations:github",
+            external_id="123",
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -89,6 +90,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     "provider": "integrations:github",
                     "owner": "getsentry",
                     "name": "sentry",
+                    "external_id": "123",
                 }
             ],
             ANY,
@@ -113,6 +115,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             project=self.project,
             name="getsentry/sentry",
             provider="integrations:github",
+            external_id="123",
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -143,6 +146,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     "provider": "integrations:github",
                     "owner": "getsentry",
                     "name": "sentry",
+                    "external_id": "123",
                 }
             ],
             ANY,
@@ -168,6 +172,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             project=self.project,
             name="getsentry/sentry",
             provider="integrations:github",
+            external_id="123",
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -198,6 +203,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     "provider": "integrations:github",
                     "owner": "getsentry",
                     "name": "sentry",
+                    "external_id": "123",
                 }
             ],
             ANY,
@@ -226,6 +232,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             project=self.project,
             name="getsentry/sentry",
             provider="integrations:github",
+            external_id="123",
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
@@ -255,7 +262,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         release = self.create_release(project=self.project, version="1.0.0")
 
         self.create_repo(
-            project=self.project, name="invalid-repo", provider="integrations:someotherprovider"
+            project=self.project,
+            name="invalid-repo",
+            provider="integrations:someotherprovider",
+            external_id="123",
         )
 
         data = load_data("python", timestamp=before_now(minutes=1))
@@ -294,7 +304,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         # Creating a repository with a valid name 'getsentry/sentry'
         valid_repo = self.create_repo(
-            project=self.project, name="getsentry/sentry", provider="integrations:github"
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
         )
         valid_repo.save()
 
