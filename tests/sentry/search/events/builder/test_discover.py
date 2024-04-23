@@ -69,7 +69,7 @@ class QueryBuilderTest(TestCase):
         query.get_snql_query().validate()
 
     def test_query_without_project_ids(self):
-        params = {
+        params: ParamsType = {
             "start": self.params["start"],
             "end": self.params["end"],
             "organization_id": self.organization.id,
@@ -79,7 +79,7 @@ class QueryBuilderTest(TestCase):
             bulk_snuba_queries([query.get_snql_query()], referrer=Referrer.TESTING_TEST.value)
 
     def test_query_with_empty_project_ids(self):
-        params = {
+        params: ParamsType = {
             "start": self.params["start"],
             "end": self.params["end"],
             "project_id": [],  # We add an empty project_id list
