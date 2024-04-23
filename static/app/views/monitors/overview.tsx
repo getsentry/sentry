@@ -118,17 +118,15 @@ export default function Monitors() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Filters>
-              {organization.features.includes('crons-ownership') && (
-                <OwnerFilter
-                  selectedOwners={decodeList(router.location.query.owner)}
-                  onChangeFilter={owner =>
-                    router.replace({
-                      ...router.location,
-                      query: {...router.location.query, owner},
-                    })
-                  }
-                />
-              )}
+              <OwnerFilter
+                selectedOwners={decodeList(router.location.query.owner)}
+                onChangeFilter={owner =>
+                  router.replace({
+                    ...router.location,
+                    query: {...router.location.query, owner},
+                  })
+                }
+              />
               <PageFilterBar>
                 <ProjectPageFilter resetParamsOnChange={['cursor']} />
                 <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
