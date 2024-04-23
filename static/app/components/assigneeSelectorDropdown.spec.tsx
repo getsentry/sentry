@@ -94,9 +94,7 @@ describe('AssigneeSelectorDropdown', () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     MemberListStore.reset();
-  });
 
-  beforeEach(() => {
     ProjectsStore.loadInitialData([PROJECT_1]);
   });
 
