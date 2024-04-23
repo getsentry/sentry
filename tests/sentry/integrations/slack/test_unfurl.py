@@ -212,7 +212,7 @@ class UnfurlTest(TestCase):
         assert (
             unfurls[links[1].url]
             == SlackIssuesMessageBuilder(
-                group2, next(iter(event.build_group_events())), link_to_event=True
+                group2, event.for_group(group2), link_to_event=True
             ).build()
         )
 
@@ -242,7 +242,7 @@ class UnfurlTest(TestCase):
         assert (
             unfurls[links[1].url]
             == SlackIssuesMessageBuilder(
-                group2, next(iter(event.build_group_events())), link_to_event=True
+                group2, event.for_group(group2), link_to_event=True
             ).build()
         )
 

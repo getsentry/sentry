@@ -534,57 +534,6 @@ class EventGroupsTest(TestCase):
         assert event.groups == [self.group]
 
 
-class EventBuildGroupEventsTest(TestCase):
-    def test_none(self):
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-        )
-        assert list(event.build_group_events()) == []
-
-    def test(self):
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-            groups=[self.group],
-        )
-        assert list(event.build_group_events()) == [GroupEvent.from_event(event, self.group)]
-
-    def test_multiple(self):
-        self.group_2 = self.create_group()
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-            groups=[self.group, self.group_2],
-        )
-        sort_key = lambda group_event: (group_event.event_id, group_event.group_id)
-        assert sorted(event.build_group_events(), key=sort_key) == sorted(
-            [GroupEvent.from_event(event, self.group), GroupEvent.from_event(event, self.group_2)],
-            key=sort_key,
-        )
-
-
 class EventForGroupTest(TestCase):
     def test(self):
         event = Event(

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -55,7 +55,7 @@ HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
 
 
 class PostProcessJob(TypedDict, total=False):
-    event: Event | GroupEvent
+    event: GroupEvent
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
@@ -667,21 +667,16 @@ def post_process_group(
                 "is_new_group_environment": is_new_group_environment,
             }
 
-            update_event_group(event, group_state)
+            group_event = update_event_group(event, group_state)
             bind_organization_context(event.project.organization)
             _capture_event_stats(event)
             if should_update_escalating_metrics(event, is_transaction_event):
                 _update_escalating_metrics(event)
 
-            group_events: Mapping[int, GroupEvent] = {
-                ge.group_id: ge for ge in list(event.build_group_events())
-            }
-            if occurrence is not None:
-                for ge in group_events.values():
-                    ge.occurrence = occurrence
+            group_event.occurrence = occurrence
 
             group_job: PostProcessJob = {
-                "event": group_events[group_state["id"]],
+                "event": group_event,
                 "group_state": group_state,
                 "is_reprocessed": is_reprocessed,
                 "has_reappeared": bool(not group_state["is_new"]),
@@ -689,12 +684,7 @@ def post_process_group(
                 "has_escalated": False,
             }
             run_post_process_job(group_job)
-
-            if group_events:
-                # In practice, we only have one group here and will be removing the list of jobs. For now, just grab a
-                # random one
-                group_event = list(group_events.values())[0]
-                metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
         if not is_reprocessed and event.data.get("received"):
             duration = time() - event.data["received"]
@@ -795,7 +785,7 @@ def process_event(data: dict, group_id: int | None) -> Event:
     return event
 
 
-def update_event_group(event: Event, group_state: GroupState) -> None:
+def update_event_group(event: Event, group_state: GroupState) -> GroupEvent:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
@@ -821,6 +811,7 @@ def update_event_group(event: Event, group_state: GroupState) -> None:
         event.group = rebound_group
 
     event.groups = [rebound_group]
+    return event.for_group(rebound_group)
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
