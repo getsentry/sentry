@@ -571,11 +571,11 @@ export function getChartTimeseries(
   data: MetricsQueryApiResponse,
   queries: MetricsQueryApiQueryParams[],
   {
-    getChartPalette,
+    getChartPalette = createChartPalette,
     focusedSeries,
   }: {
-    getChartPalette: (seriesNames: string[]) => Record<string, string>;
     focusedSeries?: Set<string>;
+    getChartPalette?: (seriesNames: string[]) => Record<string, string>;
     showQuerySymbol?: boolean;
   }
 ) {

@@ -81,6 +81,7 @@ export interface MetricsQueryParams {
   widgets: string; // stringified json representation of MetricsWidget
   end?: DateString;
   environment?: string[];
+  interval?: string;
   project?: number[];
   start?: DateString;
   statsPeriod?: string | null;
