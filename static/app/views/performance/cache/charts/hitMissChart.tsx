@@ -31,7 +31,7 @@ export function CacheHitMissChart({series, isLoading, error}: Props) {
         type={ChartType.LINE}
         aggregateOutputFormat="percentage"
         tooltipFormatterOptions={{
-          valueFormatter: value => formatPercentage(1 - value), // Api returns hit rate, but we display miss rate
+          valueFormatter: value => formatPercentage(value),
         }}
       />
     </ChartPanel>
