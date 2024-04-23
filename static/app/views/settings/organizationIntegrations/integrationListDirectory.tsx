@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -318,10 +318,10 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
   getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
     const {category, search} = qs.parse(this.props.location.search);
 
-    const selectedCategory = Array.isArray(category) ? category[0] : category || '';
-    const searchInput = Array.isArray(search) ? search[0] : search || '';
+    const selectedCategory = Array.isArray(category) ? category.at(0) : category;
+    const searchInput = Array.isArray(search) ? search.at(0) : search;
 
-    return {searchInput, selectedCategory};
+    return {searchInput: searchInput ?? '', selectedCategory: selectedCategory ?? ''};
   };
 
   /**

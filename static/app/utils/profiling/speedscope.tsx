@@ -94,14 +94,17 @@ export class Rect {
     return [this.centerX, this.centerY];
   }
 
-  static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
+  static decode(
+    query: string | ReadonlyArray<string> | (string | null)[] | null | undefined
+  ): Rect | null {
     let maybeEncodedRect = query;
 
     if (typeof query === 'string') {
       maybeEncodedRect = query.split(',');
-    }
-
-    if (!Array.isArray(maybeEncodedRect)) {
+    } else if (!Array.isArray(maybeEncodedRect)) {
+      return null;
+    } else if (maybeEncodedRect.some(value => value === null)) {
+      // This is required due to "query-string" module returning (string | null)[]
       return null;
     }
 

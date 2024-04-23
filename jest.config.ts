@@ -203,7 +203,12 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = [];
+const ESM_NODE_MODULES = [
+  'query-string',
+  'decode-uri-component',
+  'split-on-first',
+  'filter-obj',
+];
 
 const config: Config.InitialOptions = {
   verbose: false,

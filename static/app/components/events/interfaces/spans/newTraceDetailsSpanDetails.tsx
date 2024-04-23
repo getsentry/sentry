@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';

@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import BackgroundAvatar from 'sentry/components/avatar/backgroundAvatar';
 import LetterAvatar from 'sentry/components/letterAvatar';

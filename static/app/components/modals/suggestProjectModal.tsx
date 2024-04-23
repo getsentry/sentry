@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
 

@@ -13,7 +13,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import LoadingError from 'sentry/components/loadingError';

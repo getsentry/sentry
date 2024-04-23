@@ -7,7 +7,7 @@ import type {
   XAXisComponentOption,
 } from 'echarts';
 import moment from 'moment';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';

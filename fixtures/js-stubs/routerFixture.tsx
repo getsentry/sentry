@@ -1,5 +1,5 @@
 import type {InjectedRouter} from 'react-router';
-import {stringify} from 'query-string';
+import qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 export function RouterFixture(params = {}): InjectedRouter {
@@ -21,7 +21,7 @@ export function RouterFixture(params = {}): InjectedRouter {
           return to.pathname;
         }
 
-        return `${to.pathname}?${stringify(to.query)}`;
+        return `${to.pathname}?${qs.stringify(to.query)}`;
       }
 
       return '';

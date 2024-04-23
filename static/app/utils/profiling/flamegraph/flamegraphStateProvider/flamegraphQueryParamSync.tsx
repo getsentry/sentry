@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import type {Query} from 'history';
-import type * as qs from 'query-string';
+import type qs from 'query-string';
 
 import type {DeepPartial} from 'sentry/types/utils';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
@@ -19,7 +19,10 @@ type PossibleQuery =
       Pick<FlamegraphState['search'], 'query'>);
 
 function isColorCoding(
-  value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
+  value:
+    | PossibleQuery['colorCoding']
+    | FlamegraphState['preferences']['colorCoding']
+    | (string | null)[]
 ): value is FlamegraphState['preferences']['colorCoding'] {
   if (typeof value !== 'string') {
     return false;
@@ -37,7 +40,10 @@ function isColorCoding(
 }
 
 function isLayout(
-  value: PossibleQuery['colorCoding'] | FlamegraphState['preferences']['colorCoding']
+  value:
+    | PossibleQuery['colorCoding']
+    | FlamegraphState['preferences']['colorCoding']
+    | (string | null)[]
 ): value is FlamegraphState['preferences']['layout'] {
   if (typeof value !== 'string') {
     return false;
@@ -46,7 +52,10 @@ function isLayout(
 }
 
 function isSorting(
-  value: PossibleQuery['sorting'] | FlamegraphState['preferences']['sorting']
+  value:
+    | PossibleQuery['sorting']
+    | FlamegraphState['preferences']['sorting']
+    | (string | null)[]
 ): value is FlamegraphState['preferences']['sorting'] {
   if (typeof value !== 'string') {
     return false;
@@ -55,7 +64,10 @@ function isSorting(
 }
 
 function isView(
-  value: PossibleQuery['view'] | FlamegraphState['preferences']['view']
+  value:
+    | PossibleQuery['view']
+    | FlamegraphState['preferences']['view']
+    | (string | null)[]
 ): value is FlamegraphState['preferences']['view'] {
   if (typeof value !== 'string') {
     return false;

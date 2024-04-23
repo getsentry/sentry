@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';

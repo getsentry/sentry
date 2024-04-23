@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import {stringify} from 'query-string';
+import qs from 'query-string';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
@@ -115,7 +115,7 @@ class ResultsHeader extends Component<Props, State> {
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
     const to = eventView.getResultsViewUrlTarget(organization.slug);
-    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
+    const resultsUrl = `${to.pathname}?${qs.stringify(to.query)}`;
 
     return (
       <BannerWrapper>

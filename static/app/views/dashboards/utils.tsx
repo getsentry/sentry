@@ -5,7 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
 import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';

@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';

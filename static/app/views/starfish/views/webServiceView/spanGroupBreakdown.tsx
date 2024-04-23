@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import type {SelectOption} from 'sentry/components/compactSelect';

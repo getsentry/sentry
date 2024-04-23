@@ -1,5 +1,5 @@
 import moment from 'moment';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

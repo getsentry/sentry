@@ -1,7 +1,7 @@
 import type {RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
 import startCase from 'lodash/startCase';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';

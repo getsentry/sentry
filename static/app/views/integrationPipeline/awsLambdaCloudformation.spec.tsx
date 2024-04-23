@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

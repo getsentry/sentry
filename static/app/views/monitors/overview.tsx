@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -133,7 +133,10 @@ export default function Monitors() {
                 <DatePageFilter resetParamsOnChange={['cursor']} />
               </PageFilterBar>
               <SearchBar
-                query={decodeScalar(qs.parse(location.search)?.query, '')}
+                query={decodeScalar(
+                  qs.parse(location.search)?.query as string | undefined,
+                  ''
+                )}
                 placeholder={t('Search by name or slug')}
                 onSearch={handleSearch}
               />

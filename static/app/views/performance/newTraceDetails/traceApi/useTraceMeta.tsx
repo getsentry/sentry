@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -13,7 +13,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 
 function getMetaQueryParams(
-  query: Location['query'],
+  query: Location['query'] | qs.ParsedQuery,
   filters: Partial<PageFilters> = {}
 ):
   | {
@@ -51,7 +51,7 @@ export function useTraceMeta(
   const params = useParams<{traceSlug?: string}>();
 
   const queryParams = useMemo(() => {
-    const query = qs.parse(location.search);
+    const query = qs.parse(location.search) ?? {};
     return getMetaQueryParams(query, filters.selection);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

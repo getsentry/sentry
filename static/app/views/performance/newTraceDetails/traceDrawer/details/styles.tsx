@@ -1,6 +1,6 @@
 import {Fragment, type PropsWithChildren, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {Button as CommonButton, LinkButton} from 'sentry/components/button';
 import {DataSection} from 'sentry/components/events/styles';

@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';

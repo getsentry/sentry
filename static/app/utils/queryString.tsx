@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';

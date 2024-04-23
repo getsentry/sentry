@@ -1,7 +1,7 @@
 import {useCallback, useRef} from 'react';
 import type {InjectedRouter} from 'react-router';
 import moment from 'moment';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {

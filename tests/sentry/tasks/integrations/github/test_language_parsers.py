@@ -404,7 +404,7 @@ class JavascriptParserTestCase(TestCase):
 @@ -1,9 +1,11 @@
  import {useCallback, useEffect, useState} from 'react';
  import styled from '@emotion/styled';
-+import * as qs from 'query-string';
++import qs from 'query-string';
 
  import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
  import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';

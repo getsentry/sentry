@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';

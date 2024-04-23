@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';

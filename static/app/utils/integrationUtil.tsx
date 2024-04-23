@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {Result} from 'sentry/components/forms/controls/selectAsyncControl';
 import {

@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -32,7 +32,7 @@ const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
 
 export function getTraceQueryParams(
-  query: Location['query'],
+  query: Location['query'] | qs.ParsedQuery,
   filters: Partial<PageFilters> = {},
   options: {limit?: number} = {}
 ): {
@@ -200,7 +200,7 @@ export function useTrace(
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const queryParams = useMemo(() => {
-    const query = qs.parse(location.search);
+    const query = qs.parse(location.search) ?? '';
     return getTraceQueryParams(query, filters.selection, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);

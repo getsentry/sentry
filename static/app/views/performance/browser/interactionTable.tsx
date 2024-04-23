@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';

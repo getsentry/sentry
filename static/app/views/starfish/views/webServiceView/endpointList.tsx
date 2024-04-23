@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';

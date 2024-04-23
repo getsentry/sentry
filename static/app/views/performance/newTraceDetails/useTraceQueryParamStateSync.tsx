@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 import {browserHistory} from 'react-router';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 export function useTraceQueryParamStateSync(query: Record<string, string | undefined>) {
   const previousQueryRef = useRef<Record<string, string | undefined>>(query);

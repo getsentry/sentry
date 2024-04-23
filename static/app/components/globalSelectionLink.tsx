@@ -1,5 +1,5 @@
 import type {LocationDescriptor} from 'history';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';

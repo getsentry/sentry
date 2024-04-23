@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import debounce from 'lodash/debounce';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';

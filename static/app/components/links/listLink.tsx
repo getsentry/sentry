@@ -2,7 +2,7 @@ import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

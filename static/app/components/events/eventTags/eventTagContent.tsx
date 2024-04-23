@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Query} from 'history';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import ExternalLink from 'sentry/components/links/externalLink';

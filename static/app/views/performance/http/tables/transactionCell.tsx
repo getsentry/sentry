@@ -1,5 +1,5 @@
 import {Link} from 'react-router';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';

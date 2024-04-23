@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import partition from 'lodash/partition';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';

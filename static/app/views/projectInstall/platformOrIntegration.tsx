@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
