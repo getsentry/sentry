@@ -1,8 +1,16 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {QueryBuilderFocusType} from 'sentry/components/searchQueryBuilder/types';
+import {
+  focusIsWithinToken,
+  formatFilterValue,
+  getValidOpsForFilter,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   TermOperator,
   type Token,
@@ -35,13 +43,37 @@ const getOpLabel = (token: TokenResult<Token.FILTER>) => {
 };
 
 function FilterOperator({token}: SearchQueryTokenProps) {
-  // TODO(malwilley): Add edit functionality
+  const {dispatch} = useSearchQueryBuilder();
+
+  const items: MenuItemProps[] = useMemo(() => {
+    return getValidOpsForFilter(token).map(op => ({
+      key: op,
+      label: OP_LABELS[op] ?? op,
+      onAction: val => {
+        dispatch({
+          type: 'UPDATE_FILTER_OP',
+          token,
+          op: val as TermOperator,
+        });
+      },
+    }));
+  }, [dispatch, token]);
 
   return (
-    <OpDiv tabIndex={-1} role="gridcell" aria-label={t('Edit token operator')}>
-      <InteractionStateLayer />
-      {getOpLabel(token)}
-    </OpDiv>
+    <DropdownMenu
+      trigger={triggerProps => (
+        <OpDiv
+          tabIndex={-1}
+          role="gridcell"
+          aria-label={t('Edit token operator')}
+          {...triggerProps}
+        >
+          <InteractionStateLayer />
+          {getOpLabel(token)}
+        </OpDiv>
+      )}
+      items={items}
+    />
   );
 }
 
@@ -60,12 +92,29 @@ function FilterKey({token}: SearchQueryTokenProps) {
 }
 
 function FilterValue({token}: SearchQueryTokenProps) {
-  // TODO(malwilley): Add edit functionality
+  const {focus, dispatch} = useSearchQueryBuilder();
+  const isFocused =
+    focus?.type === QueryBuilderFocusType.FILTER_VALUE &&
+    focusIsWithinToken(focus, token);
+  const isEditing = isFocused && focus.editing;
+
+  if (isEditing) {
+    return (
+      <ValueDiv>
+        <SearchQueryBuilderValueCombobox token={token} />
+      </ValueDiv>
+    );
+  }
 
   return (
-    <ValueDiv tabIndex={-1} role="gridcell" aira-label={t('Edit token value')}>
+    <ValueDiv
+      tabIndex={-1}
+      role="gridcell"
+      aria-label={t('Edit token value')}
+      onClick={() => dispatch({type: 'CLICK_TOKEN_VALUE', token})}
+    >
       <InteractionStateLayer />
-      {token.value.text}
+      {formatFilterValue(token)}
     </ValueDiv>
   );
 }

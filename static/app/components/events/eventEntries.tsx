@@ -16,7 +16,7 @@ import type {
   Project,
   SharedViewOrganization,
 } from 'sentry/types';
-import {EntryType, EventOrGroupType} from 'sentry/types';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
@@ -124,6 +124,7 @@ function EventEntries({
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
         <CustomMetricsEventData
+          projectId={event.projectID}
           metricsSummary={event._metrics_summary}
           startTimestamp={event.startTimestamp}
         />
