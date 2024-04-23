@@ -21,7 +21,6 @@ from simplejson import _default_decoder  # type: ignore[attr-defined]  # noqa: S
 from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
 
 from bitfield.types import BitHandler
-from sentry.features.rollout import in_random_rollout
 
 # A more traditional raw import from django_stubs_ext.aliases here breaks monkeypatching,
 # So we jump through hoops to get only the exact types
@@ -147,6 +146,8 @@ def loads(
 # loads JSON with `orjson` or the default function depending on `option_name`
 # TODO: remove this once we're confident that orjson is working as expected
 def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = False) -> JSONData:
+    from sentry.features.rollout import in_random_rollout
+
     if in_random_rollout(option_name):
         if skip_trace:
             return orjson.loads(data)
@@ -160,9 +161,11 @@ def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = F
 
 # dumps JSON with `orjson` or the default function depending on `option_name`
 # TODO: remove this when orjson experiment is successful
-def dumps_experimental(option_name: str, data: JSONData) -> str | bytes:
+def dumps_experimental(option_name: str, data: JSONData) -> str:
+    from sentry.features.rollout import in_random_rollout
+
     if in_random_rollout(option_name):
-        return orjson.dumps(data)
+        return orjson.dumps(data).decode("utf-8")
     else:
         return dumps(data)
 
