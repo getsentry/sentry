@@ -1356,7 +1356,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
 
   profiles: TraceTree.Profile[] = [];
 
-  private unit: 'milliseconds' = 'milliseconds';
+  private unit = 'milliseconds' as const;
   private _depth: number | undefined;
   private _children: TraceTreeNode[] = [];
   private _spanChildren: TraceTreeNode[] = [];

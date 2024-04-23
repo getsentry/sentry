@@ -71,8 +71,8 @@ const GHOST_PADDING = 4;
 const MAX_COL_COUNT = 20;
 
 enum PlaceholderPosition {
-  TOP,
-  BOTTOM,
+  TOP = 0,
+  BOTTOM = 1,
 }
 
 class ColumnEditCollection extends Component<Props, State> {
