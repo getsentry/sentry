@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Mapping, Sequence
 from unittest import mock
 
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
@@ -24,6 +25,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.types import CheckinItem
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
@@ -34,6 +36,10 @@ locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOC
 
 
 class MonitorConsumerTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.partition = Partition(Topic("test"), 0)
+
     def _create_monitor(self, **kwargs):
         return Monitor.objects.create(
             organization_id=self.organization.id,
@@ -48,15 +54,26 @@ class MonitorConsumerTest(TestCase):
             **kwargs,
         )
 
+    def create_consumer(self, factory_opts: Mapping | None = None):
+        if factory_opts is None:
+            factory_opts = {}
+
+        factory = StoreMonitorCheckInStrategyFactory(**factory_opts)
+        commit = mock.Mock()
+        return factory.create_with_partitions(commit, {self.partition: 0})
+
     def send_checkin(
         self,
         monitor_slug: str,
         guid: str | None = None,
         ts: datetime | None = None,
+        consumer: ProcessingStrategy | None = None,
         **overrides: Any,
     ) -> None:
         if ts is None:
             ts = datetime.now()
+        if consumer is None:
+            consumer = self.create_consumer()
 
         self.guid = uuid.uuid4().hex if not guid else guid
         self.trace_id = uuid.uuid4().hex
@@ -79,13 +96,11 @@ class MonitorConsumerTest(TestCase):
             "sdk": "test/1.0",
         }
 
-        commit = mock.Mock()
-        partition = Partition(Topic("test"), 0)
-        StoreMonitorCheckInStrategyFactory().create_with_partitions(commit, {partition: 0}).submit(
+        consumer.submit(
             Message(
                 BrokerValue(
                     KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
-                    partition,
+                    self.partition,
                     1,
                     ts,
                 )
@@ -95,19 +110,20 @@ class MonitorConsumerTest(TestCase):
     def send_clock_pulse(
         self,
         ts: datetime | None = None,
+        consumer: ProcessingStrategy | None = None,
     ) -> None:
         if ts is None:
             ts = datetime.now()
+        if consumer is None:
+            consumer = self.create_consumer()
 
         wrapper = {"message_type": "clock_pulse"}
 
-        commit = mock.Mock()
-        partition = Partition(Topic("test"), 0)
-        StoreMonitorCheckInStrategyFactory().create_with_partitions(commit, {partition: 0}).submit(
+        consumer.submit(
             Message(
                 BrokerValue(
                     KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
-                    partition,
+                    self.partition,
                     1,
                     ts,
                 )
@@ -138,6 +154,47 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.expected_time == monitor_environment.next_checkin
         assert checkin.trace_id.hex == self.trace_id
+
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.process_checkin_group")
+    def test_parallel(self, process_checkin_group) -> None:
+        """
+        Validates that the consumer in parallel mode correctly groups check-ins
+        into groups by their monitor slug / environment
+        """
+        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        commit = mock.Mock()
+        consumer = factory.create_with_partitions(commit, {self.partition: 0})
+
+        monitor_1 = self._create_monitor(slug="my-monitor-1")
+        monitor_2 = self._create_monitor(slug="my-monitor-2")
+
+        # Send 4 check-ins to fill the batch
+        self.send_checkin(monitor_1.slug, consumer=consumer)
+        self.send_checkin(monitor_2.slug, consumer=consumer)
+        self.send_checkin(monitor_2.slug, consumer=consumer)
+        self.send_checkin(monitor_2.slug, environment="test", consumer=consumer)
+
+        # Send one more check-in to cause the batch to be processed
+        self.send_checkin(monitor_1.slug, consumer=consumer)
+
+        # Because we have two separate monitor slugs and one separate
+        # environment, there will be three groups of check-ins to process
+        assert process_checkin_group.call_count == 3
+
+        group_1: Sequence[CheckinItem] = process_checkin_group.mock_calls[0].args[0]
+        group_2: Sequence[CheckinItem] = process_checkin_group.mock_calls[1].args[0]
+        group_3: Sequence[CheckinItem] = process_checkin_group.mock_calls[2].args[0]
+
+        # Each group has the correct number of check-ins
+        assert len(group_1) == 1
+        assert len(group_2) == 2
+        assert len(group_3) == 1
+
+        assert all(checkin.payload["monitor_slug"] == monitor_1.slug for checkin in group_1)
+        assert all(checkin.payload["monitor_slug"] == monitor_2.slug for checkin in group_2)
+
+        # The last group is monitor_2 but with a diff environment
+        assert group_3[0].payload.get("environment") == "test"
 
     def test_passing(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
@@ -721,6 +778,28 @@ class MonitorConsumerTest(TestCase):
             assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
             logger.exception.assert_called_with("Failed to trigger monitor tasks")
             try_monitor_tasks_trigger.side_effect = None
+
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_tasks_trigger")
+    def test_parallel_monitor_task_triggers(self, try_monitor_tasks_trigger):
+        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        commit = mock.Mock()
+        consumer = factory.create_with_partitions(commit, {self.partition: 0})
+
+        monitor = self._create_monitor(slug="my-monitor")
+
+        # First checkin does NOT trigger task since we're batching
+        self.send_checkin(monitor.slug, consumer=consumer)
+        assert try_monitor_tasks_trigger.call_count == 0
+
+        # Sending 3 messages (including a clock pulse)
+        self.send_checkin(monitor.slug, consumer=consumer)
+        self.send_clock_pulse(consumer=consumer)
+        self.send_checkin(monitor.slug, consumer=consumer)
+
+        # One more check-in to process the batch
+        self.send_checkin(monitor.slug, consumer=consumer)
+
+        assert try_monitor_tasks_trigger.call_count == 1
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
     def test_monitor_quotas_accept(self, check_accept_monitor_checkin):
