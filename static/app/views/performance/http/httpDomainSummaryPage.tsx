@@ -5,7 +5,8 @@ import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -183,12 +184,15 @@ export function HTTPDomainSummaryPage() {
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
-
           {domain === '' && (
             <Alert type="info">
               {tct(
