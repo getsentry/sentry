@@ -92,7 +92,7 @@ describe('getHighlightContextData', function () {
     expect(highlightCtxData[0].type).toBe('default');
     expect(highlightCtxData[0].data).toHaveLength(highlightContext.keyboard.length);
     const highlightCtxDataKeys = new Set(highlightCtxData[0].data.map(({key}) => key));
-    for (const ctxKey in highlightContext.keyboard) {
+    for (const ctxKey of highlightContext.keyboard) {
       expect(highlightCtxDataKeys.has(ctxKey)).toBe(true);
     }
   });
