@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -60,11 +61,13 @@ class GroupSnooze(Model):
 
     __repr__ = sane_repr("group_id")
 
+    USER_COUNT_CACHE_TIMEOUT = 300
+
     @classmethod
     def get_cache_key(cls, group_id):
         return "groupsnooze_group_id:1:%s" % (group_id)
 
-    def is_valid(self, group=None, test_rates=False, use_pending_data=False):
+    def is_valid_no_cache(self, group=None, test_rates=False, use_pending_data=False):
         if group is None:
             group = self.group
         elif group.id != self.group_id:
@@ -88,13 +91,7 @@ class GroupSnooze(Model):
             if self.user_window:
                 if not self.test_user_rates():
                     return False
-            elif (
-                self.user_count
-                <= group.count_users_seen(
-                    referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
-                )
-                - self.state["users_seen"]
-            ):
+            elif not self.test_user_counts(group):
                 return False
         return True
 
@@ -141,6 +138,42 @@ class GroupSnooze(Model):
             return False
 
         return True
+
+    def test_user_counts(self, group=None):
+        if features.has(
+            "organizations:groupsnooze-cached-counts", organization=self.group.project.organization
+        ):
+            return self.test_user_counts_w_cache(group)
+        else:
+            return self.test_user_counts_no_cache(group)
+
+    def test_user_counts_no_cache(self, group=None):
+        metrics.incr("groupsnooze.test_user_counts")
+        metrics.incr("groupsnooze.test_user_counts.real_count")
+
+        threshold = self.user_count + self.state["users_seen"]
+        real_count = group.count_users_seen(
+            referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
+        )
+        return real_count >= threshold
+
+    def test_user_counts_w_cache(self, group=None):
+        metrics.incr("groupsnooze.test_user_counts")
+        cache_key = f"{self.get_cache_key(self.group_id)}:test_user_counts:events_seen_counter"
+
+        threshold = self.user_count + self.state["users_seen"]
+
+        if cache.get(cache_key, float("inf")) < threshold:
+            # if we've seen less than that many events, we can't possibly have seen enough users
+            cache.increment(cache_key)
+            return False
+
+        metrics.incr("groupsnooze.test_user_counts.real_count")
+        real_count = group.count_users_seen(
+            referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
+        )
+        cache.set(cache_key, real_count, self.USER_COUNT_CACHE_TIMEOUT)
+        return real_count >= threshold
 
 
 post_save.connect(
