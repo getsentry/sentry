@@ -1,14 +1,11 @@
 import type {ForwardedRef} from 'react';
-import {forwardRef, Fragment, useEffect} from 'react';
+import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Backdrop} from 'sentry/components/globalModal';
 import {space} from 'sentry/styles/space';
-
-const BACKDROP_OPACITY = 0.5;
 
 const PANEL_WIDTH = '50vw';
 const PANEL_HEIGHT = '50vh';
@@ -45,26 +42,20 @@ function SlideOverPanel(
   const final = slidePosition ? FINAL_STYLES[slidePosition] : FINAL_STYLES.right;
 
   return (
-    <Fragment>
-      <Backdrop
-        style={collapsed ? {} : {opacity: BACKDROP_OPACITY, pointerEvents: 'none'}}
-      />
-
-      <_SlideOverPanel
-        ref={ref}
-        collapsed={collapsed}
-        initial={initial}
-        animate={!collapsed ? {opacity: 1, x: 0, y: 0} : final}
-        slidePosition={slidePosition}
-        transition={{
-          type: 'spring',
-          stiffness: 500,
-          damping: 50,
-        }}
-      >
-        {children}
-      </_SlideOverPanel>
-    </Fragment>
+    <_SlideOverPanel
+      ref={ref}
+      collapsed={collapsed}
+      initial={initial}
+      animate={!collapsed ? {opacity: 1, x: 0, y: 0} : final}
+      slidePosition={slidePosition}
+      transition={{
+        type: 'spring',
+        stiffness: 500,
+        damping: 50,
+      }}
+    >
+      {children}
+    </_SlideOverPanel>
   );
 }
 
