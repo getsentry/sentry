@@ -70,7 +70,7 @@ def issue_occurrence_options() -> list[click.Option]:
                 ["--mode", "mode"],
                 type=click.Choice(["batched-parallel", "parallel"]),
                 default="parallel",
-                help="The mode to process occurrences in. Batched-parallel uses batched in parallel, parallel uses multi-processing.",
+                help="The mode to process occurrences in. Batched-parallel uses batched in parallel to guarantee messages are processed in order per group, parallel uses multi-processing.",
             ),
         ]
     )
@@ -233,7 +233,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-occurrences": {
         "topic": Topic.INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
-        "click_options": issue_occurrence_options(default_max_batch_size=100),
+        "click_options": issue_occurrence_options(),
     },
     "events-subscription-results": {
         "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,

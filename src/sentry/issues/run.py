@@ -10,7 +10,7 @@ from arroyo.processing.strategies import (
     ProcessingStrategy,
     ProcessingStrategyFactory,
 )
-from arroyo.processing.strategies.batching import BatchStep
+from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
@@ -35,21 +35,23 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
-        if num_processes is not None:
-            self.pool = MultiprocessingPool(num_processes)
-        else:
-            self.pool = None
 
         self.batched = mode == "batched-parallel"
+        # either use multi-process pool or a thread pool
         if self.batched:
-            self.occurrence_worker = ThreadPoolExecutor()
+            self.worker: ThreadPoolExecutor | None = ThreadPoolExecutor()
+            self.pool: MultiprocessingPool | None = None
         else:
-            self.occurrence_worker = None
+            # make sure num_processes is not None
+            assert num_processes is not None
+            self.pool = MultiprocessingPool(num_processes)
+            self.worker = None
 
     def crate_parallel_worker(
         self,
         commit: Commit,
     ) -> ProcessingStrategy[KafkaPayload]:
+        assert self.pool is not None
         return RunTaskWithMultiprocessing(
             function=process_message,
             next_step=CommitOffsets(commit),
@@ -61,8 +63,9 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
     def creat_batched_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        assert self.worker is not None
         batch_processor = RunTask(
-            function=functools.partial(process_batch, self.occurrence_worker),
+            function=functools.partial(process_batch, self.worker),
             next_step=CommitOffsets(commit),
         )
         return BatchStep(
@@ -84,8 +87,8 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def shutdown(self) -> None:
         if self.pool:
             self.pool.close()
-        if self.occurrence_worker:
-            self.occurrence_worker.shutdown()
+        if self.worker:
+            self.worker.shutdown()
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
@@ -100,12 +103,12 @@ def process_message(message: Message[KafkaPayload]) -> None:
         logger.exception("failed to process message payload")
 
 
-def process_batch(occurrence_worker, messages: list[Message[KafkaPayload]]) -> None:
+def process_batch(worker: ThreadPoolExecutor, messages: Message[ValuesBatch[KafkaPayload]]) -> None:
     from sentry.issues.occurrence_consumer import _process_batch
     from sentry.utils import metrics
 
     try:
         with metrics.timer("occurrence_consumer.process_batch"):
-            _process_batch(occurrence_worker, messages)
+            _process_batch(worker, messages)
     except Exception:
         logger.exception("failed to process batch payload")

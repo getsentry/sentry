@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from concurrent.futures import wait
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any
 from uuid import UUID
 
@@ -363,7 +363,7 @@ def _process_message(
     return None
 
 
-def _process_batch(_occurrence_worker, message: Message[ValuesBatch[KafkaPayload]]):
+def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
     """
     Receives batches of occurrences. This function will take the batch
     and group them together by fingerprint (ensuring order is preserved) and
@@ -384,7 +384,9 @@ def _process_batch(_occurrence_worker, message: Message[ValuesBatch[KafkaPayload
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue
-        occcurrence_mapping[item.partition.index].append(payload)
+        # group by the fingerprint, there should only be one of them
+        partition_key: str = payload["fingerprint"][0] if payload["fingerprint"] else ""
+        occcurrence_mapping[partition_key].append(payload)
 
     # Number of occurrences that are being processed in this batch
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_count", len(batch))
@@ -394,8 +396,7 @@ def _process_batch(_occurrence_worker, message: Message[ValuesBatch[KafkaPayload
     # Submit occurrences for processing
     with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
         futures = [
-            _occurrence_worker.submit(process_occurrence_group, group)
-            for group in occcurrence_mapping.values()
+            worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
         ]
         wait(futures)
 
