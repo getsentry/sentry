@@ -1785,7 +1785,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
     # Enables the new UI for span summary and the spans tab
-    "organizations:performance-spans-new-ui": True,
+    "organizations:performance-spans-new-ui": False,
     # Enable processing slow issue alerts
     "organizations:process-slow-alerts": False,
     # Enable profiling
