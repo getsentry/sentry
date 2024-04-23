@@ -1,8 +1,6 @@
-import contextlib
 import logging
 from collections import defaultdict
 from collections.abc import MutableMapping
-from datetime import UTC, datetime, timedelta
 from typing import Any, DefaultDict, NamedTuple
 
 from sentry import eventstore
@@ -12,17 +10,12 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules import rules
 from sentry.rules.conditions.base import EventCondition
-from sentry.rules.conditions.event_frequency import (
-    BaseEventFrequencyCondition,
-    ComparisonType,
-    percent_increase,
-)
+from sentry.rules.conditions.event_frequency import BaseEventFrequencyCondition, ComparisonType
 from sentry.rules.processing.processor import is_condition_slow, split_conditions_and_filters
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.snuba import options_override
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
 
@@ -134,43 +127,16 @@ def get_condition_group_results(
             return None
 
         _, duration = condition_inst.intervals[unique_condition.interval]
-        end = datetime.now()
-        # For conditions with interval >= 1 hour we don't need to worry about read your writes
-        # consistency. Disable it so that we can scale to more nodes.
-        option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
-        if duration >= timedelta(hours=1):
-            option_override_cm = options_override({"consistent": False})
-
-        with option_override_cm:
-            start = end - duration
-            results = condition_inst.batch_query(
-                group_ids=group_ids,
-                start=start.replace(tzinfo=UTC),
-                end=end.replace(tzinfo=UTC),
-                environment_id=unique_condition.environment_id,
-            )
-
-            # If the condition is a percent comparison, we need to query the
-            # previous interval to compare against the current interval
-            if condition_data:
-                comparison_type = condition_data.get("comparisonType", ComparisonType.COUNT)
-                if comparison_type == ComparisonType.PERCENT:
-                    comparison_interval = condition_inst.intervals[unique_condition.interval][1]
-                    comparison_end = end - comparison_interval
-                    start = comparison_end - duration
-                    comparison_results = condition_inst.batch_query(
-                        group_ids=group_ids,
-                        start=start.replace(tzinfo=UTC),
-                        end=comparison_end.replace(tzinfo=UTC),
-                        environment_id=unique_condition.environment_id,
-                    )
-
-                    results = {
-                        group_id: percent_increase(results[group_id], comparison_results[group_id])
-                        for group_id in group_ids
-                    }
-
-        condition_group_results[unique_condition] = results
+        comparison_interval = condition_inst.intervals[unique_condition.interval][1]
+        comparison_type = condition_data.get("comparisonType", ComparisonType.COUNT)
+        result = condition_inst.get_rate_bulk(
+            duration,
+            comparison_interval,
+            group_ids,
+            unique_condition.environment_id,
+            comparison_type,
+        )
+        condition_group_results[unique_condition] = result
     return condition_group_results
 
 
