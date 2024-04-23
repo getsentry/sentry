@@ -85,6 +85,8 @@ export const SPAN_FUNCTIONS = [
   'time_spent_percentage',
   'http_response_rate',
   'http_error_count',
+  'cache_hit_rate',
+  'ai_total_tokens_used',
 ] as const;
 
 const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
@@ -220,6 +222,7 @@ export enum SpanFunction {
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
+  CACHE_HIT_RATE = 'cache_hit_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -257,6 +260,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   },
   [SpanFunction.HTTP_RESPONSE_RATE]: {
     desc: t('Percentage of HTTP responses by code'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.CACHE_HIT_RATE]: {
+    desc: t('Percentage of cache hits'),
     defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,

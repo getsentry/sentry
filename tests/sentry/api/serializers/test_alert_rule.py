@@ -17,6 +17,7 @@ from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.utils.actor import ActorTuple
 
 NOT_SET = object()
 
@@ -104,7 +105,12 @@ class BaseAlertRuleSerializerTest:
         if data.get("date_added"):
             rule.date_added = data["date_added"]
         if data.get("owner"):
-            rule.owner = data["owner"]
+            # TODO(mark) This will need to change when Actor is removed.
+            actor = ActorTuple.from_actor_identifier(data["owner"]).resolve_to_actor()
+            assert actor, "Should not be None"
+            rule.owner_id = actor.id
+            rule.owner_user_id = actor.user_id
+            rule.owner_team_id = actor.team_id
 
         rule.save()
         return rule
