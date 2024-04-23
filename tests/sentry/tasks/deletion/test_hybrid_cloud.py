@@ -317,7 +317,7 @@ def setup_cross_db_deletion_data():
 
 @django_db_all
 @region_silo_test
-def test_cross_database_same_silo_deletion(task_runner):
+def test_get_ids_for_tombstone_cascade_cross_db(task_runner):
     data = setup_cross_db_deletion_data()
 
     unaffected_data = []
@@ -335,12 +335,13 @@ def test_cross_database_same_silo_deletion(task_runner):
     )
 
     highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
+    monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
     with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
         ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
             tombstone_cls=RegionTombstone,
             model=Monitor,
-            field=Monitor.owner_user_id.field,
+            field=monitor_owner_field,
             watermark_batch=WatermarkBatch(
                 low=0,
                 up=highest_tombstone_id["id__max"] + 1,
@@ -351,33 +352,64 @@ def test_cross_database_same_silo_deletion(task_runner):
         assert ids == [monitor.id]
         assert oldest_obj == tombstone.created_at
 
-        # Validate lower watermark bound
-        ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
-            tombstone_cls=RegionTombstone,
-            model=Monitor,
-            field=Monitor.owner_user_id.field,
-            watermark_batch=WatermarkBatch(
-                low=0,
-                up=highest_tombstone_id["id__max"] - 1,
-                has_more=False,
-                transaction_id="foobar",
-            ),
-        )
-        assert ids == []
 
-        # Validate upper watermark bound
-        ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
-            tombstone_cls=RegionTombstone,
-            model=Monitor,
-            field=Monitor.owner_user_id.field,
-            watermark_batch=WatermarkBatch(
-                low=highest_tombstone_id["id__max"] + 1,
-                up=highest_tombstone_id["id__max"] + 5,
-                has_more=False,
-                transaction_id="foobar",
-            ),
+@django_db_all
+@region_silo_test
+def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(task_runner):
+    cascade_data = []
+    for i in range(4):
+        cascade_data.append(setup_cross_db_deletion_data())
+
+    unaffected_data = []
+    for i in range(3):
+        unaffected_data.append(setup_cross_db_deletion_data())
+
+    in_order_tombstones = []
+    for data in cascade_data:
+        user = data["user"]
+        user_id = user.id
+        with assume_test_silo_mode_of(User), outbox_runner():
+            user.delete()
+
+        in_order_tombstones.append(
+            RegionTombstone.objects.get(object_identifier=user_id, table_name=User._meta.db_table)
         )
-        assert ids == []
+
+    bounds_with_expected_results = [
+        (
+            {"low": 0, "up": in_order_tombstones[1].id},
+            [cascade_data[0]["monitor"].id, cascade_data[1]["monitor"].id],
+        ),
+        (
+            {"low": in_order_tombstones[1].id, "up": in_order_tombstones[2].id},
+            [cascade_data[2]["monitor"].id],
+        ),
+        (
+            {"low": 0, "up": in_order_tombstones[0].id - 1},
+            [],
+        ),
+        (
+            {"low": in_order_tombstones[2].id + 1, "up": in_order_tombstones[2].id + 5},
+            [],
+        ),
+    ]
+
+    for bounds, bounds_with_expected_results in bounds_with_expected_results:
+        monitor_owner_field = Monitor._meta.get_field("owner_user_id")
+
+        with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
+            ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
+                tombstone_cls=RegionTombstone,
+                model=Monitor,
+                field=monitor_owner_field,
+                watermark_batch=WatermarkBatch(
+                    low=bounds["low"],
+                    up=bounds["up"],
+                    has_more=False,
+                    transaction_id="foobar",
+                ),
+            )
+            assert ids == bounds_with_expected_results
 
 
 @django_db_all
@@ -414,7 +446,7 @@ def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types():
         ids, oldest_obj = get_ids_for_tombstone_cascade_cross_db(
             tombstone_cls=RegionTombstone,
             model=Monitor,
-            field=Monitor.owner_user_id.field,
+            field=Monitor._meta.get_field("owner_user_id"),
             watermark_batch=WatermarkBatch(
                 low=0,
                 up=highest_tombstone_id["id__max"] + 1,

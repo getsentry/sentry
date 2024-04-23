@@ -369,6 +369,6 @@ def get_ids_for_tombstone_cascade_cross_db(
 
     field_name = f"{field.name}__in"
     query_kwargs = {field_name: ids_to_check}
-    rows_to_delete = list(model.objects.filter(**query_kwargs).values_list("id", flat=True))
+    affected_rows = list(model.objects.filter(**query_kwargs).values_list("id", flat=True))
 
-    return rows_to_delete, oldest_seen
+    return affected_rows, oldest_seen
