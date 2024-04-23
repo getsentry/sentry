@@ -27,8 +27,13 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
   const isResourcesWidget =
     chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES;
 
+  const isRequestsWidget =
+    chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS;
+
   const featureBadge =
-    isWebVitalsWidget || isResourcesWidget ? <FeatureBadge type="new" /> : null;
+    isWebVitalsWidget || isResourcesWidget || isRequestsWidget ? (
+      <FeatureBadge type="new" />
+    ) : null;
 
   return (
     <WidgetHeaderContainer>
