@@ -121,6 +121,15 @@ def get_crash_event_with_frames(
                 {
                     "stacktrace": {
                         "frames": frames,
+                        "registers": {
+                            "fp": "0x16f8f6e90",
+                            "lr": "0x10050ad74",
+                            "pc": "0x10050ad8c",
+                            "sp": "0x16f8f6e30",
+                            "x0": "0x0",
+                            "x10": "0x2",
+                            "x12": "0x10000000000",
+                        },
                     },
                     "type": "EXC_BAD_ACCESS",
                     "value": "crash > crash: > objectAtIndex: >\nAttempted to dereference null pointer.",

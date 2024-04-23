@@ -396,6 +396,51 @@ def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, 
 
 @django_db_all
 @pytest.mark.snuba
+def test_strip_event_data_keeps_registers(store_and_strip_event):
+    stripped_event_data = store_and_strip_event(data=get_crash_event())
+
+    stripped_registers = get_path(
+        stripped_event_data, "exception", "values", -1, "stacktrace", "registers"
+    )
+    assert stripped_registers == {
+        "fp": "0x16f8f6e90",
+        "lr": "0x10050ad74",
+        "pc": "0x10050ad8c",
+        "sp": "0x16f8f6e30",
+        "x0": "0x0",
+        "x10": "0x2",
+        "x12": "0x10000000000",
+    }
+
+
+@pytest.mark.parametrize(
+    [
+        "registers",
+        "expected_registers",
+    ],
+    [
+        (None, None),
+        ({"x1": 10}, None),
+        ({10: "0x10"}, None),
+        ({"x1": 10, "x2": "0x0"}, {"x2": "0x0"}),
+    ],
+)
+@django_db_all
+def test_event_data_with_registers(registers, expected_registers, configs):
+    event_data = get_crash_event()
+
+    event_data["exception"]["values"][0]["stacktrace"]["registers"] = registers
+
+    stripped_event_data = strip_event_data(event_data, SDKCrashDetector(config=configs[0]))
+
+    stripped_registers = get_path(
+        stripped_event_data, "exception", "values", -1, "stacktrace", "registers"
+    )
+    assert stripped_registers == expected_registers
+
+
+@django_db_all
+@pytest.mark.snuba
 def test_strip_event_without_data_returns_empty_dict(store_and_strip_event):
     stripped_event_data = store_and_strip_event(data={})
 
