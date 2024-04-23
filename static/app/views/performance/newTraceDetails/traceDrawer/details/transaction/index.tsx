@@ -173,6 +173,7 @@ export function TransactionNodeDetails({
         <CustomMetricsEventData
           metricsSummary={event._metrics_summary}
           startTimestamp={event.startTimestamp}
+          projectId={event.projectID}
         />
       ) : null}
 

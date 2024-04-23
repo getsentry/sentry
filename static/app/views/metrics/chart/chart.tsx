@@ -1,6 +1,7 @@
 import {forwardRef, memo, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
+import type {SeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
 import isNil from 'lodash/isNil';
@@ -33,6 +34,7 @@ const MAIN_X_AXIS_ID = 'xAxis';
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
+  additionalSeries?: SeriesOption[];
   enableZoom?: boolean;
   focusArea?: UseFocusAreaResult;
   group?: string;
@@ -75,7 +77,17 @@ function addSeriesPadding(data: Series['data']) {
 export const MetricChart = memo(
   forwardRef<ReactEchartsRef, ChartProps>(
     (
-      {series, displayType, height, group, samples, focusArea, enableZoom, releases},
+      {
+        series,
+        displayType,
+        height,
+        group,
+        samples,
+        focusArea,
+        enableZoom,
+        releases,
+        additionalSeries,
+      },
       forwardedRef
     ) => {
       const chartRef = useRef<ReactEchartsRef>(null);
@@ -332,7 +344,7 @@ export const MetricChart = memo(
         return (
           <ChartWrapper>
             {focusArea?.overlay}
-            <CombinedChart {...chartProps} />
+            <CombinedChart {...chartProps} additionalSeries={additionalSeries} />
           </ChartWrapper>
         );
       }
@@ -351,6 +363,7 @@ function CombinedChart({
   displayType,
   series,
   scatterSeries = [],
+  additionalSeries = [],
   ...chartProps
 }: CombinedMetricChartProps) {
   const combinedSeries = useMemo(() => {
@@ -358,6 +371,7 @@ function CombinedChart({
       return [
         ...transformToLineSeries({series}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
+        ...additionalSeries,
       ];
     }
 
@@ -365,6 +379,7 @@ function CombinedChart({
       return [
         ...transformToBarSeries({series, stacked: true, animation: false}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
+        ...additionalSeries,
       ];
     }
 
@@ -372,11 +387,13 @@ function CombinedChart({
       return [
         ...transformToAreaSeries({series, stacked: true, colors: chartProps.colors}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
+        ...additionalSeries,
       ];
     }
 
     return [];
-  }, [displayType, scatterSeries, series, chartProps.colors]);
+  }, [displayType, series, scatterSeries, additionalSeries, chartProps.colors]);
+
   return <BaseChart {...chartProps} series={combinedSeries} />;
 }
 
