@@ -14,8 +14,8 @@ import type {
   HighlightTags,
 } from 'sentry/components/events/highlights/util';
 import {
-  getHighlightContextItems,
-  getHighlightTagItems,
+  getHighlightContextData,
+  getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -53,16 +53,16 @@ function EditPreviewHighlightSection({
   const organization = useOrganization();
   const previewColumnCount = 2;
 
-  const highlightContextDataItems = getHighlightContextItems({
+  const highlightContextDataItems = getHighlightContextData({
     event,
     project,
     organization,
     highlightContext,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, [alias, items], i) => {
+    (rowList, {alias, data}, i) => {
       const meta = getContextMeta(event, alias);
-      const newRows = items.map((item, j) => (
+      const newRows = data.map((item, j) => (
         <Fragment key={`edit-highlight-ctx-${i}-${j}`}>
           <EditButton
             aria-label={`Remove from highlights`}
@@ -83,7 +83,7 @@ function EditPreviewHighlightSection({
     []
   );
 
-  const highlightTagItems = getHighlightTagItems({event, highlightTags});
+  const highlightTagItems = getHighlightTagData({event, highlightTags});
   const highlightTagRows = highlightTagItems.map((content, i) => (
     <Fragment key={`edit-highlight-tag-${i}`}>
       <EditButton
@@ -194,8 +194,8 @@ function EditContextHighlightSection({
     {}
   );
   const ctxData: Record<string, string[]> = getOrderedContextItems(event).reduce(
-    (acc, [alias, context]) => {
-      acc[alias] = Object.keys(context).filter(k => k !== 'type');
+    (acc, {alias, value}) => {
+      acc[alias] = Object.keys(value).filter(k => k !== 'type');
       return acc;
     },
     {}

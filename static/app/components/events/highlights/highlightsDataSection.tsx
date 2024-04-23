@@ -19,8 +19,8 @@ import {
 } from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
 import {
-  getHighlightContextItems,
-  getHighlightTagItems,
+  getHighlightContextData,
+  getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -69,16 +69,16 @@ export default function HighlightsDataSection({
     </Button>
   ) : null;
 
-  const highlightContextDataItems = getHighlightContextItems({
+  const highlightContextDataItems = getHighlightContextData({
     event,
     project,
     organization,
     highlightContext,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, [alias, items], i) => {
+    (rowList, {alias, data}, i) => {
       const meta = getContextMeta(event, alias);
-      const newRows = items.map((item, j) => (
+      const newRows = data.map((item, j) => (
         <HighlightContextContent
           key={`highlight-ctx-${i}-${j}`}
           meta={meta}
@@ -92,7 +92,7 @@ export default function HighlightsDataSection({
     []
   );
 
-  const highlightTagItems = getHighlightTagItems({event, highlightTags});
+  const highlightTagItems = getHighlightTagData({event, highlightTags});
   const highlightTagRows = highlightTagItems.map((content, i) => (
     <EventTagsTreeRow
       key={`highlight-tag-${i}`}
