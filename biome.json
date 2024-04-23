@@ -117,12 +117,7 @@
   },
   "overrides": [
     {
-      "include": [
-        "biome.json",
-        "config/tsconfig.*",
-        "tsconfig.json",
-        ".vscode/*"
-      ],
+      "include": ["biome.json", "config/tsconfig.*", "tsconfig.json", ".vscode/*"],
       "json": {
         "parser": {
           "allowComments": true,
