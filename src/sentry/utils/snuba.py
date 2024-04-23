@@ -1033,6 +1033,8 @@ def _bulk_snuba_query(
                     raise RateLimitExceeded(error["message"])
                 elif error["type"] == "schema":
                     raise SchemaValidationError(error["message"])
+                elif error["type"] == "invalid_query":
+                    raise UnqualifiedQueryError(error["message"])
                 elif error["type"] == "clickhouse":
                     raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
                         error["message"]
