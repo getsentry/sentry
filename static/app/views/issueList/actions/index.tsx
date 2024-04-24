@@ -112,7 +112,7 @@ function ActionsBarPriority({
         </ActionsCheckbox>
       )}
       {!displayReprocessingActions && (
-        <AnimatePresence initial={false} exitBeforeEnter>
+        <AnimatePresence initial={false} mode="wait">
           {shouldDisplayActions && (
             <HeaderButtonsWrapper key="actions" {...animationProps}>
               <ActionSet
@@ -139,7 +139,7 @@ function ActionsBarPriority({
           )}
         </AnimatePresence>
       )}
-      <AnimatePresence initial={false} exitBeforeEnter>
+      <AnimatePresence initial={false} mode="wait">
         {!anySelected ? (
           <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
             <Headers

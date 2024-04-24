@@ -270,7 +270,7 @@ function RelocationOnboarding(props: Props) {
   const contentView = isLoading ? (
     <LoadingIndicator />
   ) : (
-    <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+    <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
       <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
         {stepObj.Component && (
           <stepObj.Component
