@@ -885,10 +885,10 @@ def test_performance_calculate_score(default_project):
 @pytest.mark.parametrize("passive", [False, True])
 def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
     options: dict[Any, Any] = {
-        "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
+        "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
             {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
         ],
-        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org": [
+        "sentry-metrics.cardinality-limiter.limits.sessions.per-org": [
             {"window_seconds": 2000, "granularity_seconds": 200, "limit": 20}
         ],
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
