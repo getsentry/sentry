@@ -11,6 +11,7 @@ from sentry import eventstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SqlFormatEventSerializer
 from sentry.api.utils import handle_query_errors, id_or_slug_path_params_enabled
@@ -117,7 +118,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             kwargs["project"] = project
 
         except Project.DoesNotExist:
-            raise Project.DoesNotExist
+            raise ResourceDoesNotExist
 
         return args, kwargs
 
