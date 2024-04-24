@@ -75,25 +75,6 @@ def split_conditions_and_filters(rule_condition_list):
     return condition_list, filter_list
 
 
-# def split_conditions_and_filters(
-#     data: list[MutableMapping[str, Any]],
-# ) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
-#     conditions = []
-#     filters = []
-#     for condition_or_filter in data:
-#         id = condition_or_filter["id"]
-#         rule_cls = rules.get(id)
-#         if rule_cls is None:
-#             logger.warning("Unregistered condition or filter %r", id)
-#             continue
-
-#         if rule_cls.rule_type == EventFilter.rule_type:
-#             filters.append(condition_or_filter)
-#         elif rule_cls.rule_type == EventCondition.rule_type:
-#             conditions.append(condition_or_filter)
-#     return conditions, filters
-
-
 class RuleProcessor:
     def __init__(
         self,
