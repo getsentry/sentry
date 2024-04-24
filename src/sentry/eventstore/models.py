@@ -91,6 +91,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
         pass
 
     @property
+    def trace_id(self) -> str | None:
+        ret_value = None
+        if self.data:
+            ret_value = self.data.get("contexts", {}).get("trace", {}).get("trace_id")
+        return ret_value
+
+    @property
     def platform(self) -> str | None:
         column = self._get_column_name(Columns.PLATFORM)
         if column in self._snuba_data:
@@ -716,7 +723,7 @@ class GroupEvent(BaseEvent):
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
         occurrence: IssueOccurrence | None = None,
-    ):
+    ) -> None:
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data
