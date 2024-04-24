@@ -95,9 +95,11 @@ class SentryAppSerializer(Serializer):
             )
             if elevated_user or owner.id in user_org_ids:
                 is_secret_visible = obj.date_added > timezone.now() - timedelta(days=1)
-                client_secret = (
-                    obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE
-                )
+
+                client_secret = MASKED_VALUE
+                if "org:write" in access.scopes and obj.show_auth_info(access):
+                    client_secret = obj.application.client_secret
+
                 data.update(
                     {
                         "clientId": obj.application.client_id,
