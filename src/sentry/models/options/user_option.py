@@ -13,6 +13,7 @@ from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model,
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import OptionManager, Value
+from sentry.utils.json import JSONData
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -209,6 +210,17 @@ class UserOption(Model):
         unique_together = (("user", "project_id", "key"), ("user", "organization_id", "key"))
 
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")
+
+    @classmethod
+    def get_relocation_ordinal_fields(self, json_model: JSONData) -> list[str] | None:
+        # "global" user options (those with no organization and/or project scope) get a custom
+        # ordinal; non-global ones use the default ordering.
+        org_id = json_model["fields"].get("organization_id", None)
+        project_id = json_model["fields"].get("project_id", None)
+        if org_id is None and project_id is None:
+            return ["user", "key"]
+
+        return None
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
