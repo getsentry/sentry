@@ -14,11 +14,12 @@ from sentry.rules.processing.delayed_processing import (
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
+from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
+class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequencyPercentTest):
     def create_event(self, project_id, timestamp, fingerprint, environment=None) -> Event:
         data = {
             "timestamp": iso_format(timestamp),
@@ -43,13 +44,14 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
         )
 
     def setUp(self):
-        event_frequency_condition = {
+        super().setUp()
+        self.event_frequency_condition = {
             "interval": "1d",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
             "value": 1,
             "name": "The issue is seen more than 1 times in 1d",
         }
-        event_frequency_condition2 = {
+        self.event_frequency_condition2 = {
             "interval": "1d",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
             "value": 2,
@@ -68,7 +70,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
         }
         event_frequency_percent_condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
-            "interval": "1m",
+            "interval": "5m",
             "value": "1",
             "comparisonType": "count",
         }
@@ -76,7 +78,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
 
         self.rule1 = self.create_project_rule(
             project=self.project,
-            condition_match=[event_frequency_condition],
+            condition_match=[self.event_frequency_condition],
             environment_id=self.environment.id,
         )
         self.event1 = self.create_event(self.project.id, self.now, "group-1", self.environment.name)
@@ -101,7 +103,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
 
         self.rule3 = self.create_project_rule(
             project=self.project_two,
-            condition_match=[event_frequency_condition2],
+            condition_match=[self.event_frequency_condition2],
             environment_id=self.environment2.id,
         )
         self.event3 = self.create_event(
@@ -117,6 +119,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
         )
         self.event4 = self.create_event(self.project_two, self.now, "group-4")
         self.create_event(self.project_two, self.now, "group-4")
+        self._make_sessions(60, project=self.project_two)
         self.group4 = self.event4.group
 
         self.rulegroup_event_mapping_two = {
@@ -128,6 +131,11 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
             self.project_two.id: self.rulegroup_event_mapping_two,
         }
 
+        self.mock_buffer = Mock()
+
+    def tearDown(self):
+        super().tearDown()
+
     def get_rulegroup_event_mapping_from_input(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
     ):
@@ -137,13 +145,12 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_fetches_from_buffer_and_executes(self, mock_apply_delayed):
-        mock_buffer = Mock()
-        mock_buffer.get_set.return_value = self.buffer_mapping.keys()
+        self.mock_buffer.get_set.return_value = self.buffer_mapping.keys()
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
-        mock_buffer.get_hash.side_effect = self.get_rulegroup_event_mapping_from_input
+        self.mock_buffer.get_hash.side_effect = self.get_rulegroup_event_mapping_from_input
 
-        process_delayed_alert_conditions(mock_buffer)
+        process_delayed_alert_conditions(self.mock_buffer)
 
         for project, rule_group_event_mapping in (
             (self.project, self.rulegroup_event_mapping_one),
@@ -151,29 +158,123 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase):
         ):
             assert mock_apply_delayed.delay.call_count == 2
 
-    def test_apply_delayed(self):
-        mock_buffer = Mock()
-        mock_buffer.get_set.return_value = self.buffer_mapping.keys()
-        mock_buffer.get_hash.return_value = [
-            self.rulegroup_event_mapping_one,
-            self.rulegroup_event_mapping_two,
-        ]
-        for proj in [self.project, self.project_two]:
-            events = apply_delayed(proj, mock_buffer)
-            for event in events:
-                assert event in [self.event1, self.event2]
+    @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
+    def test_apply_delayed_rules_to_fire(self):
+        """
+        Test that rules of various event frequency conditions, projects, environments, etc. are properly scheduled to fire
+        """
+        self.mock_buffer.get_hash.return_value = [self.rulegroup_event_mapping_one]
 
-        # TODO check RuleFireHistory after adding firing code in
+        rules = apply_delayed(self.project, self.mock_buffer)
+        assert self.rule1 in rules
+        assert self.rule2 in rules
+
+        self.mock_buffer.get_hash.return_value = [self.rulegroup_event_mapping_two]
+
+        rules = apply_delayed(self.project_two, self.mock_buffer)
+        assert self.rule3 in rules
+        assert self.rule4 in rules
 
     def test_apply_delayed_same_condition_diff_value(self):
-        # XXX: CEO the only difference between UniqueCondition and DataAndGroup's data is the condition value
-        # does this still work when we have 2 of the same condition ids with different values?
-        # I made 2 EventFrequencyCondition with the same interval but different values and only see 1 shown
-        # it does properly handle same condition ids with different intervals
-        pass
+        """
+        Test that two rules with the same condition and interval but a different value are both scheduled to fire
+        """
+        rule5 = self.create_project_rule(
+            project=self.project_two,
+            condition_match=[self.event_frequency_condition2],
+            environment_id=self.environment.id,
+        )
+        event5 = self.create_event(self.project_two, self.now, "group-5", self.environment.name)
+        self.create_event(self.project_two, self.now, "group-5", self.environment.name)
+        self.create_event(self.project_two, self.now, "group-5", self.environment.name)
+        self.group5 = event5.group
+
+        self.mock_buffer.get_hash.return_value = [
+            {
+                f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
+                f"{rule5.id}:{self.group5.id}": {event5.event_id},
+            },
+        ]
+
+        rules = apply_delayed(self.project, self.mock_buffer)
+        assert self.rule1 in rules
+        assert rule5 in rules
 
     def test_apply_delayed_same_condition_diff_interval(self):
-        pass
+        """
+        Test that two rules with the same condition and value but a different interval are both scheduled to fire
+        """
+        diff_interval_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[self.event_frequency_condition3],
+            environment_id=self.environment.id,
+        )
+        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        group5 = event5.group
+
+        self.mock_buffer.get_hash.return_value = [
+            {
+                f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
+                f"{diff_interval_rule.id}:{group5.id}": {event5.event_id},
+            },
+        ]
+
+        rules = apply_delayed(self.project, self.mock_buffer)
+        assert self.rule1 in rules
+        assert diff_interval_rule in rules
+
+    def test_apply_delayed_same_condition_diff_env(self):
+        """
+        Test that two rules with the same condition, value, and interval but different environment are both scheduled to fire
+        """
+        environment3 = self.create_environment(project=self.project)
+        diff_env_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[self.event_frequency_condition],
+            environment_id=environment3.id,
+        )
+        event5 = self.create_event(self.project.id, self.now, "group-5", environment3.name)
+        self.create_event(self.project.id, self.now, "group-5", environment3.name)
+        group5 = event5.group
+
+        self.mock_buffer.get_hash.return_value = [
+            {
+                f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
+                f"{diff_env_rule.id}:{group5.id}": {event5.event_id},
+            },
+        ]
+
+        rules = apply_delayed(self.project, self.mock_buffer)
+        assert self.rule1 in rules
+        assert diff_env_rule in rules
 
     def test_apply_delayed_two_rules_one_fires(self):
-        pass
+        """
+        Test that with two rules in one project where one rule hasn't met the trigger threshold, only one is scheduled to fire
+        """
+        high_event_frequency_condition = {
+            "interval": "1d",
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "value": 100,
+            "name": "The issue is seen more than 100 times in 1d",
+        }
+        no_fire_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[high_event_frequency_condition],
+            environment_id=self.environment.id,
+        )
+        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        group5 = event5.group
+
+        self.mock_buffer.get_hash.return_value = [
+            {
+                f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
+                f"{no_fire_rule.id}:{group5.id}": {event5.event_id},
+            },
+        ]
+
+        rules = apply_delayed(self.project, self.mock_buffer)
+        assert self.rule1 in rules
+        assert no_fire_rule not in rules

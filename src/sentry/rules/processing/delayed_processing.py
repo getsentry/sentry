@@ -3,9 +3,7 @@ from collections import defaultdict
 from collections.abc import MutableMapping
 from typing import Any, DefaultDict, NamedTuple
 
-from sentry import eventstore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
-from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules import rules
@@ -145,16 +143,21 @@ def get_rules_to_fire(
     rule_to_slow_conditions: DefaultDict[Rule, list[dict[str, Any]]],
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, list[int]]:
-    condition_to_results = {c.cls_id: results for c, results in condition_group_results.items()}
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rule_to_slow_conditions.items():
         for slow_condition in slow_conditions:
             condition_id = slow_condition.get("id")
+            condition_interval = slow_condition.get("interval")
             target_value = int(slow_condition.get("value"))
-            results = condition_to_results[condition_id]
-            for group_id in rules_to_groups[alert_rule.id]:
-                if results[group_id] > target_value:
-                    rules_to_fire[alert_rule].add(group_id)
+            for condition_data, results in condition_group_results.items():
+                if (
+                    alert_rule.environment_id == condition_data.environment_id
+                    and condition_id == condition_data.cls_id
+                    and condition_interval == condition_data.interval
+                ):
+                    for group_id in rules_to_groups[alert_rule.id]:
+                        if results[group_id] > target_value:
+                            rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
 
 
@@ -181,7 +184,6 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
-
     # STEP 1: Fetch the rulegroup_to_events mapping for the project from redis
     rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": project.id})
 
@@ -196,45 +198,14 @@ def apply_delayed(project: Project, buffer: RedisBuffer) -> None:
     # must be checked for that condition. We don't query per rule condition because
     # condition of the same class, interval, and environment can share a single scan.
     condition_groups = get_condition_groups(alert_rules, rules_to_groups)
-
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
     condition_group_results = get_condition_group_results(condition_groups, project)
-
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
     rule_to_slow_conditions = get_rule_to_slow_conditions(alert_rules)
+
     rules_to_fire = get_rules_to_fire(
         condition_group_results, rule_to_slow_conditions, rules_to_groups
     )
-
-    # Step 7: Bulk fetch the events of the rule/group pairs we need to trigger
-    # actions for, then trigger those actions
-    group_id_to_event_id = {}
-    for rule_group, event in rulegroup_to_events:
-        _, group_id = rule_group.split(":")
-        group_id_to_event_id[group_id] = event
-
-    events = [
-        Event(
-            event_id=event_id,
-            project_id=project.id,
-            snuba_data={
-                "event_id": event_id,
-                "group_id": group_id,
-                "project_id": project.id,
-            },
-        )
-        for group_id, event_id in group_id_to_event_id.items()
-    ]
-    eventstore.backend.bind_nodes(events)
-    return events
-
-    # Step 7.2(?) Fire the rules
-    # double check the frequency before firing
-    # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L209-L212
-
-    # XXX: Be sure to update the grouprulestatus before triggering actions!
-    # https://github.com/getsentry/sentry/blob/fbfd6800cf067f171840c427df7d5c2864b91fb0/src/sentry/rules/processor.py#L247-L254
-
-    # Step 8: Clean up redis buffer data
+    return rules_to_fire
