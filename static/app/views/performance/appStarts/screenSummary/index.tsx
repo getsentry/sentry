@@ -20,6 +20,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {SamplesTables} from 'sentry/views/performance/appStarts/screenSummary/samples';
+import {
+  COLD_START_TYPE,
+  StartTypeSelector,
+} from 'sentry/views/performance/appStarts/screenSummary/startTypeSelector';
 import {MetricsRibbon} from 'sentry/views/performance/screenload/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/performance/screenload/screenLoadSpans/samples';
 import {
@@ -28,11 +33,6 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {SamplesTables} from 'sentry/views/starfish/views/appStartup/screenSummary/samples';
-import {
-  COLD_START_TYPE,
-  StartTypeSelector,
-} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 import AppStartWidgets from './widgets';

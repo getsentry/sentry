@@ -12,6 +12,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {COLD_START_TYPE} from 'sentry/views/performance/appStarts/screenSummary/startTypeSelector';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
@@ -24,7 +25,6 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/center
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
-import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
 const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];

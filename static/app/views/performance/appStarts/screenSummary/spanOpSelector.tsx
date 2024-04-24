@@ -9,12 +9,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {COLD_START_TYPE} from 'sentry/views/performance/appStarts/screenSummary/startTypeSelector';
 import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/performance/screenload/screenLoadSpans/spanOpSelector';
 import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 export const APP_START_SPANS = [
   ...TTID_CONTRIBUTING_SPAN_OPS,

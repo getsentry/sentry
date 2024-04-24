@@ -21,13 +21,13 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import AppStartup from 'sentry/views/performance/appStarts/screens';
+import {StartTypeSelector} from 'sentry/views/performance/appStarts/screenSummary/startTypeSelector';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {PlatformCompatibilityChecker} from 'sentry/views/performance/platformCompatibilityChecker';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
-import AppStartup from 'sentry/views/starfish/views/appStartup';
-import {StartTypeSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 export default function InitializationModule() {
   const organization = useOrganization();

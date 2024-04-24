@@ -18,6 +18,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {COLD_START_TYPE} from 'sentry/views/performance/appStarts/screenSummary/startTypeSelector';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/screenload/screens';
 import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
@@ -33,7 +34,6 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 const YAXES = [YAxis.COLD_START, YAxis.WARM_START];
 const XAXIS_CATEGORIES = ['high', 'medium', 'low', 'Unknown'];

@@ -8,6 +8,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {COLD_START_TYPE} from 'sentry/views/performance/appStarts/screenSummary/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/performance/screenload/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
 import {
@@ -16,7 +17,6 @@ import {
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
