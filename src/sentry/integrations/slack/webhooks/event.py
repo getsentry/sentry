@@ -156,7 +156,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return True
 
             # Don't unfurl the same thing multiple times
-            seen_marker = hash(json.dumps((link_type, args)))
+            seen_marker = hash(
+                json.dumps_experimental("integrations.slack.enable-orjson", (link_type, args))
+            )
             if seen_marker in links_seen:
                 continue
 
@@ -192,7 +194,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
-            "unfurls": json.dumps(results),
+            "unfurls": json.dumps_experimental("integrations.slack.enable-orjson", results),
         }
 
         client = SlackClient(integration_id=slack_request.integration.id)

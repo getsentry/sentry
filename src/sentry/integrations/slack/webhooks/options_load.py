@@ -99,7 +99,9 @@ class SlackOptionsLoadEndpoint(Endpoint):
                 extra={
                     "group_id": group.id if group else None,
                     "organization_id": group.project.organization.id if group else None,
-                    "request_data": json.dumps(slack_request.data),
+                    "request_data": json.dumps_experimental(
+                        "integrations.slack.enable-orjson", slack_request.data
+                    ),
                 },
             )
             return self.respond(status=status.HTTP_400_BAD_REQUEST)

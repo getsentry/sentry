@@ -201,7 +201,9 @@ class SlackService:
         )
         payload.update(slack_payload)
         # TODO (Yash): Users should not have to remember to do this, interface should handle serializing the field
-        payload["blocks"] = json.dumps(payload.get("blocks"))
+        payload["blocks"] = json.dumps_experimental(
+            "integrations.slack.enable-orjson", payload.get("blocks")
+        )
         try:
             client.post("/chat.postMessage", data=payload, timeout=5)
         except Exception as err:
