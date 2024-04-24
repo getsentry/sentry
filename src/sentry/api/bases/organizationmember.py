@@ -57,7 +57,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         member_id: str = "me",
         *args: Any,
         **kwargs: Any,
-    ) -> tuple[Any, Any]:
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         serializer = MemberSerializer(data={"id": member_id})

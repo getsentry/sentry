@@ -100,18 +100,17 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str | int | None = None,
+        organization_slug: int | str | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        member_id = kwargs.get("member_id", "me")
-        args, kwargs = super().convert_args(request, organization_slug, member_id, *args, **kwargs)
+        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
-        team_slug = kwargs["team_slug"]
+        team_slug = kwargs.pop("team_slug")
         organization = kwargs["organization"]
         member = kwargs["member"]
 
-        if request.method == "get":
+        if request.method == "GET":
             try:
                 if id_or_slug_path_params_enabled(
                     self.get.__qualname__, organization_slug=organization.slug
@@ -140,7 +139,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                     team = Team.objects.get(organization=organization, slug=team_slug)
             except Team.DoesNotExist:
                 raise ResourceDoesNotExist
-
             kwargs["team"] = team
 
         return (args, kwargs)
