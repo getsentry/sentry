@@ -54,13 +54,14 @@ REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
     UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
 }
 
-USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
-    UseCaseID.TRANSACTIONS: "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
-    UseCaseID.SESSIONS: "sentry-metrics.cardinality-limiter.limits.sessions.per-org",
-    UseCaseID.SPANS: "sentry-metrics.cardinality-limiter.limits.spans.per-org",
-    UseCaseID.CUSTOM: "sentry-metrics.cardinality-limiter.limits.custom.per-org",
-    UseCaseID.PROFILES: "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-}
+# Temporary allowlist until all use cases have cardinality limit options
+CARDINALITY_LIMIT_USE_CASES = (
+    UseCaseID.TRANSACTIONS,
+    UseCaseID.SESSIONS,
+    UseCaseID.SPANS,
+    UseCaseID.CUSTOM,
+    UseCaseID.PROFILES,
+)
 
 USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.SPANS: "sentry-metrics.writes-limiter.limits.spans",
