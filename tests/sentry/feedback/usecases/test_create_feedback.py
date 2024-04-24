@@ -14,6 +14,7 @@ from sentry.feedback.usecases.create_feedback import (
     fix_for_issue_platform,
     validate_issue_platform_event_schema,
 )
+from sentry.models.group import GroupStatus
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -537,6 +538,14 @@ def test_create_feedback_spam_detection_adds_field(
         assert (
             found_is_spam == expected_result
         ), f"Expected {expected_result} but found {found_is_spam} for {input_message} and feature flag {feature_flag}"
+
+        if expected_result and feature_flag:
+            assert (
+                mock_produce_occurrence_to_kafka.call_args_list[1]
+                .kwargs["status_change"]
+                .new_status
+                == GroupStatus.RESOLVED
+            )
 
 
 @django_db_all
