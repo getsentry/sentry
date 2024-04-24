@@ -170,7 +170,7 @@ class AlertRuleTest(TestCase):
                     project=project,
                     activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
                     query_extra=query_extra,
-                    trigger="test",
+                    origin="test",
                 )
             )
             assert len(created_subscriptions) == 1
@@ -194,7 +194,7 @@ class AlertRuleTest(TestCase):
                     project=project,
                     activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
                     query_extra=query_extra,
-                    trigger="test",
+                    origin="test",
                 )
             )
             assert len(created_subscriptions) == 1
