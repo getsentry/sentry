@@ -1,5 +1,5 @@
 ---
-created: '2024-04-22T16:37:52.501407+00:00'
+created: '2024-04-24T17:50:56.140742+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -460,6 +460,9 @@ source: tests/sentry/backup/test_comparators.py
     - doc_integration
   model_name: sentry.docintegrationavatar
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
   - class: EmailObfuscatingComparator
     fields:
     - email

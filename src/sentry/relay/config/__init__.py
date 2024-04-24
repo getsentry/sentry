@@ -44,7 +44,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -268,9 +268,11 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         )
 
         cardinality_limits: list[CardinalityLimit] = []
-        for namespace, option_name in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items():
+        for namespace in CARDINALITY_LIMIT_USE_CASES:
             timeout.check()
-            option = options.get(option_name)
+            option = options.get(
+                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
+            )
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
                 continue
@@ -289,7 +291,8 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "namespace": namespace.value,
             }
             if id in passive_limits:
-                limit["passive"] = True
+                # HACK inc-730: reduce pressure on memory by disabling limits for passive projects
+                continue
             cardinality_limits.append(limit)
 
         clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
@@ -341,8 +344,6 @@ def get_project_config(
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
-        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
-        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
         return {"version": 2, "rules": generate_rules(project)}
 
     return None

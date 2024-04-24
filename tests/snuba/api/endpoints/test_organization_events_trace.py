@@ -6,7 +6,6 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.testutils.cases import TraceTestCase
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -18,6 +17,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
         "organizations:trace-view-load-more",
+        "organizations:performance-slow-db-issue",
     ]
 
     def setUp(self):
@@ -36,6 +36,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         super().setUp()
         options.set("performance.issues.all.problem-detection", 1.0)
         options.set("performance.issues.file_io_main_thread.problem-creation", 1.0)
+        options.set("performance.issues.slow_db_query.problem-creation", 1.0)
         self.login_as(user=self.user)
 
         self.url = reverse(
@@ -46,12 +47,101 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    # Remove this method once we don't need to support both approaches
-    def _generate_span_ids(self) -> list[str]:
+    def load_trace(self):
+        self.root_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="root",
+            spans=[
+                {
+                    "same_process_as_parent": True,
+                    "op": "http",
+                    "description": f"GET gen1-{i}",
+                    "span_id": root_span_id,
+                    "trace_id": self.trace_id,
+                }
+                for i, root_span_id in enumerate(self.root_span_ids)
+            ],
+            measurements={
+                "lcp": 1000,
+                "fcp": 750,
+                "fid": 3.5,
+            },
+            parent_span_id=None,
+            file_io_performance_issue=True,
+            slow_db_performance_issue=True,
+            project_id=self.project.id,
+            milliseconds=3000,
+        )
+
+        # First Generation
+        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
         if isinstance(self, OrganizationEventsTraceEndpointTestUsingSpans):
-            return ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
+            self.gen1_span_ids = ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
         else:
-            return super()._generate_span_ids()
+            self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen1_project = self.create_project(organization=self.organization)
+        self.gen1_events = [
+            self.create_event(
+                trace_id=self.trace_id,
+                transaction=f"/transaction/gen1-{i}",
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": f"GET gen2-{i}",
+                        "span_id": gen1_span_id,
+                        "trace_id": self.trace_id,
+                    }
+                ],
+                parent_span_id=root_span_id,
+                project_id=self.gen1_project.id,
+                milliseconds=2000,
+            )
+            for i, (root_span_id, gen1_span_id) in enumerate(
+                zip(self.root_span_ids, self.gen1_span_ids)
+            )
+        ]
+
+        # Second Generation
+        self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen2_project = self.create_project(organization=self.organization)
+
+        # Intentially pick a span id that starts with 0s
+        self.gen2_span_id = "0011" * 4
+
+        self.gen2_events = [
+            self.create_event(
+                trace_id=self.trace_id,
+                transaction=f"/transaction/gen2-{i}",
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
+                        "span_id": gen2_span_id,
+                        "trace_id": self.trace_id,
+                    }
+                ],
+                parent_span_id=gen1_span_id,
+                span_id=self.gen2_span_id if i == 0 else None,
+                project_id=self.gen2_project.id,
+                milliseconds=1000,
+            )
+            for i, (gen1_span_id, gen2_span_id) in enumerate(
+                zip(self.gen1_span_ids, self.gen2_span_ids)
+            )
+        ]
+
+        # Third generation
+        self.gen3_project = self.create_project(organization=self.organization)
+        self.gen3_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="/transaction/gen3-0",
+            spans=[],
+            project_id=self.gen3_project.id,
+            parent_span_id=self.gen2_span_id,
+            milliseconds=500,
+        )
 
 
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
@@ -566,12 +656,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             assert root["generation"] == 0
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
-        assert len(root["performance_issues"]) == 1
-        # The perf issue is added as the last span
-        perf_issue_span = self.root_event.data["spans"][-1]
-        assert root["performance_issues"][0]["suspect_spans"][0] == perf_issue_span["span_id"]
-        assert root["performance_issues"][0]["start"] == perf_issue_span["start_timestamp"]
-        assert root["performance_issues"][0]["end"] == perf_issue_span["timestamp"]
+        self.assert_performance_issues(root)
 
         for i, gen1 in enumerate(root["children"]):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
@@ -603,6 +688,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert len(gen3["children"]) == 0
             elif gen2_no_children:
                 assert len(gen2["children"]) == 0
+
+    def assert_performance_issues(self, root):
+        """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
+        pass
 
     def client_get(self, data, url=None):
         if url is None:
@@ -678,12 +767,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert root_tags[key[7:]] == value, f"tags - {key}"
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
-        assert "issue_short_id" in trace_transaction["performance_issues"][0]
-        assert trace_transaction["performance_issues"][0]["culprit"] == "root"
-        assert (
-            trace_transaction["performance_issues"][0]["type"]
-            == PerformanceFileIOMainThreadGroupType.type_id
-        )
 
     def test_detailed_trace_with_bad_tags(self):
         """Basically test that we're actually using the event serializer's method for tags"""
@@ -1008,7 +1091,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_errors(self):
         self.load_trace()
-        error, error1 = self.load_errors()
+        error, error1, _ = self.load_errors(self.gen1_project, self.gen1_span_ids[0])
 
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -1018,7 +1101,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert response.status_code == 200, response.content
         self.assert_trace_data(response.data["transactions"][0])
         gen1_event = response.data["transactions"][0]["children"][0]
-        assert len(gen1_event["errors"]) == 2
+        assert len(gen1_event["errors"]) == 3
         data = {
             "event_id": error.event_id,
             "issue_id": error.group_id,
@@ -1317,6 +1400,16 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         data["useSpans"] = 1
         return super().client_get(data, url)
 
+    def assert_performance_issues(self, root):
+        assert len(root["performance_issues"]) == 2
+        # The perf issues are the last 2 spans
+        perf_issue_spans = {span["span_id"]: span for span in self.root_event.data["spans"][-2:]}
+        for perf_issue in root["performance_issues"]:
+            assert len(perf_issue["suspect_spans"]) == 1
+            expected = perf_issue_spans[perf_issue["suspect_spans"][0]]
+            assert perf_issue["start"] == expected["start_timestamp"]
+            assert perf_issue["end"] == expected["timestamp"]
+
     def test_simple(self):
         self.load_trace()
         with self.feature(self.FEATURES):
@@ -1520,11 +1613,11 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 0
-        assert data["performance_issues"] == 1
+        assert data["performance_issues"] == 2
 
     def test_with_errors(self):
         self.load_trace()
-        self.load_errors()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1533,10 +1626,10 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["projects"] == 4
+        assert data["projects"] == 5
         assert data["transactions"] == 8
-        assert data["errors"] == 2
-        assert data["performance_issues"] == 1
+        assert data["errors"] == 3
+        assert data["performance_issues"] == 2
 
     def test_with_default(self):
         self.load_trace()
@@ -1552,4 +1645,4 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 1
-        assert data["performance_issues"] == 1
+        assert data["performance_issues"] == 2

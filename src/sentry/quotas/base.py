@@ -9,7 +9,7 @@ from django.core.cache import cache
 
 from sentry import features, options
 from sentry.constants import DataCategory
-from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
@@ -61,7 +61,7 @@ def build_metric_abuse_quotas() -> list[AbuseQuota]:
         (QuotaScope.GLOBAL, "g"),
     ]
 
-    for (scope, prefix) in scopes:
+    for scope, prefix in scopes:
         quotas.append(
             AbuseQuota(
                 id=f"{prefix}amb",
@@ -71,7 +71,7 @@ def build_metric_abuse_quotas() -> list[AbuseQuota]:
             )
         )
 
-        for use_case in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
+        for use_case in CARDINALITY_LIMIT_USE_CASES:
             quotas.append(
                 AbuseQuota(
                     id=f"{prefix}amb_{use_case.value}",

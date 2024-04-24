@@ -1,6 +1,7 @@
 import dataclasses
 import logging
-from collections.abc import Callable, Mapping
+from collections import defaultdict
+from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
@@ -8,25 +9,18 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import Headers, KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.produce import Produce
-from arroyo.processing.strategies.reduce import Reduce
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import (
-    FILTERED_PAYLOAD,
-    BaseValue,
-    BrokerValue,
-    Commit,
-    FilteredPayload,
-    Message,
-    Partition,
-)
+from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
-from sentry.spans.buffer.redis import RedisSpansBuffer
+from sentry.spans.buffer.redis import ProcessSegmentsContext, RedisSpansBuffer, SegmentKey
 from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
@@ -53,10 +47,12 @@ def in_process_spans_rollout_group(project_id: int | None) -> bool:
 
 
 @dataclasses.dataclass
-class ProduceSegmentContext:
-    should_process_segments: bool
+class SpanMessageWithMetadata:
+    segment_id: str
+    project_id: int
     timestamp: int
     partition: int
+    span: bytes
 
 
 def get_project_id(headers: Headers) -> int | None:
@@ -76,7 +72,12 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
     return SPAN_SCHEMA.decode(value)
 
 
-def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | FilteredPayload:
+def _process_message(message: Message[KafkaPayload]) -> SpanMessageWithMetadata | FilteredPayload:
+    """
+    Deserializes span to get segment_id. Returns `SpanMessageWithMetadata` which contains the
+    original span payload value in bytes along with other segment_id, message timestamp and
+    partition data to ensure correct bucketing in redis.
+    """
     if not options.get("standalone-spans.process-spans-consumer.enable"):
         return FILTERED_PAYLOAD
 
@@ -99,28 +100,20 @@ def _process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | 
         with txn.start_child(op="deserialize"):
             span = _deserialize_span(payload_value)
 
-        segment_id = span.get("segment_id", None)
+        segment_id: str | None = span.get("segment_id", None)
         if segment_id is None:
             return FILTERED_PAYLOAD
 
-        trace_id = span["trace_id"]
-
-        txn.set_tag("trace.id", trace_id)
-        txn.set_tag("segment.id", segment_id)
-        sentry_sdk.set_measurement("num_keys", len(span))
-
-        client = RedisSpansBuffer()
-
-        should_process_segments = client.write_span_and_check_processing(
-            project_id, segment_id, timestamp, partition, payload_value
-        )
-
-    return ProduceSegmentContext(
-        should_process_segments=should_process_segments, timestamp=timestamp, partition=partition
+    return SpanMessageWithMetadata(
+        segment_id=segment_id,
+        project_id=project_id,
+        timestamp=timestamp,
+        partition=partition,
+        span=payload_value,
     )
 
 
-def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | FilteredPayload:
+def process_message(message: Message[KafkaPayload]) -> SpanMessageWithMetadata | FilteredPayload:
     try:
         return _process_message(message)
     except Exception:
@@ -128,30 +121,70 @@ def process_message(message: Message[KafkaPayload]) -> ProduceSegmentContext | F
         return FILTERED_PAYLOAD
 
 
-def _accumulator(result: dict[int, ProduceSegmentContext], value: BaseValue[ProduceSegmentContext]):
-    context = value.payload
-    if not context.should_process_segments:
-        return result
+def _batch_write_to_redis(
+    message: Message[ValuesBatch[SpanMessageWithMetadata]],
+):
+    """
+    Gets a batch of `SpanMessageWithMetadata` and creates a dictionary with
+    segment_id as key and a list of spans belonging to that segment_id as value.
+    Pushes the batch of spans to redis.
+    """
+    batch = message.payload
+    latest_ts_by_partition: dict[int, int] = {}
+    spans_map: dict[SegmentKey, list[bytes]] = defaultdict(list)
+    segment_first_seen_ts: dict[SegmentKey, int] = {}
 
-    result[context.partition] = context
-    return result
+    for item in batch:
+        payload = item.payload
+        partition = payload.partition
+        segment_id = payload.segment_id
+        project_id = payload.project_id
+        span = payload.span
+        timestamp = payload.timestamp
+
+        key = SegmentKey(segment_id, project_id, partition)
+
+        # Collects spans for each segment_id
+        spans_map[key].append(span)
+
+        # Collects "first_seen" timestamps for each segment in batch.
+        # Batch step doesn't guarantee order, so pick lowest ts.
+        if key not in segment_first_seen_ts or timestamp < segment_first_seen_ts[key]:
+            segment_first_seen_ts[key] = timestamp
+
+        # Collects latest timestamps processed in each partition. It is
+        # important to keep track of this per partition because message
+        # timestamps are guaranteed to be monotonic per partition only.
+        if partition not in latest_ts_by_partition or timestamp > latest_ts_by_partition[partition]:
+            latest_ts_by_partition[partition] = timestamp
+
+    client = RedisSpansBuffer()
+    return client.batch_write_and_check_processing(
+        spans_map=spans_map,
+        segment_first_seen_ts=segment_first_seen_ts,
+        latest_ts_by_partition=latest_ts_by_partition,
+    )
 
 
-def accumulator(
-    result: dict[int, ProduceSegmentContext], value: BaseValue[ProduceSegmentContext]
-) -> dict[int, ProduceSegmentContext]:
+def batch_write_to_redis(
+    message: Message[ValuesBatch[SpanMessageWithMetadata]],
+):
     try:
-        return _accumulator(result, value)
+        return _batch_write_to_redis(message)
     except Exception:
         sentry_sdk.capture_exception()
-        return result
+        return FILTERED_PAYLOAD
 
 
-def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
+def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
     buffered_segments: list[KafkaPayload | FilteredPayload] = []
 
-    for context in context_dict.values():
-        if not context.should_process_segments:
+    for result in should_process_segments:
+        timestamp = result.timestamp
+        partition = result.partition
+        should_process = result.should_process_segments
+
+        if not should_process:
             continue
 
         with sentry_sdk.start_transaction(
@@ -161,9 +194,7 @@ def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
             payload_context = {}
 
             with txn.start_child(op="process", description="fetch_unprocessed_segments"):
-                keys = client.get_unprocessed_segments_and_prune_bucket(
-                    context.timestamp, context.partition
-                )
+                keys = client.get_unprocessed_segments_and_prune_bucket(timestamp, partition)
 
             sentry_sdk.set_measurement("segments.count", len(keys))
             if len(keys) > 0:
@@ -193,9 +224,9 @@ def _expand_segments(context_dict: dict[int, ProduceSegmentContext]):
     return buffered_segments
 
 
-def expand_segments(context_dict: dict[int, ProduceSegmentContext]):
+def expand_segments(should_process_segments: list[ProcessSegmentsContext]):
     try:
-        return _expand_segments(context_dict)
+        return _expand_segments(should_process_segments)
     except Exception:
         sentry_sdk.capture_exception()
         return []
@@ -248,20 +279,22 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         unfold_step = Unfold(generator=expand_segments, next_step=produce_step)
 
-        initial_value: Callable[[], dict[int, ProduceSegmentContext]] = lambda: {}
-        reduce_step: Reduce[ProduceSegmentContext, dict[int, ProduceSegmentContext]] = Reduce(
-            self.max_batch_size,
-            self.max_batch_time,
-            accumulator,
-            initial_value=initial_value,
-            next_step=unfold_step,
+        commit_step = CommitSpanOffsets(commit=commit, next_step=unfold_step)
+
+        batch_processor = RunTask(
+            function=batch_write_to_redis,
+            next_step=commit_step,
         )
 
-        commit_step = CommitSpanOffsets(commit=commit, next_step=reduce_step)
+        batch_step = BatchStep(
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            next_step=batch_processor,
+        )
 
         return RunTaskWithMultiprocessing(
             function=process_message,
-            next_step=commit_step,
+            next_step=batch_step,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
             pool=self.__pool,

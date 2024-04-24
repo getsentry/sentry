@@ -2,7 +2,7 @@ import type {ComponentProps} from 'react';
 
 import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
 import {CHART_HEIGHT} from 'sentry/views/performance/http/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {getDurationChartTitle} from 'sentry/views/starfish/views/spans/types';

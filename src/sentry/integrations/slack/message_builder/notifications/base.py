@@ -33,7 +33,11 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
             self.recipient, ExternalProviders.SLACK
         )
         actions = self.notification.get_message_actions(self.recipient, ExternalProviders.SLACK)
-        callback_id = json.dumps(callback_id_raw) if callback_id_raw else None
+        callback_id = (
+            json.dumps_experimental("integrations.slack.enable-orjson", callback_id_raw)
+            if callback_id_raw
+            else None
+        )
 
         first_block_text = ""
         if title_link:
