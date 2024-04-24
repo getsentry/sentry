@@ -102,7 +102,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         try:
             if id_or_slug_path_params_enabled(
                 convert_args_class=self.convert_args.__qualname__,
-                organization_slug=organization_slug,
+                organization_slug=organization.slug,
             ):
                 project = Project.objects.get(
                     slug__id_or_slug=project_slug,
@@ -117,7 +117,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             kwargs["project"] = project
 
         except Project.DoesNotExist:
-            return Response(status=404)
+            raise Project.DoesNotExist
 
         return args, kwargs
 
