@@ -1018,7 +1018,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert response.status_code == 200, response.content
         self.assert_trace_data(response.data["transactions"][0])
         gen1_event = response.data["transactions"][0]["children"][0]
-        assert len(gen1_event["errors"]) == 2
+        assert len(gen1_event["errors"]) == 3
         data = {
             "event_id": error.event_id,
             "issue_id": error.group_id,
@@ -1533,9 +1533,9 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["projects"] == 4
+        assert data["projects"] == 5
         assert data["transactions"] == 8
-        assert data["errors"] == 2
+        assert data["errors"] == 3
         assert data["performance_issues"] == 1
 
     def test_with_default(self):
