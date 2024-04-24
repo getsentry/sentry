@@ -17,7 +17,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {
+  SpanIndexedField,
+  type SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -136,6 +139,9 @@ function SpanSummaryPage({params, location}: Props) {
                   groupId={span['span.group']}
                   transactionName={transaction}
                   transactionMethod={transactionMethod}
+                  // TODO Abdullah Khan: Remove trace as an additional field once backend passes it
+                  // as a default field to query
+                  additionalFields={[SpanIndexedField.TRACE]}
                 />
               </Layout.Main>
             </Layout.Body>

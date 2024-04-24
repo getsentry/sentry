@@ -8,6 +8,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,7 +19,7 @@ import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {
   DEFAULT_PLATFORM,
@@ -157,11 +158,22 @@ export function ScreenLoadSampleContainer({
         }
         additionalFilters={additionalFilters}
         groupId={groupId}
+        // TODO Abdullah Khan: Remove trace as an additional field once backend passes it
+        // as a default field to query
+        additionalFields={[SpanIndexedField.TRACE]}
         transactionName={transactionName}
         transactionMethod={transactionMethod}
         onClickSample={span => {
           router.push(
-            `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
+            generateLinkToEventInTraceView({
+              eventId: span['transaction.id'],
+              projectSlug: span.project,
+              spanId: span.span_id,
+              location,
+              organization,
+              traceSlug: span.trace,
+              timestamp: span.timestamp,
+            })
           );
         }}
         onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}

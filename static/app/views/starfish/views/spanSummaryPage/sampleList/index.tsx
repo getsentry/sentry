@@ -10,6 +10,7 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -64,7 +65,8 @@ export function SampleList({
   );
 
   const organization = useOrganization();
-  const {query} = useLocation();
+  const location = useLocation();
+  const {query} = location;
   const {projects} = useProjects();
 
   const project = useMemo(
@@ -156,7 +158,15 @@ export function SampleList({
           additionalFields={additionalFields}
           onClickSample={span => {
             router.push(
-              `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
+              generateLinkToEventInTraceView({
+                eventId: span['transaction.id'],
+                projectSlug: span.project,
+                spanId: span.span_id,
+                location,
+                organization,
+                traceSlug: span.trace,
+                timestamp: span.timestamp,
+              })
             );
           }}
           onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
