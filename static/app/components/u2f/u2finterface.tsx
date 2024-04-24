@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
-import * as cbor from 'cbor-web';
+import {decodeFirst} from 'cbor-web';
 
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
@@ -188,7 +188,7 @@ class U2fInterface extends Component<Props, State> {
       const challengeArray = base64urlToBuffer(
         this.props.challengeData.webAuthnAuthenticationData
       );
-      const challenge = cbor.decodeFirst(challengeArray);
+      const challenge = decodeFirst(challengeArray);
       challenge
         .then(data => {
           this.webAuthnSignIn(data);
@@ -205,7 +205,7 @@ class U2fInterface extends Component<Props, State> {
       const challengeArray = base64urlToBuffer(
         this.props.challengeData.webAuthnRegisterData
       );
-      const challenge = cbor.decodeFirst(challengeArray);
+      const challenge = decodeFirst(challengeArray);
       // challenge contains a PublicKeyCredentialRequestOptions object for webauthn registration
       challenge
         .then(data => {
