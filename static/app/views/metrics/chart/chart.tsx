@@ -35,6 +35,7 @@ type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
   additionalSeries?: SeriesOption[];
+  enableZoom?: boolean;
   focusArea?: UseFocusAreaResult;
   group?: string;
   height?: number;
@@ -83,6 +84,7 @@ export const MetricChart = memo(
         group,
         samples,
         focusArea,
+        enableZoom,
         releases,
         additionalSeries,
       },
@@ -338,7 +340,7 @@ export const MetricChart = memo(
         firstUnit,
       ]);
 
-      if (focusArea) {
+      if (!enableZoom) {
         return (
           <ChartWrapper>
             {focusArea?.overlay}
@@ -352,19 +354,11 @@ export const MetricChart = memo(
           <ChartZoom>
             {zoomRenderProps => <CombinedChart {...chartProps} {...zoomRenderProps} />}
           </ChartZoom>
-
-          {/* <ZoomWrapper {...chartProps} /> */}
         </ChartWrapper>
       );
     }
   )
 );
-
-// function ZoomWrapper(chartProps) {
-//   const zoomRenderProps = useChartZoom();
-
-//   return <CombinedChart {...chartProps} {...zoomRenderProps} />;
-// }
 
 function CombinedChart({
   displayType,
