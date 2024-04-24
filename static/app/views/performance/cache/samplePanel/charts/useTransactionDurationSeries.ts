@@ -8,6 +8,7 @@ import {getSeriesEventView} from 'sentry/views/starfish/queries/getSeriesEventVi
 import type {MetricTimeseriesRow} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
+// TODO - this is pretty much the same as `useSpanMetricsSeries`, we should probably consider making useMetricsSeries later on
 export const useTransactionDurationSeries = (options: {
   referrer: string;
   transactionName: string;
