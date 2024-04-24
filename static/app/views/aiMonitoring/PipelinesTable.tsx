@@ -1,8 +1,10 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
@@ -32,17 +34,17 @@ type Row = Pick<
   | 'spm()'
   | 'avg(span.duration)'
   | 'sum(span.duration)'
-  | 'time_spent_percentage()'
+  | 'ai_total_tokens_used()'
 >;
 
 type Column = GridColumnHeader<
-  'span.description' | 'spm()' | 'avg(span.duration)' | 'time_spent_percentage()'
+  'span.description' | 'spm()' | 'avg(span.duration)' | 'ai_total_tokens_used()'
 >;
 
 const COLUMN_ORDER: Column[] = [
   {
     key: 'span.description',
-    name: t('AI Pipeline name'),
+    name: t('AI Pipeline Name'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -51,21 +53,21 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
+    key: 'ai_total_tokens_used()',
+    name: t('Total tokens used'),
+    width: 180,
+  },
+  {
     key: `avg(span.duration)`,
     name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },
-  {
-    key: 'time_spent_percentage()',
-    name: DataTitles.timeSpent,
-    width: COL_WIDTH_UNDEFINED,
-  },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.duration)', 'spm()', 'time_spent_percentage()'];
+const SORTABLE_FIELDS = ['avg(span.duration)', 'spm()'];
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.duration)' | 'time_spent_percentage()';
+  field: 'spm()' | 'avg(span.duration)';
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
@@ -80,7 +82,7 @@ export function PipelinesTable() {
 
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
-    sort = {field: 'time_spent_percentage()', kind: 'desc'};
+    sort = {field: 'spm()', kind: 'desc'};
   }
   const {data, isLoading, meta, pageLinks, error} = useSpanMetrics({
     search: new MutableSearch('span.category:ai.pipeline'),
@@ -91,13 +93,33 @@ export function PipelinesTable() {
       'spm()',
       'avg(span.duration)',
       'sum(span.duration)',
-      'time_spent_percentage()',
+      'ai_total_tokens_used()', // this is zero initially and overwritten below.
     ],
     sorts: [sort],
     limit: 25,
     cursor,
     referrer: 'api.ai-pipelines.view',
   });
+
+  const {
+    data: tokensUsedData,
+    isLoading: tokensUsedLoading,
+    error: tokensUsedError,
+  } = useSpanMetrics({
+    search: new MutableSearch(
+      `span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}] span.category:ai`
+    ),
+    fields: ['span.ai.pipeline.group', 'ai_total_tokens_used()'],
+  });
+  if (!tokensUsedLoading) {
+    for (const tokenUsedRow of tokensUsedData) {
+      const groupId = tokenUsedRow['span.ai.pipeline.group'];
+      const tokensUsed = tokenUsedRow['ai_total_tokens_used()'];
+      data
+        .filter(x => x['span.group'] === groupId)
+        .forEach(x => (x['ai_total_tokens_used()'] = tokensUsed));
+    }
+  }
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
@@ -114,7 +136,7 @@ export function PipelinesTable() {
     >
       <GridEditable
         isLoading={isLoading}
-        error={error}
+        error={error ?? tokensUsedError}
         data={data}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[
