@@ -77,7 +77,7 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
     );
   };
 
-  // Metrics stats ingestion is delaye, so we can't show this for metrics right now
+  // Metrics stats ingestion is delayed, so we can't show this for metrics right now
   if (dataCategory === DATA_CATEGORY_INFO.metrics.plural) {
     return null;
   }
