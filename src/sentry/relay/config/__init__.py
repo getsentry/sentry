@@ -44,7 +44,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -268,9 +268,11 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         )
 
         cardinality_limits: list[CardinalityLimit] = []
-        for namespace, option_name in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items():
+        for namespace in CARDINALITY_LIMIT_USE_CASES:
             timeout.check()
-            option = options.get(option_name)
+            option = options.get(
+                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
+            )
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
                 continue
