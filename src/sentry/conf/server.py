@@ -1500,8 +1500,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
-    # Enables ownership features for cron monitors
-    "organizations:crons-ownership": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1784,6 +1782,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-streamed-spans-exp-visible": False,
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
+    # Enables the new UI for span summary and the spans tab
+    "organizations:performance-spans-new-ui": False,
     # Enable processing slow issue alerts
     "organizations:process-slow-alerts": False,
     # Enable profiling

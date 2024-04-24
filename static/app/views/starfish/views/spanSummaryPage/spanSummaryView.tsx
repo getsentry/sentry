@@ -8,7 +8,7 @@ import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {
   ChartType,
   useSynchronizeCharts,

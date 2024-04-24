@@ -2,10 +2,7 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
-import {
-  cancelAnimationTimeout,
-  requestAnimationTimeout,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -94,7 +91,9 @@ export class VirtualizedViewManager {
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
-  span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  span_bars: ({color: string; ref: HTMLElement; space: [number, number]} | undefined)[] =
+    [];
+  span_patterns: ({ref: HTMLElement; space: [number, number]} | undefined)[][] = [];
   invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
   span_arrows: (
     | {
@@ -132,6 +131,12 @@ export class VirtualizedViewManager {
         translate: [0, 0],
       },
     };
+
+    this.registerContainerRef = this.registerContainerRef.bind(this);
+    this.registerHorizontalScrollBarContainerRef =
+      this.registerHorizontalScrollBarContainerRef.bind(this);
+    this.registerDividerRef = this.registerDividerRef.bind(this);
+    this.registerIndicatorContainerRef = this.registerIndicatorContainerRef.bind(this);
 
     this.onDividerMouseDown = this.onDividerMouseDown.bind(this);
     this.onDividerMouseUp = this.onDividerMouseUp.bind(this);
@@ -347,19 +352,26 @@ export class VirtualizedViewManager {
     ref.addEventListener('mousedown', this.onDividerMouseDown, {passive: true});
   }
 
-  registerSpanBarRef(ref: HTMLElement | null, space: [number, number], index: number) {
-    this.span_bars[index] = ref ? {ref, space} : undefined;
-  }
-
-  registerInvisibleBarRef(
+  registerSpanBarRef(
     ref: HTMLElement | null,
     space: [number, number],
+    color: string,
     index: number
   ) {
-    this.invisible_bars[index] = ref ? {ref, space} : undefined;
+    if (ref) {
+      this.span_bars[index] = {ref, space, color};
+    }
+
+    if (ref) {
+      this.drawSpanBar(this.span_bars[index]!);
+      this.span_bars[index]!.ref.style.backgroundColor = color;
+    }
   }
+
   registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
-    this.span_arrows[index] = ref ? {ref, space, visible: false, position: 0} : undefined;
+    if (ref) {
+      this.span_arrows[index] = {ref, space, visible: false, position: 0};
+    }
   }
 
   registerSpanBarTextRef(
@@ -368,7 +380,29 @@ export class VirtualizedViewManager {
     space: [number, number],
     index: number
   ) {
-    this.span_text[index] = ref ? {ref, text, space} : undefined;
+    if (ref) {
+      this.span_text[index] = {ref, text, space};
+      this.drawSpanText(this.span_text[index]!, this.columns.list.column_nodes[index]);
+    }
+  }
+
+  registerInvisibleBarRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    index: number
+  ) {
+    if (ref) {
+      this.invisible_bars[index] = ref ? {ref, space} : undefined;
+
+      const span_transform = this.computeSpanCSSMatrixTransform(space);
+      ref.style.transform = `matrix(${span_transform.join(',')}`;
+      const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+      ref.style.setProperty(
+        '--inverse-span-scale',
+        // @ts-expect-error this is a number
+        isNaN(inverseScale) ? 1 : inverseScale
+      );
+    }
   }
 
   registerColumnRef(
@@ -377,32 +411,24 @@ export class VirtualizedViewManager {
     index: number,
     node: TraceTreeNode<any>
   ) {
-    if (column === 'list') {
-      const element = this.columns[column].column_refs[index];
-      if (ref === undefined && element) {
-        element.removeEventListener('wheel', this.onSyncedScrollbarScroll);
-      } else if (ref) {
-        const scrollableElement = ref.children[0] as HTMLElement | undefined;
+    if (column === 'list' && ref) {
+      const scrollableElement = ref.children[0] as HTMLElement | undefined;
 
-        if (scrollableElement) {
-          scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
-          this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
-          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
-        }
+      if (scrollableElement) {
+        scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
+        this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
+        ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
       }
     }
 
-    if (column === 'span_list') {
-      const element = this.columns[column].column_refs[index];
-      if (ref === undefined && element) {
-        element.removeEventListener('wheel', this.onWheel);
-      } else if (ref) {
-        ref.addEventListener('wheel', this.onWheel, {passive: false});
-      }
+    if (column === 'span_list' && ref) {
+      ref.addEventListener('wheel', this.onWheel, {passive: false});
     }
 
-    this.columns[column].column_refs[index] = ref ?? undefined;
-    this.columns[column].column_nodes[index] = node ?? undefined;
+    if (ref && node) {
+      this.columns[column].column_refs[index] = ref;
+      this.columns[column].column_nodes[index] = node;
+    }
   }
 
   registerIndicatorRef(
@@ -415,7 +441,6 @@ export class VirtualizedViewManager {
       if (element) {
         element.removeEventListener('wheel', this.onWheel);
       }
-      this.indicators[index] = undefined;
     } else {
       this.indicators[index] = {ref, indicator};
     }
@@ -436,8 +461,7 @@ export class VirtualizedViewManager {
   registerTimelineIndicatorRef(ref: HTMLElement | null, index: number) {
     if (ref) {
       this.timeline_indicators[index] = ref;
-    } else {
-      this.timeline_indicators[index] = undefined;
+      this.drawTimelineInterval(ref, index);
     }
   }
 
@@ -487,7 +511,10 @@ export class VirtualizedViewManager {
 
       // Holding shift key allows for horizontal scrolling
       const distance = event.shiftKey ? event.deltaY : event.deltaX;
-      if (event.shiftKey || Math.abs(event.deltaX) !== 0) {
+      if (
+        event.shiftKey ||
+        (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
+      ) {
         event.preventDefault();
       }
 
@@ -662,7 +689,7 @@ export class VirtualizedViewManager {
   registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
     if (ref) {
       ref.style.width = Math.round(this.columns.list.width * 100) + '%';
-      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: true});
+      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: false});
     } else {
       if (this.horizontal_scrollbar_container) {
         this.horizontal_scrollbar_container.removeEventListener(
@@ -707,16 +734,16 @@ export class VirtualizedViewManager {
     this.enqueueOnScrollEndOutOfBoundsCheck();
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      const list = this.columns.list.column_refs[i];
-      if (list?.children?.[0]) {
-        (list.children[0] as HTMLElement).style.transform =
-          `translateX(${this.columns.list.translate[0]}px)`;
-      }
+    const rows = Array.from(
+      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
+    ) as HTMLElement[];
+
+    for (const row of rows) {
+      row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
     }
   }
 
-  scrollSyncRaf: number | null = null;
+  syncedRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
     if (!this.scrolling_source) {
       this.scrolling_source = 'list';
@@ -729,7 +756,7 @@ export class VirtualizedViewManager {
     // Holding shift key allows for horizontal scrolling
     const distance = event.shiftKey ? event.deltaY : event.deltaX;
 
-    if (Math.abs(distance) !== 0) {
+    if (Math.abs(event.deltaX) !== 0) {
       // Prevents firing back/forward navigation
       event.preventDefault();
     } else {
@@ -752,22 +779,17 @@ export class VirtualizedViewManager {
     }
 
     this.columns.list.translate[0] = newTransform;
-    if (this.scrollSyncRaf) {
-      window.cancelAnimationFrame(this.scrollSyncRaf);
-    }
 
-    this.scrollSyncRaf = window.requestAnimationFrame(() => {
-      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-        const list = this.columns.list.column_refs[i];
-        if (list?.children?.[0]) {
-          (list.children[0] as HTMLElement).style.transform =
-            `translateX(${this.columns.list.translate[0]}px)`;
-        }
-      }
-      this.horizontal_scrollbar_container!.scrollLeft = -Math.round(
-        this.columns.list.translate[0]
-      );
-    });
+    const rows = Array.from(
+      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
+    ) as HTMLElement[];
+
+    for (const row of rows) {
+      row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
+    }
+    this.horizontal_scrollbar_container!.scrollLeft = -Math.round(
+      this.columns.list.translate[0]
+    );
   }
 
   clampRowTransform(transform: number): number {
@@ -799,9 +821,8 @@ export class VirtualizedViewManager {
       // Dont enqueue updates while view is scrolling
       return;
     }
-    if (this.scrollEndSyncRaf !== null) {
-      cancelAnimationTimeout(this.scrollEndSyncRaf);
-    }
+
+    window.cancelAnimationFrame(this.scrollEndSyncRaf?.id ?? 0);
 
     this.scrollEndSyncRaf = requestAnimationTimeout(() => {
       this.onScrollEndOutOfBoundsCheck();
@@ -881,12 +902,12 @@ export class VirtualizedViewManager {
     const distance = x - startPosition;
 
     if (duration === 0) {
-      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-        const list = this.columns.list.column_refs[i];
-        if (list?.children?.[0]) {
-          (list.children[0] as HTMLElement).style.transform =
-            `translateX(${this.columns.list.translate[0]}px)`;
-        }
+      const rows = Array.from(
+        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
+      ) as HTMLElement[];
+
+      for (const row of rows) {
+        row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
       }
 
       this.columns.list.translate[0] = x;
@@ -904,11 +925,12 @@ export class VirtualizedViewManager {
 
       const pos = startPosition + distance * eased;
 
-      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-        const list = this.columns.list.column_refs[i];
-        if (list?.children?.[0]) {
-          (list.children[0] as HTMLElement).style.transform = `translateX(${pos}px)`;
-        }
+      const rows = Array.from(
+        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
+      ) as HTMLElement[];
+
+      for (const row of rows) {
+        row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
       }
 
       if (progress < 1) {
@@ -929,19 +951,14 @@ export class VirtualizedViewManager {
   initialize(container: HTMLElement) {
     if (this.container !== container && this.resize_observer !== null) {
       this.teardown();
+      return;
     }
 
     this.container = container;
-    this.container.style.setProperty(
-      '--list-column-width',
-      // @ts-expect-error we set a number on purpose
-      Math.round(this.columns.list.width * 1000) / 1000
-    );
-    this.container.style.setProperty(
-      '--span-column-width',
-      // @ts-expect-error we set a number on purpose
-      Math.round(this.columns.span_list.width * 1000) / 1000
-    );
+    this.drawContainers(this.container, {
+      list_width: this.columns.list.width,
+      span_list_width: this.columns.span_list.width,
+    });
 
     this.row_measurer.on('max', this.onNewMaxRowWidth);
     this.resize_observer = new ResizeObserver(entries => {
@@ -1025,7 +1042,7 @@ export class VirtualizedViewManager {
     span_space: [number, number],
     text: string
   ): [number, number] {
-    const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.5;
+    const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
     const width = this.text_measurer.measure(text);
 
     const has_profiles = node && node.profiles.length > 0;
@@ -1034,6 +1051,7 @@ export class VirtualizedViewManager {
       (node.profiles.length > 0 ||
         node.errors.size > 0 ||
         node.performance_issues.size > 0);
+
     const has_icons = has_profiles || has_error_icons;
 
     const node_width = span_space[1] / this.span_to_px[0];
@@ -1059,8 +1077,7 @@ export class VirtualizedViewManager {
         : TEXT_PADDING;
 
     // precompute all anchor points aot, so we make the control flow more readable.
-    // this wastes some cycles, but it's not a big deal as computers are fast when
-    // it comes to simple arithmetic.
+    // this wastes some cycles, but it's not a big deal as computers go brrrr when it comes to simple arithmetic.
     /// |---| text
     const right_outside =
       this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) +
@@ -1174,97 +1191,23 @@ export class VirtualizedViewManager {
     return [0, right_outside];
   }
 
+  last_indicator_width = 0;
   draw(options: {list?: number; span_list?: number} = {}) {
     const list_width = options.list ?? this.columns.list.width;
     const span_list_width = options.span_list ?? this.columns.span_list.width;
 
-    if (this.divider) {
-      this.divider.style.setProperty(
-        '--translate-x',
-        // @ts-expect-error we set number value type on purpose
-        Math.round(
-          (list_width * (this.container_physical_space.width - this.scrollbar_width) -
-            DIVIDER_WIDTH / 2 -
-            1) *
-            10
-        ) / 10
-      );
-    }
-    if (this.indicator_container) {
-      const correction =
-        (this.scrollbar_width / this.container_physical_space.width) * span_list_width;
-      // @ts-expect-error we set number value type on purpose
-      this.indicator_container.style.setProperty('--translate-x', -this.scrollbar_width);
-      this.indicator_container.style.width = (span_list_width - correction) * 100 + '%';
-    }
-
-    if (this.container) {
-      this.container.style.setProperty(
-        '--list-column-width',
-        // @ts-expect-error we set number value type on purpose
-        Math.round(list_width * 1000) / 1000
-      );
-      this.container.style.setProperty(
-        '--span-column-width',
-        // @ts-expect-error we set number value type on purpose
-        Math.round(span_list_width * 1000) / 1000
-      );
-    }
+    this.drawContainers(this.container, {
+      list_width,
+      span_list_width,
+    });
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      const span_bar = this.span_bars[i];
-      const span_arrow = this.span_arrows[i];
-
-      if (span_bar) {
-        const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
-        span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
-        span_bar.ref.style.setProperty(
-          '--inverse-span-scale',
-          1 / span_transform[0] + ''
-        );
-      }
-      const node = this.columns.list.column_nodes[i];
-      const span_text = this.span_text[i];
-      if (span_text) {
-        const [inside, text_transform] = this.computeSpanTextPlacement(
-          node!,
-          span_text.space,
-          span_text.text
-        );
-
-        if (text_transform === null) {
-          continue;
-        }
-
-        span_text.ref.style.color = inside ? 'white' : '';
-        span_text.ref.style.transform = `translateX(${text_transform}px)`;
-        if (span_arrow && span_bar) {
-          const outside_left =
-            span_bar.space[0] - this.to_origin + span_bar.space[1] < this.trace_view.x;
-          const outside_right =
-            span_bar.space[0] - this.to_origin > this.trace_view.right;
-          const visible = outside_left || outside_right;
-
-          if (visible !== span_arrow.visible) {
-            span_arrow.visible = visible;
-            span_arrow.position = outside_left ? 0 : 1;
-
-            if (visible) {
-              span_arrow.ref.className = `TraceArrow Visible ${span_arrow.position === 0 ? 'Left' : 'Right'}`;
-            } else {
-              span_arrow.ref.className = 'TraceArrow';
-            }
-          }
-        }
-      }
+      this.drawSpanBar(this.span_bars[i]);
+      this.drawSpanText(this.span_text[i], this.columns.list.column_nodes[i]);
+      this.drawSpanArrow(this.span_bars[i], this.span_arrows[i]);
     }
 
-    for (let i = 0; i < this.invisible_bars.length; i++) {
-      const invisible_bar = this.invisible_bars[i];
-      if (invisible_bar) {
-        invisible_bar.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(invisible_bar.space[0])}px)`;
-      }
-    }
+    this.drawInvisibleBars();
 
     let start_indicator = 0;
     let end_indicator = this.indicators.length;
@@ -1355,69 +1298,207 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
-    // Renders timeline indicators and labels
-    for (let i = 0; i < this.timeline_indicators.length; i++) {
-      const indicator = this.timeline_indicators[i];
+    this.drawTimelineIntervals();
+  }
 
-      // Special case for when the timeline is empty - we want to show the first and last
-      // timeline indicators as 0ms instead of just a single 0ms indicator as it gives better
-      // context to the user that start and end are both 0ms. If we were to draw a single 0ms
-      // indicator, it leaves ambiguity for the user to think that the end might be missing
-      if (i === 0 && this.intervals[0] === 0 && this.intervals[1] === 0) {
-        const first = this.timeline_indicators[0];
-        const last = this.timeline_indicators[1];
+  // DRAW METHODS
 
-        if (first && last) {
-          first.style.opacity = '1';
-          last.style.opacity = '1';
-          first.style.transform = `translateX(0)`;
+  drawSpanBar(span_bar: this['span_bars'][0]) {
+    if (!span_bar) return;
 
-          // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
-          // side of the indicator, we need to offset it by the width of the label to make it look like
-          // it is at the end of the timeline
-          last.style.transform = `translateX(${this.trace_physical_space.width - 43}px)`;
-          const firstLabel = first.children[0] as HTMLElement | undefined;
-          if (firstLabel) {
-            firstLabel.textContent = '0.00ms';
-          }
-          const lastLabel = last.children[0] as HTMLElement | undefined;
-          const lastLine = last.children[1] as HTMLElement | undefined;
-          if (lastLine && lastLabel) {
-            lastLabel.textContent = '0.00ms';
-            lastLine.style.opacity = '0';
-            i = 1;
-          }
-          continue;
-        }
-      }
+    const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
+    span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+    const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+    span_bar.ref.style.setProperty(
+      '--inverse-span-scale',
+      // @ts-expect-error we set number value type on purpose
+      isNaN(inverseScale) ? 1 : inverseScale
+    );
+  }
 
-      if (indicator) {
-        const interval = this.intervals[i];
+  drawSpanText(span_text: this['span_text'][0], node: TraceTreeNode<any> | undefined) {
+    if (!span_text) return;
 
-        if (interval === undefined) {
-          indicator.style.opacity = '0';
-          continue;
-        }
+    const [inside, text_transform] = this.computeSpanTextPlacement(
+      node!,
+      span_text.space,
+      span_text.text
+    );
 
-        const placement = this.computeTransformXFromTimestamp(this.to_origin + interval);
+    if (text_transform === null) {
+      return;
+    }
 
-        indicator.style.opacity = '1';
-        indicator.style.transform = `translateX(${placement}px)`;
-        const label = indicator.children[0] as HTMLElement | undefined;
-        const duration = getDuration(interval / 1000, 2, true);
+    span_text.ref.style.color = inside ? 'white' : '';
+    span_text.ref.style.transform = `translateX(${text_transform}px)`;
+  }
 
-        if (label && label?.textContent !== duration) {
-          label.textContent = duration;
-        }
+  drawSpanArrow(span_bar: this['span_bars'][0], span_arrow: this['span_arrows'][0]) {
+    if (!span_arrow || !span_bar) return;
+
+    const outside_left =
+      span_bar.space[0] - this.to_origin + span_bar.space[1] < this.trace_view.x;
+    const outside_right = span_bar.space[0] - this.to_origin > this.trace_view.right;
+    const visible = outside_left || outside_right;
+
+    if (visible !== span_arrow.visible) {
+      span_arrow.visible = visible;
+      span_arrow.position = outside_left ? 0 : 1;
+
+      if (visible) {
+        span_arrow.ref.className = `TraceArrow Visible ${span_arrow.position === 0 ? 'Left' : 'Right'}`;
+      } else {
+        span_arrow.ref.className = 'TraceArrow';
       }
     }
   }
+
+  drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
+    if (!ref) {
+      return;
+    }
+
+    const interval = this.intervals[index];
+    if (interval === undefined) {
+      ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.computeTransformXFromTimestamp(this.to_origin + interval);
+
+    ref.style.opacity = '1';
+    ref.style.transform = `translateX(${placement}px)`;
+    const label = ref.children[0] as HTMLElement | undefined;
+    const duration = getDuration(interval / 1000, 2, true);
+
+    if (label && label?.textContent !== duration) {
+      label.textContent = duration;
+    }
+  }
+
+  drawTimelineIntervals() {
+    if (this.intervals[0] === 0 && this.intervals[1] === 0) {
+      this.drawEmptyTimelineIntervals();
+
+      for (let i = 2; i < this.timeline_indicators.length; i++) {
+        const indicator = this.timeline_indicators[i];
+        if (indicator) {
+          indicator.style.opacity = '0';
+        }
+      }
+      return;
+    }
+    for (let i = 0; i < this.timeline_indicators.length; i++) {
+      this.drawTimelineInterval(this.timeline_indicators[i], i);
+    }
+  }
+
+  // Special case for when the timeline is empty - we want to show the first and last
+  // timeline indicators as 0ms instead of just a single 0ms indicator as it gives better
+  // context to the user that start and end are both 0ms. If we were to draw a single 0ms
+  // indicator, it leaves ambiguity for the user to think that the end might be missing
+  drawEmptyTimelineIntervals() {
+    const first = this.timeline_indicators[0];
+    const last = this.timeline_indicators[1];
+
+    if (first && last) {
+      first.style.opacity = '1';
+      last.style.opacity = '1';
+      first.style.transform = `translateX(0)`;
+
+      // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
+      // side of the indicator, we need to offset it by the width of the label to make it look like
+      // it is at the end of the timeline
+      last.style.transform = `translateX(${this.trace_physical_space.width - 43}px)`;
+      const firstLabel = first.children[0] as HTMLElement | undefined;
+      if (firstLabel) {
+        firstLabel.textContent = '0.00ms';
+      }
+      const lastLabel = last.children[0] as HTMLElement | undefined;
+      const lastLine = last.children[1] as HTMLElement | undefined;
+      if (lastLine && lastLabel) {
+        lastLabel.textContent = '0.00ms';
+        lastLine.style.opacity = '0';
+      }
+    }
+  }
+
+  drawContainers(
+    container: HTMLElement | null,
+    options: {list_width: number; span_list_width: number}
+  ) {
+    if (!container) return;
+
+    if (this.last_list_column_width !== options.list_width) {
+      container.style.setProperty(
+        '--list-column-width',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(options.list_width * 1000) / 1000
+      );
+      this.last_list_column_width = options.list_width;
+    }
+    if (this.last_span_column_width !== options.span_list_width) {
+      container.style.setProperty(
+        '--span-column-width',
+        // @ts-expect-error we set number value type on purpose
+        Math.round(options.span_list_width * 1000) / 1000
+      );
+      this.last_span_column_width = options.span_list_width;
+    }
+
+    if (this.indicator_container) {
+      const correction =
+        (this.scrollbar_width / this.container_physical_space.width) *
+        options.span_list_width;
+      this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
+      const new_indicator_container_width = options.span_list_width - correction;
+      if (this.last_indicator_width !== new_indicator_container_width) {
+        this.indicator_container.style.width = new_indicator_container_width * 100 + '%';
+        this.last_indicator_width = new_indicator_container_width;
+      }
+    }
+
+    if (this.divider) {
+      this.divider.style.transform = `translate(
+        ${
+          Math.round(
+            (options.list_width *
+              (this.container_physical_space.width - this.scrollbar_width) -
+              DIVIDER_WIDTH / 2 -
+              1) *
+              10
+          ) / 10
+        }px, 0)`;
+    }
+  }
+  last_list_column_width = 0;
+  last_span_column_width = 0;
+
+  drawInvisibleBars() {
+    for (let i = 0; i < this.invisible_bars.length; i++) {
+      const invisible_bar = this.invisible_bars[i];
+      if (invisible_bar) {
+        const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
+        invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+        const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+        invisible_bar.ref.style.setProperty(
+          '--inverse-span-scale',
+          // @ts-expect-error we set number value type on purpose
+          isNaN(inverseScale) ? 1 : inverseScale
+        );
+      }
+    }
+  }
+
+  // END DRAW METHODS
 
   teardown() {
     this.row_measurer.off('max', this.onNewMaxRowWidth);
 
     if (this.resize_observer) {
       this.resize_observer.disconnect();
+      this.resize_observer = null;
+      this.container = null;
     }
   }
 }

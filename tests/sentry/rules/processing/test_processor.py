@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -8,7 +9,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
@@ -46,7 +47,7 @@ class MockConditionTrue(EventCondition):
 class RuleProcessorTest(TestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -402,7 +403,7 @@ class RuleProcessorTestFilters(TestCase):
 
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
@@ -591,7 +592,7 @@ class RuleProcessorTestFilters(TestCase):
         self.create_release(project=self.project, version="2021-02.newRelease")
 
         event = self.store_event(data={"release": "2021-02.newRelease"}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -639,7 +640,7 @@ class RuleProcessorTestFilters(TestCase):
             },
             project_id=self.project.id,
         )
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
