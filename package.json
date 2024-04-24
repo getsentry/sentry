@@ -16,7 +16,7 @@
     "@babel/preset-env": "~7.23.2",
     "@babel/preset-react": "^7.22.15",
     "@babel/preset-typescript": "^7.23.2",
-    "@babel/runtime": "~7.23.2",
+    "@babel/runtime": "^7.24.4",
     "@dnd-kit/core": "^3.1.1",
     "@dnd-kit/sortable": "^4.0.0",
     "@emotion/babel-plugin": "^11.11.0",
