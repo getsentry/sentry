@@ -15,8 +15,8 @@ import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
-} from 'sentry/views/aiAnalytics/aiAnalyticsCharts';
-import {PipelinesTable} from 'sentry/views/aiAnalytics/PipelinesTable';
+} from 'sentry/views/aiMonitoring/aiMonitoringCharts';
+import {PipelinesTable} from 'sentry/views/aiMonitoring/PipelinesTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 
 function NoAccessComponent() {
@@ -27,12 +27,12 @@ function NoAccessComponent() {
   );
 }
 
-export default function AiAnalyticsPage() {
+export default function AiMonitoringPage() {
   const organization = useOrganization();
 
   return (
     <PageFiltersContainer>
-      <SentryDocumentTitle title={`AI Analytics — ${organization.slug}`}>
+      <SentryDocumentTitle title={`AI Monitoring — ${organization.slug}`}>
         <Layout.Page>
           <Feature
             features="ai-analytics"
@@ -43,10 +43,10 @@ export default function AiAnalyticsPage() {
               <Layout.Header>
                 <Layout.HeaderContent>
                   <Layout.Title>
-                    {t('AI Analytics')}
+                    {t('AI Monitoring')}
                     <PageHeadingQuestionTooltip
                       title={t('View analytics and information about your AI pipelines')}
-                      docsUrl="https://docs.sentry.io/product/ai-analytics/"
+                      docsUrl="https://docs.sentry.io/product/ai-monitoring/"
                     />
                   </Layout.Title>
                 </Layout.HeaderContent>

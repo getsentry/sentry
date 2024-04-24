@@ -19,8 +19,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
-} from 'sentry/views/aiAnalytics/aiAnalyticsCharts';
-import {PipelineSpansTable} from 'sentry/views/aiAnalytics/pipelineSpansTable';
+} from 'sentry/views/aiMonitoring/aiMonitoringCharts';
+import {PipelineSpansTable} from 'sentry/views/aiMonitoring/pipelineSpansTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -44,7 +44,7 @@ interface Props {
   };
 }
 
-export default function AiAnalyticsPage({params}: Props) {
+export default function AiMonitoringPage({params}: Props) {
   const organization = useOrganization();
   const {groupId} = params;
 
@@ -81,7 +81,7 @@ export default function AiAnalyticsPage({params}: Props) {
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle
-        title={`AI Analytics — ${spanMetrics['span.description'] ?? t('(no name)')}`}
+        title={`AI Monitoring — ${spanMetrics['span.description'] ?? t('(no name)')}`}
       >
         <Layout.Page>
           <Feature
@@ -93,12 +93,12 @@ export default function AiAnalyticsPage({params}: Props) {
               <Layout.Header>
                 <Layout.HeaderContent>
                   <Layout.Title>
-                    {`${t('AI Analytics')} - ${spanMetrics['span.description'] ?? t('(no name)')}`}
+                    {`${t('AI Monitoring')} - ${spanMetrics['span.description'] ?? t('(no name)')}`}
                     <PageHeadingQuestionTooltip
                       title={t(
                         'If this name is too generic, read the docs to learn how to change it.'
                       )}
-                      docsUrl="https://docs.sentry.io/product/ai-analytics/"
+                      docsUrl="https://docs.sentry.io/product/ai-monitoring/"
                     />
                   </Layout.Title>
                 </Layout.HeaderContent>

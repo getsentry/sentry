@@ -158,7 +158,7 @@ function renderBodyCell(
     return (
       <Link
         to={normalizeUrl(
-          `/organizations/${organization.slug}/ai-analytics/pipeline-type/${row['span.group']}`
+          `/organizations/${organization.slug}/ai-monitoring/pipeline-type/${row['span.group']}`
         )}
       >
         {row['span.description']}
