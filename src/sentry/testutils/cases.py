@@ -3487,8 +3487,8 @@ class TraceTestCase(SpanTestCase):
             )
         ]
 
-    def load_errors(self) -> tuple[Event, Event]:
-        """Generates 2 events for gen1 projects."""
+    def load_errors(self) -> tuple[Event, Event, Event]:
+        """Generates trace with errors across two projects."""
         if not hasattr(self, "gen1_project"):
             self.populate_project1()
         start, _ = self.get_start_end_from_day_ago(1000)
@@ -3505,7 +3505,10 @@ class TraceTestCase(SpanTestCase):
         error = self.store_event(error_data, project_id=self.gen1_project.id)
         error_data["level"] = "warning"
         error1 = self.store_event(error_data, project_id=self.gen1_project.id)
-        return error, error1
+
+        another_project = self.create_project(organization=self.organization)
+        another_project_error = self.store_event(error_data, project_id=another_project.id)
+        return error, error1, another_project_error
 
     def load_default(self) -> Event:
         start, _ = self.get_start_end_from_day_ago(1000)
