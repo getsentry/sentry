@@ -129,6 +129,7 @@ export default function HighlightsDataSection({
           highlightContext={highlightContext}
           highlightTags={highlightTags}
           project={detailedProject ?? project}
+          highlightPreset={detailedProject?.highlightPreset}
           {...deps}
         />
       ),

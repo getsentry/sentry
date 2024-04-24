@@ -31,6 +31,10 @@ interface EditHighlightsModalProps extends ModalRenderProps {
   highlightContext: HighlightContext;
   highlightTags: HighlightTags;
   project: Project;
+  highlightPreset?: {
+    highlightContext: HighlightContext;
+    highlightTags: HighlightTags;
+  };
 }
 
 interface EditPreviewHighlightSectionProps {
@@ -257,6 +261,7 @@ export default function EditHighlightsModal({
   event,
   highlightContext: prevHighlightContext,
   highlightTags: prevHighlightTags,
+  highlightPreset,
   project,
   closeModal,
 }: EditHighlightsModalProps) {
@@ -348,6 +353,16 @@ export default function EditHighlightsModal({
           <Button onClick={closeModal} size="sm">
             {t('Cancel')}
           </Button>
+          {highlightPreset && (
+            <Button
+              onClick={() => {
+                setHighlightContext(highlightPreset.highlightContext);
+                setHighlightTags(highlightPreset.highlightTags);
+              }}
+            >
+              {t('Use Defaults')}
+            </Button>
+          )}
           <Button
             disabled={isLoading}
             onClick={() => saveHighlights()}
