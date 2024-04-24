@@ -324,7 +324,16 @@ class Monitor(Model):
         return ScheduleType.get_name(self.config["schedule_type"])
 
     def get_audit_log_data(self):
-        return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
+        return {
+            "name": self.name,
+            "type": self.type,
+            "status": self.status,
+            "config": self.config,
+            "is_muted": self.is_muted,
+            "slug": self.slug,
+            "owner_user_id": self.owner_user_id,
+            "owner_team_id": self.owner_team_id,
+        }
 
     def get_next_expected_checkin(self, last_checkin: datetime) -> datetime:
         """
