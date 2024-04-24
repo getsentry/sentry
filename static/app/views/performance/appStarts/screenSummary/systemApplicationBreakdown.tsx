@@ -15,6 +15,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import Breakdown from 'sentry/views/performance/appStarts/screens/breakdown';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
@@ -22,7 +23,6 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
 
 const SYSTEM_COLOR = '#D6567F';
 const APPLICATION_COLOR = '#444674';

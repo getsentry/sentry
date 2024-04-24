@@ -24,6 +24,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {APP_START_SPANS} from 'sentry/views/performance/appStarts/screenSummary/spanOpSelector';
+import {
+  COLD_START_TYPE,
+  WARM_START_TYPE,
+} from 'sentry/views/performance/appStarts/screenSummary/startTypeSelector';
 import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
 import {
@@ -34,11 +39,6 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {APP_START_SPANS} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
-import {
-  COLD_START_TYPE,
-  WARM_START_TYPE,
-} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
