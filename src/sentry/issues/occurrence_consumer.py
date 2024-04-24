@@ -408,9 +408,9 @@ def process_occurrence_group(items: list[Mapping[str, Any]]):
     completely serially.
     """
     for item in items:
-        cache_key = f"occurrence_consumer.process_occurrence_group.{item['event_id']}"
+        cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"
         if cache.get(cache_key):
-            logger.info("Skipping processing of occurrence %s due to cache hit", item["event_id"])
+            logger.info("Skipping processing of occurrence %s due to cache hit", item["id"])
             continue
         _process_message(item)
         # just need a 300 second cache

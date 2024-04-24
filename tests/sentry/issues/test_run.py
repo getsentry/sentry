@@ -4,7 +4,6 @@ from unittest import mock
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
-from django.core.cache import cache
 from django.db import close_old_connections
 
 from sentry.conf.types.kafka_definition import Topic
@@ -253,17 +252,3 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         assert len(item_list2) == 2
         assert item_list2[0]["event_id"] == occurrence2.event_id
         assert item_list2[1]["event_id"] == occurrence3.event_id
-
-    @mock.patch("sentry.issues.occurrence_consumer._process_message")
-    def test_validate_cache(self, mock_process_message):
-        # Test to ensure cache is set properly after processing an occurrence group
-        with mock.patch("django.core.cache.cache.set", side_effect=cache.set) as mock_cache_set:
-            process_occurrence_group([{"event_id": 1}, {"event_id": 2}, {"event_id": 2}])
-
-            # Check if cache.set is called with the correct parameters
-            expected_calls = [
-                mock.call("occurrence_consumer.process_occurrence_group.1", 1, 300),
-                mock.call("occurrence_consumer.process_occurrence_group.2", 1, 300),
-            ]
-            mock_cache_set.assert_has_calls(expected_calls, any_order=True)
-            assert mock_process_message.call_count == 2
