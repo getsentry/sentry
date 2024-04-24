@@ -236,4 +236,38 @@ describe('EventSamplesTable', function () {
       '/mock-pathname/?customSortKey=-duration'
     );
   });
+
+  it('only displays data for the columns defined in the name map', async function () {
+    mockQuery = {
+      name: '',
+      fields: ['transaction.id', 'duration'],
+      query: '',
+      version: 2,
+    };
+
+    mockEventView = EventView.fromNewQueryWithLocation(mockQuery, mockLocation);
+    render(
+      <EventSamplesTable
+        eventIdKey="transaction.id"
+        columnNameMap={{duration: 'Duration'}}
+        cursorName="customCursorName"
+        eventView={mockEventView}
+        isLoading={false}
+        profileIdKey="profile.id"
+        sort={{
+          field: 'transaction.id',
+          kind: 'desc',
+        }}
+        sortKey="customSortKey"
+        data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
+      />
+    );
+
+    // Although ID is queried for, because it's not defined in the map
+    // it isn't rendered
+    expect(
+      await screen.findByRole('columnheader', {name: 'Duration'})
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(1);
+  });
 });

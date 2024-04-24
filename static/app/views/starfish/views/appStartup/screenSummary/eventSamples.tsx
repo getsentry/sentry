@@ -82,7 +82,7 @@ export function EventSamples({
 
   const newQuery: NewQuery = {
     name: '',
-    fields: ['transaction.id', 'project.name', 'profile_id', 'span.duration'],
+    fields: ['trace', 'transaction.id', 'project.name', 'profile_id', 'span.duration'],
     query: searchQuery.formatString(),
     dataset: DiscoverDatasets.SPANS_INDEXED,
     version: 2,

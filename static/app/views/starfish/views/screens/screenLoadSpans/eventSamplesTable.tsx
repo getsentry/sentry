@@ -188,7 +188,9 @@ export function EventSamplesTable({
           isLoading={isLoading}
           data={data?.data as TableDataRow[]}
           columnOrder={eventViewColumns
-            .filter((col: TableColumn<React.ReactText>) => col.name !== 'project.name')
+            .filter((col: TableColumn<React.ReactText>) =>
+              Object.keys(columnNameMap).includes(col.name)
+            )
             .map((col: TableColumn<React.ReactText>) => {
               return {...col, name: columnNameMap[col.key]};
             })}
