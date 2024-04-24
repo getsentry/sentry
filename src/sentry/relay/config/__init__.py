@@ -289,7 +289,8 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "namespace": namespace.value,
             }
             if id in passive_limits:
-                limit["passive"] = True
+                # HACK inc-730: reduce pressure on memory by disabling limits for passive projects
+                continue
             cardinality_limits.append(limit)
 
         clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
