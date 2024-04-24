@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -22,6 +22,9 @@ from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_u
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+
+if TYPE_CHECKING:
+    from sentry.db.models import Group
 
 
 @region_silo_only_model
@@ -61,7 +64,7 @@ class GroupSnooze(Model):
 
     __repr__ = sane_repr("group_id")
 
-    USER_COUNT_CACHE_TIMEOUT = 300
+    USER_COUNT_CACHE_TIMEOUT = 300  # Redis TTL in seconds
 
     @classmethod
     def get_cache_key(cls, group_id):
@@ -139,7 +142,18 @@ class GroupSnooze(Model):
 
         return True
 
-    def test_user_counts(self, group=None):
+    def test_user_counts(self, group: Group | None = None) -> bool:
+        """
+        Test if the number of unique users seen by the group is below the snooze threshold.
+        Returns: True if below threshold, False otherwise.
+
+        - Non-cached version of the function queries Snuba for the real count every time.
+        - Cached version uses counters to store the number of events seen since last check,
+          if it's less than the number of users needed to reach the threshold, we can be sure
+          that we couldn't have reach enough users to reach the threshold, so there's no need
+          to query Snuba. This functionality relies on the fact that this is called in
+          post-processing for every event, so we can assume that the call-count == event count.
+        """
         if features.has(
             "organizations:groupsnooze-cached-counts", organization=self.group.project.organization
         ):
@@ -165,7 +179,7 @@ class GroupSnooze(Model):
 
         if cache.get(cache_key, float("inf")) < threshold - 1:
             # if we've seen less than that many events, we can't possibly have seen enough users
-            cache.increment(cache_key)
+            cache.incr(cache_key)
             return True
 
         metrics.incr("groupsnooze.test_user_counts.real_count", tags={"cached": "false"})
