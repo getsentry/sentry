@@ -58,6 +58,7 @@ class SDKCrashDetector:
 
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         """
+
         Returns true if the stacktrace stems from an SDK crash.
 
         :param frames: The stacktrace frames ordered from newest to oldest.
@@ -75,6 +76,8 @@ class SDKCrashDetector:
         # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
         # are SDK frames or from system libraries.
         for frame in reversed(frames):
+            if frame is None:
+                continue
             function = frame.get("function")
             if function:
                 for matcher in self.config.sdk_crash_ignore_functions_matchers:
@@ -94,7 +97,7 @@ class SDKCrashDetector:
         Returns true if frame is an SDK frame.
 
         :param frame: The frame of a stacktrace.
-        """
+        ""
 
         function = frame.get("function")
         if function:
