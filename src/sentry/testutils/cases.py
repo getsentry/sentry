@@ -3386,111 +3386,8 @@ class TraceTestCase(SpanTestCase):
 
         return span_data
 
-    # Move this code within load_trace() once the subclasses do not need to override it
-    def _generate_span_ids(self) -> list[str]:
-        return [uuid4().hex[:16] for _ in range(3)]
-
-    def load_trace(self) -> None:
-        """Generates basic trace data with 3 generations of spans."""
-        self.root_event = self.create_event(
-            trace_id=self.trace_id,
-            transaction="root",
-            spans=[
-                {
-                    "same_process_as_parent": True,
-                    "op": "http",
-                    "description": f"GET gen1-{i}",
-                    "span_id": root_span_id,
-                    "trace_id": self.trace_id,
-                }
-                for i, root_span_id in enumerate(self.root_span_ids)
-            ],
-            measurements={
-                "lcp": 1000,
-                "fcp": 750,
-                "fid": 3.5,
-            },
-            parent_span_id=None,
-            file_io_performance_issue=True,
-            slow_db_performance_issue=True,
-            project_id=self.project.id,
-            milliseconds=3000,
-        )
-
-        # First Generation
-        self.populate_project1()
-
-        # Second Generation
-        self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
-        self.gen2_project = self.create_project(organization=self.organization)
-
-        # Intentially pick a span id that starts with 0s
-        self.gen2_span_id = "0011" * 4
-
-        self.gen2_events = [
-            self.create_event(
-                trace_id=self.trace_id,
-                transaction=f"/transaction/gen2-{i}",
-                spans=[
-                    {
-                        "same_process_as_parent": True,
-                        "op": "http",
-                        "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
-                        "span_id": gen2_span_id,
-                        "trace_id": self.trace_id,
-                    }
-                ],
-                parent_span_id=gen1_span_id,
-                span_id=self.gen2_span_id if i == 0 else None,
-                project_id=self.gen2_project.id,
-                milliseconds=1000,
-            )
-            for i, (gen1_span_id, gen2_span_id) in enumerate(
-                zip(self.gen1_span_ids, self.gen2_span_ids)
-            )
-        ]
-
-        # Third generation
-        self.gen3_project = self.create_project(organization=self.organization)
-        self.gen3_event = self.create_event(
-            trace_id=self.trace_id,
-            transaction="/transaction/gen3-0",
-            spans=[],
-            project_id=self.gen3_project.id,
-            parent_span_id=self.gen2_span_id,
-            milliseconds=500,
-        )
-
-    def populate_project1(self) -> None:
-        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
-        self.gen1_span_ids = self._generate_span_ids()
-        self.gen1_project = self.create_project(organization=self.organization)
-        self.gen1_events = [
-            self.create_event(
-                trace_id=self.trace_id,
-                transaction=f"/transaction/gen1-{i}",
-                spans=[
-                    {
-                        "same_process_as_parent": True,
-                        "op": "http",
-                        "description": f"GET gen2-{i}",
-                        "span_id": gen1_span_id,
-                        "trace_id": self.trace_id,
-                    }
-                ],
-                parent_span_id=root_span_id,
-                project_id=self.gen1_project.id,
-                milliseconds=2000,
-            )
-            for i, (root_span_id, gen1_span_id) in enumerate(
-                zip(self.root_span_ids, self.gen1_span_ids)
-            )
-        ]
-
-    def load_errors(self) -> tuple[Event, Event, Event]:
+    def load_errors(self, project: Project, span_id: str) -> list[Event]:
         """Generates trace with errors across two projects."""
-        if not hasattr(self, "gen1_project"):
-            self.populate_project1()
         start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(
             "javascript",
@@ -3499,16 +3396,16 @@ class TraceTestCase(SpanTestCase):
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": self.trace_id,
-            "span_id": self.gen1_span_ids[0],
+            "span_id": span_id,
         }
         error_data["level"] = "fatal"
-        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        error = self.store_event(error_data, project_id=project.id)
         error_data["level"] = "warning"
-        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
+        error1 = self.store_event(error_data, project_id=project.id)
 
         another_project = self.create_project(organization=self.organization)
         another_project_error = self.store_event(error_data, project_id=another_project.id)
-        return error, error1, another_project_error
+        return [error, error1, another_project_error]
 
     def load_default(self) -> Event:
         start, _ = self.get_start_end_from_day_ago(1000)
