@@ -136,6 +136,17 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         }
 
+    def test_query_not_required(self):
+        query = {
+            "project": [self.project.id],
+            "field": ["id"],
+            "maxSpansPerTrace": 1,
+            "query": [""],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
     def test_matching_tag(self):
         project_1 = self.create_project()
         project_2 = self.create_project()
