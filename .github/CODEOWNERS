@@ -416,6 +416,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
 /src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
+/src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-web-sdk-frontend
+/src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-web-sdk-frontend
 ## End of SDK
 
 
