@@ -13,6 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
 
@@ -108,8 +109,6 @@ def get_condition_group_results(
     condition_groups: dict[UniqueCondition, DataAndGroups],
     project: Project,
 ) -> dict[UniqueCondition, dict[int, int]] | None:
-    # XXX: Probably want to safe execute somewhere in this step before making
-    # the query
     condition_group_results: dict[UniqueCondition, dict[int, int]] = {}
     for unique_condition, (condition_data, group_ids) in condition_groups.items():
         condition_cls = rules.get(unique_condition.cls_id)
@@ -130,7 +129,8 @@ def get_condition_group_results(
             if condition_data
             else ComparisonType.COUNT
         )
-        result = condition_inst.get_rate_bulk(
+        result = safe_execute(
+            condition_inst.get_rate_bulk,
             duration,
             comparison_interval,
             group_ids,
