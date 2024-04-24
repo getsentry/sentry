@@ -4,23 +4,20 @@
 // the postfix notation.
 
 import {
-  type ParseResult,
+  BooleanOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {treeTransformer} from 'sentry/components/searchSyntax/utils';
 
-// This uses the treeTransformer utility to flatten the AST tree into a flat array of tokens
-// that can be evaluated. Since we use the treeTransformer utility, it means we need to return
-// the token in the transform function to keep the token we are iterating on.
-export function flattenTokenTree(tokens: ParseResult): TokenResult<Token>[] {
-  const result: TokenResult<Token>[] = [];
+export type ProcessedTokenResult =
+  | TokenResult<Token>
+  | {type: 'L_PAREN'}
+  | {type: 'R_PAREN'};
 
-  function visitor(token: TokenResult<Token> | null): TokenResult<Token> | null {
-    if (token === null) {
-      return null;
-    }
+export function toFlattened(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+  const flattened_result: ProcessedTokenResult[] = [];
 
+  function flatten(token: TokenResult<Token>): void {
     switch (token.type) {
       case Token.SPACES:
       case Token.VALUE_BOOLEAN:
@@ -34,14 +31,62 @@ export function flattenTokenTree(tokens: ParseResult): TokenResult<Token>[] {
       case Token.VALUE_RELATIVE_DATE:
       case Token.VALUE_PERCENTAGE:
       case Token.KEY_SIMPLE:
-        return token;
+        return;
+      case Token.LOGIC_GROUP:
+        flattened_result.push({type: 'L_PAREN'});
+        for (const child of token.inner) {
+          // Logic groups are wrapped in parenthesis,
+          // but those parenthesis are not actual tokens returned by the parser
+          flatten(child);
+        }
+        flattened_result.push({type: 'R_PAREN'});
+        break;
+      case Token.LOGIC_BOOLEAN:
+        flattened_result.push(token);
+        break;
       default:
+        flattened_result.push(token);
         break;
     }
-
-    result.push(token);
-    return token;
   }
-  treeTransformer({tree: tokens, transform: visitor});
-  return result;
+
+  for (let i = 0; i < tokens.length; i++) {
+    flatten(tokens[i]);
+  }
+
+  return flattened_result;
+}
+
+// At this point we have a flat list of groups that we can evaluate, however since the syntax allows
+// implicit ANDs, we should still insert those as it will make constructing a valid AST easier
+export function insertImplicitAND(
+  tokens: ProcessedTokenResult[]
+): ProcessedTokenResult[] {
+  const with_implicit_and: ProcessedTokenResult[] = [];
+
+  const AND = {
+    type: Token.LOGIC_BOOLEAN,
+    value: BooleanOperator.AND,
+    text: 'AND',
+    location: null as unknown as PEG.LocationRange,
+    invalid: null,
+  } as TokenResult<Token>;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const next = tokens[i + 1];
+    with_implicit_and.push(tokens[i]);
+
+    // If current is not a logic boolean and next is not a logic boolean, insert an implicit AND.
+    if (
+      next &&
+      next.type !== Token.LOGIC_BOOLEAN &&
+      tokens[i].type !== Token.LOGIC_BOOLEAN &&
+      tokens[i].type !== 'L_PAREN' &&
+      next.type !== 'R_PAREN'
+    ) {
+      with_implicit_and.push(AND);
+    }
+  }
+
+  return with_implicit_and;
 }
