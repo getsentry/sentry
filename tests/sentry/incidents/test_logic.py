@@ -39,6 +39,7 @@ from sentry.incidents.logic import (
     disable_alert_rule,
     enable_alert_rule,
     get_actions_for_trigger,
+    get_alert_resolution,
     get_available_action_integrations_for_org,
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
@@ -2813,3 +2814,44 @@ class TestCustomMetricAlertRule(TestCase):
         )
 
         mocked_schedule_invalidate_project_config.assert_not_called()
+
+
+class TestGetAlertResolution(TestCase):
+    def test_without_feature(self):
+        time_window = 30
+        result = get_alert_resolution(time_window, self.organization)
+        assert result == DEFAULT_ALERT_RULE_RESOLUTION
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_enabled_feature(self):
+        time_window = 30
+        result = get_alert_resolution(time_window, self.organization)
+        assert result == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_low_range(self):
+        time_window = 2
+        result = get_alert_resolution(time_window, self.organization)
+        assert result == DEFAULT_ALERT_RULE_RESOLUTION
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_high_range(self):
+        last_window = list(DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS.keys())[-1]
+        time_window = last_window + 1000
+        result = get_alert_resolution(time_window, self.organization)
+
+        assert result == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[last_window]
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_mid_range(self):
+        time_window = 125
+        result = get_alert_resolution(time_window, self.organization)
+
+        # 125 is not part of the dict, will round down to the lower window of 120
+        assert result == 3
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_crazy_low_range(self):
+        time_window = -5
+        result = get_alert_resolution(time_window, self.organization)
+        assert result == DEFAULT_ALERT_RULE_RESOLUTION
