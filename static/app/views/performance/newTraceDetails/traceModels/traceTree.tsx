@@ -288,6 +288,31 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
   return false;
 }
 
+function startTimestamp(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (node.space) return node.space[0];
+
+  if (isTraceNode(node)) {
+    return 0;
+  }
+  if (isSpanNode(node)) {
+    return node.value.start_timestamp;
+  }
+  if (isTransactionNode(node)) {
+    return node.value.start_timestamp;
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return node.previous.value.timestamp;
+  }
+  return 0;
+}
+
+function chronologicalSort(
+  a: TraceTreeNode<TraceTree.NodeValue>,
+  b: TraceTreeNode<TraceTree.NodeValue>
+) {
+  return startTimestamp(a) - startTimestamp(b);
+}
+
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = [
   WebVital.TTFB,
@@ -630,6 +655,8 @@ export class TraceTree {
       }
     }
 
+    const remappedTransactionParents = new Set<TraceTreeNode<TraceTree.NodeValue>>();
+
     for (const span of spans) {
       const childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
       const spanNodeValue: TraceTree.Span = {
@@ -661,6 +688,7 @@ export class TraceTree {
           const clonedChildTxn = childTransaction.cloneDeep();
           node.spanChildren.push(clonedChildTxn);
           clonedChildTxn.parent = node;
+          remappedTransactionParents.add(node);
           // Delete the transaction from the lookup table so that we don't
           // duplicate the transaction in the tree.
         }
@@ -704,6 +732,10 @@ export class TraceTree {
         parent.spanChildren.push(cloned);
         cloned.parent = parent;
       }
+    }
+
+    for (const c of remappedTransactionParents) {
+      c.spanChildren.sort(chronologicalSort);
     }
 
     parent.zoomedIn = true;

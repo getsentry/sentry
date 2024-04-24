@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -22,7 +23,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import commonTheme from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {formatUsageWithUnits} from '../utils';
 
@@ -82,6 +85,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
     label: DATA_CATEGORY_INFO.monitor.titleName,
     value: DATA_CATEGORY_INFO.monitor.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
+    label: DATA_CATEGORY_INFO.metrics.titleName,
+    value: DATA_CATEGORY_INFO.metrics.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
@@ -348,6 +357,18 @@ function UsageChartBody({
   handleDataTransformation = cumulativeTotalDataTransformation,
 }: UsageChartProps) {
   const theme = useTheme();
+  const organization = useOrganization();
+
+  const filteredOptions = useMemo(() => {
+    return categoryOptions.filter(option => {
+      if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
+        return true;
+      }
+      return (
+        hasCustomMetrics(organization) && organization.features.includes('metrics-stats')
+      );
+    });
+  }, [organization, categoryOptions]);
 
   if (isLoading) {
     return (
@@ -379,7 +400,7 @@ function UsageChartBody({
     xAxisLabelInterval,
     yAxisMinInterval,
   } = chartMetadata({
-    categoryOptions,
+    categoryOptions: filteredOptions,
     dataCategory,
     handleDataTransformation: handleDataTransformation!,
     usageStats,

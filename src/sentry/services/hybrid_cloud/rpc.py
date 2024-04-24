@@ -457,7 +457,7 @@ class _RemoteSiloCall:
 
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
-            rpc_destination_region=self.region.name if self.region else None,
+            rpc_destination_region=self.region.name if self.region else "control",
             rpc_method=f"{self.service_name}.{self.method_name}",
             **additional_tags,
         )
@@ -474,11 +474,6 @@ class _RemoteSiloCall:
             "Authorization": f"Rpcsignature {signature}",
         }
 
-        metrics.distribution(
-            "hybrid_cloud.dispatch_rpc.request_size",
-            len(data),
-            tags=self._metrics_tags(),
-        )
         with self._open_request_context():
             self._check_disabled()
             if use_test_client:
@@ -487,11 +482,6 @@ class _RemoteSiloCall:
                 response = self._fire_request(headers, data)
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.response_code",
-                tags=self._metrics_tags(status=response.status_code),
-            )
-            metrics.distribution(
-                "hybrid_cloud.dispatch_rpc.response_size",
-                len(response.content),
                 tags=self._metrics_tags(status=response.status_code),
             )
 

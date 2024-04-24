@@ -48,7 +48,9 @@ class TraceResult(TypedDict):
 class OrganizationTracesSerializer(serializers.Serializer):
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
-    query = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
+    query = serializers.ListField(
+        required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
+    )
     suggestedQuery = serializers.CharField(required=False)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
@@ -84,7 +86,8 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 if sample_rate <= 0:
                     sample_rate = None
 
-                user_queries = serialized.get("query", [])
+                # Filter out empty queries as they do not do anything to change the results.
+                user_queries = [query for query in serialized.get("query", []) if query]
 
                 trace_ids, min_timestamp, max_timestamp = self.get_matching_traces(
                     cast(ParamsType, params),
