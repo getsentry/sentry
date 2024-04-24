@@ -372,8 +372,6 @@ const MetricSelect = styled(CompactSelect)`
 `;
 
 const OpSelect = styled(CompactSelect)`
-  width: 128px;
-  min-width: min-content;
   & > button {
     width: 100%;
   }
