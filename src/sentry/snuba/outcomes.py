@@ -467,15 +467,33 @@ def massage_outcomes_result(
     return result
 
 
+def _get_outcomes_mql_string(query: QueryDict) -> str:
+    # metric_stats/volume counts the metric outcomes
+    aggregate = "sum(c:metric_stats/volume@none)"
+
+    # TODO(metrics): add support for reason tag
+    group_by = []
+    if "outcome" in query.getlist("groupBy", []):
+        group_by.append("outcome.id")
+    if "project" in query.getlist("groupBy", []):
+        group_by.append("project_id")
+
+    if group_by:
+        return f"{aggregate} by ({', '.join(group_by)})"
+
+    return aggregate
+
+
 def run_metrics_outcomes_query(
     query: QueryDict, organization, projects, environments
 ) -> dict[str, list]:
     start, end = get_date_range_from_params(query)
     interval = parse_stats_period(query.get("interval", "1h"))
 
-    # TODO(metrics): add support for reason tag
+    mql_string = _get_outcomes_mql_string(query)
+
     rows = run_queries(
-        mql_queries=[MQLQuery("sum(c:metric_stats/volume@none) by (outcome.id)")],
+        mql_queries=[MQLQuery(mql_string)],
         start=start,
         end=end,
         interval=int(3600 if interval is None else interval.total_seconds()),
