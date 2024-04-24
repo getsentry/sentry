@@ -388,3 +388,19 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         )
         assert group.status == initial_status
         assert group.substatus == initial_substatus
+
+    def test_generate_status_changes(self):
+        status_change_1 = StatusChangeMessage(
+            fingerprint=["status-change-1"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        status_change_2 = StatusChangeMessage(
+            fingerprint=["status-change-2"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        assert status_change_1.id
+        assert status_change_1.id != status_change_2.id
