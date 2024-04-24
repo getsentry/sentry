@@ -4,18 +4,25 @@ from unittest import mock
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
+from django.db import close_old_connections
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.issues.occurrence_consumer import process_occurrence_group
 from sentry.issues.producer import _prepare_occurrence_message
 from sentry.issues.run import OccurrenceStrategyFactory
-from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+
+# need to shut down the connections in the thread for tests to pass
+def process_occurrence_group_with_shutdown(*args, **kwargs):
+    process_occurrence_group(*args, **kwargs)
+    close_old_connections()
 
 
 class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
@@ -99,9 +106,7 @@ class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         mock_save_issue_occurrence.assert_called_with(occurrence_data, mock.ANY)
 
 
-class TestBatchedOccurrenceConsumer(TransactionTestCase, OccurrenceTestMixin):
-    force_synchronous = True
-
+class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin):
     def build_mock_message(self, data, topic=None):
         message = mock.Mock()
         message.value.return_value = json.dumps(data)
@@ -112,8 +117,7 @@ class TestBatchedOccurrenceConsumer(TransactionTestCase, OccurrenceTestMixin):
     @with_feature("organizations:profile-file-io-main-thread-ingest")
     @mock.patch(
         "sentry.issues.occurrence_consumer.process_occurrence_group",
-        side_effect=process_occurrence_group,
-        autospec=True,
+        side_effect=process_occurrence_group_with_shutdown,
     )
     @mock.patch("sentry.issues.occurrence_consumer.save_issue_occurrence")
     def test_saves_issue_occurrence(
@@ -145,6 +149,7 @@ class TestBatchedOccurrenceConsumer(TransactionTestCase, OccurrenceTestMixin):
                 "tags": {"my_tag": "1"},
                 "timestamp": before_now(minutes=1).isoformat(),
                 "received": before_now(minutes=1).isoformat(),
+                "environment": "production",
             },
         )
         payload_data2 = _prepare_occurrence_message(
@@ -156,6 +161,7 @@ class TestBatchedOccurrenceConsumer(TransactionTestCase, OccurrenceTestMixin):
                 "tags": {"my_tag": "2"},
                 "timestamp": before_now(minutes=1).isoformat(),
                 "received": before_now(minutes=1).isoformat(),
+                "environment": "production",
             },
         )
         payload_data3 = _prepare_occurrence_message(
@@ -167,6 +173,7 @@ class TestBatchedOccurrenceConsumer(TransactionTestCase, OccurrenceTestMixin):
                 "tags": {"my_tag": "3"},
                 "timestamp": before_now(minutes=1).isoformat(),
                 "received": before_now(minutes=1).isoformat(),
+                "environment": "production",
             },
         )
         message1 = self.build_mock_message(payload_data1, topic)
@@ -211,10 +218,7 @@ class TestBatchedOccurrenceConsumer(TransactionTestCase, OccurrenceTestMixin):
             strategy.join(1)
             strategy.terminate()
 
-        calls = [
-            mock.call({partition_1: 2}),
-            mock.call({partition_2: 2}),
-        ]
+        calls = [mock.call({partition_1: 2, partition_2: 2})]
         mock_commit.assert_has_calls(calls=calls, any_order=True)
 
         assert mock_save_issue_occurrence.call_count == 3
