@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 import logging
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
@@ -484,14 +485,13 @@ def get_alert_resolution(time_window: int, organization) -> int:
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
 
     if features.has("organizations:metric-alert-load-shedding", organization=organization):
-        alert_resolution_windows = sorted(DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS.keys())
-        lower_bound = 0
+        windows = sorted(DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS.keys())
+        index = bisect.bisect_right(windows, time_window)
 
-        for window in alert_resolution_windows:
-            if lower_bound < time_window <= window:
-                return DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[window]
+        if index == 0:
+            return DEFAULT_ALERT_RULE_RESOLUTION
 
-        return DEFAULT_ALERT_RULE_RESOLUTION
+        resolution = DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[windows[index - 1]]
 
     return resolution
 
