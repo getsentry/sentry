@@ -177,9 +177,14 @@ class GroupSnooze(Model):
 
         threshold = self.user_count + self.state["users_seen"]
 
-        if cache.get(cache_key, float("inf")) < threshold - 1:
+        try:
+            value = cache.incr(cache_key)
+        except ValueError:
+            # key doesn't exist
+            value = float("inf")
+
+        if value < threshold:
             # if we've seen less than that many events, we can't possibly have seen enough users
-            cache.incr(cache_key)
             return True
 
         metrics.incr("groupsnooze.test_user_counts.real_count", tags={"cached": "false"})
