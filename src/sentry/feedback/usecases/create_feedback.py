@@ -182,7 +182,9 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     project = Project.objects.get_from_cache(id=project_id)
 
     is_message_spam = None
-    if features.has("organizations:user-feedback-spam-filter-ingest", project.organization):
+    if features.has(
+        "organizations:user-feedback-spam-filter-ingest", project.organization
+    ) and project.get_option("sentry:feedback_ai_spam_detection"):
         try:
             is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
         except Exception:
