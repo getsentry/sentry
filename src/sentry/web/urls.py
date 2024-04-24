@@ -1012,7 +1012,7 @@ urlpatterns += [
                     name="sentry-organization-crons",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_id_or_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-cron-monitor-details",
                 ),
