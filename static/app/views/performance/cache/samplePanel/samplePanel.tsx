@@ -44,6 +44,7 @@ const SPAN_SAMPLES_SORT = {
   kind: 'desc' as const,
 };
 
+// This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 function CacheSamplePanel() {
   const router = useRouter();
   const organization = useOrganization();
