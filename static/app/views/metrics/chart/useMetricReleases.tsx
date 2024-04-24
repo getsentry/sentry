@@ -174,12 +174,15 @@ export function useReleaseSeries() {
     });
 
     return {
+      id: 'releases',
       seriesName: 'Releases',
       color: theme.purple200,
       data: [],
       markLine,
       type: 'line' as any,
       name: 'Releases',
+      total: 0,
+      unit: 'none',
     };
   }, [organization, releases, router, theme, selection.datetime.utc]);
 
@@ -187,9 +190,7 @@ export function useReleaseSeries() {
     (baseProps: CombinedMetricChartProps): CombinedMetricChartProps => {
       return {
         ...baseProps,
-        additionalSeries: baseProps.additionalSeries
-          ? [...baseProps.additionalSeries, releaseSeries]
-          : [releaseSeries],
+        series: baseProps.series ? [...baseProps.series, releaseSeries] : [releaseSeries],
       };
     },
     [releaseSeries]
