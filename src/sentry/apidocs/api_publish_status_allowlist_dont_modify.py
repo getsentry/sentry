@@ -421,7 +421,11 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_slug}/replay-count/": {"GET"},
     "/api/0/organizations/{organization_slug}/replays-events-meta/": {"GET"},
     "/api/0/organizations/{organization_slug}/functions/": {"GET", "POST"},
-    "/api/0/organizations/{organization_slug}/functions/{function_slug}/": {"DELETE", "GET", "PUT"},
+    "/api/0/organizations/{organization_slug}/functions/{function_id_or_slug}/": {
+        "DELETE",
+        "GET",
+        "PUT",
+    },
     "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}": {"PUT"},
     "/api/0/organizations/{organization_slug}/scim/v2/Groups/{team_id}": {"PUT"},
     "/api/0/organizations/{organization_slug}/scim/v2/Schemas": {"GET"},

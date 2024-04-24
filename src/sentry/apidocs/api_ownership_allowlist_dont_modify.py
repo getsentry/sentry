@@ -156,7 +156,7 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/internal/packages/",
     "/api/0/users/{user_id}/notifications/{notification_type}/",
     "/api/0/projects/{organization_slug}/{project_slug}/users/{user_hash}/",
-    "/api/0/organizations/{organization_slug}/functions/{function_slug}/",
+    "/api/0/organizations/{organization_slug}/functions/{function_id_or_slug}/",
     "/api/0/projects/{organization_slug}/{project_slug}/{var}/stats/",
     "/api/0/internal/queue/tasks/",
     "/api/0/organizations/{organization_slug}/members/{member_id}/",
