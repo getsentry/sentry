@@ -62,8 +62,6 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     const {group, integration} = this.props;
     const {action} = this.state;
 
-    Sentry.startSpan({});
-
     const span = Sentry.withScope(scope => {
       scope.setTag('issueAction', action);
       scope.setTag('groupID', group.id);
