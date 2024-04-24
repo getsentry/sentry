@@ -85,6 +85,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         self.create_event(self.project.id, self.now, "group-1", self.environment.name)
 
         self.group1 = self.event1.group
+        assert self.group1
 
         self.rule2 = self.create_project_rule(
             project=self.project, condition_match=[user_frequency_condition]
@@ -92,6 +93,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         self.event2 = self.create_event(self.project, self.now, "group-2", self.environment.name)
         self.create_event(self.project, self.now, "group-2", self.environment.name)
         self.group2 = self.event2.group
+        assert self.group2
 
         self.rulegroup_event_mapping_one = {
             f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
@@ -113,6 +115,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
         self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
         self.group3 = self.event3.group
+        assert self.group3
 
         self.rule4 = self.create_project_rule(
             project=self.project_two, condition_match=[event_frequency_percent_condition]
@@ -121,6 +124,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         self.create_event(self.project_two, self.now, "group-4")
         self._make_sessions(60, project=self.project_two)
         self.group4 = self.event4.group
+        assert self.group4
 
         self.rulegroup_event_mapping_two = {
             f"{self.rule3.id}:{self.group3.id}": {self.event3.event_id},
@@ -187,12 +191,14 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         event5 = self.create_event(self.project_two, self.now, "group-5", self.environment.name)
         self.create_event(self.project_two, self.now, "group-5", self.environment.name)
         self.create_event(self.project_two, self.now, "group-5", self.environment.name)
-        self.group5 = event5.group
+        group5 = event5.group
+        assert group5
+        assert self.group1
 
         self.mock_buffer.get_hash.return_value = [
             {
                 f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
-                f"{rule5.id}:{self.group5.id}": {event5.event_id},
+                f"{rule5.id}:{group5.id}": {event5.event_id},
             },
         ]
 
@@ -212,6 +218,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
         self.create_event(self.project.id, self.now, "group-5", self.environment.name)
         group5 = event5.group
+        assert group5
+        assert self.group1
 
         self.mock_buffer.get_hash.return_value = [
             {
@@ -237,6 +245,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         event5 = self.create_event(self.project.id, self.now, "group-5", environment3.name)
         self.create_event(self.project.id, self.now, "group-5", environment3.name)
         group5 = event5.group
+        assert group5
+        assert self.group1
 
         self.mock_buffer.get_hash.return_value = [
             {
@@ -267,6 +277,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
         self.create_event(self.project.id, self.now, "group-5", self.environment.name)
         group5 = event5.group
+        assert group5
+        assert self.group1
 
         self.mock_buffer.get_hash.return_value = [
             {
