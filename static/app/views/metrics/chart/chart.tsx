@@ -348,7 +348,6 @@ export const MetricChart = memo(
           </ChartWrapper>
         );
       }
-
       return (
         <ChartWrapper>
           <ChartZoom>

@@ -38,6 +38,7 @@ export interface CombinedMetricChartProps
   displayType: MetricDisplayType;
   series: Series[];
   additionalSeries?: SeriesOption[];
+  enableZoom?: boolean;
   scatterSeries?: ScatterSeries[];
 }
 
