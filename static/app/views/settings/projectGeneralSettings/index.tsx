@@ -307,14 +307,12 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
         <PermissionAlert project={project} />
-
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
             fields={[fields.name, fields.platform]}
           />
-
           <JsonForm
             {...jsonFormProps}
             title={t('Email')}
