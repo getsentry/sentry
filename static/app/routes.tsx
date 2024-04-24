@@ -1547,19 +1547,6 @@ function buildRoutes() {
         />
       </Route>
       <Route path="browser/">
-        <Route path="interactions/">
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/performance/browser/interactionsLandingPage')
-            )}
-          />
-          <Route
-            path="summary/"
-            component={make(
-              () => import('sentry/views/performance/browser/interactionSummary/index')
-            )}
-          />
-        </Route>
         <Route path="pageloads/">
           <IndexRoute
             component={make(
