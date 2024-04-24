@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -27,7 +28,8 @@ import {
   getThroughputChartTitle,
 } from 'sentry/views/starfish/views/spans/types';
 import type {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
-import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const NULL_SPAN_CATEGORY = t('custom');
 
 const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 

@@ -1713,20 +1713,6 @@ function buildRoutes() {
       component={make(() => import('sentry/views/starfish'))}
       withOrgPath
     >
-      <IndexRoute
-        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
-      />
-      <Route path="endpoint-overview/">
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
-          )}
-        />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
-        />
-      </Route>
       <Redirect from="database/" to="/performance/database" />
       <Route path="appStartup/">
         <IndexRoute
