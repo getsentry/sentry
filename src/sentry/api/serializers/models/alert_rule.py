@@ -339,7 +339,7 @@ class CombinedRuleSerializer(Serializer):
         for item in item_list:
             if isinstance(item, AlertRule):
                 alert_rule = serialized_alert_rules.pop(0)
-                if "latestIncident" in self.expand:
+                if "latestIncident" in self.expand and alert_rule:
                     alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
                 results[item] = alert_rule
             elif isinstance(item, Rule):
