@@ -24,7 +24,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.db.models import Group
+    from sentry.models.group import Group
 
 
 @region_silo_only_model
@@ -180,8 +180,8 @@ class GroupSnooze(Model):
         try:
             value = cache.incr(cache_key)
         except ValueError:
-            # key doesn't exist
-            value = float("inf")
+            # when key doesn't exist using inf as a sentinel value
+            value = float("inf")  # type: ignore[assignment]
 
         if value < threshold:
             # if we've seen less than that many events, we can't possibly have seen enough users
