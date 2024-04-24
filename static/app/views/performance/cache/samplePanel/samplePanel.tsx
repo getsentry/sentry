@@ -205,8 +205,7 @@ function CacheSamplePanel() {
                 value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
-                  cacheTransactionMetrics?.[0]?.['time_spent_percentage()'],
-                  'http.client'
+                  cacheTransactionMetrics?.[0]?.['time_spent_percentage()']
                 )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
