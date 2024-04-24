@@ -553,10 +553,18 @@ def _connect(name: str, conf: WorkstationConfig, started_at: datetime | None = N
     _notify(
         f"""Connected to workstation {name} over user@localhost:{localhost_port}. What's next?
 
-            - Connect in VSCode via your client instance's `Remote SSH: Connect to Host...` command.
+            - Connect in VSCode via your client instance's `Remote SSH: Connect to Host...` command:
+              * When asked for a user, enter `user@localhost:{localhost_port}`
+              * Navigate to the `sentry` or `self-hosted` directories, which are pre-installed.
+
             - Authenticate via GitHub using this machine's already-installed `gh` tool.
-            - Sync your VSCode and Git configurations using the `sentry workstations sync` command.
+              * You'll need to create a fine-grained access-token to push new commits.
+
             - Attach a terminal to this machine over SSH.
+              * You can connect to this workstation using `ssh -p {localhost_port} user@localhost`.
+
+            - Sync your VSCode and Git configurations using the `sentry workstations sync` command.
+              * COMING SOON!
 
             Happy hacking!
             """
