@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -39,6 +39,7 @@ import type {
 } from 'sentry/types';
 import {IssueCategory} from 'sentry/types/group';
 import {defined, percent} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 // import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
@@ -49,6 +50,7 @@ import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/cons
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {
   DISCOVER_EXCLUSION_FIELDS,
+  getTabs,
   // getTabs,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
@@ -126,31 +128,32 @@ function BaseGroupRow({
       ? 'time range'
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
-  // const sharedAnalytics = useMemo(() => {
-  //   const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
-  //   const owners = group.owners ?? [];
-  //   return {
-  //     organization,
-  //     group_id: group.id,
-  //     tab: tab?.analyticsName || 'other',
-  //     was_shown_suggestion: owners.length > 0,
-  //   };
-  // }, [organization, group.id, group.owners, query]);
+  const sharedAnalytics = useMemo(() => {
+    const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
+    const owners = group.owners ?? [];
+    return {
+      organization,
+      group_id: group.id,
+      tab: tab?.analyticsName || 'other',
+      was_shown_suggestion: owners.length > 0,
+    };
+  }, [organization, group.id, group.owners, query]);
 
-  // const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
-  //   useCallback(
-  //     (type, _assignee, suggestedAssignee) => {
-  //       if (query !== undefined) {
-  //         trackAnalytics('issues_stream.issue_assigned', {
-  //           ...sharedAnalytics,
-  //           did_assign_suggestion: !!suggestedAssignee,
-  //           assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-  //           assigned_type: type,
-  //         });
-  //       }
-  //     },
-  //     [query, sharedAnalytics]
-  //   );
+  const trackAssign: React.ComponentProps<
+    typeof NewAssigneeSelectorDropdown
+  >['onAssign'] = useCallback(
+    (type, _assignee, suggestedAssignee) => {
+      if (query !== undefined) {
+        trackAnalytics('issues_stream.issue_assigned', {
+          ...sharedAnalytics,
+          did_assign_suggestion: !!suggestedAssignee,
+          assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
+          assigned_type: type,
+        });
+      }
+    },
+    [query, sharedAnalytics]
+  );
 
   const wrapperToggle = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
@@ -468,12 +471,11 @@ function BaseGroupRow({
           ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
-              {/* <AssigneeSelector
-                id={group.id}
+              <NewAssigneeSelectorDropdown
+                group={group}
                 memberList={memberList}
                 onAssign={trackAssign}
-              /> */}
-              <NewAssigneeSelectorDropdown id={group.id} memberList={memberList} />
+              />
             </AssigneeWrapper>
           )}
           {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}

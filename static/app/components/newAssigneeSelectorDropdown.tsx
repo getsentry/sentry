@@ -58,7 +58,7 @@ export interface NewAssigneeSelectorDropdownProps {
   // disabled?: boolean;
   group: Group;
   // id: string;
-  memberList: User[];
+  memberList?: User[];
   noDropdown?: boolean;
   onAssign?: OnAssignCallback;
   onClear?: () => void;
@@ -67,7 +67,7 @@ export interface NewAssigneeSelectorDropdownProps {
 
 type AssigneeDropdownState = {
   loading: boolean;
-  assignedTo?: Actor | null | undefined;
+  assignedTo?: AssignableTeam | User;
   suggestedOwners?: SuggestedOwner[] | null;
 };
 
@@ -77,7 +77,7 @@ function NewAssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
-  noDropdown,
+  noDropdown = false,
 }: NewAssigneeSelectorDropdownProps) {
   // XXX: okay to get rid of 'group' prop here? (PASS GROUP IN, DO NOT USE GROUPSTORE)
   const organization = useOrganization();
@@ -85,11 +85,21 @@ function NewAssigneeSelectorDropdown({
   const memberLists = useLegacyStore(MemberListStore);
 
   const [state, setState] = useState<AssigneeDropdownState>(() => {
-    const stateAssignedTo = group.assignedTo;
+    // const stateAssignedTo = group.assignedTo;
     let assignee;
     if (group.assignedTo?.type === 'team') {
       const teams = ProjectsStore.getBySlug(group?.project.slug)?.teams ?? [];
-      assignee = teams.find(team => team.id === group.assignedTo?.id);
+      if (teams) {
+        const assignedTeam = teams.find(team => team.id === group.assignedTo?.id);
+        assignee = assignedTeam
+          ? {
+              id: buildTeamId(assignedTeam.id),
+              display: `#${assignedTeam.slug}`,
+              email: assignedTeam.id,
+              team: assignedTeam,
+            }
+          : undefined;
+      }
     } else if (group.assignedTo?.type === 'user') {
       assignee = memberList?.find(user => user.id === group.assignedTo?.id);
     }
@@ -102,7 +112,7 @@ function NewAssigneeSelectorDropdown({
     return {
       // loading: stateLoading,
       loading: false, // TODO: FIX DIS
-      assignedTo: stateAssignedTo,
+      assignedTo: assignee ?? undefined,
       suggestedOwners: stateSuggestedOwners,
     };
   });
@@ -326,82 +336,86 @@ function NewAssigneeSelectorDropdown({
   // XXX: 'multiple' prop causing check box to show up
   return (
     // Look for 'hidecheck' prop
-    <CompactSelect
-      // multiple
-      searchable
-      clearable
-      closeOnSelect
-      // defaultValue={state.assignedTo?.type === 'team' ? {
-      //   label: <IdBadge team={state.assignedTo.} />,
-      // } : '_members'}
-      onClear={handleClear}
-      menuTitle={t('Select Assignee')}
-      size="xs"
-      onChange={handleSelect}
-      options={[
-        {
-          value: '_suggested_assignees',
-          label: t('Suggested Assignees'),
-          options: getSuggestedAssignees()?.map(makeSuggestedAssigneeOption) ?? [],
-          hideCheck: true,
-        },
-        {
-          value: '_members',
-          label: t('Everyone Else'),
-          options: memberList?.map(makeMemberOption) ?? [],
-          hideCheck: true,
-        },
-        {
-          value: '_teams',
-          label: t('Teams'),
-          options: getAssignableTeams().map(makeTeamOption) ?? [],
-          hideCheck: true,
-        },
-      ]}
-      trigger={(props, isOpen) => {
-        const avatarElement = (
-          <AssigneeAvatar
-            assignedTo={group?.assignedTo}
-            suggestedActors={getSuggestedAssignees()}
-          />
-        );
-        return (
-          <Fragment>
-            {state.loading && (
-              <LoadingIndicator
-                mini
-                style={{height: '24px', margin: 0, marginRight: 11}}
-              />
-            )}
-            {!state.loading && !noDropdown && (
-              <DropdownButton data-test-id="assignee-selector">
-                {avatarElement}
-                <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
-              </DropdownButton>
-            )}
-            {!state.loading && noDropdown && avatarElement}
-          </Fragment>
-        );
-      }}
-    />
+    <AssigneeWrapper>
+      <CompactSelect
+        // multiple
+        searchable
+        clearable
+        closeOnSelect
+        defaultValue={
+          state.assignedTo
+            ? `${group.assignedTo?.type ? 'USER_' : 'TEAM_'}${state.assignedTo?.id}`
+            : undefined
+        }
+        onClear={handleClear}
+        menuTitle={t('Select Assignee')}
+        size="xs"
+        onChange={handleSelect}
+        options={[
+          {
+            value: '_suggested_assignees',
+            label: t('Suggested Assignees'),
+            options: getSuggestedAssignees()?.map(makeSuggestedAssigneeOption) ?? [],
+            hideCheck: true,
+          },
+          {
+            value: '_members',
+            label: t('Everyone Else'),
+            options: memberList?.map(makeMemberOption) ?? [],
+            hideCheck: true,
+          },
+          {
+            value: '_teams',
+            label: t('Teams'),
+            options: getAssignableTeams().map(makeTeamOption) ?? [],
+            hideCheck: true,
+          },
+        ]}
+        trigger={(props, isOpen) => {
+          const avatarElement = (
+            <AssigneeAvatar
+              assignedTo={group?.assignedTo ?? undefined}
+              suggestedActors={getSuggestedAssignees()}
+            />
+          );
+          return (
+            <Fragment>
+              {state.loading && (
+                <LoadingIndicator
+                  mini
+                  style={{height: '24px', margin: 0, marginRight: 11}}
+                />
+              )}
+              {!state.loading && !noDropdown && (
+                <DropdownButton data-test-id="assignee-selector" {...props}>
+                  {avatarElement}
+                  <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
+                </DropdownButton>
+              )}
+              {!state.loading && noDropdown && avatarElement}
+            </Fragment>
+          );
+        }}
+      />
+    </AssigneeWrapper>
   );
 }
 
-const DropdownButton = styled('div')`
+const AssigneeWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+
+  /* manually align menu underneath dropdown caret */
+`;
+
+const DropdownButton = styled('button')`
+  appearance: none;
+  border: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   font-size: 20px;
   gap: ${space(0.5)};
 `;
 
-// const StyledIdBadge = styled(IdBadge)`
-//   overflow: hidden;
-//   white-space: nowrap;
-//   flex-shrink: 1;
-// `;
-
 export default NewAssigneeSelectorDropdown;
-
-/**
- * Broad questions:
- */
