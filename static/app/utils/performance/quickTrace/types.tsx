@@ -32,10 +32,10 @@ export type TraceError = {
   project_id: number;
   project_slug: string;
   span: string;
+  timestamp: number;
   title: string;
   event_type?: string;
   generation?: number;
-  timestamp?: number;
   type?: number;
 };
 

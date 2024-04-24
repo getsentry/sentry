@@ -678,6 +678,12 @@ export class TraceTree {
             maybeInsertMissingInstrumentationSpan(spanParentNode, node);
           }
           spanParentNode.spanChildren.push(node);
+
+          // Sorting the children by start_timestamp here as children nodes can be of multiple types for example: span and transaction
+          // and we want to ensure that the children are sorted.
+          spanParentNode.spanChildren.sort(
+            (a, b) => getNodeStartTimeStampForSort(a) - getNodeStartTimeStampForSort(b)
+          );
           continue;
         }
       }
@@ -2314,4 +2320,32 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
   const tree = TraceTree.FromTrace(trace);
 
   return tree;
+}
+
+function getNodeStartTimeStampForSort(node: TraceTreeNode<TraceTree.NodeValue>): number {
+  if (
+    isSpanNode(node) ||
+    isMissingInstrumentationNode(node) ||
+    isAutogroupedNode(node) ||
+    isTransactionNode(node)
+  ) {
+    return node.value.start_timestamp;
+  }
+
+  if (isTraceErrorNode(node)) {
+    return node.value.timestamp;
+  }
+
+  if (isTraceNode(node)) {
+    if (node.value.transactions.length > 0) {
+      return node.value.transactions[0].start_timestamp;
+    }
+
+    if (node.value.orphan_errors.length > 0) {
+      return node.value.orphan_errors[0].timestamp;
+    }
+  }
+
+  // Nodes with no timestamp in their values appear first in sorted list.
+  return 0;
 }
