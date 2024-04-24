@@ -158,8 +158,8 @@ class GroupSnooze(Model):
         return real_count < threshold
 
     def test_user_counts_w_cache(self, group=None):
-        metrics.incr("groupsnooze.test_user_counts")
-        cache_key = f"{self.get_cache_key(self.group_id)}:test_user_counts:events_seen_counter"
+        metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true"})
+        cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
 
         threshold = self.user_count + self.state["users_seen"]
 
@@ -168,7 +168,7 @@ class GroupSnooze(Model):
             cache.increment(cache_key)
             return True
 
-        metrics.incr("groupsnooze.test_user_counts.real_count")
+        metrics.incr("groupsnooze.test_user_counts.real_count", tags={"cached": "false"})
         real_count = group.count_users_seen(
             referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
         )
