@@ -9,6 +9,8 @@ from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
+from sentry.models.team import Team
+from sentry.models.user import User
 
 
 class QueryAggregations(Enum):
@@ -53,14 +55,15 @@ class SnubaQuery(Model):
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
         from sentry.incidents.models.alert_rule import AlertRule
-        from sentry.models.actor import Actor
         from sentry.models.organization import Organization
         from sentry.models.project import Project
 
         from_alert_rule = AlertRule.objects.filter(
-            models.Q(owner_id__in=pk_map.get_pks(get_model_name(Actor)))
+            models.Q(user_id__in=pk_map.get_pks(get_model_name(User)))
+            | models.Q(team_id__in=pk_map.get_pks(get_model_name(Team)))
             | models.Q(organization_id__in=pk_map.get_pks(get_model_name(Organization)))
         ).values_list("snuba_query_id", flat=True)
+
         from_query_subscription = QuerySubscription.objects.filter(
             project_id__in=pk_map.get_pks(get_model_name(Project))
         ).values_list("snuba_query_id", flat=True)

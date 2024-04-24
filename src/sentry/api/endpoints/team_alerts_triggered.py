@@ -22,6 +22,7 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
 )
 from sentry.models.project import Project
+from sentry.models.team import Team
 
 
 @region_silo_endpoint
@@ -31,12 +32,12 @@ class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team: Team) -> Response:
         """
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
         """
         project_list = Project.objects.get_for_team_ids([team.id])
-        owner_ids = team.get_member_actor_ids()
+        member_user_ids = team.get_member_user_ids()
 
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
@@ -55,8 +56,11 @@ class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):
                         ],
                     )
                 ),
+                (
+                    Q(incident__alert_rule__user_id__in=member_user_ids)
+                    | Q(incident__alert_rule__team_id=team.id)
+                ),
                 incident__organization_id=team.organization_id,
-                incident__alert_rule__owner__in=owner_ids,
                 incident_id__in=IncidentProject.objects.filter(project__in=project_list).values(
                     "incident_id"
                 ),
@@ -129,11 +133,11 @@ class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request, team) -> Response:
+    def get(self, request, team: Team) -> Response:
         """
         Returns alert rules ordered by highest number of alerts fired this week.
         """
-        owner_ids = team.get_member_actor_ids()
+        member_user_ids = team.get_member_user_ids()
         end = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = end - timedelta(days=7)
 
@@ -149,10 +153,10 @@ class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):
                     ],
                 )
             ),
+            (Q(user_id__in=member_user_ids) | Q(team_id=team.id)),
             incident__incidentactivity__date_added__gte=start,
             incident__incidentactivity__date_added__lt=end,
             organization_id=team.organization_id,
-            owner__in=owner_ids,
         ).annotate(count=Count("id"))
 
         stats_start, stats_end = get_date_range_from_params(request.GET)

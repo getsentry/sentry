@@ -177,6 +177,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             except InvalidParams as err:
                 return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
 
+            # TODO(mark) This query for owner_id that needs to become team/user
+            # but can only be done after both AlertRule and Rule have team_id populated.
             team_filter_query = Q(owner_id__in=teams_query.values_list("actor_id", flat=True))
             if unassigned:
                 team_filter_query = team_filter_query | Q(owner_id=None)
