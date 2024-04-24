@@ -12,6 +12,7 @@ import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.types import BrokerValue, Message
+from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
@@ -407,4 +408,10 @@ def process_occurrence_group(items: list[Mapping[str, Any]]):
     completely serially.
     """
     for item in items:
+        cache_key = f"occurrence_consumer.process_occurrence_group.{item['event_id']}"
+        if cache.get(cache_key):
+            logger.info("Skipping processing of occurrence %s due to cache hit", item["event_id"])
+            continue
         _process_message(item)
+        # just need a 300 second cache
+        cache.set(cache_key, 1, 300)
