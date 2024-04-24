@@ -53,23 +53,45 @@ def is_condition_slow(
     return False
 
 
-def split_conditions_and_filters(
-    data: list[MutableMapping[str, Any]],
-) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
-    conditions = []
-    filters = []
-    for condition_or_filter in data:
-        id = condition_or_filter["id"]
-        rule_cls = rules.get(id)
-        if rule_cls is None:
-            logger.warning("Unregistered condition or filter %r", id)
-            continue
+def get_rule_type(condition: Mapping[str, Any]) -> str | None:
+    rule_cls = rules.get(condition["id"])
+    if rule_cls is None:
+        logger.warning("Unregistered condition or filter %r", condition["id"])
+        return None
 
-        if rule_cls.rule_type == EventFilter.rule_type:
-            filters.append(condition_or_filter)
-        elif rule_cls.rule_type == EventCondition.rule_type:
-            conditions.append(condition_or_filter)
-    return conditions, filters
+    rule_type: str = rule_cls.rule_type
+    return rule_type
+
+
+def split_conditions_and_filters(rule_condition_list):
+    condition_list = []
+    filter_list = []
+    for rule_cond in rule_condition_list:
+        if get_rule_type(rule_cond) == "condition/event":
+            condition_list.append(rule_cond)
+        else:
+            filter_list.append(rule_cond)
+
+    return condition_list, filter_list
+
+
+# def split_conditions_and_filters(
+#     data: list[MutableMapping[str, Any]],
+# ) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
+#     conditions = []
+#     filters = []
+#     for condition_or_filter in data:
+#         id = condition_or_filter["id"]
+#         rule_cls = rules.get(id)
+#         if rule_cls is None:
+#             logger.warning("Unregistered condition or filter %r", id)
+#             continue
+
+#         if rule_cls.rule_type == EventFilter.rule_type:
+#             filters.append(condition_or_filter)
+#         elif rule_cls.rule_type == EventCondition.rule_type:
+#             conditions.append(condition_or_filter)
+#     return conditions, filters
 
 
 class RuleProcessor:
@@ -185,15 +207,6 @@ class RuleProcessor:
         )
         return passes
 
-    def get_rule_type(self, condition: Mapping[str, Any]) -> str | None:
-        rule_cls = rules.get(condition["id"])
-        if rule_cls is None:
-            logger.warning("Unregistered condition or filter %r", condition["id"])
-            return None
-
-        rule_type: str = rule_cls.rule_type
-        return rule_type
-
     def get_state(self) -> EventState:
         return EventState(
             is_new=self.is_new,
@@ -224,7 +237,6 @@ class RuleProcessor:
 
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
-        rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         try:
             environment = self.event.get_environment()
@@ -240,14 +252,7 @@ class RuleProcessor:
             return
 
         state = self.get_state()
-
-        condition_list = []
-        filter_list = []
-        for rule_cond in rule_condition_list:
-            if self.get_rule_type(rule_cond) == "condition/event":
-                condition_list.append(rule_cond)
-            else:
-                filter_list.append(rule_cond)
+        condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
 
         # Sort `condition_list` so that most expensive conditions run last.
         condition_list.sort(key=lambda condition: is_condition_slow(condition))
