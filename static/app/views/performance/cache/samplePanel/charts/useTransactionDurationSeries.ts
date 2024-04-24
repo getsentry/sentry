@@ -1,37 +1,35 @@
 import keyBy from 'lodash/keyBy';
 
 import type {Series} from 'sentry/types/echarts';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/starfish/queries/getSeriesEventView';
-import type {MetricsProperty} from 'sentry/views/starfish/types';
+import type {MetricTimeseriesRow} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-export interface MetricTimeseriesRow {
-  [key: string]: number;
-  interval: number;
-}
-
-interface UseSpanMetricsSeriesOptions<Fields> {
+export const useTransactionDurationSeries = (options: {
+  referrer: string;
+  transactionName: string;
   enabled?: boolean;
-  referrer?: string;
-  search?: MutableSearch;
-  yAxis?: Fields;
-}
-
-export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
-  options: UseSpanMetricsSeriesOptions<Fields> = {}
-) => {
-  const {search = undefined, yAxis = [], referrer = 'span-metrics-series'} = options;
-
+}) => {
   const pageFilters = usePageFilters();
 
+  const {transactionName, referrer} = options;
+
+  const filters = {
+    transaction: transactionName,
+  };
+
+  const yAxis = ['avg(transaction.duration)'];
+
   const eventView = getSeriesEventView(
-    search,
+    MutableSearch.fromQueryObject(filters),
     undefined,
     pageFilters.selection,
     yAxis,
-    undefined
+    undefined,
+    DiscoverDatasets.METRICS
   );
 
   const result = useWrappedDiscoverTimeseriesQuery<MetricTimeseriesRow[]>({
@@ -54,7 +52,7 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
       return series;
     }),
     'seriesName'
-  ) as Record<Fields[number], Series>;
+  ) as Record<'avg(transaction.duration)', Series>;
 
   return {...result, data: parsedData};
 };
