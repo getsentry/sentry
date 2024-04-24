@@ -141,9 +141,9 @@ class GroupSnooze(Model):
             return True
         else:
             if self.user_window:
-                if not self.test_user_rates_w_cache():
+                if not self.test_user_rates_no_cache():
                     return False
-            elif not self.test_user_counts_w_cache(group):
+            elif not self.test_user_counts_no_cache(group):
                 return False
             return True
 

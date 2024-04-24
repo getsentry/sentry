@@ -191,6 +191,6 @@ class GroupSnoozeTest(
 
 @apply_feature_flag_on_cls("organizations:groupsnooze-cached-counts")
 class GroupSnoozeWCacheTest(GroupSnoozeTest):
-    """Test the cached version of the snooze count."""
+    """Test the cached version of the snooze."""
 
     pass
