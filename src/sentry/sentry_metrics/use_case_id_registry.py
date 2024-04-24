@@ -55,8 +55,8 @@ REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
 }
 
 USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
-    UseCaseID.TRANSACTIONS: "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    UseCaseID.SESSIONS: "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+    UseCaseID.TRANSACTIONS: "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
+    UseCaseID.SESSIONS: "sentry-metrics.cardinality-limiter.limits.sessions.per-org",
     UseCaseID.SPANS: "sentry-metrics.cardinality-limiter.limits.spans.per-org",
     UseCaseID.CUSTOM: "sentry-metrics.cardinality-limiter.limits.custom.per-org",
     UseCaseID.PROFILES: "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
