@@ -3,7 +3,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {useTransactionDurationSeries} from 'sentry/views/performance/cache/samplePanel/charts/useTransactionDurationSeries';
 import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
