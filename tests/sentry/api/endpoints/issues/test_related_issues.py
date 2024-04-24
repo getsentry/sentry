@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TraceTestCase
@@ -50,7 +52,7 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         }
 
     def test_trace_connected_errors(self) -> None:
-        error_event, _, another_proj_event = self.load_errors()
+        error_event, _, another_proj_event = self.load_errors(self.project, uuid4().hex[:16])
         self.group_id = error_event.group_id  # type: ignore[assignment]
         assert error_event.group_id != another_proj_event.group_id
         assert error_event.project.id != another_proj_event.project.id
