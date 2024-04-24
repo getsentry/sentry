@@ -143,10 +143,10 @@ export default function TraceView({
   handleLimitChange,
   ...props
 }: Props) {
-  const sentryTransaction = Sentry.getActiveTransaction();
-  const sentrySpan = sentryTransaction?.startChild({
+  const sentrySpan = Sentry.startInactiveSpan({
     op: 'trace.render',
-    description: 'trace-view-content',
+    name: 'trace-view-content',
+    onlyIfParent: true,
   });
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
   const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);

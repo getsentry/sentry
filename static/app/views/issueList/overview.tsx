@@ -47,7 +47,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
-import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
@@ -508,9 +508,10 @@ class IssueListOverview extends Component<Props, State> {
 
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getActiveTransaction();
-        if (currentTransaction?.op === 'navigation') {
-          currentTransaction.end();
+        const currentSpan = Sentry.getActiveSpan();
+        const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
+        if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
+          rootSpan.end();
         }
       },
     });
@@ -608,7 +609,7 @@ class IssueListOverview extends Component<Props, State> {
       }
     }
 
-    const transaction = getCurrentSentryReactTransaction();
+    const transaction = getCurrentSentryReactRootSpan();
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({

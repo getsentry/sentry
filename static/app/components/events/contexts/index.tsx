@@ -78,11 +78,10 @@ export function EventContexts({event, group}: Props) {
   );
 
   useEffect(() => {
-    const transaction = Sentry.getActiveTransaction();
-    if (transaction && usingOtel()) {
-      transaction.tags.otel_event = true;
-      transaction.tags.otel_sdk = sdk?.name;
-      transaction.tags.otel_sdk_version = sdk?.version;
+    if (usingOtel()) {
+      Sentry.setTag('otel_event', true);
+      Sentry.setTag('otel_sdk', sdk?.name);
+      Sentry.setTag('otel_sdk_version', sdk?.version);
     }
   }, [usingOtel, sdk]);
 

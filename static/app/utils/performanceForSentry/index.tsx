@@ -6,7 +6,7 @@ import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/types';
 import {
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
-  timestampWithMs,
+  timestampInSeconds,
 } from '@sentry/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,7 +28,13 @@ export {Profiler};
  * This will return an interaction-type transaction held onto by a class static if one exists.
  */
 export function getPerformanceTransaction(): Span | undefined {
-  return PerformanceInteraction.getSpan() ?? Sentry.getActiveTransaction();
+  const span = PerformanceInteraction.getSpan();
+  if (span) {
+    return span;
+  }
+
+  const activeSpan = Sentry.getActiveSpan();
+  return activeSpan ? Sentry.getRootSpan(activeSpan) : undefined;
 }
 
 /**
@@ -36,14 +42,16 @@ export function getPerformanceTransaction(): Span | undefined {
  */
 export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDuration) => {
   try {
-    const transaction = getPerformanceTransaction();
-    if (transaction && actualDuration > MIN_UPDATE_SPAN_TIME) {
-      const now = timestampWithMs();
-      transaction.startChild({
-        description: `<${id}>`,
-        op: `ui.react.${phase}`,
-        startTimestamp: now - actualDuration / 1000,
-        endTimestamp: now,
+    const parentSpan = getPerformanceTransaction();
+    if (parentSpan && actualDuration > MIN_UPDATE_SPAN_TIME) {
+      const now = timestampInSeconds();
+
+      Sentry.withActiveSpan(parentSpan, () => {
+        Sentry.startInactiveSpan({
+          name: `<${id}>`,
+          op: `ui.react.${phase}`,
+          startTime: now - actualDuration / 1000,
+        }).end(now);
       });
     }
   } catch (_) {
@@ -61,10 +69,13 @@ export class PerformanceInteraction {
 
   static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
     try {
-      const currentIdleTransaction = Sentry.getActiveTransaction();
+      const currentIdleTransaction = Sentry.getActiveSpan();
       if (currentIdleTransaction) {
         // If interaction is started while idle still exists.
-        currentIdleTransaction.setTag('finishReason', 'sentry.interactionStarted'); // Override finish reason so we can capture if this has effects on idle timeout.
+        currentIdleTransaction.setAttribute(
+          'sentry.idle_span_finish_reason',
+          'sentry.interactionStarted'
+        );
         currentIdleTransaction.end();
       }
       PerformanceInteraction.finishInteraction(immediate);
@@ -179,11 +190,6 @@ export function VisuallyCompleteWithData({
       return;
     }
     try {
-      const transaction: any = Sentry.getActiveTransaction(); // Using any to override types for private api.
-      if (!transaction) {
-        return;
-      }
-
       if (!isDataCompleteSet.current && _hasData) {
         isDataCompleteSet.current = true;
 
@@ -197,7 +203,7 @@ export function VisuallyCompleteWithData({
           const startMarks = performance.getEntriesByName(`${id}-${VCD_START}`);
           const endMarks = performance.getEntriesByName(`${id}-${VCD_END}`);
           if (startMarks.length > 1 || endMarks.length > 1) {
-            transaction.setTag('vcd_extra_recorded_marks', true);
+            Sentry.setTag('vcd_extra_recorded_marks', true);
           }
 
           const startMark = startMarks.at(-1);

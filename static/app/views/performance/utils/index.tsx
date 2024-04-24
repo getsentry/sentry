@@ -17,7 +17,7 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
-import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
@@ -290,7 +290,7 @@ export function removeTracingKeysFromSearch(
 }
 
 export function addRoutePerformanceContext(selection: PageFilters) {
-  const transaction = getCurrentSentryReactTransaction();
+  const transaction = getCurrentSentryReactRootSpan();
   const days = statsPeriodToDays(
     selection.datetime.period,
     selection.datetime.start,
