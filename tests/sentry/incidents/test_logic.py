@@ -16,7 +16,7 @@ from sentry.incidents.events import (
     IncidentCreatedEvent,
     IncidentStatusUpdatedEvent,
 )
-from sentry.incidents.logic import (  # get_alert_resolution,
+from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS,
     DEFAULT_ALERT_RULE_RESOLUTION,
@@ -2813,19 +2813,3 @@ class TestCustomMetricAlertRule(TestCase):
         )
 
         mocked_schedule_invalidate_project_config.assert_not_called()
-
-
-class TestGetAlertResolution(TestCase):
-    def test_get_alert_resolution(self):
-        # Test that the default resolution is used
-        pass
-
-    # Enable the feature and ensure it's using the new resolution
-    def test_get_alert_resolution_load_shedding(self):
-        # test that the lookup table is used
-        pass
-
-    # Enable the feature and get resolution, should be the default alert resolution
-    def test_get_alert_resolution_load_shedding_unknown_time_window(self):
-        # test that it returns default if the time window is unknown
-        pass
