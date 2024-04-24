@@ -20,7 +20,7 @@ jest.mock('sentry/utils/useMembers');
 
 describe('MonitorForm', function () {
   const organization = OrganizationFixture({
-    features: ['issue-platform', 'crons-ownership'],
+    features: ['issue-platform'],
   });
 
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});

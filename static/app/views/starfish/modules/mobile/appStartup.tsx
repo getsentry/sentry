@@ -5,8 +5,9 @@ import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -22,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {PlatformCompatibilityChecker} from 'sentry/views/performance/platformCompatibilityChecker';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import AppStartup from 'sentry/views/starfish/views/appStartup';
@@ -64,12 +66,15 @@ export default function InitializationModule() {
                 />
                 <Layout.Title>{ROUTE_NAMES['app-startup']}</Layout.Title>
               </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <ButtonBar gap={1}>
+                  <FeedbackWidgetButton />
+                </ButtonBar>
+              </Layout.HeaderActions>
             </Layout.Header>
 
             <Layout.Body>
-              <FloatingFeedbackWidget />
               <Layout.Main fullWidth>
-                <PageAlert />
                 <PageFiltersContainer>
                   <Container>
                     <PageFilterBar condensed>
@@ -81,11 +86,20 @@ export default function InitializationModule() {
                     <StartTypeSelector />
                   </Container>
                 </PageFiltersContainer>
+                <PageAlert />
                 <ErrorBoundary mini>
-                  {onboardingProject && (
-                    <Onboarding organization={organization} project={onboardingProject} />
-                  )}
-                  {!onboardingProject && <AppStartup chartHeight={200} />}
+                  <PlatformCompatibilityChecker
+                    compatibleSDKNames={['sentry.cocoa', 'sentry.java.android']}
+                    docsUrl="https://docs.sentry.io/product/performance/mobile-vitals/app-starts/#minimum-sdk-requirements"
+                  >
+                    {onboardingProject && (
+                      <Onboarding
+                        organization={organization}
+                        project={onboardingProject}
+                      />
+                    )}
+                    {!onboardingProject && <AppStartup chartHeight={200} />}
+                  </PlatformCompatibilityChecker>
                 </ErrorBoundary>
               </Layout.Main>
             </Layout.Body>

@@ -11,7 +11,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/starfish/colours';
+} from 'sentry/views/starfish/colors';
 
 import StartDurationWidget, {transformData} from './startDurationWidget';
 

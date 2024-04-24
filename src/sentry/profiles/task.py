@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -160,8 +161,12 @@ def process_profile_task(
     if (
         profile.get("version") != "2"
         and options.get("profiling.generic_metrics.functions_ingestion.enabled")
-        and organization.id
-        in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+        and (
+            organization.id
+            in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+            or random.random()
+            < options.get("profiling.generic_metrics.functions_ingestion.rollout_rate")
+        )
         and project.id
         not in options.get("profiling.generic_metrics.functions_ingestion.denied_proj_ids")
     ):
