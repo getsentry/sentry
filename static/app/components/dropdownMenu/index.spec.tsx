@@ -30,7 +30,7 @@ describe('DropdownMenu', function () {
     // Open the mneu
     await userEvent.click(screen.getByRole('button', {name: 'This is a Menu'}));
 
-    // The mneu is open
+    // The menu is open
     expect(screen.getByRole('menu')).toBeInTheDocument();
 
     // There are two menu items
