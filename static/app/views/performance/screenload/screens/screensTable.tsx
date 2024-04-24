@@ -24,13 +24,13 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {TOP_SCREENS} from 'sentry/views/performance/screenload/screens';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
   data: TableData | undefined;

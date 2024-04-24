@@ -21,6 +21,22 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  CHART_TITLES,
+  OUTPUT_TYPE,
+  YAXIS_COLUMNS,
+} from 'sentry/views/performance/screenload/screens';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/performance/screenload/screens/platformSelector';
+import {ScreensBarChart} from 'sentry/views/performance/screenload/screens/screenBarChart';
+import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
+import {
+  isCrossPlatform,
+  transformDeviceClassEvents,
+} from 'sentry/views/performance/screenload/screens/utils';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -28,22 +44,6 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/center
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
-import {
-  CHART_TITLES,
-  OUTPUT_TYPE,
-  YAXIS_COLUMNS,
-} from 'sentry/views/starfish/views/screens';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/starfish/views/screens/platformSelector';
-import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {
-  isCrossPlatform,
-  transformDeviceClassEvents,
-} from 'sentry/views/starfish/views/screens/utils';
 
 export enum YAxis {
   WARM_START = 0,

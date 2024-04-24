@@ -11,10 +11,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
+import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 export const TTID_CONTRIBUTING_SPAN_OPS = [
   'file.read',

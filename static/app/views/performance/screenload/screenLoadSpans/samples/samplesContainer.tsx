@@ -14,18 +14,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/performance/screenload/screens/platformSelector';
+import {isCrossPlatform} from 'sentry/views/performance/screenload/screens/utils';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/starfish/views/screens/platformSelector';
-import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';

@@ -22,6 +22,20 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
+  ScreenCharts,
+  YAxis,
+} from 'sentry/views/performance/screenload/screenLoadSpans/charts';
+import {ScreenLoadEventSamples} from 'sentry/views/performance/screenload/screenLoadSpans/eventSamples';
+import {MetricsRibbon} from 'sentry/views/performance/screenload/screenLoadSpans/metricsRibbon';
+import {ScreenLoadSpanSamples} from 'sentry/views/performance/screenload/screenLoadSpans/samples';
+import {ScreenLoadSpansTable} from 'sentry/views/performance/screenload/screenLoadSpans/table';
+import {
+  MobileCursors,
+  MobileSortKeys,
+} from 'sentry/views/performance/screenload/screens/constants';
+import {PlatformSelector} from 'sentry/views/performance/screenload/screens/platformSelector';
+import {isCrossPlatform} from 'sentry/views/performance/screenload/screens/utils';
+import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
@@ -29,20 +43,6 @@ import {
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {
-  MobileCursors,
-  MobileSortKeys,
-} from 'sentry/views/starfish/views/screens/constants';
-import {PlatformSelector} from 'sentry/views/starfish/views/screens/platformSelector';
-import {
-  ScreenCharts,
-  YAxis,
-} from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
-import {ScreenLoadEventSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamples';
-import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
-import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
-import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
-import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 type Query = {
   primaryRelease: string;

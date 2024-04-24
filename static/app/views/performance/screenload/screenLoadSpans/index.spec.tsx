@@ -11,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import ScreenLoadSpans from 'sentry/views/starfish/views/screens/screenLoadSpans';
+import ScreenLoadSpans from 'sentry/views/performance/screenload/screenLoadSpans';
 
 jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/views/performance/browser/webVitals/utils/useOnboardingProject');
