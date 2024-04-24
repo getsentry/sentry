@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
@@ -253,8 +253,15 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
 
-        et = eventtypes.get(self.get_event_type())()
-        return cast(str, et.get_title(self.get_event_metadata()))
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return cast(str, event_type_instance.get_title(self.get_event_metadata()))
 
     @property
     def culprit(self) -> str | None:
@@ -702,13 +709,6 @@ class Event(BaseEvent):
     def groups(self, values: Sequence[Group] | None):
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
-
-    def build_group_events(self) -> Generator[GroupEvent, None, None]:
-        """
-        Yields a GroupEvent for each Group associated with this Event.
-        """
-        for group in self.groups:
-            yield GroupEvent.from_event(self, group)
 
     def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)

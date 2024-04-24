@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Literal
 
 import msgpack
@@ -817,9 +818,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         logger.exception("Failed to process check-in")
 
 
-_checkin_worker = ThreadPoolExecutor()
-
-
 def process_checkin(item: CheckinItem):
     """
     Process an individual check-in
@@ -843,7 +841,7 @@ def process_checkin_group(items: list[CheckinItem]):
         process_checkin(item)
 
 
-def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
+def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
     """
     Receives batches of check-in messages. This function will take the batch
     and group them together by monitor ID (ensuring order is preserved) and
@@ -891,8 +889,7 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
-            _checkin_worker.submit(process_checkin_group, group)
-            for group in checkin_mapping.values()
+            executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]
         wait(futures)
 
@@ -932,6 +929,8 @@ def process_single(message: Message[KafkaPayload]):
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    parallel_executor: ThreadPoolExecutor | None = None
+
     parallel = False
     """
     Does the consumer process unrelated check-ins in parallel?
@@ -961,9 +960,15 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         if max_batch_time is not None:
             self.max_batch_time = max_batch_time
 
+    def shutdown(self) -> None:
+        if self.parallel_executor:
+            self.parallel_executor.shutdown()
+
     def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        self.parallel_executor = ThreadPoolExecutor()
+
         batch_processor = RunTask(
-            function=process_batch,
+            function=partial(process_batch, self.parallel_executor),
             next_step=CommitOffsets(commit),
         )
         return BatchStep(

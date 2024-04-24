@@ -54,8 +54,8 @@ dotnet add package Sentry.Profiling -v ${getPackageVersion(
 )}`;
 
 enum DotNetPlatform {
-  WINDOWS,
-  IOS_MACCATALYST,
+  WINDOWS = 0,
+  IOS_MACCATALYST = 1,
 }
 
 const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `

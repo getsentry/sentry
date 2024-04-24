@@ -46,14 +46,14 @@ import {
 } from 'sentry/views/starfish/views/screens/utils';
 
 export enum YAxis {
-  WARM_START,
-  COLD_START,
-  TTID,
-  TTFD,
-  SLOW_FRAME_RATE,
-  FROZEN_FRAME_RATE,
-  THROUGHPUT,
-  COUNT,
+  WARM_START = 0,
+  COLD_START = 1,
+  TTID = 2,
+  TTFD = 3,
+  SLOW_FRAME_RATE = 4,
+  FROZEN_FRAME_RATE = 5,
+  THROUGHPUT = 6,
+  COUNT = 7,
 }
 
 type Props = {

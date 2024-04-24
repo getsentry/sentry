@@ -18,6 +18,7 @@ from sentry_sdk import Scope, capture_exception, capture_message, configure_scop
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
+from sentry_sdk.types import Event, Hint
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -29,8 +30,6 @@ from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
-    from sentry_sdk._types import Event, Hint
-
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.organization import RpcOrganization
 
