@@ -19,6 +19,8 @@ import {
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+import {Tooltip} from '../tooltip';
+
 export enum EventDetailPageSource {
   PERFORMANCE = 'performance',
   DISCOVER = 'discover',
@@ -248,7 +250,9 @@ export function TraceEventCustomPerformanceMetric({
   }
   return (
     <TraceStyledPanel>
-      <div>{name}</div>
+      <Tooltip title={name} showOnlyOnOverflow>
+        <StyledMeasurementsName>{name}</StyledMeasurementsName>
+      </Tooltip>
       <div>{rendered}</div>
       <div>
         <StyledDropdownMenuControl
@@ -329,4 +333,9 @@ const StyledPanel = styled(Panel)`
 
 const StyledDropdownMenuControl = styled(DropdownMenu)`
   margin-left: auto;
+`;
+
+const StyledMeasurementsName = styled('div')`
+  max-width: 200px;
+  ${p => p.theme.overflowEllipsis};
 `;
