@@ -1,7 +1,7 @@
 import hashlib
 from collections import defaultdict, namedtuple
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Optional, TypedDict
 
 import sentry_sdk
@@ -22,7 +22,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 ALLOWED_BACKENDS = ["indexedSpans", "nodestore"]
-CUTOVER_DATE = datetime(2024, 3, 22, tzinfo=timezone.utc)
 
 EventSpan = namedtuple(
     "EventSpan",
@@ -337,19 +336,15 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:spans-first-ui", organization, actor=request.user):
+        if not features.has(
+            "organizations:starfish-aggregate-span-waterfall", organization, actor=request.user
+        ):
             return Response(status=404)
 
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
-
-        start = params["start"]
-        if start and start < CUTOVER_DATE:
-            backend = "nodestore"
-        else:
-            backend = "indexedSpans"
 
         transaction = request.query_params.get("transaction", None)
         http_method = request.query_params.get("http.method", None)
@@ -358,7 +353,13 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
             )
 
+        backend = request.query_params.get("backend", "nodestore")
         sentry_sdk.set_tag("aggregate_spans.backend", backend)
+
+        if backend not in ALLOWED_BACKENDS:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
+            )
 
         query = f"transaction:{transaction}"
         if http_method is not None:
