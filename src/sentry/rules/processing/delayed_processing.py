@@ -12,7 +12,6 @@ from sentry.rules.processing.processor import is_condition_slow, split_condition
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
@@ -170,9 +169,9 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
 
-        for project in RangeQuerySetWrapper(Project.objects.filter(id__in=project_ids)):
+        for project_id in project_ids:
             with metrics.timer("delayed_processing.process_project.duration"):
-                apply_delayed.delay(project_id=project.id, buffer=buffer)
+                apply_delayed.delay(project_id=project_id, buffer=buffer)
 
 
 @instrumented_task(
