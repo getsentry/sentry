@@ -27,7 +27,8 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import type {SampleFilter} from 'sentry/views/starfish/views/webServiceView/endpointOverview';
+
+type SampleFilter = 'ALL' | '500s';
 
 type Keys =
   | 'id'
