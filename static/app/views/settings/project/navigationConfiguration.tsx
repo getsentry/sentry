@@ -40,7 +40,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/tags/`,
           title: t('Tags & Context'),
-          description: t("View and manage a project's tags and highlights"),
+          description: t("View and manage a project's tags and context"),
         },
         {
           path: `${pathPrefix}/environments/`,

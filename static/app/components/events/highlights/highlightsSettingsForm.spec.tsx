@@ -67,16 +67,8 @@ describe('HighlightsSettingForm', function () {
     expect(screen.getByText('Highlighted Context')).toBeInTheDocument();
     const contextInput = screen.getByRole('textbox', {name: 'Highlighted Context'});
 
-    // React Testing Library requires these characters to be escaped by having two
-    const rtlEscapeCharacters = new Set(['{', '[']);
-    const rtlSafeNewContext = JSON.stringify(newContext)
-      .split('')
-      .map(character =>
-        rtlEscapeCharacters.has(character) ? `${character}${character}` : character
-      )
-      .join('');
     await userEvent.clear(contextInput);
-    await userEvent.type(contextInput, rtlSafeNewContext);
+    await userEvent.paste(JSON.stringify(newContext));
     await userEvent.click(screen.getByText('Highlights'));
 
     expect(updateProjectMock).toHaveBeenCalledWith(
