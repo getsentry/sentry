@@ -38,13 +38,13 @@ class DataAndGroups(NamedTuple):
         return f"data: {self.data}\ngroup_ids: {self.group_ids}"
 
 
-def get_slow_conditions(rule: Rule) -> list[MutableMapping[str, str] | None]:
+def get_slow_conditions(rule: Rule) -> list[MutableMapping[str, str]]:
     """
     Returns the slow conditions of a rule model instance.
     """
     conditions_and_filters = rule.data.get("conditions", ())
     conditions, _ = split_conditions_and_filters(conditions_and_filters)
-    slow_conditions: list[MutableMapping[str, str] | None] = [
+    slow_conditions: list[MutableMapping[str, str]] = [
         cond for cond in conditions if is_condition_slow(cond)
     ]
 
@@ -172,24 +172,24 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
 
         for project in RangeQuerySetWrapper(Project.objects.filter(id__in=project_ids)):
             with metrics.timer("delayed_processing.process_project.duration"):
-                apply_delayed.delay(project=project, buffer=buffer)
+                apply_delayed.delay(project_id=project.id, buffer=buffer)
 
 
 @instrumented_task(
     name="sentry.delayed_processing.tasks.apply_delayed",
-    queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
     soft_time_limit=50,
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project: Project, buffer: RedisBuffer) -> DefaultDict[Rule, set[int]] | None:
+def apply_delayed(project_id: int, buffer: RedisBuffer) -> DefaultDict[Rule, set[int]] | None:
     # XXX(CEO) this is a temporary return value!
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     # STEP 1: Fetch the rulegroup_to_events mapping for the project from redis
+    project = Project.objects.get(id=project_id)
     rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": project.id})
 
     # STEP 2: Map each rule to the groups that must be checked for that rule.

@@ -158,13 +158,13 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         """
         self.mock_buffer.get_hash.return_value = [self.rulegroup_event_mapping_one]
 
-        rules = apply_delayed(self.project, self.mock_buffer)
+        rules = apply_delayed(self.project.id, self.mock_buffer)
         assert self.rule1 in rules
         assert self.rule2 in rules
 
         self.mock_buffer.get_hash.return_value = [self.rulegroup_event_mapping_two]
 
-        rules = apply_delayed(self.project_two, self.mock_buffer)
+        rules = apply_delayed(self.project_two.id, self.mock_buffer)
         assert self.rule3 in rules
         assert self.rule4 in rules
 
@@ -191,7 +191,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             },
         ]
 
-        rules = apply_delayed(self.project, self.mock_buffer)
+        rules = apply_delayed(self.project.id, self.mock_buffer)
         assert self.rule1 in rules
         assert rule5 in rules
 
@@ -217,7 +217,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             },
         ]
 
-        rules = apply_delayed(self.project, self.mock_buffer)
+        rules = apply_delayed(self.project.id, self.mock_buffer)
         assert self.rule1 in rules
         assert diff_interval_rule in rules
 
@@ -244,7 +244,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             },
         ]
 
-        rules = apply_delayed(self.project, self.mock_buffer)
+        rules = apply_delayed(self.project.id, self.mock_buffer)
         assert self.rule1 in rules
         assert diff_env_rule in rules
 
@@ -276,6 +276,6 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             },
         ]
 
-        rules = apply_delayed(self.project, self.mock_buffer)
+        rules = apply_delayed(self.project.id, self.mock_buffer)
         assert self.rule1 in rules
         assert no_fire_rule not in rules
