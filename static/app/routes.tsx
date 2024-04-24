@@ -1492,12 +1492,14 @@ function buildRoutes() {
     </Route>
   );
 
-  const aiAnalyticsRoutes = (
-    <Route path="/ai-analytics/" withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
+  const aiMonitoringRoutes = (
+    <Route path="/ai-monitoring/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/aiMonitoring/landing'))} />
       <Route
         path="pipeline-type/:groupId/"
-        component={make(() => import('sentry/views/aiAnalytics/aiAnalyticsDetailsPage'))}
+        component={make(
+          () => import('sentry/views/aiMonitoring/aiMonitoringDetailsPage')
+        )}
       />
     </Route>
   );
@@ -1545,19 +1547,6 @@ function buildRoutes() {
         />
       </Route>
       <Route path="browser/">
-        <Route path="interactions/">
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/performance/browser/interactionsLandingPage')
-            )}
-          />
-          <Route
-            path="summary/"
-            component={make(
-              () => import('sentry/views/performance/browser/interactionSummary/index')
-            )}
-          />
-        </Route>
         <Route path="pageloads/">
           <IndexRoute
             component={make(
@@ -1608,14 +1597,12 @@ function buildRoutes() {
       <Route path="mobile/">
         <Route path="screens/">
           <IndexRoute
-            component={make(
-              () => import('sentry/views/starfish/modules/mobile/pageload')
-            )}
+            component={make(() => import('sentry/views/performance/screenload'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+              () => import('sentry/views/performance/screenload/screenLoadSpans')
             )}
           />
         </Route>
@@ -2186,7 +2173,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
-      {aiAnalyticsRoutes}
+      {aiMonitoringRoutes}
       {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}

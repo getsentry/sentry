@@ -26,8 +26,9 @@ from sentry.types.condition_activity import (
     ConditionActivity,
     round_to_five_minute,
 )
+from sentry.utils import metrics
 from sentry.utils.iterators import chunked
-from sentry.utils.snuba import options_override
+from sentry.utils.snuba import RateLimitExceeded, options_override
 
 STANDARD_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "1m": ("one minute", timedelta(minutes=1)),
@@ -139,8 +140,17 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         if state.is_new and value > 1:
             return False
 
-        # TODO(mgaeta): Bug: Rule is optional.
-        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore[arg-type, union-attr]
+        comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
+        comparison_interval_option = self.get_option("comparisonInterval", "5m")
+        comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
+        _, duration = self.intervals[interval]
+        try:
+            current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[arg-type, union-attr]
+        # XXX(CEO): once inc-666 work is concluded, rm try/except
+        except RateLimitExceeded:
+            metrics.incr("rule.event_frequency.snuba_query_limit")
+            return False
+
         logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
 
@@ -208,26 +218,44 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         raise NotImplementedError
 
-    def get_rate(self, event: GroupEvent, interval: str, environment_id: int) -> int:
-        _, duration = self.intervals[interval]
-        end = timezone.now()
+    def get_option_override(self, duration: timedelta) -> contextlib.AbstractContextManager[object]:
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
         option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
-        with option_override_cm:
-            result: int = self.query(event, end - duration, end, environment_id=environment_id)
-            comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
+        return option_override_cm
+
+    def get_comparison_start_end(
+        self, interval: timedelta, duration: timedelta
+    ) -> tuple[datetime, datetime]:
+        """
+        Calculate the start and end times for the query. `interval` is only used for EventFrequencyPercentCondition
+        as the '5 minutes' in The issue affects more than 100 percent of sessions in 5 minutes, otherwise it's the current time.
+        `duration` is the time frame in which the condition is measuring counts, e.g. the '10 minutes' in
+        "The issue is seen more than 100 times in 10 minutes"
+        """
+        end = timezone.now() - interval
+        start = end - duration
+        return (start, end)
+
+    def get_rate(
+        self,
+        duration: timedelta,
+        comparison_interval: timedelta,
+        event: GroupEvent,
+        environment_id: int,
+        comparison_type: str,
+    ) -> int:
+        start, end = self.get_comparison_start_end(timedelta(), duration)
+        with self.get_option_override(duration):
+            result = self.query(event, start, end, environment_id=environment_id)
             if comparison_type == ComparisonType.PERCENT:
-                comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
-                comparison_end = end - comparison_interval
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
                 # automatically cached for 10s. We could consider trying to cache this and the main
                 # query for 20s to reduce the load.
-                comparison_result = self.query(
-                    event, comparison_end - duration, comparison_end, environment_id=environment_id
-                )
+                start, end = self.get_comparison_start_end(comparison_interval, duration)
+                comparison_result = self.query(event, start, end, environment_id=environment_id)
                 result = percent_increase(result, comparison_result)
 
         return result

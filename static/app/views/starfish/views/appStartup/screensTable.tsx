@@ -18,7 +18,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
-import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colours';
+import {TOP_SCREENS} from 'sentry/views/performance/screenload/screens';
+import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colors';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -27,7 +28,6 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
-import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
   data: TableData | undefined;

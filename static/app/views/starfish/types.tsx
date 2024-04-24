@@ -93,6 +93,7 @@ export const SPAN_FUNCTIONS = [
   'http_response_rate',
   'http_error_count',
   'cache_hit_rate',
+  'ai_total_tokens_used',
 ] as const;
 
 const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;

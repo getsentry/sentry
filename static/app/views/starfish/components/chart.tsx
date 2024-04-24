@@ -75,9 +75,9 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
 };
 
 export enum ChartType {
-  BAR,
-  LINE,
-  AREA,
+  BAR = 0,
+  LINE = 1,
+  AREA = 2,
 }
 
 type Props = {

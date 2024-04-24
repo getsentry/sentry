@@ -16,6 +16,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import {
+  getFreeTextFromQuery,
+  TOP_SCREENS,
+  YAxis,
+  YAXIS_COLUMNS,
+} from 'sentry/views/performance/screenload/screens';
+import {ScreensBarChart} from 'sentry/views/performance/screenload/screens/screenBarChart';
+import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
+import {transformReleaseEvents} from 'sentry/views/performance/screenload/screens/utils';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -25,15 +34,6 @@ import {AverageComparisonChart} from 'sentry/views/starfish/views/appStartup/ave
 import {CountChart} from 'sentry/views/starfish/views/appStartup/countChart';
 import {ScreensTable} from 'sentry/views/starfish/views/appStartup/screensTable';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
-import {
-  getFreeTextFromQuery,
-  TOP_SCREENS,
-  YAxis,
-  YAXIS_COLUMNS,
-} from 'sentry/views/starfish/views/screens';
-import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {transformReleaseEvents} from 'sentry/views/starfish/views/screens/utils';
 
 export const MAX_CHART_RELEASE_CHARS = 12;
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];

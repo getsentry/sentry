@@ -12,10 +12,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {OUTPUT_TYPE, YAxis} from 'sentry/views/performance/screenload/screens';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/starfish/colours';
+} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -26,7 +27,6 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/starfish/views/appStartup';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
-import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[release: string]: Series} = {};

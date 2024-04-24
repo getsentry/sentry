@@ -8,6 +8,8 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {EventSamplesTable} from 'sentry/views/performance/screenload/screenLoadSpans/eventSamplesTable';
+import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -15,8 +17,6 @@ import {
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
-import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
@@ -82,7 +82,7 @@ export function EventSamples({
 
   const newQuery: NewQuery = {
     name: '',
-    fields: ['transaction.id', 'project.name', 'profile_id', 'span.duration'],
+    fields: ['trace', 'transaction.id', 'project.name', 'profile_id', 'span.duration'],
     query: searchQuery.formatString(),
     dataset: DiscoverDatasets.SPANS_INDEXED,
     version: 2,

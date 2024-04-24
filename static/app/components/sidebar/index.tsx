@@ -29,7 +29,6 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
-  IconStar,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -385,32 +384,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const starfish = hasOrganization && (
-    <Feature
-      hookName="feature-disabled:starfish-view"
-      features="starfish-view"
-      organization={organization}
-    >
-      <SidebarAccordion
-        {...sidebarItemProps}
-        icon={<IconStar />}
-        aria-label={t('Starfish')}
-        label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/starfish/`}
-        id="starfish"
-        exact={!shouldAccordionFloat}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/interactions`}
-          id="performance-browser-interactions"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-      </SidebarAccordion>
-    </Feature>
-  );
-
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -421,16 +394,16 @@ function Sidebar() {
     />
   );
 
-  const aiAnalytics = hasOrganization && (
+  const aiMonitoring = hasOrganization && (
     <Feature features="ai-analytics" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconRobot />}
-        label={t('AI Analytics')}
+        label={t('AI Monitoring')}
         isAlpha
         variant="short"
-        to={`/organizations/${organization.slug}/ai-analytics/`}
-        id="ai-analytics"
+        to={`/organizations/${organization.slug}/ai-monitoring/`}
+        id="ai-monitoring"
       />
     </Feature>
   );
@@ -597,11 +570,10 @@ function Sidebar() {
 
                 <SidebarSection>
                   {performance}
-                  {starfish}
                   {profiling}
                   {metrics}
                   {replays}
-                  {aiAnalytics}
+                  {aiMonitoring}
                   {feedback}
                   {monitors}
                   {alerts}

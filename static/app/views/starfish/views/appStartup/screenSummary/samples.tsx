@@ -5,15 +5,15 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DeviceClassSelector} from 'sentry/views/performance/screenload/screenLoadSpans/deviceClassSelector';
+import {
+  MobileCursors,
+  MobileSortKeys,
+} from 'sentry/views/performance/screenload/screens/constants';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {SpanOpSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
-import {
-  MobileCursors,
-  MobileSortKeys,
-} from 'sentry/views/starfish/views/screens/constants';
-import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/deviceClassSelector';
 
 const EVENT = 'event';
 const SPANS = 'spans';

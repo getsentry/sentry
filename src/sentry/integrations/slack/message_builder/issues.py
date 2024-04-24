@@ -687,6 +687,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            block_id=json.dumps(block_id),
+            block_id=json.dumps_experimental("integrations.slack.enable-orjson", block_id),
             skip_fallback=self.skip_fallback,
         )

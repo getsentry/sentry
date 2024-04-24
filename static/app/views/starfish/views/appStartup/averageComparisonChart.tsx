@@ -11,16 +11,16 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {PRIMARY_RELEASE_COLOR} from 'sentry/views/starfish/colours';
+import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/screenload/screens';
+import {ScreensBarChart} from 'sentry/views/performance/screenload/screens/screenBarChart';
+import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
+import {PRIMARY_RELEASE_COLOR} from 'sentry/views/starfish/colors';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/starfish/views/appStartup';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
-import {YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
-import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 interface Props {
   chartHeight?: number;
