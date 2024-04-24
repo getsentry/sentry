@@ -97,6 +97,7 @@ export enum DataCategoryExact {
   TRANSACTION_INDEXED = 'transaction_indexed',
   MONITOR = 'monitor',
   MONITOR_SEAT = 'monitorSeat',
+  METRICS = 'metrics',
 }
 
 export interface DataCategoryInfo {

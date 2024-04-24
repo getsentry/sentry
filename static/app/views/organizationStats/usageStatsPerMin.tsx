@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
@@ -75,6 +76,11 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
       getFormatUsageOptions(dataCategory)
     );
   };
+
+  // Metrics stats ingestion is delayed, so we can't show this for metrics right now
+  if (dataCategory === DATA_CATEGORY_INFO.metrics.plural) {
+    return null;
+  }
 
   return (
     <Wrapper>
