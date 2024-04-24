@@ -359,8 +359,8 @@ function UsageChartBody({
   const theme = useTheme();
   const organization = useOrganization();
 
-  const options = useMemo(() => {
-    return options.filter(option => {
+  const filteredOptions = useMemo(() => {
+    return categoryOptions.filter(option => {
       if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
         return true;
       }
@@ -368,7 +368,7 @@ function UsageChartBody({
         hasCustomMetrics(organization) && organization.features.includes('metrics-stats')
       );
     });
-  }, [organization]);
+  }, [organization, categoryOptions]);
 
   if (isLoading) {
     return (
@@ -400,7 +400,7 @@ function UsageChartBody({
     xAxisLabelInterval,
     yAxisMinInterval,
   } = chartMetadata({
-    categoryOptions,
+    categoryOptions: filteredOptions,
     dataCategory,
     handleDataTransformation: handleDataTransformation!,
     usageStats,
