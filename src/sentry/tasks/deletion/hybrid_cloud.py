@@ -302,7 +302,7 @@ def _get_model_ids_for_tombstone_cascade(
     watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
     """
-    Queries the database or databases if spanning multiple), and returns
+    Queries the database or databases if spanning multiple, and returns
      a tuple with a list of row IDs to delete, and the oldest
      tombstone timestamp for the batch.
 

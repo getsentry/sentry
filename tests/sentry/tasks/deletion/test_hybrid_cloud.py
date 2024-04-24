@@ -357,7 +357,7 @@ def test_get_ids_for_tombstone_cascade_cross_db(task_runner):
 @region_silo_test
 def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(task_runner):
     cascade_data = []
-    for i in range(4):
+    for i in range(3):
         cascade_data.append(setup_cross_db_deletion_data())
 
     unaffected_data = []
@@ -391,6 +391,14 @@ def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(task_runner):
         (
             {"low": in_order_tombstones[2].id + 1, "up": in_order_tombstones[2].id + 5},
             [],
+        ),
+        (
+            {"low": -1, "up": in_order_tombstones[2].id + 1},
+            [
+                cascade_data[0]["monitor"].id,
+                cascade_data[1]["monitor"].id,
+                cascade_data[2]["monitor"].id,
+            ],
         ),
     ]
 
