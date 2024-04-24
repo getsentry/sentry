@@ -37,13 +37,9 @@ class RuleNodeField(serializers.Field):
         if "id" not in data:
             raise ValidationError("Missing attribute 'id'")
 
-        data_to_remove = []
-        for key, value in data.items():
+        for key, value in list(data.items()):
             if not value:
-                data_to_remove.append(key)
-
-        for rm_data in data_to_remove:
-            del data[rm_data]
+                del data[key]
 
         cls = rules.get(data["id"], self.type_name)
         if cls is None:
