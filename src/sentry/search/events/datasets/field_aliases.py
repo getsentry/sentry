@@ -110,11 +110,13 @@ def resolve_span_module(builder: builder.QueryBuilder, alias: str) -> SelectType
                         "cache",
                         "db",
                         "http",
+                        "queue",
                     ],
                     [
                         "cache",
                         "db",
                         "http",
+                        "queue",
                     ],
                     "other",
                 ],

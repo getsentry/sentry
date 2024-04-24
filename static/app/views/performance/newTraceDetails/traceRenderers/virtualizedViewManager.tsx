@@ -756,7 +756,7 @@ export class VirtualizedViewManager {
     // Holding shift key allows for horizontal scrolling
     const distance = event.shiftKey ? event.deltaY : event.deltaX;
 
-    if (Math.abs(event.deltaX) !== 0) {
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
       // Prevents firing back/forward navigation
       event.preventDefault();
     } else {
@@ -1452,23 +1452,30 @@ export class VirtualizedViewManager {
         options.span_list_width;
       this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
       const new_indicator_container_width = options.span_list_width - correction;
+
       if (this.last_indicator_width !== new_indicator_container_width) {
         this.indicator_container.style.width = new_indicator_container_width * 100 + '%';
         this.last_indicator_width = new_indicator_container_width;
       }
     }
 
+    const dividerPosition =
+      Math.round(
+        (options.list_width *
+          (this.container_physical_space.width - this.scrollbar_width) -
+          DIVIDER_WIDTH / 2 -
+          1) *
+          10
+      ) / 10;
+
+    if (this.horizontal_scrollbar_container) {
+      this.horizontal_scrollbar_container.style.width =
+        (dividerPosition / this.container_physical_space.width) * 100 + '%';
+    }
+
     if (this.divider) {
       this.divider.style.transform = `translate(
-        ${
-          Math.round(
-            (options.list_width *
-              (this.container_physical_space.width - this.scrollbar_width) -
-              DIVIDER_WIDTH / 2 -
-              1) *
-              10
-          ) / 10
-        }px, 0)`;
+        ${dividerPosition}px, 0)`;
     }
   }
   last_list_column_width = 0;

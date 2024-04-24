@@ -656,9 +656,7 @@ def build_span_query(trace_id, spans_params, query_spans):
     parents_query = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         spans_params,
-        # This is a hack so the later span_id condition is put into the PREWHERE instead of the trace_id
-        # we do this because from experimentation we know that span ids in the PREWHERE is about 3x faster
-        query=f"(trace:{trace_id} or trace:{trace_id})",
+        query=f"trace:{trace_id}",
         selected_columns=[
             "transaction.id",
             "span_id",

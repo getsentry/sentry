@@ -460,6 +460,9 @@ source: tests/sentry/backup/test_comparators.py
     - doc_integration
   model_name: sentry.docintegrationavatar
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
   - class: EmailObfuscatingComparator
     fields:
     - email

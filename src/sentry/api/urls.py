@@ -3161,12 +3161,12 @@ urlpatterns = [
         name="sentry-api-0-doc-integrations",
     ),
     re_path(
-        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/$",
+        r"^doc-integrations/(?P<doc_integration_id_or_slug>[^\/]+)/$",
         DocIntegrationDetailsEndpoint.as_view(),
         name="sentry-api-0-doc-integration-details",
     ),
     re_path(
-        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/avatar/$",
+        r"^doc-integrations/(?P<doc_integration_id_or_slug>[^\/]+)/avatar/$",
         DocIntegrationAvatarEndpoint.as_view(),
         name="sentry-api-0-doc-integration-avatar",
     ),
