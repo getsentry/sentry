@@ -203,8 +203,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
         height: 0,
       };
 
-      const initialSize =
-        props.trace_state.preferences.layout === 'drawer bottom'
+      const initialSize = props.trace_state.preferences.drawer.minimized
+        ? 0
+        : props.trace_state.preferences.layout === 'drawer bottom'
           ? height * initialSizeInPercentage
           : width * initialSizeInPercentage;
 
