@@ -23,6 +23,23 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/performance/screenload/screens/platformSelector';
+import {ScreensBarChart} from 'sentry/views/performance/screenload/screens/screenBarChart';
+import {
+  ScreensTable,
+  useTableQuery,
+} from 'sentry/views/performance/screenload/screens/screensTable';
+import {SETUP_CONTENT} from 'sentry/views/performance/screenload/screens/setupContent';
+import {TabbedCodeSnippet} from 'sentry/views/performance/screenload/screens/tabbedCodeSnippets';
+import {
+  isCrossPlatform,
+  transformReleaseEvents,
+} from 'sentry/views/performance/screenload/screens/utils';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
@@ -30,23 +47,6 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/starfish/views/screens/platformSelector';
-import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
-import {
-  ScreensTable,
-  useTableQuery,
-} from 'sentry/views/starfish/views/screens/screensTable';
-import {SETUP_CONTENT} from 'sentry/views/starfish/views/screens/setupContent';
-import {TabbedCodeSnippet} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
-import {
-  isCrossPlatform,
-  transformReleaseEvents,
-} from 'sentry/views/starfish/views/screens/utils';
 
 export enum YAxis {
   WARM_START = 0,

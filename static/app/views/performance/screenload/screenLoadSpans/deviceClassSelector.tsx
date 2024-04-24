@@ -5,7 +5,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
+import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
 
 interface Props {
   clearSpansTableCursor?: boolean;

@@ -6,12 +6,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ScreensView, YAxis} from 'sentry/views/performance/screenload/screens';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
-import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
 
 export default function ResponsivenessModule() {
   const organization = useOrganization();

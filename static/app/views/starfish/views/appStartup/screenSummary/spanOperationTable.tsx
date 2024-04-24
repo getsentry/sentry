@@ -24,6 +24,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
+import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -38,8 +40,6 @@ import {
   WARM_START_TYPE,
 } from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;

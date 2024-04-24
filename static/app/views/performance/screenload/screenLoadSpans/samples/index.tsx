@@ -14,9 +14,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {ScreenLoadSampleContainer} from 'sentry/views/performance/screenload/screenLoadSpans/samples/samplesContainer';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {ScreenLoadSampleContainer} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples/samplesContainer';
 
 type Props = {
   groupId: string;

@@ -4,8 +4,8 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 
 export const COLD_START_TYPE = 'cold';
 export const WARM_START_TYPE = 'warm';

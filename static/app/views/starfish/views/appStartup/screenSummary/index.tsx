@@ -20,6 +20,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {MetricsRibbon} from 'sentry/views/performance/screenload/screenLoadSpans/metricsRibbon';
+import {ScreenLoadSpanSamples} from 'sentry/views/performance/screenload/screenLoadSpans/samples';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -32,8 +34,6 @@ import {
   StartTypeSelector,
 } from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
-import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 
 import AppStartWidgets from './widgets';
 
