@@ -547,6 +547,9 @@ def test_create_feedback_spam_detection_adds_field(
                 == GroupStatus.RESOLVED
             )
 
+        if not (expected_result and feature_flag):
+            assert mock_produce_occurrence_to_kafka.call_count == 1
+
 
 @django_db_all
 def test_create_feedback_spam_detection_option_false(
