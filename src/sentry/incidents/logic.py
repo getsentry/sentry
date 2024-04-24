@@ -780,6 +780,7 @@ def update_alert_rule(
         updated_query_fields["resolution"] = timedelta(minutes=resolution)
         updated_fields["comparison_delta"] = comparison_delta
 
+    # Update the resolution if we changed the time_window but not the comparison_delta, and there was a previous comparison_delta set.
     if time_window and comparison_delta is NOT_SET and alert_rule.comparison_delta is not None:
         resolution = (
             get_alert_resolution(time_window, organization=alert_rule.organization)
