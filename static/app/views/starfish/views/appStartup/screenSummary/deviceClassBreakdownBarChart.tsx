@@ -19,6 +19,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/screenload/screens';
+import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
+import {transformDeviceClassEvents} from 'sentry/views/performance/screenload/screens/utils';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
@@ -31,9 +34,6 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/center
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
-import {YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {transformDeviceClassEvents} from 'sentry/views/starfish/views/screens/utils';
 
 const YAXES = [YAxis.COLD_START, YAxis.WARM_START];
 const XAXIS_CATEGORIES = ['high', 'medium', 'low', 'Unknown'];

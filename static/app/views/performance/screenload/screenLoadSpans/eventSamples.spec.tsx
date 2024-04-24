@@ -4,12 +4,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {ScreenLoadEventSamples} from 'sentry/views/performance/screenload/screenLoadSpans/eventSamples';
 import {
   MobileCursors,
   MobileSortKeys,
-} from 'sentry/views/starfish/views/screens/constants';
-import {ScreenLoadEventSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamples';
+} from 'sentry/views/performance/screenload/screens/constants';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/views/starfish/queries/useReleases');

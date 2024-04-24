@@ -11,8 +11,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import PageloadModule from 'sentry/views/starfish/modules/mobile/pageload';
-import {PLATFORM_LOCAL_STORAGE_KEY} from 'sentry/views/starfish/views/screens/platformSelector';
+import PageloadModule from 'sentry/views/performance/screenload';
+import {PLATFORM_LOCAL_STORAGE_KEY} from 'sentry/views/performance/screenload/screens/platformSelector';
 
 jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/views/performance/browser/webVitals/utils/useOnboardingProject');

@@ -22,11 +22,11 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {PlatformCompatibilityChecker} from 'sentry/views/performance/platformCompatibilityChecker';
+import {ScreensView, YAxis} from 'sentry/views/performance/screenload/screens';
+import {PlatformSelector} from 'sentry/views/performance/screenload/screens/platformSelector';
+import {isCrossPlatform} from 'sentry/views/performance/screenload/screens/utils';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
-import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
-import {PlatformSelector} from 'sentry/views/starfish/views/screens/platformSelector';
-import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 export default function PageloadModule() {
   const organization = useOrganization();

@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
+import {MetricsRibbon} from 'sentry/views/performance/screenload/screenLoadSpans/metricsRibbon';
 
 jest.mock('sentry/utils/usePageFilters');
 

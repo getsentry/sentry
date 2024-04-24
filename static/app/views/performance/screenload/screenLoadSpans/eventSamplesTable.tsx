@@ -26,7 +26,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/deviceClassSelector';
+import {DeviceClassSelector} from 'sentry/views/performance/screenload/screenLoadSpans/deviceClassSelector';
 
 type Props = {
   columnNameMap: Record<string, string>;

@@ -5,8 +5,8 @@ import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {YAxis} from 'sentry/views/starfish/views/screens';
-import {YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
+import type {YAxis} from 'sentry/views/performance/screenload/screens';
+import {YAXIS_COLUMNS} from 'sentry/views/performance/screenload/screens';
 
 export function isCrossPlatform(project: Project) {
   return project.platform && ['react-native', 'flutter'].includes(project.platform);

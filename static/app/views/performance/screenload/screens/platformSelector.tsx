@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import localStorage from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
+import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
 
 export const PLATFORM_LOCAL_STORAGE_KEY = 'mobile-performance-platform';
 export const PLATFORM_QUERY_PARAM = 'platform';

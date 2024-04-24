@@ -1608,14 +1608,12 @@ function buildRoutes() {
       <Route path="mobile/">
         <Route path="screens/">
           <IndexRoute
-            component={make(
-              () => import('sentry/views/starfish/modules/mobile/pageload')
-            )}
+            component={make(() => import('sentry/views/performance/screenload'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+              () => import('sentry/views/performance/screenload/screenLoadSpans')
             )}
           />
         </Route>

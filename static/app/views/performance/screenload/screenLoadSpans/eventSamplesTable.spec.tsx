@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
+import {EventSamplesTable} from 'sentry/views/performance/screenload/screenLoadSpans/eventSamplesTable';
 
 describe('EventSamplesTable', function () {
   let mockLocation, mockQuery: NewQuery, mockEventView;

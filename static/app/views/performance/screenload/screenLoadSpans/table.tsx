@@ -29,6 +29,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
+  SpanOpSelector,
+  TTID_CONTRIBUTING_SPAN_OPS,
+} from 'sentry/views/performance/screenload/screenLoadSpans/spanOpSelector';
+import {MobileCursors} from 'sentry/views/performance/screenload/screens/constants';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/performance/screenload/screens/platformSelector';
+import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
+import {isCrossPlatform} from 'sentry/views/performance/screenload/screens/utils';
+import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
@@ -38,18 +50,6 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/starfish/views/screens/platformSelector';
-import {
-  SpanOpSelector,
-  TTID_CONTRIBUTING_SPAN_OPS,
-} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
