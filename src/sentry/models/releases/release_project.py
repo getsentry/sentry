@@ -15,6 +15,7 @@ from sentry.db.models import (
     region_silo_only_model,
 )
 from sentry.db.models.manager import BaseManager
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -46,17 +47,15 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     ) -> list[QuerySubscription]:
         """
         TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
-        NOTE: import AlertRule model here to avoid circular dependency
-        TODO: move once AlertRule has been split into separate subdirectory files
         """
-        from sentry.incidents.models.alert_rule import AlertRule
-
         query_extra = f"release:{release.version} AND event.timestamp:>{timezone.now().isoformat()}"
+        activation_reason = f"Release {release.version} created"
         return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
             project=project,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
             query_extra=query_extra,
-            trigger=trigger,
+            origin=trigger,
+            activation_reason=activation_reason,
         )
 
     def post_save(self, instance, created, **kwargs):

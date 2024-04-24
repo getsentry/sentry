@@ -1001,6 +1001,8 @@ def create_alert_rule_activation(
     metric_value: int | None = None,
     finished_at: datetime | None = None,
 ):
+    # NOTE: only utilized in tests
+    # use AlertRule.subscribe_projects to properly create an activation
     with transaction.atomic(router.db_for_write(AlertRuleActivations)):
         activation = AlertRuleActivations.objects.create(
             alert_rule=alert_rule,

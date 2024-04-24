@@ -146,7 +146,8 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         project: Project,
         activation_condition: AlertRuleActivationConditionType,
         query_extra: str,
-        trigger: str,
+        origin: str,
+        activation_reason: str,
     ) -> list[QuerySubscription]:
         """
         Subscribes a project to an alert rule given activation condition
@@ -167,7 +168,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     logger.info(
                         "Attempt subscribe project to activated alert rule",
                         extra={
-                            "trigger": trigger,
+                            "origin": origin,
                             "query_extra": query_extra,
                             "condition": activation_condition,
                         },
@@ -178,6 +179,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                             projects=[project],
                             monitor_type=AlertRuleMonitorType.ACTIVATED,
                             query_extra=query_extra,
+                            activation_reason=activation_reason,
                         )
                     )
             return created_subscriptions
@@ -185,7 +187,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
             logger.exception(
                 "Failed to subscribe project to activated alert rule",
                 extra={
-                    "trigger": trigger,
+                    "origin": origin,
                     "exception": e,
                 },
             )
@@ -271,6 +273,7 @@ class AlertRule(Model):
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
+    # NOTE: not currently utilized/surfaced
     threshold_period = models.IntegerField()
     # This represents a time delta, in seconds. If not null, this is used to determine which time
     # window to query to compare the result from the current time_window to.
@@ -340,6 +343,9 @@ class AlertRule(Model):
         projects: list[Project],
         monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
         query_extra: str | None = None,
+        activation_reason: (
+            str | None
+        ) = None,  # short string descriptor of the specific activation condition met to create the instance (eg. "Release xyz created")
     ) -> list[QuerySubscription]:
         """
         Subscribes a list of projects to the alert rule instance
@@ -368,10 +374,14 @@ class AlertRule(Model):
             if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
                 # NOTE: Activated Alert Rules are conditionally subscribed
                 # Meaning at time of subscription, the rule has been activated
+                if not activation_reason:
+                    raise Exception("Activated alert activations require an activation reason")
+
                 for subscription in created_subscriptions:
                     AlertRuleActivations.objects.create(
                         alert_rule=self,
                         query_subscription=subscription,
+                        activation_reason=activation_reason,
                     )
 
         return created_subscriptions

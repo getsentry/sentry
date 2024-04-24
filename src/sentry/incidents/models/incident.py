@@ -380,6 +380,7 @@ class IncidentTriggerManager(BaseManager["IncidentTrigger"]):
 class IncidentTrigger(Model):
     """
     An instance of an alert rule trigger (eg. each time the rule hits the trigger threshold, we create an incident trigger)
+    NOTE: dissimilar to an AlertRuleTrigger which represents the trigger threshold required to initialize an Incident
     """
 
     __relocation_scope__ = RelocationScope.Organization
