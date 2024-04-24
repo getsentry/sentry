@@ -4,7 +4,13 @@ import styled from '@emotion/styled';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/utils';
+import {QueryBuilderFocusType} from 'sentry/components/searchQueryBuilder/types';
+import {
+  focusIsWithinToken,
+  formatFilterValue,
+  getValidOpsForFilter,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   TermOperator,
   type Token,
@@ -86,12 +92,29 @@ function FilterKey({token}: SearchQueryTokenProps) {
 }
 
 function FilterValue({token}: SearchQueryTokenProps) {
-  // TODO(malwilley): Add edit functionality
+  const {focus, dispatch} = useSearchQueryBuilder();
+  const isFocused =
+    focus?.type === QueryBuilderFocusType.FILTER_VALUE &&
+    focusIsWithinToken(focus, token);
+  const isEditing = isFocused && focus.editing;
+
+  if (isEditing) {
+    return (
+      <ValueDiv>
+        <SearchQueryBuilderValueCombobox token={token} />
+      </ValueDiv>
+    );
+  }
 
   return (
-    <ValueDiv tabIndex={-1} role="gridcell" aira-label={t('Edit token value')}>
+    <ValueDiv
+      tabIndex={-1}
+      role="gridcell"
+      aria-label={t('Edit token value')}
+      onClick={() => dispatch({type: 'CLICK_TOKEN_VALUE', token})}
+    >
       <InteractionStateLayer />
-      {token.value.text}
+      {formatFilterValue(token)}
     </ValueDiv>
   );
 }

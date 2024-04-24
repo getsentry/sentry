@@ -372,8 +372,8 @@ const MetricSelect = styled(CompactSelect)`
 `;
 
 const OpSelect = styled(CompactSelect)`
-  width: 128px;
-  min-width: min-content;
+  /* makes selects from different have the same width which is enough to fit all agg options except "count_unique" */
+  min-width: 128px;
   & > button {
     width: 100%;
   }

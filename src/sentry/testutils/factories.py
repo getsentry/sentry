@@ -741,7 +741,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_repo(project, name=None, provider=None, integration_id=None, url=None):
+    def create_repo(
+        project, name=None, provider=None, integration_id=None, url=None, external_id=None
+    ):
         repo, _ = Repository.objects.get_or_create(
             organization_id=project.organization_id,
             name=name
@@ -749,6 +751,7 @@ class Factories:
             provider=provider,
             integration_id=integration_id,
             url=url,
+            external_id=external_id,
         )
         return repo
 

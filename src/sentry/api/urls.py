@@ -41,6 +41,8 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
     ReleaseThresholdStatusIndexEndpoint,
 )
 from sentry.api.endpoints.relocations.abort import RelocationAbortEndpoint
+from sentry.api.endpoints.relocations.artifacts.details import RelocationArtifactDetailsEndpoint
+from sentry.api.endpoints.relocations.artifacts.index import RelocationArtifactIndexEndpoint
 from sentry.api.endpoints.relocations.cancel import RelocationCancelEndpoint
 from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
 from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
@@ -863,6 +865,16 @@ RELOCATION_URLS = [
         r"^(?P<relocation_uuid>[^\/]+)/unpause/$",
         RelocationUnpauseEndpoint.as_view(),
         name="sentry-api-0-relocations-unpause",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/artifacts/$",
+        RelocationArtifactIndexEndpoint.as_view(),
+        name="sentry-api-0-relocations-artifacts-index",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/artifacts/(?P<artifact_kind>[^\/]+)/(?P<file_name>[^\/]+)$",
+        RelocationArtifactDetailsEndpoint.as_view(),
+        name="sentry-api-0-relocations-artifacts-details",
     ),
 ]
 
@@ -1955,7 +1967,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sentry-functions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_slug>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_id_or_slug>[^\/]+)/$",
         OrganizationSentryFunctionDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-function-details",
     ),
@@ -3149,12 +3161,12 @@ urlpatterns = [
         name="sentry-api-0-doc-integrations",
     ),
     re_path(
-        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/$",
+        r"^doc-integrations/(?P<doc_integration_id_or_slug>[^\/]+)/$",
         DocIntegrationDetailsEndpoint.as_view(),
         name="sentry-api-0-doc-integration-details",
     ),
     re_path(
-        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/avatar/$",
+        r"^doc-integrations/(?P<doc_integration_id_or_slug>[^\/]+)/avatar/$",
         DocIntegrationAvatarEndpoint.as_view(),
         name="sentry-api-0-doc-integration-avatar",
     ),

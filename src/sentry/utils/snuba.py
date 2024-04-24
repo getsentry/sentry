@@ -855,17 +855,6 @@ def raw_snql_query(
     return bulk_snuba_queries([request], referrer, use_cache)[0]
 
 
-def bulk_snql_query(
-    requests: list[Request],
-    referrer: str | None = None,
-    use_cache: bool = False,
-) -> ResultSet:
-    """
-    Alias for `bulk_snuba_queries`, kept for backwards compatibility.
-    """
-    return bulk_snuba_queries(requests, referrer, use_cache)
-
-
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,

@@ -1457,7 +1457,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
                 queries.append(request)
 
-        bulk_result = snuba.bulk_snql_query(
+        bulk_result = snuba.bulk_snuba_queries(
             queries, referrer="search.snuba.group_attributes_search.query"
         )
 
