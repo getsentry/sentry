@@ -394,16 +394,16 @@ function Sidebar() {
     />
   );
 
-  const aiAnalytics = hasOrganization && (
+  const aiMonitoring = hasOrganization && (
     <Feature features="ai-analytics" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconRobot />}
-        label={t('AI Analytics')}
+        label={t('AI Monitoring')}
         isAlpha
         variant="short"
-        to={`/organizations/${organization.slug}/ai-analytics/`}
-        id="ai-analytics"
+        to={`/organizations/${organization.slug}/ai-monitoring/`}
+        id="ai-monitoring"
       />
     </Feature>
   );
@@ -573,7 +573,7 @@ function Sidebar() {
                   {profiling}
                   {metrics}
                   {replays}
-                  {aiAnalytics}
+                  {aiMonitoring}
                   {feedback}
                   {monitors}
                   {alerts}

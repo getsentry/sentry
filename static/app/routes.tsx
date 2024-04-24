@@ -1492,12 +1492,14 @@ function buildRoutes() {
     </Route>
   );
 
-  const aiAnalyticsRoutes = (
-    <Route path="/ai-analytics/" withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
+  const aiMonitoringRoutes = (
+    <Route path="/ai-monitoring/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/aiMonitoring/landing'))} />
       <Route
         path="pipeline-type/:groupId/"
-        component={make(() => import('sentry/views/aiAnalytics/aiAnalyticsDetailsPage'))}
+        component={make(
+          () => import('sentry/views/aiMonitoring/aiMonitoringDetailsPage')
+        )}
       />
     </Route>
   );
@@ -2186,7 +2188,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
-      {aiAnalyticsRoutes}
+      {aiMonitoringRoutes}
       {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}
