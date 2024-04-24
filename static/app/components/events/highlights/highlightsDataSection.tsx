@@ -22,6 +22,7 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -62,10 +63,9 @@ export default function HighlightsDataSection({
   const highlightTags = detailedProject?.highlightTags ?? [];
 
   // The API will return default values for tags/context. The only way to have none is to set it to
-  // empty yourself, meaning the user does not want this section to appear.
-  if (Object.keys(highlightContext).length === 0 && highlightTags.length === 0) {
-    return null;
-  }
+  // empty yourself, meaning the user has disabled highlights
+  const hasDisabledHighlights =
+    Object.values(highlightContext).flat().length === 0 && highlightTags.length === 0;
 
   const viewAllButton = viewAllRef ? (
     <Button
@@ -121,6 +121,21 @@ export default function HighlightsDataSection({
     );
   }
 
+  function openEditHighlightsModal() {
+    openModal(
+      deps => (
+        <EditHighlightsModal
+          event={event}
+          highlightContext={highlightContext}
+          highlightTags={highlightTags}
+          project={detailedProject ?? project}
+          {...deps}
+        />
+      ),
+      {modalCss: highlightModalCss, onClose: refetch}
+    );
+  }
+
   return (
     <EventDataSection
       title={t('Event Highlights')}
@@ -129,31 +144,29 @@ export default function HighlightsDataSection({
       actions={
         <ButtonBar gap={1}>
           {viewAllButton}
-          <Button
-            size="xs"
-            icon={<IconEdit />}
-            onClick={() =>
-              openModal(
-                deps => (
-                  <EditHighlightsModal
-                    event={event}
-                    highlightContext={highlightContext}
-                    highlightTags={highlightTags}
-                    project={detailedProject ?? project}
-                    {...deps}
-                  />
-                ),
-                {modalCss: highlightModalCss, onClose: refetch}
-              )
-            }
-          >
+          <Button size="xs" icon={<IconEdit />} onClick={openEditHighlightsModal}>
             {t('Edit')}
           </Button>
         </ButtonBar>
       }
     >
       <HighlightContainer columnCount={columnCount} ref={containerRef}>
-        {isLoading ? null : columns}
+        {isLoading ? (
+          <EmptyHighlights>
+            <HighlightsLoadingIndicator hideMessage size={50} />
+          </EmptyHighlights>
+        ) : hasDisabledHighlights ? (
+          <EmptyHighlights>
+            <EmptyHighlightsContent>
+              {t("There's nothing here...")}
+              <AddHighlightsButton size="xs" onClick={openEditHighlightsModal}>
+                {t('Add Highlights')}
+              </AddHighlightsButton>
+            </EmptyHighlightsContent>
+          </EmptyHighlights>
+        ) : (
+          columns
+        )}
       </HighlightContainer>
     </EventDataSection>
   );
@@ -162,6 +175,32 @@ export default function HighlightsDataSection({
 const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
   margin-top: 0;
   margin-bottom: ${space(2)};
+`;
+
+const EmptyHighlights = styled('div')`
+  padding: ${space(2)} ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px dashed ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.bodyBackground};
+  grid-column: 1 / -1;
+  display: flex;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
+
+const EmptyHighlightsContent = styled('div')`
+  text-align: center;
+`;
+
+const HighlightsLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0 auto;
+`;
+
+const AddHighlightsButton = styled(Button)`
+  display: block;
+  margin: ${space(1)} auto 0;
 `;
 
 const HighlightColumn = styled(TreeColumn)`

@@ -309,11 +309,18 @@ export default function EditHighlightsModal({
             setHighlightTags(highlightTags.filter(tag => tag !== tagKey))
           }
           onRemoveContextKey={(contextType, contextKey) =>
-            setHighlightContext({
-              ...highlightContext,
-              [contextType]: (highlightContext[contextType] ?? []).filter(
+            setHighlightContext(() => {
+              const {[contextType]: highlightContextKeys, ...newHighlightContext} =
+                highlightContext;
+              const newHighlightContextKeys = (highlightContextKeys ?? []).filter(
                 key => key !== contextKey
-              ),
+              );
+              return newHighlightContextKeys.length === 0
+                ? newHighlightContext
+                : {
+                    ...newHighlightContext,
+                    [contextType]: newHighlightContextKeys,
+                  };
             })
           }
           project={project}
@@ -408,7 +415,7 @@ const EditHighlightColumn = styled('div')`
 
 const EditPreviewColumn = styled(EditHighlightColumn)`
   display: grid;
-  grid-template-columns: 22px auto 1fr;
+  grid-template-columns: 22px minmax(auto, 175px) 1fr;
   column-gap: 0;
   button {
     margin-right: ${space(0.25)};
@@ -418,9 +425,6 @@ const EditPreviewColumn = styled(EditHighlightColumn)`
 const EditPreviewContextItem = styled(ContextCardContent)`
   font-size: ${p => p.theme.fontSizeSmall};
   grid-column: span 2;
-  .ctx-row-value {
-    grid-column: span 1;
-  }
   &:nth-child(4n-2) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
