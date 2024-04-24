@@ -27,11 +27,25 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="alertruleactivations",
-            name="activation_reason",
-            field=models.CharField(default="test", max_length=100),
-            preserve_default=False,
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "activation_reason" VARCHAR(32) NOT NULL DEFAULT 'test;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_alertruleactivations" DROP COLUMN "activation_reason";
+                    """,
+                    hints={"tables": ["sentry_alertruleactivations"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="alertruleactivations",
+                    name="activation_reason",
+                    field=models.CharField(default="test", max_length=100),
+                ),
+            ],
         ),
         migrations.AddField(
             model_name="incident",
