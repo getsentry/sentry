@@ -248,6 +248,15 @@ class ProjectDetailsTest(APITestCase):
 
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
+    def test_highlight_preset(self):
+        assert self.project.get_option("sentry:highlight_context") is None
+        assert self.project.get_option("sentry:highlight_tags") is None
+        resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+        expected_preset = get_highlight_preset_for_project(self.project)
+        assert resp.data["highlightPreset"] == expected_preset
+        assert resp.data["highlightContext"] == expected_preset["context"]
+        assert resp.data["highlightTags"] == expected_preset["tags"]
+
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
