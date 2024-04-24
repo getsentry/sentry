@@ -14,7 +14,7 @@ jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useProjects');
 
 describe('destinationSummaryPage', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['performance-queues-view']});
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
