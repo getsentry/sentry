@@ -7,7 +7,6 @@ from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_regis
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules import rules
-from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import BaseEventFrequencyCondition, ComparisonType
 from sentry.rules.processing.processor import is_condition_slow, split_conditions_and_filters
 from sentry.silo.base import SiloMode
@@ -61,8 +60,12 @@ def get_rules_to_groups(rulegroup_to_events: list[dict[str, str]]) -> DefaultDic
     return rules_to_groups
 
 
-def get_rule_to_slow_conditions(alert_rules: list[Rule]) -> DefaultDict[Rule, list[dict[str, Any]]]:
-    rule_to_slow_conditions: DefaultDict[Rule, list[dict[str, Any]]] = defaultdict(list)
+def get_rule_to_slow_conditions(
+    alert_rules: list[Rule],
+) -> DefaultDict[Rule, list[MutableMapping[str, str] | None]]:
+    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str] | None]] = defaultdict(
+        list
+    )
     for rule in alert_rules:
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
@@ -115,10 +118,8 @@ def get_condition_group_results(
             logger.warning("Unregistered condition %r", unique_condition.cls_id)
             return None
 
-        condition_inst: BaseEventFrequencyCondition = condition_cls(
-            project=project, data=condition_data
-        )
-        if not isinstance(condition_inst, EventCondition):
+        condition_inst = condition_cls(project=project, data=condition_data)
+        if not isinstance(condition_inst, BaseEventFrequencyCondition):
             logger.warning("Unregistered condition %r", condition_cls.id)
             return None
 
@@ -142,24 +143,25 @@ def get_condition_group_results(
 
 def get_rules_to_fire(
     condition_group_results: dict[UniqueCondition, dict[int, int]],
-    rule_to_slow_conditions: DefaultDict[Rule, list[dict[str, Any]]],
+    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str] | None]],
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rule_to_slow_conditions.items():
         for slow_condition in slow_conditions:
-            condition_id = slow_condition.get("id")
-            condition_interval = slow_condition.get("interval")
-            target_value = int(str(slow_condition.get("value")))
-            for condition_data, results in condition_group_results.items():
-                if (
-                    alert_rule.environment_id == condition_data.environment_id
-                    and condition_id == condition_data.cls_id
-                    and condition_interval == condition_data.interval
-                ):
-                    for group_id in rules_to_groups[alert_rule.id]:
-                        if results[group_id] > target_value:
-                            rules_to_fire[alert_rule].add(group_id)
+            if slow_condition:
+                condition_id = slow_condition.get("id")
+                condition_interval = slow_condition.get("interval")
+                target_value = int(str(slow_condition.get("value")))
+                for condition_data, results in condition_group_results.items():
+                    if (
+                        alert_rule.environment_id == condition_data.environment_id
+                        and condition_id == condition_data.cls_id
+                        and condition_interval == condition_data.interval
+                    ):
+                        for group_id in rules_to_groups[alert_rule.id]:
+                            if results[group_id] > target_value:
+                                rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
 
 
@@ -182,7 +184,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project: Project, buffer: RedisBuffer) -> DefaultDict[Rule, list[int]] | None:
+def apply_delayed(project: Project, buffer: RedisBuffer) -> DefaultDict[Rule, set[int]] | None:
     # XXX(CEO) this is a temporary return value!
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
