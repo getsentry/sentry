@@ -74,6 +74,7 @@ from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
+    UnqualifiedQueryError,
     is_duration_measurement,
     is_measurement,
     is_numeric_measurement,
@@ -583,17 +584,17 @@ class BaseQueryBuilder:
         if self.end:
             conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
-        # The clause will prevent calling Snuba with an empty list of projects, thus, returning
-        # no data. It will not instead complain with:
-        # sentry.utils.snuba.UnqualifiedQueryError: validation failed for entity events: missing required conditions for project_id
-        if self.params.project_ids:
-            conditions.append(
-                Condition(
-                    self.column("project_id"),
-                    Op.IN,
-                    self.params.project_ids,
-                )
+        # This will prevent calling Snuba with an empty list of projects, thus, returning no data.
+        if not self.params.project_ids:
+            raise UnqualifiedQueryError("You need to specify at least one project.")
+
+        conditions.append(
+            Condition(
+                self.column("project_id"),
+                Op.IN,
+                self.params.project_ids,
             )
+        )
 
         if len(self.params.environments) > 0:
             term = event_search.SearchFilter(

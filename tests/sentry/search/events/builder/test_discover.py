@@ -68,7 +68,7 @@ class QueryBuilderTest(TestCase):
         )
         query.get_snql_query().validate()
 
-    def test_query_without_project_ids(self):
+    def test_project_ids_missing(self):
         params: ParamsType = {
             "start": self.params["start"],
             "end": self.params["end"],
@@ -78,7 +78,7 @@ class QueryBuilderTest(TestCase):
             query = QueryBuilder(Dataset.Discover, params, query="foo", selected_columns=["id"])
             bulk_snuba_queries([query.get_snql_query()], referrer=Referrer.TESTING_TEST.value)
 
-    def test_query_with_empty_project_ids(self):
+    def test_project_ids_with_empty_list(self):
         params: ParamsType = {
             "start": self.params["start"],
             "end": self.params["end"],

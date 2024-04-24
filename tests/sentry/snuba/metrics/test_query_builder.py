@@ -5,6 +5,7 @@ import types
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from unittest import TestCase as UnitTestCase
 from unittest import mock
 
 import pytest
@@ -27,6 +28,8 @@ from snuba_sdk import (
 )
 
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -79,6 +82,13 @@ pytestmark = pytest.mark.sentry_metrics
 
 def PseudoProject(organization_id: int, id: int) -> Any:  # TODO: use real projects
     return types.SimpleNamespace(organization_id=organization_id, id=id, slug="project-slug")
+
+
+@pytest.fixture
+def project():
+    org = Organization.objects.create(id=1, slug="org-1")
+    project = Project.objects.create(id=1, slug="project-1", organization_id=org.id)
+    yield project
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)
@@ -247,7 +257,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         ),
     ],
 )
-def test_parse_conditions(query_string, expected):
+def test_parse_conditions(query_string, expected, project):
     org_id = ORG_ID
     use_case_id = UseCaseID.SESSIONS
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
@@ -256,7 +266,7 @@ def test_parse_conditions(query_string, expected):
     parsed = resolve_tags(
         use_case_id,
         org_id,
-        parse_conditions(query_string, [], []),
+        parse_conditions(query_string, [project], []),
         [],
     )
     assert parsed == expected()
@@ -347,9 +357,10 @@ def test_timestamps():
     assert interval == 12 * 60 * 60
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query(mock_now, mock_now2):
+def test_build_snuba_query(mock_now, mock_now2, project):
     # Your typical release health query querying everything
     having = [Condition(Column("sum"), Op.GT, 1000)]
     query_definition = MetricsQuery(
@@ -368,7 +379,7 @@ def test_build_snuba_query(mock_now, mock_now2):
         having=having,
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseID.SESSIONS
+        [project], query_definition, use_case_id=UseCaseID.SESSIONS
     ).get_snuba_queries()
 
     org_id = 1
@@ -482,7 +493,7 @@ def test_build_snuba_query(mock_now, mock_now2):
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_mri(mock_now, mock_now2):
+def test_build_snuba_query_mri(mock_now, mock_now2, project):
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -501,10 +512,8 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
     TOTALS_LIMIT = MAX_POINTS // NUM_INTERVALS
     SERIES_LIMIT = TOTALS_LIMIT * NUM_INTERVALS
 
-    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params, allow_mri=True)
-    query_builder = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition.to_metrics_query(), use_case_id
-    )
+    query_definition = QueryDefinition([project], query_params, allow_mri=True)
+    query_builder = SnubaQueryBuilder([project], query_definition.to_metrics_query(), use_case_id)
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
 
     assert fields_in_entities == {
@@ -565,7 +574,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
+def test_build_snuba_query_derived_metrics(mock_now, mock_now2, project):
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -586,10 +595,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
     TOTALS_LIMIT = MAX_POINTS // NUM_INTERVALS
     SERIES_LIMIT = TOTALS_LIMIT * NUM_INTERVALS
 
-    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    query_builder = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition.to_metrics_query(), use_case_id
-    )
+    query_definition = QueryDefinition([project], query_params)
+    query_builder = SnubaQueryBuilder([project], query_definition.to_metrics_query(), use_case_id)
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
     assert fields_in_entities == {
         "metrics_counters": [
@@ -730,7 +737,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
 @django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query_orderby(mock_now, mock_now2):
+def test_build_snuba_query_orderby(mock_now, mock_now2, project):
     query_params = MultiValueDict(
         {
             "query": [
@@ -744,11 +751,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
             "per_page": ["2"],
         }
     )
-    query_definition = QueryDefinition(
-        [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
-    )
+    query_definition = QueryDefinition([project], query_params, paginator_kwargs={"limit": 3})
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition.to_metrics_query(), UseCaseID.SESSIONS
+        [project], query_definition.to_metrics_query(), UseCaseID.SESSIONS
     ).get_snuba_queries()
 
     org_id = 1
@@ -833,7 +838,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
 @django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
+def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, project):
     query_params = MultiValueDict(
         {
             "query": ["release:staging"],
@@ -844,11 +849,9 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             "per_page": ["2"],
         }
     )
-    query_definition = QueryDefinition(
-        [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
-    )
+    query_definition = QueryDefinition([project], query_params, paginator_kwargs={"limit": 3})
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)],
+        [project],
         query_definition.to_metrics_query(),
         UseCaseID.SESSIONS,
     ).get_snuba_queries()
@@ -953,7 +956,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
 @django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results_derived_metrics(_1, _2):
+def test_translate_results_derived_metrics(_1, _2, project):
     query_params: MultiValueDict[str, str] = MultiValueDict(
         {
             "groupBy": [],
@@ -966,7 +969,7 @@ def test_translate_results_derived_metrics(_1, _2):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([project], query_params)
     fields_in_entities = {
         "metrics_counters": [
             (
@@ -1075,8 +1078,8 @@ def test_translate_results_derived_metrics(_1, _2):
 @django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results_missing_slots(_1, _2):
-    org_id = 1
+def test_translate_results_missing_slots(_1, _2, project):
+    org = project.organization
     use_case_id = UseCaseID.SESSIONS
     query_params = MultiValueDict(
         {
@@ -1087,7 +1090,7 @@ def test_translate_results_missing_slots(_1, _2):
             "statsPeriod": ["3d"],
         }
     )
-    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([project], query_params)
     fields_in_entities = {
         "metrics_counters": [
             ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
@@ -1099,7 +1102,7 @@ def test_translate_results_missing_slots(_1, _2):
             "totals": {
                 "data": [
                     {
-                        "metric_id": resolve(use_case_id, org_id, SessionMRI.RAW_SESSION.value),
+                        "metric_id": resolve(use_case_id, org.id, SessionMRI.RAW_SESSION.value),
                         "sum(sentry.sessions.session)": 400,
                     },
                 ],
@@ -1107,13 +1110,13 @@ def test_translate_results_missing_slots(_1, _2):
             "series": {
                 "data": [
                     {
-                        "metric_id": resolve(use_case_id, org_id, SessionMRI.RAW_SESSION.value),
+                        "metric_id": resolve(use_case_id, org.id, SessionMRI.RAW_SESSION.value),
                         "bucketed_time": "2021-08-23T00:00Z",
                         "sum(sentry.sessions.session)": 100,
                     },
                     # no data for 2021-08-24
                     {
-                        "metric_id": resolve(use_case_id, org_id, SessionMRI.RAW_SESSION.value),
+                        "metric_id": resolve(use_case_id, org.id, SessionMRI.RAW_SESSION.value),
                         "bucketed_time": "2021-08-25T00:00Z",
                         "sum(sentry.sessions.session)": 300,
                     },
@@ -1126,7 +1129,7 @@ def test_translate_results_missing_slots(_1, _2):
         get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
     )
     assert SnubaResultConverter(
-        org_id,
+        org.id,
         query_definition.to_metrics_query(),
         fields_in_entities,
         intervals,
@@ -1303,6 +1306,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
     )
 
 
+@django_db_all
 @pytest.mark.parametrize(
     "select,groupby,usecase,error_string",
     [
@@ -1376,11 +1380,11 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
     ],
 )
 def test_only_can_groupby_operations_can_be_added_to_groupby(
-    select, groupby, usecase, error_string
+    select, groupby, usecase, error_string, project
 ):
     query_definition = MetricsQuery(
         org_id=1,
-        project_ids=[1],
+        project_ids=[project.id],
         select=select,
         start=MOCK_NOW - timedelta(days=90),
         end=MOCK_NOW,
@@ -1389,15 +1393,12 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
     )
     if error_string:
         with pytest.raises(InvalidParams, match=error_string):
-            snuba_queries, _ = SnubaQueryBuilder(
-                [PseudoProject(1, 1)], query_definition, use_case_id=usecase
-            ).get_snuba_queries()
+            SnubaQueryBuilder([project], query_definition, use_case_id=usecase).get_snuba_queries()
     else:
-        snuba_queries, _ = SnubaQueryBuilder(
-            [PseudoProject(1, 1)], query_definition, use_case_id=usecase
-        ).get_snuba_queries()
+        SnubaQueryBuilder([project], query_definition, use_case_id=usecase).get_snuba_queries()
 
 
+@django_db_all
 @pytest.mark.parametrize(
     "select,where,usecase,error_string",
     [
@@ -1474,7 +1475,9 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
         ),
     ],
 )
-def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase, error_string):
+def test_only_can_filter_operations_can_be_added_to_where(
+    select, where, usecase, error_string, project
+):
     query_definition = MetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -1487,11 +1490,11 @@ def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase
     if error_string:
         with pytest.raises(InvalidParams, match=error_string):
             snuba_queries, _ = SnubaQueryBuilder(
-                [PseudoProject(1, 1)], query_definition, use_case_id=usecase
+                [project], query_definition, use_case_id=usecase
             ).get_snuba_queries()
     else:
         snuba_queries, _ = SnubaQueryBuilder(
-            [PseudoProject(1, 1)], query_definition, use_case_id=usecase
+            [project], query_definition, use_case_id=usecase
         ).get_snuba_queries()
 
 
@@ -1563,7 +1566,7 @@ class QueryDefinitionTestCase(TestCase):
         ]
 
 
-class ResolveTagsTestCase(TestCase):
+class ResolveTagsTestCase(UnitTestCase):
     def setUp(self):
         self.org_id = ORG_ID
         self.use_case_id = UseCaseID.TRANSACTIONS
@@ -1950,6 +1953,7 @@ class ResolveTagsTestCase(TestCase):
             )
 
 
+@django_db_all
 @pytest.mark.parametrize(
     "op, clickhouse_op",
     [
@@ -1957,14 +1961,14 @@ class ResolveTagsTestCase(TestCase):
         ("max_timestamp", "maxIf"),
     ],
 )
-def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
+def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str, project):
     """
     Tests code generation for timestamp operators
     """
     org_id = 1
     query_definition = MetricsQuery(
         org_id=org_id,
-        project_ids=[1],
+        project_ids=[project.id],
         select=[
             MetricField(op=op, metric_mri=SessionMRI.RAW_SESSION.value, alias="ts"),
         ],
@@ -1973,11 +1977,9 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
         granularity=Granularity(3600),
     )
 
-    builder = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseID.SESSIONS
-    )
+    builder = SnubaQueryBuilder([project], query_definition, use_case_id=UseCaseID.SESSIONS)
 
-    snuba_queries, fields = builder.get_snuba_queries()
+    snuba_queries, _ = builder.get_snuba_queries()
     select = snuba_queries["metrics_counters"]["totals"].select
     assert len(select) == 1
     field = select[0]
@@ -2000,6 +2002,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
     assert field == expected_field
 
 
+@django_db_all
 @pytest.mark.parametrize(
     "include_totals, include_series",
     [
@@ -2008,7 +2011,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
         [False, True],
     ],
 )
-def test_having_clause(include_totals, include_series):
+def test_having_clause(include_totals, include_series, project):
     """
     Tests that the having clause ends up in the snql queries in the expected form
     """
@@ -2029,7 +2032,7 @@ def test_having_clause(include_totals, include_series):
         include_series=include_series,
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseID.SESSIONS
+        [project], query_definition, use_case_id=UseCaseID.SESSIONS
     ).get_snuba_queries()
 
     queries = snuba_queries["metrics_counters"]
