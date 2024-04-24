@@ -484,9 +484,14 @@ def get_alert_resolution(time_window: int, organization) -> int:
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
 
     if features.has("organizations:metric-alert-load-shedding", organization=organization):
-        resolution = DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS.get(
-            time_window, DEFAULT_ALERT_RULE_RESOLUTION
-        )
+        alert_resolution_windows = sorted(DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS.keys())
+        lower_bound = 0
+
+        for window in alert_resolution_windows:
+            if lower_bound < time_window <= window:
+                return DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[window]
+
+        return DEFAULT_ALERT_RULE_RESOLUTION
 
     return resolution
 
