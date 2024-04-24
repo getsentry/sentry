@@ -215,6 +215,13 @@ export function CacheSamplePanel() {
             <ModuleLayout.Full>
               <SpanSamplesTable
                 data={spansWithDuration ?? []}
+                meta={{
+                  fields: {
+                    'transaction.duration': 'duration',
+                    [SpanIndexedField.CACHE_ITEM_SIZE]: 'size',
+                  },
+                  units: {[SpanIndexedField.CACHE_ITEM_SIZE]: 'byte'},
+                }}
                 isLoading={isCacheSpanSamplesFetching || isFetchingTransactions}
                 error={transactionError}
               />

@@ -13,9 +13,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CacheHitMissCell} from 'sentry/views/performance/cache/tables/cacheHitMissCell';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -142,14 +140,6 @@ function renderBodyCell(
 
   if (column.key === SpanIndexedField.CACHE_HIT) {
     return <CacheHitMissCell hit={row[column.key]} />;
-  }
-
-  if (column.key === 'transaction.duration') {
-    return <DurationCell milliseconds={row[column.key]} />;
-  }
-
-  if (column.key === SpanIndexedField.CACHE_ITEM_SIZE) {
-    return <ResourceSizeCell bytes={row[column.key]} />;
   }
 
   if (!meta?.fields) {
