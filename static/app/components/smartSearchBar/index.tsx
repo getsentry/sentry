@@ -223,15 +223,19 @@ type Props = WithRouterProps &
      */
     actionBarItems?: ActionBarItem[];
     /**
+     * Always show clear search, in the case that the clear button is always being used to remove a search bar.
+     */
+    alwaysShowClearSearch?: boolean;
+    /**
      * Keys that have boolean values
      */
     booleanKeys?: Set<string>;
     className?: string;
+
     /**
      * A function that provides the current search item and can return a custom invalid tag error message for the drop-down.
      */
     customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
-
     /**
      * Keys that have date values
      */
@@ -257,10 +261,6 @@ type Props = WithRouterProps &
      */
     disallowedLogicalOperators?: Set<BooleanOperator>;
     dropdownClassName?: string;
-    /**
-     * Keys that have duration values
-     */
-    durationKeys?: Set<string>;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
      * because we don't want to treat environment as a tag in some places such
@@ -322,6 +322,10 @@ type Props = WithRouterProps &
      */
     onChange?: (value: string, e: React.ChangeEvent | React.ClipboardEvent) => void;
     /**
+     * Called when search is being cleared. If this hook returns true, the subsequent onSearch will be ignored, allowing behaviour to remove search from a page, etc. without a double render.
+     */
+    onClearSearch?: () => boolean;
+    /**
      * Called when the user has closed the search dropdown.
      * Occurs on escape, tab, or clicking outside the component.
      */
@@ -366,6 +370,10 @@ type Props = WithRouterProps &
      * Keys with text values that also allow additional operation like ">=" / "<=" / ">" / "<" / "=" / "!="
      */
     textOperatorKeys?: Set<string>;
+    /**
+     * Keys that have duration values
+     */
+    durationKeys?: Set<string>;
   };
 
 type State = {
@@ -772,6 +780,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   clearSearch = () => {
     this.setState(this.makeQueryState(''), () => {
       this.close();
+      const skipOnSearch = this.props.onClearSearch?.();
+      if (skipOnSearch) {
+        return;
+      }
       this.props.onSearch?.(this.state.query);
     });
   };
@@ -1933,6 +1945,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxMenuHeight,
       name,
       supportedTags,
+      alwaysShowClearSearch,
     } = this.props;
 
     const {
@@ -2029,7 +2042,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         </InputWrapper>
 
         <ActionsBar gap={0.5}>
-          {query !== '' && !disabled && (
+          {(query !== '' || alwaysShowClearSearch) && !disabled && (
             <ActionButton
               onClick={this.clearSearch}
               icon={<IconClose size="xs" />}
