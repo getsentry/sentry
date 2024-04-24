@@ -46,13 +46,18 @@ describe('queuesTable', () => {
   });
   it('renders', async () => {
     render(<QueuesTable />);
-    screen.getByText('Destination');
-    screen.getByText('Avg Time in Queue');
-    screen.getByText('Avg Processing Time');
-    screen.getByText('Error Rate');
-    screen.getByText('Published');
-    screen.getByText('Processed');
-    screen.getByText('Time Spent');
+    expect(screen.getByRole('table', {name: 'Queues'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Destination'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Avg Time in Queue'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Avg Processing Time'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Error Rate'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Published'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Processed'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Time Spent'})).toBeInTheDocument();
     expect(eventsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({

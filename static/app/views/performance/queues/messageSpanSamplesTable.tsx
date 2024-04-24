@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -118,7 +119,16 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
-  if (column.key === SpanIndexedField.ID) {
+  const key = column.key;
+  if (row[key] === undefined) {
+    return (
+      <AlignRight>
+        <NoValue>{' \u2014 '}</NoValue>
+      </AlignRight>
+    );
+  }
+
+  if (key === SpanIndexedField.ID) {
     return (
       <SpanIdCell
         projectSlug={row.project}
@@ -142,3 +152,11 @@ function renderBodyCell(
     unit: meta.units?.[column.key],
   });
 }
+
+const AlignRight = styled('span')`
+  text-align: right;
+`;
+
+const NoValue = styled('span')`
+  color: ${p => p.theme.gray300};
+`;

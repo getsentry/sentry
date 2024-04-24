@@ -161,7 +161,9 @@ function renderBodyCell(
 
 function DestinationCell({destination}: {destination: string}) {
   const organization = useOrganization();
+  const {query} = useLocation();
   const queryString = {
+    ...query,
     destination,
   };
   return (
