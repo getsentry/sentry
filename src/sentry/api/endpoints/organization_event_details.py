@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -12,7 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SqlFormatEventSerializer
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import handle_query_errors, id_or_slug_path_params_enabled
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.search.events.builder import SpansMetricsQueryBuilder
@@ -86,16 +87,43 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization, project_slug, event_id) -> Response:
-        """event_id is validated by a regex in the URL"""
-        if not self.has_feature(organization, request):
-            return Response(status=404)
+    def convert_args(
+        self,
+        request: Request,
+        organization_slug: str | int | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
+
+        organization = kwargs["organization"]
+        project_slug = kwargs.pop("project_slug")
 
         try:
-            project = Project.objects.get(
-                slug=project_slug, organization_id=organization.id, status=ObjectStatus.ACTIVE
-            )
+            if id_or_slug_path_params_enabled(
+                convert_args_class=self.convert_args.__qualname__,
+                organization_slug=organization_slug,
+            ):
+                project = Project.objects.get(
+                    slug__id_or_slug=project_slug,
+                    organization_id=organization.id,
+                    status=ObjectStatus.ACTIVE,
+                )
+            else:
+                project = Project.objects.get(
+                    slug=project_slug, organization_id=organization.id, status=ObjectStatus.ACTIVE
+                )
+
+            kwargs["project"] = project
+
         except Project.DoesNotExist:
+            return Response(status=404)
+
+        return args, kwargs
+
+    def get(self, request: Request, organization, project: Project, event_id) -> Response:
+        """event_id is validated by a regex in the URL"""
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         # Check access to the project as this endpoint doesn't use membership checks done
@@ -125,6 +153,6 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         data = serialize(
             event, request.user, SqlFormatEventSerializer(), include_full_release_data=False
         )
-        data["projectSlug"] = project_slug
+        data["projectSlug"] = project.slug
 
         return Response(data)
