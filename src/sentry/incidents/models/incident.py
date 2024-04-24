@@ -169,6 +169,12 @@ INCIDENT_STATUS = {
 
 @region_silo_only_model
 class Incident(Model):
+    """
+    An Incident represents the overarching period during an AlertRule's "unhealthy" state.
+    An AlertRule can have multiple IncidentTriggers during an Incident (ie. Critical -> Warning -> Critical)
+    but if it has been resolved, will end the Incident.
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[IncidentManager] = IncidentManager()
@@ -194,6 +200,9 @@ class Incident(Model):
     date_detected = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     date_closed = models.DateTimeField(null=True)
+    activation = FlexibleForeignKey(
+        "sentry.AlertRuleActivations", on_delete=models.SET_NULL, null=True
+    )
 
     class Meta:
         app_label = "sentry"
@@ -369,6 +378,10 @@ class IncidentTriggerManager(BaseManager["IncidentTrigger"]):
 
 @region_silo_only_model
 class IncidentTrigger(Model):
+    """
+    An instance of an alert rule trigger (eg. each time the rule hits the trigger threshold, we create an incident trigger)
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[IncidentTriggerManager] = IncidentTriggerManager()
