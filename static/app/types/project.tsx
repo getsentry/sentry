@@ -61,8 +61,8 @@ export type Project = {
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
-    highlightContext: Record<string, string[]>;
-    highlightTags: string[];
+    context: Record<string, string[]>;
+    tags: string[];
   };
   highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;

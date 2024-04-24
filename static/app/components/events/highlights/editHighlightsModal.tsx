@@ -31,10 +31,7 @@ interface EditHighlightsModalProps extends ModalRenderProps {
   highlightContext: HighlightContext;
   highlightTags: HighlightTags;
   project: Project;
-  highlightPreset?: {
-    highlightContext: HighlightContext;
-    highlightTags: HighlightTags;
-  };
+  highlightPreset?: Project['highlightPreset'];
 }
 
 interface EditPreviewHighlightSectionProps {
@@ -356,8 +353,8 @@ export default function EditHighlightsModal({
           {highlightPreset && (
             <Button
               onClick={() => {
-                setHighlightContext(highlightPreset.highlightContext);
-                setHighlightTags(highlightPreset.highlightTags);
+                setHighlightContext(highlightPreset.context);
+                setHighlightTags(highlightPreset.tags);
               }}
             >
               {t('Use Defaults')}
