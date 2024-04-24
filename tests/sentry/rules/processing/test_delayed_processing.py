@@ -43,37 +43,29 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             assert_no_errors=False,
         )
 
+    def create_event_frequency_condition(
+        self,
+        interval="1d",
+        id="EventFrequencyCondition",
+        value=1,
+    ):
+        condition_id = f"sentry.rules.conditions.event_frequency.{id}"
+        return {"interval": interval, "id": condition_id, "value": value}
+
     def setUp(self):
         super().setUp()
-        self.event_frequency_condition = {
-            "interval": "1d",
-            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            "value": 1,
-            "name": "The issue is seen more than 1 times in 1d",
-        }
-        self.event_frequency_condition2 = {
-            "interval": "1d",
-            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            "value": 2,
-            "name": "The issue is seen more than 2 times in 1d",
-        }
-        self.event_frequency_condition3 = {
-            "interval": "1h",
-            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            "value": 1,
-            "name": "The issue is seen more than 1 times in 1h",
-        }
-        user_frequency_condition = {
-            "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
-            "value": 1,
-            "interval": "1m",
-        }
-        event_frequency_percent_condition = {
-            "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
-            "interval": "5m",
-            "value": "1",
-            "comparisonType": "count",
-        }
+        self.event_frequency_condition = self.create_event_frequency_condition()
+        self.event_frequency_condition2 = self.create_event_frequency_condition(value=2)
+        self.event_frequency_condition3 = self.create_event_frequency_condition(
+            interval="1h", value=1
+        )
+        user_frequency_condition = self.create_event_frequency_condition(
+            interval="1m",
+            id="EventUniqueUserFrequencyCondition",
+        )
+        event_frequency_percent_condition = self.create_event_frequency_condition(
+            interval="5m", id="EventFrequencyPercentCondition"
+        )
         self.now = datetime.now(UTC)
 
         self.rule1 = self.create_project_rule(
@@ -136,9 +128,6 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         }
 
         self.mock_buffer = Mock()
-
-    def tearDown(self):
-        super().tearDown()
 
     def get_rulegroup_event_mapping_from_input(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
