@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
-import DeviceClassBreakdownBarChart from 'sentry/views/starfish/views/appStartup/screenSummary/deviceClassBreakdownBarChart';
-import StartDurationWidget from 'sentry/views/starfish/views/appStartup/screenSummary/startDurationWidget';
+import DeviceClassBreakdownBarChart from 'sentry/views/performance/appStarts/screenSummary/deviceClassBreakdownBarChart';
+import StartDurationWidget from 'sentry/views/performance/appStarts/screenSummary/startDurationWidget';
 
 function SummaryWidgets({additionalFilters}) {
   return (

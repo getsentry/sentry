@@ -1621,14 +1621,12 @@ function buildRoutes() {
         </Route>
         <Route path="app-startup/">
           <IndexRoute
-            component={make(
-              () => import('sentry/views/starfish/modules/mobile/appStartup')
-            )}
+            component={make(() => import('sentry/views/performance/appStarts'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/starfish/views/appStartup/screenSummary')
+              () => import('sentry/views/performance/appStarts/screenSummary')
             )}
           />
         </Route>
@@ -1743,14 +1741,12 @@ function buildRoutes() {
       <Redirect from="database/" to="/performance/database" />
       <Route path="appStartup/">
         <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/modules/mobile/appStartup')
-          )}
+          component={make(() => import('sentry/views/performance/appStarts'))}
         />
         <Route
           path="spans/"
           component={make(
-            () => import('sentry/views/starfish/views/appStartup/screenSummary')
+            () => import('sentry/views/performance/appStarts/screenSummary')
           )}
         />
       </Route>

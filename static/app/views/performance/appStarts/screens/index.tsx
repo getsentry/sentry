@@ -15,6 +15,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {AverageComparisonChart} from 'sentry/views/performance/appStarts/screens/averageComparisonChart';
+import {CountChart} from 'sentry/views/performance/appStarts/screens/countChart';
+import {ScreensTable} from 'sentry/views/performance/appStarts/screens/screensTable';
+import {COLD_START_TYPE} from 'sentry/views/performance/appStarts/screenSummary/startTypeSelector';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {
   getFreeTextFromQuery,
@@ -30,10 +34,6 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {AverageComparisonChart} from 'sentry/views/starfish/views/appStartup/averageComparisonChart';
-import {CountChart} from 'sentry/views/starfish/views/appStartup/countChart';
-import {ScreensTable} from 'sentry/views/starfish/views/appStartup/screensTable';
-import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 export const MAX_CHART_RELEASE_CHARS = 12;
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
