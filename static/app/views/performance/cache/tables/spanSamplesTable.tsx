@@ -12,7 +12,7 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import CacheHitMissCell from 'sentry/views/performance/cache/tables/cacheHitMissCell';
+import {CacheHitMissCell} from 'sentry/views/performance/cache/tables/cacheHitMissCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';

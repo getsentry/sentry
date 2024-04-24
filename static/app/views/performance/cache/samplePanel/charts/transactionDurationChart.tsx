@@ -8,7 +8,7 @@ import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
-function TransactionDurationChart() {
+export function TransactionDurationChart() {
   const {transaction} = useLocationQuery({
     fields: {
       project: decodeScalar,
@@ -39,5 +39,3 @@ function TransactionDurationChart() {
     </ChartPanel>
   );
 }
-
-export default TransactionDurationChart;

@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
 
-function CacheHitMissCell(props: {hit: IndexedResponse['cache.hit']}) {
+export function CacheHitMissCell(props: {hit: IndexedResponse['cache.hit']}) {
   const {hit} = props;
   if (hit === 'true') {
     return <span>{t('HIT')}</span>;
@@ -11,5 +11,3 @@ function CacheHitMissCell(props: {hit: IndexedResponse['cache.hit']}) {
   }
   return <span>--</span>;
 }
-
-export default CacheHitMissCell;

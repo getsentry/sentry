@@ -18,7 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
-import TransactionDurationChart from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
+import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
 import {BASE_FILTERS} from 'sentry/views/performance/cache/settings';
 import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSamplesTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -37,15 +37,8 @@ import {
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-const SPAN_SAMPLE_LIMIT = 10;
-
-const SPAN_SAMPLES_SORT = {
-  field: 'span_id',
-  kind: 'desc' as const,
-};
-
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
-function CacheSamplePanel() {
+export function CacheSamplePanel() {
   const router = useRouter();
   const organization = useOrganization();
 
@@ -241,7 +234,12 @@ function CacheSamplePanel() {
   );
 }
 
-export default CacheSamplePanel;
+const SPAN_SAMPLE_LIMIT = 10;
+
+const SPAN_SAMPLES_SORT = {
+  field: 'span_id',
+  kind: 'desc' as const,
+};
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};

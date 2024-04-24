@@ -18,7 +18,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
-import CacheSamplePanel from 'sentry/views/performance/cache/samplePanel/samplePanel';
+import {CacheSamplePanel} from 'sentry/views/performance/cache/samplePanel/samplePanel';
 import {
   BASE_FILTERS,
   CACHE_BASE_URL,
@@ -35,13 +35,6 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-
-const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
-  kind: 'desc' as const,
-};
-
-const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 export function CacheLandingPage() {
   const organization = useOrganization();
@@ -165,7 +158,7 @@ export function CacheLandingPage() {
   );
 }
 
-function LandingPageWithProviders() {
+export function LandingPageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -176,5 +169,12 @@ function LandingPageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+const DEFAULT_SORT = {
+  field: 'time_spent_percentage()' as const,
+  kind: 'desc' as const,
+};
+
+const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 export default LandingPageWithProviders;
