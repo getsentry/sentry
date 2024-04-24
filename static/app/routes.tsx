@@ -1730,13 +1730,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="spans/">
-        <IndexRoute component={make(() => import('sentry/views/starfish/views/spans'))} />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
-        />
-      </Route>
     </Route>
   );
 
