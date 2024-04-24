@@ -49,7 +49,7 @@ def make_dist_payload(use_case, org_id, rand_str, value_len, b64_encode):
         "value": (
             {
                 "format": "base64",
-                "data": base64.b64encode(struct.pack(f"<{len(nums)}d", *nums)),
+                "data": base64.b64encode(struct.pack(f"<{len(nums)}d", *nums)).decode("ascii"),
             }
             if b64_encode
             else {
@@ -80,7 +80,7 @@ def make_set_payload(use_case, org_id, rand_str, value_len, b64_encode):
                 "format": "base64",
                 "data": base64.b64encode(
                     b"".join([num.to_bytes(INT_WIDTH, byteorder="little") for num in nums])
-                ),
+                ).decode("ascii"),
             }
             if b64_encode
             else {
