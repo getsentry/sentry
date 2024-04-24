@@ -622,6 +622,8 @@ function useTrackView({
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
+    // Will be updated in Autofix if enabled
+    autofix_status: 'none',
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }

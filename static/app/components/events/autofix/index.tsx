@@ -5,6 +5,7 @@ import type {GroupWithAutofix} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import type {Event} from 'sentry/types/event';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 interface Props {
   event: Event;
@@ -16,6 +17,10 @@ export function Autofix({event, group}: Props) {
 
   const {hasSuccessfulSetup} = useAutofixSetup({
     groupId: group.id,
+  });
+
+  useRouteAnalyticsParams({
+    autofix_status: autofixData?.status ?? 'none',
   });
 
   return (

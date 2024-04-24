@@ -178,6 +178,9 @@ function CauseSuggestedFix({
           size="xs"
           onClick={() => handleSelectFix({causeId, fixId: suggestedFix.id})}
           busy={isLoading}
+          analyticsEventName="Autofix: Root Cause Fix Selected"
+          analyticsEventKey="autofix.root_cause_fix_selected"
+          analyticsParams={{group_id: groupId}}
         >
           {t('Continue With This Fix')}
         </Button>
@@ -296,6 +299,9 @@ function ProvideYourOwn({
             onClick={() => handleSelectFix({customRootCause: text})}
             disabled={!text}
             busy={isLoading}
+            analyticsEventName="Autofix: Root Cause Custom Cause Provided"
+            analyticsEventKey="autofix.root_cause_custom_cause_provided"
+            analyticsParams={{group_id: groupId}}
           >
             {t('Continue With This Fix')}
           </Button>

@@ -25,7 +25,11 @@ export function AutofixBanner({groupId, triggerAutofix, hasSuccessfulSetup}: Pro
   const isSentryEmployee = useIsSentryEmployee();
   const onClickGiveInstructions = () => {
     openModal(deps => (
-      <AutofixInstructionsModal {...deps} triggerAutofix={triggerAutofix} />
+      <AutofixInstructionsModal
+        {...deps}
+        triggerAutofix={triggerAutofix}
+        groupId={groupId}
+      />
     ));
   };
 
@@ -44,10 +48,22 @@ export function AutofixBanner({groupId, triggerAutofix, hasSuccessfulSetup}: Pro
         <ContextArea>
           {hasSuccessfulSetup ? (
             <Fragment>
-              <Button onClick={() => triggerAutofix('')} size="sm">
+              <Button
+                onClick={() => triggerAutofix('')}
+                size="sm"
+                analyticsEventKey="autofix.start_fix_clicked"
+                analyticsEventName="Autofix: Start Fix Clicked"
+                analyticsParams={{group_id: groupId}}
+              >
                 {t('Gimme Fix')}
               </Button>
-              <Button onClick={onClickGiveInstructions} size="sm">
+              <Button
+                onClick={onClickGiveInstructions}
+                size="sm"
+                analyticsEventKey="autofix.give_instructions_clicked"
+                analyticsEventName="Autofix: Give Instructions Clicked"
+                analyticsParams={{group_id: groupId}}
+              >
                 {t('Give Instructions')}
               </Button>
             </Fragment>
@@ -55,6 +71,7 @@ export function AutofixBanner({groupId, triggerAutofix, hasSuccessfulSetup}: Pro
             <Button
               analyticsEventKey="autofix.setup_clicked"
               analyticsEventName="Autofix: Setup Clicked"
+              analyticsParams={{group_id: groupId}}
               onClick={() => {
                 openModal(deps => <AutofixSetupModal {...deps} groupId={groupId} />);
               }}
