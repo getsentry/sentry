@@ -22,7 +22,8 @@ export type DataKey =
   | 'bundleSize'
   | 'unsuccessfulHTTPCodes'
   | 'httpCodeBreakdown'
-  | 'cacheMissRate';
+  | 'cacheMissRate'
+  | 'transactionDuration';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -45,6 +46,7 @@ export const DataTitles: Record<DataKey, string> = {
   unsuccessfulHTTPCodes: t('Response Codes (3XX, 4XX, 5XX)'),
   httpCodeBreakdown: t('Response Code Breakdown'),
   cacheMissRate: t('Miss Rate'),
+  transactionDuration: t('Transaction Duration'),
 };
 
 export const getThroughputTitle = (
