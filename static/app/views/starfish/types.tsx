@@ -58,7 +58,8 @@ export type SpanStringFields =
   | 'transaction.method'
   | 'release'
   | 'os.name'
-  | 'span.status_code';
+  | 'span.status_code'
+  | 'span.ai.pipeline.group';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;

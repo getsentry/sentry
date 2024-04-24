@@ -8,8 +8,15 @@ import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
 
-export function TotalTokensUsedChart() {
+interface TotalTokensUsedChartProps {
+  groupId?: string;
+}
+export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
+  let query = 'span.category:"ai"';
+  if (groupId) {
+    query = `${query} span.ai.pipeline.group:"${groupId}"`;
+  }
   const {
     data: timeseriesData,
     isLoading,
@@ -21,7 +28,7 @@ export function TotalTokensUsedChart() {
         name: 'total',
         mri: `c:spans/ai.total_tokens.used@none`,
         op: 'sum',
-        // TODO this double counts the (e.g.) langchain and openai token usage
+        query,
       },
     ],
     selection,
@@ -75,7 +82,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
     [
       {
         name: 'number',
-        mri: `d:spans/exclusive_time@millisecond`,
+        mri: `d:spans/exclusive_time_light@millisecond`,
         op: 'count',
         query,
       },
@@ -130,7 +137,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
   } = useMetricsQuery(
     [
       {
-        name: 'a',
+        name: 'duration',
         mri: `d:spans/duration@millisecond`,
         op: 'avg',
         query,
@@ -164,7 +171,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
         metricQueries={[
           {
             name: 'mql',
-            formula: '$a',
+            formula: '$duration',
           },
         ]}
         displayType={MetricDisplayType.AREA}
