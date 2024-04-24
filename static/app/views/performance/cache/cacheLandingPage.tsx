@@ -10,25 +10,40 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/cache/settings';
+import {CacheSamplePanel} from 'sentry/views/performance/cache/samplePanel/samplePanel';
+import {
+  BASE_FILTERS,
+  CACHE_BASE_URL,
+  MODULE_TITLE,
+  RELEASE_LEVEL,
+} from 'sentry/views/performance/cache/settings';
+import {
+  isAValidSort,
+  TransactionsTable,
+} from 'sentry/views/performance/cache/tables/transactionsTable';
 import {convertHitRateToMissRate} from 'sentry/views/performance/cache/utils';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 export function CacheLandingPage() {
   const organization = useOrganization();
+  const location = useLocation();
 
-  const filters: SpanMetricsQueryFilters = {
-    'span.module': 'cache',
-  };
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
+
+  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {
     isLoading: isCacheHitRateLoading,
@@ -36,7 +51,7 @@ export function CacheLandingPage() {
     error: cacheHitRateError,
   } = useSpanMetricsSeries({
     yAxis: [`cache_hit_rate()`],
-    search: MutableSearch.fromQueryObject(filters),
+    search: MutableSearch.fromQueryObject(BASE_FILTERS),
     referrer: Referrer.LANDING_CACHE_HIT_MISS_CHART,
   });
 
@@ -45,9 +60,31 @@ export function CacheLandingPage() {
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
+    search: MutableSearch.fromQueryObject(BASE_FILTERS),
     yAxis: ['spm()'],
     referrer: Referrer.LANDING_CACHE_THROUGHPUT_CHART,
+  });
+
+  const {
+    isLoading: isTransactionsListLoading,
+    data: transactionsList,
+    meta: transactionsListMeta,
+    error: transactionsListError,
+    pageLinks: transactionsListPageLinks,
+  } = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(BASE_FILTERS),
+    fields: [
+      'project.id',
+      'transaction',
+      'spm()',
+      'cache_hit_rate()',
+      'sum(span.self_time)',
+      'time_spent_percentage()',
+    ],
+    sorts: [sort],
+    cursor,
+    limit: TRANSACTIONS_TABLE_ROW_COUNT,
+    referrer: Referrer.LANDING_CACHE_TRANSACTION_LIST,
   });
 
   return (
@@ -103,23 +140,41 @@ export function CacheLandingPage() {
                 error={throughputError}
               />
             </ModuleLayout.Half>
+            <ModuleLayout.Full>
+              <TransactionsTable
+                data={transactionsList}
+                isLoading={isTransactionsListLoading}
+                sort={sort}
+                error={transactionsListError}
+                meta={transactionsListMeta}
+                pageLinks={transactionsListPageLinks}
+              />
+            </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
+      <CacheSamplePanel />
     </React.Fragment>
   );
 }
 
-function LandingPageWithProviders() {
+export function LandingPageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL="/performance/cache"
+      baseURL={CACHE_BASE_URL}
       features="performance-cache-view"
     >
       <CacheLandingPage />
     </ModulePageProviders>
   );
 }
+
+const DEFAULT_SORT = {
+  field: 'time_spent_percentage()' as const,
+  kind: 'desc' as const,
+};
+
+const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 export default LandingPageWithProviders;
