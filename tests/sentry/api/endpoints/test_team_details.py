@@ -6,6 +6,7 @@ from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 
 
@@ -61,10 +62,14 @@ class TeamDetailsTestBase(APITestCase):
 
 
 class TeamDetailsTest(TeamDetailsTestBase):
+    @override_options({"api.id-or-slug-enabled": True})
     def test_simple(self):
         team = self.team  # force creation
 
         response = self.get_success_response(team.organization.slug, team.slug)
+        assert response.data["id"] == str(team.id)
+
+        response = self.get_success_response(team.organization.slug, team.id)
         assert response.data["id"] == str(team.id)
 
 
@@ -106,6 +111,22 @@ class TeamUpdateTest(TeamDetailsTestBase):
         self.login_as(user)
 
         self.get_success_response(team.organization.slug, team.slug, name="foo", slug="bar")
+
+        team = Team.objects.get(id=team.id)
+        assert team.name == "foo"
+        assert team.slug == "bar"
+
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_admin_with_team_membership_with_id(self):
+        """Admins can modify their teams"""
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        user = self.create_user(email="foo@example.com", is_superuser=False)
+
+        self.create_member(organization=org, user=user, role="admin", teams=[team])
+        self.login_as(user)
+
+        self.get_success_response(team.organization.slug, team.id, name="foo", slug="bar")
 
         team = Team.objects.get(id=team.id)
         assert team.name == "foo"
@@ -240,6 +261,22 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         with outbox_runner():
             self.get_success_response(team.organization.slug, team.slug, status_code=204)
+
+        team.refresh_from_db()
+        self.assert_team_deleted(team.id)
+
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_admin_with_team_membership_with_id(self):
+        """Admins can delete their teams"""
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        user = self.create_user(email="foo@example.com", is_superuser=False)
+
+        self.create_member(organization=org, user=user, role="admin", teams=[team])
+        self.login_as(user)
+
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.id, status_code=204)
 
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
