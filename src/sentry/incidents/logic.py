@@ -461,7 +461,7 @@ class AlertRuleNameAlreadyUsedError(Exception):
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER = 2
-DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS = {
+DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION = {
     30: 2,
     60: 3,
     90: 3,
@@ -485,13 +485,13 @@ def get_alert_resolution(time_window: int, organization) -> int:
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
 
     if features.has("organizations:metric-alert-load-shedding", organization=organization):
-        windows = sorted(DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS.keys())
+        windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
         index = bisect.bisect_right(windows, time_window)
 
         if index == 0:
             return DEFAULT_ALERT_RULE_RESOLUTION
 
-        resolution = DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[windows[index - 1]]
+        resolution = DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
 
     return resolution
 

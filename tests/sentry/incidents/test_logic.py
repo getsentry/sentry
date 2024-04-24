@@ -18,8 +18,8 @@ from sentry.incidents.events import (
 )
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
-    DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS,
     DEFAULT_ALERT_RULE_RESOLUTION,
+    DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION,
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
@@ -774,7 +774,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         assert (
             alert_rule.snuba_query.resolution
-            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window] * 60
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
     @with_feature("organizations:metric-alert-load-shedding")
@@ -797,7 +797,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         assert (
             alert_rule.snuba_query.resolution
-            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
             * 60
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         )
@@ -1155,14 +1155,14 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         assert (
             alert_rule.snuba_query.resolution
-            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window] * 60
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
         time_window = 90
         updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
         assert (
             updated_alert_rule.snuba_query.resolution
-            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window] * 60
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
     @with_feature("organizations:metric-alert-load-shedding")
@@ -1185,7 +1185,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         assert (
             alert_rule.snuba_query.resolution
-            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
             * 60
         )
@@ -1195,7 +1195,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         assert (
             updated_alert_rule.snuba_query.resolution
-            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
             * 60
         )
@@ -1222,7 +1222,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         updated_alert_rule = update_alert_rule(alert_rule, comparison_delta=90)
         assert (
             updated_alert_rule.snuba_query.resolution
-            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
             * 60
         )
@@ -1252,7 +1252,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert (
             updated_alert_rule.snuba_query.resolution
-            == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
             * 60
         )
@@ -2826,7 +2826,7 @@ class TestGetAlertResolution(TestCase):
     def test_enabled_feature(self):
         time_window = 30
         result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[time_window]
+        assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
 
     @with_feature("organizations:metric-alert-load-shedding")
     def test_low_range(self):
@@ -2836,11 +2836,11 @@ class TestGetAlertResolution(TestCase):
 
     @with_feature("organizations:metric-alert-load-shedding")
     def test_high_range(self):
-        last_window = list(DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS.keys())[-1]
+        last_window = list(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())[-1]
         time_window = last_window + 1000
         result = get_alert_resolution(time_window, self.organization)
 
-        assert result == DEFAULT_ALERT_RULE_LOAD_SHEDDING_RESOLUTIONS[last_window]
+        assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window]
 
     @with_feature("organizations:metric-alert-load-shedding")
     def test_mid_range(self):
