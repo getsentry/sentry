@@ -40,6 +40,9 @@ class ProjectAutofixCodebaseIndexStatusEndpoint(ProjectEndpoint):
         """
         repos = get_repos_from_project_code_mappings(project)
 
+        if not repos:
+            return Response({"status": None}, status=200)
+
         statuses = []
         for repo in repos:
             response = requests.post(
