@@ -333,14 +333,18 @@ class CombinedRuleSerializer(Serializer):
                 incident_map[incident.id] = serialize(incident, user=user)
 
         serialized_alert_rules = serialize(alert_rules, user=user)
-        serialized_map_by_id = {x.id: x for x in serialized_alert_rules}
+        serialized_map_by_id = {
+            serialized_alert["id"]: serialized_alert for serialized_alert in serialized_alert_rules
+        }
 
         serialized_issue_rules = serialize(
             [x for x in item_list if isinstance(x, Rule)],
             user=user,
             serializer=RuleSerializer(expand=self.expand),
         )
-        serialized_issue_rule_map_by_id = {x.id for x in serialized_issue_rules}
+        serialized_issue_rule_map_by_id = {
+            serialized_rule["id"]: serialized_rule for serialized_rule in serialized_issue_rules
+        }
 
         for item in item_list:
             item_id = str(item.id)
@@ -352,7 +356,7 @@ class CombinedRuleSerializer(Serializer):
             elif item_id in serialized_issue_rule_map_by_id:
                 results[item] = serialized_issue_rule_map_by_id[item_id]
             else:
-                logger.warning(
+                logger.error(
                     "Alert Rule found but dropped during serialization",
                     extra={
                         "id": item_id,
