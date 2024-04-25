@@ -93,7 +93,7 @@ export type OnAssignCallback = (
   suggestedAssignee?: SuggestedAssignee
 ) => void;
 
-export interface AssigneeSelectorDropdownProps {
+export interface DeprecatedAssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
@@ -113,8 +113,8 @@ type State = {
   suggestedOwners?: SuggestedOwner[] | null;
 };
 
-export class AssigneeSelectorDropdown extends Component<
-  AssigneeSelectorDropdownProps,
+export class DeprecatedAssigneeSelectorDropdown extends Component<
+  DeprecatedAssigneeSelectorDropdownProps,
   State
 > {
   state = this.getInitialState();
@@ -136,7 +136,7 @@ export class AssigneeSelectorDropdown extends Component<
     };
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: AssigneeSelectorDropdownProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: DeprecatedAssigneeSelectorDropdownProps) {
     const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       const group = GroupStore.get(this.props.id);
@@ -147,7 +147,10 @@ export class AssigneeSelectorDropdown extends Component<
     }
   }
 
-  shouldComponentUpdate(nextProps: AssigneeSelectorDropdownProps, nextState: State) {
+  shouldComponentUpdate(
+    nextProps: DeprecatedAssigneeSelectorDropdownProps,
+    nextState: State
+  ) {
     if (nextState.loading !== this.state.loading) {
       return true;
     }
@@ -361,8 +364,8 @@ export class AssigneeSelectorDropdown extends Component<
     // filter out suggested assignees if a suggestion is already selected
     const suggestedAssignees = this.getSuggestedAssignees();
     const renderedAssignees: (
-      | ReturnType<AssigneeSelectorDropdown['renderTeamNode']>
-      | ReturnType<AssigneeSelectorDropdown['renderMemberNode']>
+      | ReturnType<DeprecatedAssigneeSelectorDropdown['renderTeamNode']>
+      | ReturnType<DeprecatedAssigneeSelectorDropdown['renderMemberNode']>
     )[] = [];
 
     for (let i = 0; i < suggestedAssignees.length; i++) {
