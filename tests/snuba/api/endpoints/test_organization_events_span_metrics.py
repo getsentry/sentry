@@ -1479,6 +1479,52 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {"count_op(queue.submit.celery)": 1, "count_op(queue.task.celery)": 1},
         ]
 
+    def test_project_mapping(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={},
+        )
+
+        # More events occur after the timestamp
+        for _ in range(3):
+            self.store_span_metric(
+                3,
+                internal_metric=constants.SELF_TIME_LIGHT,
+                timestamp=self.min_ago,
+                tags={},
+            )
+
+        response = self.do_request(
+            {
+                "field": ["project.id", "count()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        response_2 = self.do_request(
+            {
+                "field": ["project", "count()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response_2.status_code == 200, response_2.content
+        data = response.data["data"]
+        data_2 = response_2.data["data"]
+
+        assert len(data) == len(data_2)
+        assert data[0]["project.id"] == data_2[0]["project"]
+        assert data[0]["count()"] == data_2[0]["count()"]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest

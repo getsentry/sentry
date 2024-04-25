@@ -213,6 +213,7 @@ METRICS_COLUMN_MAP = {
     "project_id": "project_id",
     "project.id": "project_id",
     "organization_id": "org_id",
+    "project": "project_id",
 }
 
 
