@@ -54,7 +54,7 @@ def get_rules_to_groups(rulegroup_to_events: list[dict[str, str]]) -> DefaultDic
     rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
     for rulegroup_to_event in rulegroup_to_events:
         for rule_group in rulegroup_to_event.keys():
-            rule_id, group_id = rule_group.split(":")
+            rule_id, group_id = rule_group.decode("utf-8").split(":")
             rules_to_groups[int(rule_id)].add(int(group_id))
 
     return rules_to_groups
@@ -168,10 +168,9 @@ def get_rules_to_fire(
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-
-        for project_id in project_ids:
+        for project_id in project_ids[0]:
             with metrics.timer("delayed_processing.process_project.duration"):
-                apply_delayed.delay(project_id=project_id, buffer=buffer)
+                apply_delayed.delay(project_id=project_id)
 
 
 @instrumented_task(
@@ -182,15 +181,15 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int, buffer: RedisBuffer) -> DefaultDict[Rule, set[int]] | None:
+def apply_delayed(project_id: int) -> DefaultDict[Rule, set[int]] | None:
     # XXX(CEO) this is a temporary return value!
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     # STEP 1: Fetch the rulegroup_to_events mapping for the project from redis
     project = Project.objects.get(id=project_id)
+    buffer = RedisBuffer()
     rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": project.id})
-
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_events)
 
