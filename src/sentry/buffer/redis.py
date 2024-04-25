@@ -319,12 +319,12 @@ class RedisBuffer(Buffer):
         key = self._make_key(model, field)
         redis_hash = self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
         decoded_hash = {}
-        for key, value in redis_hash.items():
-            if isinstance(key, bytes):
-                key = key.decode("utf-8")
-            if isinstance(value, bytes):
-                value = value.decode("utf-8")
-            decoded_hash[key] = value
+        for k, v in redis_hash.items():
+            if isinstance(k, bytes):
+                k = k.decode("utf-8")
+            if isinstance(v, bytes):
+                v = v.decode("utf-8")
+            decoded_hash[k] = v
 
         return decoded_hash
 
