@@ -95,8 +95,8 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             )
 
         try:
-            # Fast check for an existing table
-            return self.__table
+            # Fast check for an existing table using a getter method
+            return self.get_table()
         except AttributeError:
             # If missing, we acquire our lock to initialize a new one
             with self.__table_lock:
@@ -104,7 +104,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
                 # else who already initialized, so we first check again to make
                 # sure this isn't the case.
                 try:
-                    table = self.__table
+                    table = self.get_table()
                 except AttributeError:
                     table = self.__table = (
                         bigtable.Client(project=self.project, **self.client_options)
