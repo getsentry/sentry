@@ -7,7 +7,7 @@ import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
 describe('Related Issues View', function () {
   let relatedIssuesMock: jest.Mock;
-  let issuesInfoMock: jest.Mock;
+  let issuesMock: jest.Mock;
   const router = RouterFixture();
 
   const organization = OrganizationFixture();
@@ -20,50 +20,72 @@ describe('Related Issues View', function () {
 
   const params = {groupId: groupId};
   const errorType = 'RuntimeError';
+  const noData = {
+    data: [
+      {
+        type: 'same_root_cause',
+        data: [],
+      },
+      {
+        type: 'trace_connected',
+        data: [],
+      },
+    ],
+  };
+  const onlySameRootData = {
+    data: [
+      {
+        type: 'same_root_cause',
+        data: [group1, group2],
+      },
+      {
+        type: 'trace_connected',
+        data: [],
+      },
+    ],
+  };
+  const onlyTraceConnectedData = {
+    data: [
+      {
+        type: 'same_root_cause',
+        data: [],
+      },
+      {
+        type: 'trace_connected',
+        data: [group1, group2],
+      },
+    ],
+  };
+  const issuesData = [
+    {
+      id: group1,
+      shortId: `EARTH-${group1}`,
+      project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
+      type: 'error',
+      metadata: {
+        type: errorType,
+      },
+      issueCategory: 'error',
+      lastSeen: '2024-03-15T20:15:30Z',
+    },
+    {
+      id: group2,
+      shortId: `EARTH-${group2}`,
+      project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
+      type: 'error',
+      metadata: {
+        type: errorType,
+      },
+      issueCategory: 'error',
+      lastSeen: '2024-03-16T20:15:30Z',
+    },
+  ];
 
   beforeEach(function () {
     // GroupList calls this but we don't need it for this test
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/users/`,
       body: {},
-    });
-    relatedIssuesMock = MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/`,
-      body: {
-        data: [
-          {
-            type: 'same_root_cause',
-            data: [group1, group2],
-          },
-        ],
-      },
-    });
-    issuesInfoMock = MockApiClient.addMockResponse({
-      url: orgIssuesEndpoint,
-      body: [
-        {
-          id: group1,
-          shortId: `EARTH-${group1}`,
-          project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
-          type: 'error',
-          metadata: {
-            type: errorType,
-          },
-          issueCategory: 'error',
-          lastSeen: '2024-03-15T20:15:30Z',
-        },
-        {
-          id: group2,
-          shortId: `EARTH-${group2}`,
-          project: {id: '3', name: 'Earth', slug: 'earth', platform: null},
-          type: 'error',
-          metadata: {
-            type: errorType,
-          },
-          issueCategory: 'error',
-          lastSeen: '2024-03-16T20:15:30Z',
-        },
-      ],
     });
   });
 
@@ -72,7 +94,40 @@ describe('Related Issues View', function () {
     jest.clearAllMocks();
   });
 
-  it('renders with mocked data', async function () {
+  it('renders with no data', async function () {
+    relatedIssuesMock = MockApiClient.addMockResponse({
+      url: `/issues/${groupId}/related-issues/`,
+      body: noData,
+    });
+    render(
+      <GroupRelatedIssues
+        params={params}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />
+    );
+
+    expect(
+      await screen.findByText('No issues caused by the same root cause.')
+    ).toBeInTheDocument();
+    expect(await screen.findByText('No trace connected issues.')).toBeInTheDocument();
+
+    expect(relatedIssuesMock).toHaveBeenCalled();
+  });
+
+  it('renders with same root issues', async function () {
+    relatedIssuesMock = MockApiClient.addMockResponse({
+      url: `/issues/${groupId}/related-issues/`,
+      body: onlySameRootData,
+    });
+    issuesMock = MockApiClient.addMockResponse({
+      url: orgIssuesEndpoint,
+      body: issuesData,
+    });
+
     render(
       <GroupRelatedIssues
         params={params}
@@ -89,6 +144,38 @@ describe('Related Issues View', function () {
     expect(await screen.findByText(`EARTH-${group2}`)).toBeInTheDocument();
 
     expect(relatedIssuesMock).toHaveBeenCalled();
-    expect(issuesInfoMock).toHaveBeenCalled();
+    expect(issuesMock).toHaveBeenCalled();
+    expect(await screen.findByText('No trace connected issues.')).toBeInTheDocument();
+  });
+
+  it('renders with trace connected issues', async function () {
+    relatedIssuesMock = MockApiClient.addMockResponse({
+      url: `/issues/${groupId}/related-issues/`,
+      body: onlyTraceConnectedData,
+    });
+    issuesMock = MockApiClient.addMockResponse({
+      url: orgIssuesEndpoint,
+      body: issuesData,
+    });
+    render(
+      <GroupRelatedIssues
+        params={params}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />
+    );
+
+    // Wait for the issues showing up on the table
+    expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
+    expect(await screen.findByText(`EARTH-${group2}`)).toBeInTheDocument();
+
+    expect(relatedIssuesMock).toHaveBeenCalled();
+    expect(issuesMock).toHaveBeenCalled();
+    expect(
+      await screen.findByText('No issues caused by the same root cause.')
+    ).toBeInTheDocument();
   });
 });

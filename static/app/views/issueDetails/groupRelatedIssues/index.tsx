@@ -62,7 +62,6 @@ function GroupRelatedIssues({params}: Props) {
     <Layout.Body>
       <Layout.Main fullWidth>
         <HeaderWrapper>
-          <Title>{t('Related Issues')}</Title>
           <small>
             {t(
               'Related Issues are issues that are related in some way and can be acted on together.'
@@ -76,43 +75,48 @@ function GroupRelatedIssues({params}: Props) {
             message={t('Unable to load related issues, please try again later')}
             onRetry={refetch}
           />
-        ) : sameRootCauseIssues || traceConnectedIssues ? (
-          <div>
-            {sameRootCauseIssues ? (
-              <div>
-                <Title>{t('Issues caused by the same root')}</Title>
-                <GroupList
-                  endpointPath={`/organizations/${orgSlug}/issues/`}
-                  orgSlug={orgSlug}
-                  queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
-                  query=""
-                  source="related-issues-tab"
-                  renderEmptyMessage={() => (
-                    <Title>No issues caused by the same root.</Title>
-                  )}
-                  renderErrorMessage={() => <Title>Error loading related issues</Title>}
-                />
-              </div>
-            ) : null}
-            {traceConnectedIssues ? (
-              <div>
-                <Title>{t('Issues that happened within the same trace')}</Title>
-                <GroupList
-                  endpointPath={`/organizations/${orgSlug}/issues/`}
-                  orgSlug={orgSlug}
-                  queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
-                  query=""
-                  source="related-issues-tab"
-                  renderEmptyMessage={() => (
-                    <Title>No issues caused by the same root.</Title>
-                  )}
-                  renderErrorMessage={() => <Title>Error loading related issues</Title>}
-                />
-              </div>
-            ) : null}
-          </div>
         ) : (
-          <b>No related issues found!</b>
+          <div>
+            <div>
+              <HeaderWrapper>
+                <Title>{t('Issues caused by the same root cause')}</Title>
+                {sameRootCauseIssues ? (
+                  <GroupList
+                    endpointPath={`/organizations/${orgSlug}/issues/`}
+                    orgSlug={orgSlug}
+                    queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
+                    query=""
+                    source="related-issues-tab"
+                  />
+                ) : (
+                  <small>No issues caused by the same root cause.</small>
+                )}
+              </HeaderWrapper>
+            </div>
+            <div>
+              <HeaderWrapper>
+                <Title>{t('Trace connected issues')}</Title>
+                {traceConnectedIssues ? (
+                  <div>
+                    <small>
+                      {t(
+                        'These are the issues belonging to the same trace (TODO: add link to trace).'
+                      )}
+                    </small>
+                    <GroupList
+                      endpointPath={`/organizations/${orgSlug}/issues/`}
+                      orgSlug={orgSlug}
+                      queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
+                      query=""
+                      source="related-issues-tab"
+                    />
+                  </div>
+                ) : (
+                  <small>No trace connected issues.</small>
+                )}
+              </HeaderWrapper>
+            </div>
+          </div>
         )}
       </Layout.Main>
     </Layout.Body>
