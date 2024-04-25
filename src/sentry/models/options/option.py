@@ -54,9 +54,9 @@ class BaseOption(OverwritableConfigMixin, Model):
         return q & ~models.Q(
             key__in={
                 "sentry:install-id",  # Only used on self-hosted
+                "sentry:latest_version",  # Auto-generated periodically, which defeats comparison
                 "sentry:last_worker_ping",  # Changes very frequently
                 "sentry:last_worker_version",  # Changes very frequently
-                "sentry:latest_version",  # Auto-generated periodically, which defeats comparison
             }
         )
 

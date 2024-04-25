@@ -36,7 +36,7 @@ import filterGroups, {
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -188,7 +188,6 @@ type RowProps = {
   data: {
     active: string[] | boolean;
   };
-  hasLegacyBrowserUpdate: boolean;
   onToggle: (
     data: RowProps['data'],
     filters: RowState['subfilters'],
@@ -211,8 +210,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     if (props.data.active === true) {
       initialSubfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key =>
-            LEGACY_BROWSER_SUBFILTERS[key].legacy === !this.props.hasLegacyBrowserUpdate
+          key => !LEGACY_BROWSER_SUBFILTERS[key].legacy
         )
       );
     } else if (props.data.active === false) {
@@ -234,8 +232,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     if (subfilter === true) {
       subfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key =>
-            LEGACY_BROWSER_SUBFILTERS[key].legacy === !this.props.hasLegacyBrowserUpdate
+          key => !LEGACY_BROWSER_SUBFILTERS[key].legacy
         )
       );
     } else if (subfilter === false) {
@@ -293,13 +290,10 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         <FilterGrid>
           {Object.keys(LEGACY_BROWSER_SUBFILTERS)
             .filter(key => {
-              if (this.props.hasLegacyBrowserUpdate) {
-                if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
-                  return true;
-                }
-                return this.state.subfilters.has(key);
+              if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
+                return true;
               }
-              return LEGACY_BROWSER_SUBFILTERS[key].legacy;
+              return this.state.subfilters.has(key);
             })
             .map(key => {
               const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
@@ -405,9 +399,6 @@ type Filter = {
 export function ProjectFiltersSettings({project, params, features}: Props) {
   const organization = useOrganization();
   const {projectId: projectSlug} = params;
-
-  const hasLegacyBrowserUpdate = organization.features.includes('legacy-browser-update');
-
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const filtersEndpoint = `${projectEndpoint}filters/`;
 
@@ -511,7 +502,6 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                               onToggle={(_data, subfilters, event) =>
                                 handleLegacyChange({onChange, onBlur, event, subfilters})
                               }
-                              hasLegacyBrowserUpdate={hasLegacyBrowserUpdate}
                             />
                           )}
                         </FormField>

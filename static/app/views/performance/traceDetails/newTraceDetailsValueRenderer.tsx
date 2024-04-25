@@ -30,6 +30,9 @@ export function GeneralSpanDetailsValue({value}: {value: any}) {
     return <span>{value}</span>;
   }
   if (typeof value === 'object') {
+    if (value === null) {
+      return <span>null</span>;
+    }
     return <ObjectView obj={value} />;
   }
   return <span>{JSON.stringify(value, null, 4)}</span>;

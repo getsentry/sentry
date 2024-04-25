@@ -34,12 +34,13 @@ class RpcAuthenticator(RpcModel):
     config: Any = None
 
 
-class RpcUser(RpcModel):
+class RpcUserProfile(RpcModel):
+    """Minimal set of user attributes that can be fetched efficiently."""
+
     id: int = -1
     pk: int = -1
     name: str = ""
     email: str = ""
-    emails: frozenset[str] = frozenset()
     username: str = ""
     actor_id: int | None = None
     display_name: str = ""
@@ -55,9 +56,12 @@ class RpcUser(RpcModel):
     is_password_expired: bool = False
     session_nonce: str | None = None
 
+
+class RpcUser(RpcUserProfile):
     roles: frozenset[str] = frozenset()
     permissions: frozenset[str] = frozenset()
     avatar: RpcAvatar | None = None
+    emails: frozenset[str] = frozenset()
     useremails: list[RpcUserEmail] = Field(default_factory=list)
     authenticators: list[RpcAuthenticator] = Field(default_factory=list)
 

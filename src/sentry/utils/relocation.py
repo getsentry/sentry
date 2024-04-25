@@ -556,7 +556,13 @@ def get_relocations_bucket_name():
     """
 
     storage = get_relocation_storage()
-    return "default" if getattr(storage, "bucket_name", None) is None else f"{storage.bucket_name}"
+
+    # Specialize for GCS...
+    if hasattr(storage, "bucket_name"):
+        return f"{storage.bucket_name}"
+
+    # ...and the local filesystem, when testing.
+    return "default"
 
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
@@ -615,26 +621,17 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=filter_usernames_args,
         ),
-        create_cloudbuild_validation_step(
-            id="export-raw-relocation-data",
-            step=EXPORT_VALIDATION_STEP_TEMPLATE,
-            scope="organizations",
-            timeout=2400,
-            wait_for=["export-colliding-users"],
-            kind=RelocationFile.Kind.RAW_USER_DATA,
-            args=filter_org_slugs_args,
-        ),
         COPY_OUT_DIR_TEMPLATE.substitute(
             bucket_root=bucket_root,
             uuid=relocation.uuid,
-            wait_for=["export-raw-relocation-data"],
+            wait_for=["export-colliding-users"],
         ),
         create_cloudbuild_validation_step(
             id="compare-baseline-config",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="config",
             timeout=120,
-            wait_for=["export-raw-relocation-data"],
+            wait_for=["copy-out-dir"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
         ),
@@ -647,7 +644,6 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=[],
         ),
-        # TODO(getsentry/team-ospo#216): Add compare-raw-relocation-data as well.
     ]
 
     deps = dependencies()

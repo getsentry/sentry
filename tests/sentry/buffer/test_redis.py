@@ -11,6 +11,7 @@ from sentry import options
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.rules.processing.delayed_processing import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -257,18 +258,17 @@ class TestRedisBuffer:
     def group_rule_data_by_project_id(self, buffer, project_ids):
         project_ids_to_rule_data = defaultdict(list)
         for proj_id in project_ids[0]:
-            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id})
+            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id[0]})
             for pair in rule_group_pairs:
                 for k, v in pair.items():
                     if isinstance(k, bytes):
                         k = k.decode("utf-8")
                     if isinstance(v, bytes):
                         v = v.decode("utf-8")
-                    project_ids_to_rule_data[int(proj_id)].append({k: v})
+                    project_ids_to_rule_data[int(proj_id[0])].append({k: v})
         return project_ids_to_rule_data
 
     def test_enqueue(self):
-        PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
         project_id = 1
         rule_id = 2
         group_id = 3
@@ -283,8 +283,8 @@ class TestRedisBuffer:
         event4_id = 11
 
         # store the project ids
-        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
 
         # store the rules and group per project
         self.buf.push_to_hash(
@@ -349,6 +349,67 @@ class TestRedisBuffer:
         self.buf.process_batch()
         assert mock.call_count == 1
         assert mock.call_args[0][0] == self.buf
+
+    def test_delete_batch(self):
+        """Test that after we add things to redis we can clean it up"""
+        project_id = 1
+        rule_id = 2
+        group_id = 3
+        event_id = 4
+
+        project2_id = 5
+        rule2_id = 6
+        group2_id = 7
+        event2_id = 8
+
+        now = datetime.datetime(2024, 4, 15, 3, 30, 00, tzinfo=datetime.UTC)
+        one_minute_from_now = (now).replace(minute=31)
+
+        # add a set and a hash to the buffer
+        with freeze_time(now):
+            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+            self.buf.push_to_hash(
+                model=Project,
+                filters={"project_id": project_id},
+                field=f"{rule_id}:{group_id}",
+                value=event_id,
+            )
+        with freeze_time(one_minute_from_now):
+            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project2_id)
+            self.buf.push_to_hash(
+                model=Project,
+                filters={"project_id": project2_id},
+                field=f"{rule2_id}:{group2_id}",
+                value=event2_id,
+            )
+
+        # retrieve them
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        assert len(project_ids[0]) == 2
+        rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
+        assert len(rule_group_pairs)
+
+        # delete only the first project ID by time
+        self.buf.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=now.timestamp())
+
+        # retrieve again to make sure only project_id was removed
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        if isinstance(project_ids[0][0][0], bytes):
+            assert project_ids == [
+                [(bytes(str(project2_id), "utf-8"), one_minute_from_now.timestamp())]
+            ]
+        else:
+            assert project_ids == [[(str(project2_id), one_minute_from_now.timestamp())]]
+
+        # delete the project_id hash
+        self.buf.delete_hash(
+            model=Project,
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group_id}",
+        )
+
+        rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
+        assert rule_group_pairs == [{}]
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")

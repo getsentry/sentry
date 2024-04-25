@@ -22,7 +22,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.utils import (
@@ -189,12 +189,7 @@ def build_summary_data(
                 ctx=ctx, project=project, referrer=Referrer.DAILY_SUMMARY_KEY_ERRORS.value
             )
             if key_errors:
-                group_id_alias = (
-                    "events.group_id"
-                    if features.has("organizations:snql-join-reports", project.organization)
-                    else "group_id"
-                )
-                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
+                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
 
             # Today's Top 3 Performance Issues
             key_performance_issues = project_key_performance_issues(

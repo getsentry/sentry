@@ -135,7 +135,7 @@ function TeamStatsControls({
 
   return (
     <ControlsWrapper showEnvironment={showEnvironment}>
-      <StyledTeamSelector
+      <TeamSelector
         name="select-team"
         inFieldLabel={t('Team: ')}
         value={currentTeam?.slug}
@@ -245,12 +245,6 @@ const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 246px ${p => (p.showEnvironment ? '246px' : '')} 1fr;
-  }
-`;
-
-const StyledTeamSelector = styled(TeamSelector)`
-  & > div {
-    box-shadow: ${p => p.theme.dropShadowMedium};
   }
 `;
 

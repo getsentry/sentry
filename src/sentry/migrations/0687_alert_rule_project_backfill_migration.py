@@ -3,6 +3,8 @@
 import logging
 
 from django.db import migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapper
@@ -10,7 +12,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger(__name__)
 
 
-def _backfill_alert_rule_projects(apps, schema_editor):
+def _backfill_alert_rule_projects(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     QuerySubscriptions = apps.get_model("sentry", "QuerySubscription")
     AlertRuleProjects = apps.get_model("sentry", "AlertRuleProjects")
 

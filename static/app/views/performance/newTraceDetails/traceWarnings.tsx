@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -8,7 +10,7 @@ type TraceWarningsProps = {
   type: TraceType;
 };
 
-export default function TraceWarnings({type}: TraceWarningsProps) {
+export function TraceWarnings({type}: TraceWarningsProps) {
   switch (type) {
     case TraceType.NO_ROOT:
       return (
@@ -55,6 +57,7 @@ export default function TraceWarnings({type}: TraceWarningsProps) {
     case TraceType.EMPTY_TRACE:
       return null;
     default:
-      throw new TypeError('Invalid trace type');
+      Sentry.captureMessage(`Unhandled trace type - ${type}`);
+      return null;
   }
 }

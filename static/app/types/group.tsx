@@ -1,3 +1,5 @@
+import type {LocationDescriptor} from 'history';
+
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
@@ -913,6 +915,9 @@ export type UserReport = {
 export type KeyValueListDataItem = {
   key: string;
   subject: string;
+  action?: {
+    link?: string | LocationDescriptor;
+  };
   actionButton?: React.ReactNode;
   isContextData?: boolean;
   isMultiValue?: boolean;

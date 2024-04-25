@@ -82,6 +82,7 @@ class ReplayExamples:
                             "alt": "",
                             "aria_label": "",
                             "class": ["class1", "class2"],
+                            "component_name": "",
                             "id": "myid",
                             "role": "",
                             "tag": "div",
@@ -89,8 +90,8 @@ class ReplayExamples:
                             "title": "",
                         },
                         "project_id": "1",
-                    }
-                ]
+                    },
+                ],
             },
             status_codes=["200"],
             response_only=True,
@@ -194,6 +195,50 @@ class ReplayExamples:
         OpenApiExample(
             "Retrieve a replay video",
             value=b"hello, world!",
+            status_codes=[200],
+            response_only=True,
+        )
+    ]
+
+    GET_REPLAY_VIEWED_BY = [
+        OpenApiExample(
+            "Get list of users who have viewed a replay",
+            value={
+                "data": {
+                    "viewed_by": [
+                        {
+                            "id": "884411",
+                            "name": "some.body@sentry.io",
+                            "username": "d93522a35cb64c13991104bd73d44519",
+                            "email": "some.body@sentry.io",
+                            "avatarUrl": "https://gravatar.com/avatar/d93522a35cb64c13991104bd73d44519d93522a35cb64c13991104bd73d44519?s=32&d=mm",
+                            "isActive": True,
+                            "hasPasswordAuth": False,
+                            "isManaged": False,
+                            "dateJoined": "2022-07-25T23:36:29.593212Z",
+                            "lastLogin": "2024-03-14T18:11:28.740309Z",
+                            "has2fa": True,
+                            "lastActive": "2024-03-15T22:22:06.925934Z",
+                            "isSuperuser": True,
+                            "isStaff": False,
+                            "experiments": {},
+                            "emails": [
+                                {
+                                    "id": "2231333",
+                                    "email": "some.body@sentry.io",
+                                    "is_verified": True,
+                                }
+                            ],
+                            "avatar": {
+                                "avatarType": "upload",
+                                "avatarUuid": "499dcd0764da42a589654a2224086e67",
+                                "avatarUrl": "https://sentry.io/avatar/499dcd0764da42a589654a2224086e67/",
+                            },
+                            "type": "user",
+                        }
+                    ],
+                }
+            },
             status_codes=[200],
             response_only=True,
         )

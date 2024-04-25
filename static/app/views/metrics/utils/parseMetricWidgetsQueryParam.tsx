@@ -8,6 +8,7 @@ import {isMRI} from 'sentry/utils/metrics/mri';
 import {
   type BaseWidgetParams,
   type FocusedMetricsSeries,
+  MetricChartOverlayType,
   MetricDisplayType,
   MetricExpressionType,
   type MetricsEquationWidget,
@@ -245,6 +246,9 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
       focusedSeries: parseArrayParam(widget, 'focusedSeries', parseFocusedSeries),
       sort: parseSortParam(widget, 'sort'),
       isHidden: parseBooleanParam(widget, 'isHidden') ?? false,
+      overlays: widget.overlays
+        ? parseArrayParam(widget, 'overlays', entry => entry as MetricChartOverlayType)
+        : [MetricChartOverlayType.SAMPLES],
     };
 
     switch (type) {

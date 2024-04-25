@@ -168,7 +168,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 changed_data = {}
                 for key, value in form.cleaned_data.items():
                     if key == "x509cert":
-                        original_idp = form.initial.get("idp", {})
+                        original_idp = auth_provider.config.get("idp", {})
                         if original_idp.get("x509cert", "") != value:
                             auth_provider.config = {
                                 **auth_provider.config,

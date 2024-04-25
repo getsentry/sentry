@@ -7,11 +7,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -106,22 +102,34 @@ export function SpanSamplesTable({
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
+    if (column.key === 'transaction_id') {
+      return (
+        <Link
+          to={generateLinkToEventInTraceView({
+            eventId: row['transaction.id'],
+            timestamp: row.timestamp,
+            traceSlug: row.transaction?.trace,
+            projectSlug: row.project,
+            organization,
+            location,
+            spanId: row.span_id,
+          })}
+        >
+          {row['transaction.id'].slice(0, 8)}
+        </Link>
+      );
+    }
+
     if (column.key === 'span_id') {
       return (
         <Link
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug({
-              id: row['transaction.id'],
-              project: row.project,
-            }),
+            eventId: row['transaction.id'],
+            timestamp: row.timestamp,
+            traceSlug: row.transaction?.trace,
+            projectSlug: row.project,
             organization,
             location,
-            eventView: EventView.fromLocation(location),
-            dataRow: {
-              id: row['transaction.id'],
-              trace: row.transaction?.trace,
-              timestamp: row.timestamp,
-            },
             spanId: row.span_id,
           })}
         >

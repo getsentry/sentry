@@ -59,6 +59,8 @@ export type Project = {
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   hasUserReports?: boolean;
+  highlightContext?: Record<string, string[]>;
+  highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
@@ -86,6 +88,7 @@ export type ProjectKey = {
   dateCreated: string;
   dsn: {
     cdn: string;
+    crons: string;
     csp: string;
     minidump: string;
     public: string;
@@ -211,7 +214,7 @@ export type PlatformKey =
   | 'native-breakpad'
   | 'native-minidump'
   | 'native-qt'
-  | 'nintendo'
+  | 'nintendo-switch'
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'

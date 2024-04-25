@@ -40,7 +40,7 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
 //      [0]: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
 const PERSIST_IN_FLIGHT = true;
 
-type QueryKeyEndpointOptions<
+export type QueryKeyEndpointOptions<
   Headers = Record<string, string>,
   Query = Record<string, any>,
   Data = Record<string, any>,
@@ -150,7 +150,7 @@ export function useApiQueries<TResponseData, TError = RequestError>(
       return {
         queryKey,
         queryFn,
-        options,
+        ...options,
       };
     }),
   });

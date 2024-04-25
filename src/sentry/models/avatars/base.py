@@ -12,10 +12,10 @@ from PIL import Image
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model
+from sentry.db.models import Model
+from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
-from sentry.silo import SiloMode
-from sentry.tasks.files import copy_file_to_control_and_update_model
+from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -23,8 +23,7 @@ from sentry.utils.db import atomic_transaction
 
 class AvatarBase(Model):
     """
-    Base class for UserAvatar, OrganizationAvatar, TeamAvatar,
-    SentryAppAvatar, and ProjectAvatar models. Associates those entities with their
+    Base class for UserAvatar, OrganizationAvatar, and SentryAppAvatar models. Associates those entities with their
     avatar preferences/files. If extending this class, ensure the model has avatar_type.
     """
 
@@ -36,7 +35,6 @@ class AvatarBase(Model):
     AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]]
     FILE_TYPE: ClassVar[str]
 
-    file_id = BoundedBigIntegerField(unique=True, null=True)
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 
     class Meta:
@@ -50,32 +48,8 @@ class AvatarBase(Model):
         return super().save(*args, **kwargs)
 
     def get_file(self):
-        # If we're getting a file, and the preferred write file type isn't
-        # present, move data over to new storage async.
         file_id = getattr(self, self.file_write_fk(), None)
         file_class = self.file_class()
-
-        if file_id is None:
-            file_id = self.file_id
-            file_class = File
-            if file_id is None:
-                return None
-            if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                copy_file_to_control_and_update_model.apply_async(
-                    kwargs={
-                        "app_name": "sentry",
-                        "model_name": type(self).__name__,
-                        "model_id": self.id,
-                        "file_id": file_id,
-                    }
-                )
-
-        if (
-            SiloMode.get_current_mode() != SiloMode.MONOLITH
-            and SiloMode.get_current_mode() not in file_class._meta.silo_limit.modes
-        ):
-            return None
-
         try:
             return file_class.objects.get(pk=file_id)
         except ObjectDoesNotExist:
@@ -115,7 +89,7 @@ class AvatarBase(Model):
                 cache.set(cache_key, photo)
         return photo
 
-    def file_class(self):
+    def file_class(self) -> type[File] | type[ControlFile]:
         return File
 
     def file_fk(self) -> str:

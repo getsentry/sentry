@@ -152,8 +152,19 @@ def should_use_symbolicator_for_proguard(project_id: int) -> bool:
 
 
 def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
-    """Returns whether `data` is a JVM event, based on its platform and
+    """Returns whether `data` is a JVM event, based on its platform, images, and
     the supplied stacktraces."""
+
+    # check if there are any JVM or Proguard images
+    images = get_path(
+        data,
+        "debug_meta",
+        "images",
+        filter=lambda x: is_valid_jvm_image(x) or is_valid_proguard_image(x),
+        default=(),
+    )
+    if not images:
+        return False
 
     if data.get("platform") == "java":
         return True

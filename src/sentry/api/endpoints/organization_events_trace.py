@@ -3,7 +3,7 @@ from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
+from typing import Any, Deque, Optional, TypedDict, TypeVar
 
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
@@ -18,20 +18,20 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
-from sentry.search.utils import parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import bulk_snql_query
+from sentry.utils.snuba import bulk_snuba_queries
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -44,11 +44,13 @@ SnubaTransaction = TypedDict(
     "SnubaTransaction",
     {
         "id": str,
+        "issue_occurrences": Sequence[IssueOccurrence],
         "transaction.status": int,
         "transaction.op": str,
         "transaction.duration": int,
         "transaction": str,
         "timestamp": str,
+        "occurrence_spans": Sequence[dict[str, object]],
         "precise.start_ts": int,
         "precise.finish_ts": int,
         "trace.span": str,
@@ -58,6 +60,7 @@ SnubaTransaction = TypedDict(
         "project.id": int,
         "project": str,
         "issue.ids": list[int],
+        "occurrence_to_issue_id": dict[str, list[int]],
     },
 )
 SnubaError = TypedDict(
@@ -175,7 +178,10 @@ class TraceEvent:
         self.fetched_nodestore: bool = span_serialized
         self.span_serialized = span_serialized
         if len(self.event["issue.ids"]) > 0:
-            self.load_performance_issues(light, snuba_params)
+            if self.span_serialized:
+                self.load_span_serialized_performance_issues(light, snuba_params)
+            else:
+                self.load_performance_issues(light, snuba_params)
 
     @property
     def nodestore_event(self) -> Event | None:
@@ -187,7 +193,67 @@ class TraceEvent:
                 )
         return self._nodestore_event
 
-    def load_performance_issues(self, light: bool, snuba_params: ParamsType) -> None:
+    def load_span_serialized_performance_issues(
+        self, light: bool, snuba_params: ParamsType
+    ) -> None:
+        """Rewriting load_performance_issues from scratch so the logic is more independent"""
+        memoized_groups = {}
+        for event_span in self.event["occurrence_spans"]:
+            unique_spans: set[str] = set()
+            start: float | None = None
+            end: float | None = None
+            suspect_spans: list[str] = []
+            problem = event_span["problem"]
+            offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
+            for group_id in self.event["occurrence_to_issue_id"][problem.id]:
+                if group_id not in memoized_groups:
+                    memoized_groups[group_id] = Group.objects.filter(
+                        id=group_id, project=self.event["project.id"]
+                    ).first()
+                group = memoized_groups[group_id]
+                if event_span.get("span_id") in offender_span_ids:
+                    start_timestamp = float(event_span.get("precise.start_ts"))
+                    if start is None:
+                        start = start_timestamp
+                    else:
+                        start = min(start, start_timestamp)
+                    end_timestamp = float(event_span.get("precise.finish_ts"))
+                    if end is None:
+                        end = end_timestamp
+                    else:
+                        end = max(end, end_timestamp)
+                    suspect_spans.append(event_span.get("span_id"))
+
+                parent_span_ids = problem.evidence_data.get("parent_span_ids")
+                if parent_span_ids is not None:
+                    unique_spans = unique_spans.union(parent_span_ids)
+
+                # Logic for qualified_short_id is copied from property on the Group model
+                # to prevent an N+1 query from accessing project.slug everytime
+                qualified_short_id = None
+                project_slug = self.event["project"]
+                if group.short_id is not None:
+                    qualified_short_id = f"{project_slug.upper()}-{base32_encode(group.short_id)}"
+
+                self.performance_issues.append(
+                    {
+                        "event_id": self.event["id"],
+                        "issue_id": group_id,
+                        "issue_short_id": qualified_short_id,
+                        "span": list(unique_spans),
+                        "suspect_spans": suspect_spans,
+                        "project_id": self.event["project.id"],
+                        "project_slug": self.event["project"],
+                        "title": group.title,
+                        "level": constants.LOG_LEVELS[group.level],
+                        "culprit": group.culprit,
+                        "type": group.type,
+                        "start": start,
+                        "end": end,
+                    }
+                )
+
+    def load_performance_issues(self, light: bool, snuba_params: ParamsType | None) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -201,29 +267,8 @@ class TraceEvent:
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
-            elif "occurrence_spans" in self.event:
-                for problem in self.event["issue_occurrences"]:
-                    parent_span_ids = problem.evidence_data.get("parent_span_ids")
-                    if parent_span_ids is not None:
-                        unique_spans = unique_spans.union(parent_span_ids)
-                span = list(unique_spans)
-                for event_span in self.event["occurrence_spans"]:
-                    for problem in self.event["issue_occurrences"]:
-                        offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
-                        if event_span.get("span_id") in offender_span_ids:
-                            start_timestamp = float(event_span.get("precise.start_ts"))
-                            if start is None:
-                                start = start_timestamp
-                            else:
-                                start = min(start, start_timestamp)
-                            end_timestamp = float(event_span.get("precise.finish_ts"))
-                            if end is None:
-                                end = end_timestamp
-                            else:
-                                end = max(end, end_timestamp)
-                            suspect_spans.append(event_span.get("span_id"))
             else:
-                if self.nodestore_event is not None or self.span_serialized:
+                if self.nodestore_event is not None:
                     occurrence_query = QueryBuilder(
                         Dataset.IssuePlatform,
                         snuba_params,
@@ -322,7 +367,7 @@ class TraceEvent:
             return
         else:
             visited.add(self.event["id"])
-        result = cast(FullResponse, self.to_dict())
+        result = self.to_dict()
         if detailed and "transaction.status" in self.event:
             result.update(
                 {
@@ -423,9 +468,65 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
     )
     transaction_query.columns.append(Function("count()", alias="total_groups"))
     count = transaction_query.run_query("api.trace-view.count-performance-issues")
-    return cast(int, count["data"][0].get("total_groups", 0))
+    return count["data"][0].get("total_groups", 0)
 
 
+@sentry_sdk.tracing.trace
+def update_params_with_trace_timestamp_projects(
+    trace_id: str,
+    params: Mapping[str, str],
+) -> None:
+    query_metadata = options.get("performance.traces.query_timestamp_projects")
+    sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
+    if not query_metadata:
+        return
+
+    metadata_query = QueryBuilder(
+        Dataset.Discover,
+        params,
+        query=f"trace:{trace_id}",
+        selected_columns=[
+            "min(timestamp)",
+            "max(timestamp)",
+            "project.id",
+        ],
+    )
+    results = metadata_query.run_query(Referrer.API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS.value)
+    results = metadata_query.process_results(results)
+    project_id_set = set()
+    min_timestamp = None
+    max_timestamp = None
+    for row in results["data"]:
+        current_min = datetime.fromisoformat(row["min_timestamp"])
+        current_max = datetime.fromisoformat(row["max_timestamp"])
+        if min_timestamp is None:
+            min_timestamp = current_min
+        if max_timestamp is None:
+            max_timestamp = current_max
+
+        if current_min < min_timestamp:
+            min_timestamp = current_min
+        if current_max > max_timestamp:
+            max_timestamp = current_max
+
+        project_id_set.add(row["project.id"])
+
+    # Do not modify the params if anything comes back empty
+    if len(project_id_set) == 0 or min_timestamp is None or max_timestamp is None:
+        return
+
+    project_ids = list(project_id_set)
+    # Reusing this option for now
+    time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
+    if min_timestamp:
+        params["start"] = min_timestamp - timedelta(hours=time_buffer)
+    if max_timestamp:
+        params["end"] = max_timestamp + timedelta(hours=time_buffer)
+    params["project_objects"] = [p for p in params["project_objects"] if p.id in project_ids]
+    params["project_id"] = project_ids
+
+
+@sentry_sdk.tracing.trace
 def query_trace_data(
     trace_id: str,
     params: Mapping[str, str],
@@ -508,7 +609,7 @@ def query_trace_data(
             auto_fields=False,
         ),
     )
-    results = bulk_snql_query(
+    results = bulk_snuba_queries(
         [
             transaction_query.get_snql_query(),
             error_query.get_snql_query(),
@@ -523,11 +624,21 @@ def query_trace_data(
     ]
 
     # Join group IDs from the occurrence dataset to transactions data
-    occurrence_issue_ids = {row["event_id"]: row["issue.ids"] for row in transformed_results[2]}
-    occurrence_ids = {row["event_id"]: row["occurrence_id"] for row in transformed_results[2]}
+    occurrence_issue_ids = defaultdict(list)
+    occurrence_ids = defaultdict(list)
+    for row in transformed_results[2]:
+        occurrence_issue_ids[row["event_id"]].extend(row["issue.ids"])
+        occurrence_ids[row["event_id"]].append(row["occurrence_id"])
+
     for result in transformed_results[0]:
-        result["issue.ids"] = occurrence_issue_ids.get(result["id"], {})
-        result["occurrence_id"] = occurrence_ids.get(result["id"])
+        result["occurrence_to_issue_id"] = {}
+        for occurrence in transformed_results[2]:
+            if occurrence["event_id"] == result["id"]:
+                result["occurrence_to_issue_id"][occurrence["occurrence_id"]] = occurrence[
+                    "issue.ids"
+                ]
+        result["issue.ids"] = occurrence_issue_ids.get(result["id"], [])
+        result["occurrence_id"] = occurrence_ids.get(result["id"], [])
         result["trace.parent_transaction"] = None
         if use_spans:
             result["measurements"] = {
@@ -538,18 +649,14 @@ def query_trace_data(
                 for key, value in zip(result["measurements.key"], result["measurements.value"])
             }
 
-    return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
-        Sequence[SnubaError], transformed_results[1]
-    )
+    return transformed_results[0], transformed_results[1]
 
 
 def build_span_query(trace_id, spans_params, query_spans):
     parents_query = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         spans_params,
-        # This is a hack so the later span_id condition is put into the PREWHERE instead of the trace_id
-        # we do this because from experimentation we know that span ids in the PREWHERE is about 3x faster
-        query=f"(trace:{trace_id} or trace:{trace_id})",
+        query=f"trace:{trace_id}",
         selected_columns=[
             "transaction.id",
             "span_id",
@@ -581,6 +688,7 @@ def pad_span_id(span):
     return span.rjust(16, "0")
 
 
+@sentry_sdk.tracing.trace
 def augment_transactions_with_spans(
     transactions: Sequence[SnubaTransaction],
     errors: Sequence[SnubaError],
@@ -630,7 +738,7 @@ def augment_transactions_with_spans(
             if project not in problem_project_map:
                 problem_project_map[project] = []
             if transaction["occurrence_id"] is not None:
-                problem_project_map[project].append(transaction["occurrence_id"])
+                problem_project_map[project].extend(transaction["occurrence_id"])
 
             if not transaction["trace.parent_span"]:
                 continue
@@ -670,15 +778,26 @@ def augment_transactions_with_spans(
 
     # If we're querying over 100 span ids, lets split the query into 3
     sentry_sdk.set_tag("trace_view.use_spans.span_len", len(query_spans))
+
+    # The max query size according to snuba/clickhouse docs is 256KiB, or about 256 thousand characters
+    # Each span id maps to being 20 characters; 16 characters turned back into a number maxes out at 20
+    # which at 10k transaction span ids, and even another 10k error span ids (which would only happen if there's no
+    # crossover) that's 20k * 20 = 400k bytes, with 3 queries that should be 133,333 bytes  which shouldn't be anywhere
+    # near the 256KiB max even with the other parts of the query.
+    # Experimentally (running queries in snuba admin) we've found the max query size is actually 131,535 bytes or
+    # 128.45KiB. Taking that into account, (131,535-10,000(for projects etc))/20 = 6000, means that we can fit at most
+    # 6000 span ids per query, Adding a bit of a buffer, if the query is for more than 12,500 spans we'll do 4 chunks
+    # instead of 3
     if len(query_spans) > 100:
         list_spans = list(query_spans)
-        chunks = [
-            list_spans[: len(list_spans) // 3],
-            list_spans[len(list_spans) // 3 : len(list_spans) // 3 * 2],
-            list_spans[len(list_spans) // 3 * 2 :],
-        ]
+        if len(query_spans) < 12_500:
+            total_chunks = 3
+        else:
+            total_chunks = 4
+        sentry_sdk.set_measurement("trace_view.span_query.total_chunks", total_chunks)
+        chunks = chunked(list_spans, (len(list_spans) // total_chunks) + 1)
         queries = [build_span_query(trace_id, spans_params, chunk) for chunk in chunks]
-        results = bulk_snql_query(
+        results = bulk_snuba_queries(
             [query.get_snql_query() for query in queries],
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
         )
@@ -712,31 +831,15 @@ def augment_transactions_with_spans(
                 parent = parent_map.get(span_id)
                 if parent is not None:
                     transaction = transaction_problem_map[problem.event_id]
-                    transaction["occurrence_spans"].append(parent)
-                    transaction["issue_occurrences"].append(problem)
+                    occurrence = parent.copy()
+                    occurrence["problem"] = problem
+                    transaction["occurrence_spans"].append(occurrence)
     with sentry_sdk.start_span(op="augment.transactions", description="linking errors"):
         for error in errors:
             parent = parent_map.get(error["trace.span"])
             if parent is not None:
                 error["trace.transaction"] = parent["transaction.id"]
     return transactions
-
-
-def update_params_with_timestamp(request: HttpRequest, params: Mapping[str, str]) -> None:
-    # during the transition this is optional but it will become required
-    sentry_sdk.set_tag("trace_view.used_timestamp", "timestamp" in request.GET)
-    if "timestamp" in request.GET:
-        example_timestamp: datetime | None = parse_datetime_string(request.GET["timestamp"])
-        # While possible, the majority of traces shouldn't take more than a week
-        # Starting with 3d for now, but potentially something we can increase if this becomes a problem
-        time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
-        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
-        example_start = example_timestamp - timedelta(days=time_buffer)
-        example_end = example_timestamp + timedelta(days=time_buffer)
-        # If timestamp is being passed it should always overwrite the statsperiod or start & end
-        # the client should just not pass a timestamp if we need to overwrite this logic for any reason
-        params["start"] = max(params["start"], example_start)
-        params["end"] = min(params["end"], example_end)
 
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
@@ -837,16 +940,16 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         # Detailed is deprecated now that we want to use spans instead
-        detailed: bool = request.GET.get("detailed", "0") == "1"
+        detailed = request.GET.get("detailed", "0") == "1"
         # Temporary url params until we finish migrating the frontend
-        use_spans: bool = request.GET.get("useSpans", "0") == "1"
-        update_params_with_timestamp(request, params)
+        use_spans = request.GET.get("useSpans", "0") == "1"
+        update_snuba_params_with_timestamp(request, params)
 
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
-        limit: int = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
-        event_id: str | None = request.GET.get("event_id") or request.GET.get("eventId")
+        limit = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
+        event_id = request.GET.get("event_id") or request.GET.get("eventId")
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
@@ -858,6 +961,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with handle_query_errors():
+            update_params_with_trace_timestamp_projects(trace_id, params)
+
             if use_spans:
                 transactions, errors = query_trace_data(
                     trace_id, params, limit, event_id, use_spans
@@ -1267,9 +1372,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_events[child_event["id"]] = TraceEvent(
                             child_event,
                             current_event["id"],
-                            previous_event.generation + 1
-                            if previous_event.generation is not None
-                            else None,
+                            (
+                                previous_event.generation + 1
+                                if previous_event.generation is not None
+                                else None
+                            ),
                             snuba_params=params,
                         )
                         # Add this event to its parent's children
@@ -1438,9 +1545,10 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        update_params_with_timestamp(request, params)
+        update_snuba_params_with_timestamp(request, params)
 
         with handle_query_errors():
+            update_params_with_trace_timestamp_projects(trace_id, params)
             result = discover.query(
                 selected_columns=[
                     "count_unique(project_id) as projects",

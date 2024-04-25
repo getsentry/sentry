@@ -1,6 +1,6 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
-sentry-devenv>=1.5.0
+sentry-devenv>=1.6.2
 
 covdefaults>=2.3.0
 docker>=6
@@ -13,7 +13,7 @@ pytest-django>=4.8.0
 pytest-fail-slow>=0.3.0
 pytest-json-report>=1.5.0
 pytest-rerunfailures>=11
-pytest-sentry>=0.3.0rc1
+pytest-sentry>=0.3.0
 pytest-xdist>=3
 responses>=0.23.1
 selenium>=4.16.0

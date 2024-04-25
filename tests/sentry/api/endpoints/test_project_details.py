@@ -13,6 +13,7 @@ from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedproject import DeletedProject
@@ -26,7 +27,8 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
@@ -245,6 +247,15 @@ class ProjectDetailsTest(APITestCase):
         self.login_as(user=user)
 
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
+
+    def test_highlight_preset(self):
+        assert self.project.get_option("sentry:highlight_context") is None
+        assert self.project.get_option("sentry:highlight_tags") is None
+        resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+        expected_preset = get_highlight_preset_for_project(self.project)
+        assert resp.data["highlightPreset"] == expected_preset
+        assert resp.data["highlightContext"] == expected_preset["context"]
+        assert resp.data["highlightTags"] == expected_preset["tags"]
 
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
@@ -836,6 +847,100 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["safeFields"] == [
             'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
         ]
+
+    def test_highlight_tags(self):
+        # Default with or without flag, ignore update attempt
+        highlight_tags = ["bears", "beets", "battlestar_galactica"]
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightTags=highlight_tags,
+        )
+        assert self.project.get_option("sentry:highlight_tags") is None
+
+        preset = get_highlight_preset_for_project(self.project)
+        assert resp.data["highlightTags"] == preset["tags"]
+
+        with self.feature("organizations:event-tags-tree-ui"):
+            # Set to custom
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightTags=highlight_tags,
+            )
+            assert self.project.get_option("sentry:highlight_tags") == highlight_tags
+            assert resp.data["highlightTags"] == highlight_tags
+
+            # Set to empty
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightTags=[],
+            )
+            assert self.project.get_option("sentry:highlight_tags") == []
+            assert resp.data["highlightTags"] == []
+
+    def test_highlight_context(self):
+        # Default with or without flag, ignore update attempt
+        highlight_context_type = "bird-words"
+        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext=highlight_context,
+        )
+        assert self.project.get_option("sentry:highlight_context") is None
+
+        preset = get_highlight_preset_for_project(self.project)
+        assert resp.data["highlightContext"] == preset["context"]
+
+        with self.feature("organizations:event-tags-tree-ui"):
+            # Set to custom
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=highlight_context,
+            )
+            option_result = self.project.get_option("sentry:highlight_context")
+            resp_result = resp.data["highlightContext"]
+            for highlight_context_key in highlight_context[highlight_context_type]:
+                assert highlight_context_key in option_result[highlight_context_type]
+                assert highlight_context_key in resp_result[highlight_context_type]
+            # Filters duplicates
+            assert (
+                len(option_result[highlight_context_type])
+                == len(resp_result[highlight_context_type])
+                == 4
+            )
+
+            # Set to empty
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext={},
+            )
+            assert self.project.get_option("sentry:highlight_context") == {}
+            assert resp.data["highlightContext"] == {}
+
+            # Checking validation
+            resp = self.get_error_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=["bird-words", ["red", "blue"]],
+            )
+            assert "Expected a dictionary" in resp.data["highlightContext"][0]
+            resp = self.get_error_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext={"": ["empty", "context", "type"]},
+            )
+            assert "Key '' is invalid" in resp.data["highlightContext"][0]
+            resp = self.get_error_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext={"bird-words": ["invalid", 123, "integer"]},
+            )
+            assert "must be a list of strings" in resp.data["highlightContext"][0]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)

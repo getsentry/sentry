@@ -102,6 +102,34 @@ def query_replay_instance(
     )["data"]
 
 
+def query_replay_viewed_by_ids(
+    project_id: int | list[int],
+    replay_id: str,
+    start: datetime,
+    end: datetime,
+    request_user_id: int | None,
+    organization: Organization | None = None,
+) -> list[dict[str, Any]]:
+    """Query unique user ids who viewed a given replay."""
+    if isinstance(project_id, list):
+        project_ids = project_id
+    else:
+        project_ids = [project_id]
+
+    return execute_query(
+        query=make_full_aggregation_query(
+            fields=["viewed_by_ids"],
+            replay_ids=[replay_id],
+            project_ids=project_ids,
+            period_start=start,
+            period_end=end,
+            request_user_id=request_user_id,
+        ),
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.viewed_by_query",
+    )["data"]
+
+
 def query_replays_count(
     project_ids: list[int],
     start: datetime,
@@ -559,7 +587,8 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "info_ids": ["info_ids"],
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
-    "has_viewed": ["has_viewed"],
+    "viewed_by_ids": ["viewed_by_ids"],
+    "has_viewed": ["viewed_by_ids"],
 }
 
 
@@ -706,6 +735,14 @@ QUERY_ALIAS_COLUMN_MAP = {
         "sum",
         parameters=[Column("count_info_events")],
         alias="count_infos",
+    ),
+    "viewed_by_ids": Function(
+        "groupUniqArrayIf",
+        parameters=[
+            Column("viewed_by_id"),
+            Function("greater", parameters=[Column("viewed_by_id"), 0]),
+        ],
+        alias="viewed_by_ids",
     ),
 }
 

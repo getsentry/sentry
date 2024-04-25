@@ -6,7 +6,7 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode

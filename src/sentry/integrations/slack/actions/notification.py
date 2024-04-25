@@ -5,6 +5,7 @@ from logging import Logger, getLogger
 from typing import Any
 
 from sentry import features
+from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
@@ -22,7 +23,6 @@ from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.hybrid_cloud.integration import RpcIntegration
@@ -40,13 +40,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        # XXX(CEO): when removing the feature flag, put `label` back up as a class var
-        self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"  # type: ignore[misc]
-        if features.has("organizations:slack-block-kit", self.project.organization):
-            self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"  # type: ignore[misc]
         self.form_fields = {
             "workspace": {
                 "type": "choice",
@@ -56,18 +53,17 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
-        if features.has("organizations:slack-block-kit", self.project.organization):
-            self.form_fields["notes"] = {
-                "type": "string",
-                "placeholder": "e.g. @jane, @on-call-team",
-            }
+        self.form_fields["notes"] = {
+            "type": "string",
+            "placeholder": "e.g. @jane, @on-call-team",
+        }
 
         self._repository: IssueAlertNotificationMessageRepository = (
             get_default_issue_alert_repository()
         )
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
@@ -85,45 +81,27 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             additional_attachment = get_additional_attachment(
                 integration, self.project.organization
             )
-            payload = {}
-            if features.has("organizations:slack-block-kit", event.group.project.organization):
-                blocks = SlackIssuesMessageBuilder(
-                    group=event.group,
-                    event=event,
-                    tags=tags,
-                    rules=rules,
-                    notes=self.get_option("notes", ""),
-                ).build(notification_uuid=notification_uuid)
+            blocks = SlackIssuesMessageBuilder(
+                group=event.group,
+                event=event,
+                tags=tags,
+                rules=rules,
+                notes=self.get_option("notes", ""),
+            ).build(notification_uuid=notification_uuid)
 
-                if additional_attachment:
-                    for block in additional_attachment:
-                        blocks["blocks"].append(block)
+            if additional_attachment:
+                for block in additional_attachment:
+                    blocks["blocks"].append(block)
 
-                if blocks.get("blocks"):
-                    payload = {
-                        "text": blocks.get("text"),
-                        "blocks": json.dumps(blocks.get("blocks")),
-                        "channel": channel,
-                        "unfurl_links": False,
-                        "unfurl_media": False,
-                    }
-            else:
-                attachments = [
-                    SlackIssuesMessageBuilder(
-                        group=event.group,
-                        event=event,
-                        tags=tags,
-                        rules=rules,
-                    ).build(notification_uuid=notification_uuid)
-                ]
-                # getsentry might add a billing related attachment
-                if additional_attachment:
-                    attachments.append(additional_attachment)
-
+            if payload_blocks := blocks.get("blocks"):
                 payload = {
+                    "text": blocks.get("text"),
+                    "blocks": json.dumps_experimental(
+                        "integrations.slack.enable-orjson", payload_blocks
+                    ),
                     "channel": channel,
-                    "link_names": 1,
-                    "attachments": json.dumps(attachments),
+                    "unfurl_links": False,
+                    "unfurl_media": False,
                 }
                 self.logger.info(
                     "rule.slack_post.attachments",
@@ -133,7 +111,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             rule = rules[0] if rules else None
             rule_to_use = self.rule if self.rule else rule
             rule_id = rule_to_use.id if rule_to_use else None
-            rule_action_uuid = self.data.get("action_uuid", None)
+            rule_action_uuid = self.data.get(ACTION_UUID_KEY, None)
             if not rule_action_uuid:
                 # We are logging because this should never happen, all actions should have an uuid
                 # We can monitor for this, and create an alert if this ever appears
@@ -202,9 +180,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "event_id": event.event_id,
                     "channel_name": self.get_option("channel"),
                 }
-                if features.has("organizations:slack-block-kit", event.group.project.organization):
-                    # temporarily log the payload so we can debug message failures
-                    log_params["payload"] = json.dumps(payload)
+                # temporarily log the payload so we can debug message failures
+                log_params["payload"] = json.dumps_experimental(
+                    "integrations.slack.enable-orjson", payload
+                )
 
                 self.logger.info(
                     "rule.fail.slack_post",
@@ -274,7 +253,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
+            "blocks": json.dumps_experimental(
+                "integrations.slack.enable-orjson", blocks.get("blocks")
+            ),
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,
@@ -296,20 +277,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def render_label(self) -> str:
         tags = self.get_tags_list()
 
-        if features.has("organizations:slack-block-kit", self.project.organization):
-            return self.label.format(
-                workspace=self.get_integration_name(),
-                channel=self.get_option("channel"),
-                channel_id=self.get_option("channel_id"),
-                tags="[{}]".format(", ".join(tags)),
-                notes=self.get_option("notes", ""),
-            )
-
         return self.label.format(
             workspace=self.get_integration_name(),
             channel=self.get_option("channel"),
             channel_id=self.get_option("channel_id"),
             tags="[{}]".format(", ".join(tags)),
+            notes=self.get_option("notes", ""),
         )
 
     def get_tags_list(self) -> Sequence[str]:

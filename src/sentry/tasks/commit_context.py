@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import sentry_sdk
+from celery import Task
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
@@ -34,7 +35,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
@@ -52,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 def queue_comment_task_if_needed(
     commit: Commit, group_owner: GroupOwner, repo: Repository, installation: IntegrationInstallation
-):
+) -> None:
     from sentry.tasks.integrations.github.pr_comment import github_comment_workflow
 
     logger.info(
@@ -142,15 +143,14 @@ def queue_comment_task_if_needed(
     bind=True,
 )
 def process_commit_context(
-    self,
-    event_id,
-    event_platform,
-    event_frames,
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    self: Task,
+    event_id: str,
+    event_platform: str,
+    event_frames: Sequence[Mapping[str, Any]],
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+) -> None:
     """
     For a given event, look at the first in_app frame, and if we can find who modified the line, we can then update who is assigned to the issue.
     """

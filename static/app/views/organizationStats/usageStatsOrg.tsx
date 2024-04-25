@@ -16,12 +16,13 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
+import {hasMetricStats} from 'sentry/utils/metrics/features';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -51,6 +52,7 @@ export interface UsageStatsOrganizationProps extends WithRouterProps {
 
 type UsageStatsOrganizationState = {
   orgStats: UsageSeries | undefined;
+  metricOrgStats?: UsageSeries | undefined;
 } & DeprecatedAsyncComponent['state'];
 
 /**
@@ -78,7 +80,10 @@ class UsageStatsOrganization<
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
+    return [
+      ['orgStats', this.endpointPath, {query: this.endpointQuery}],
+      ...this.metricsEndpoint,
+    ];
   }
 
   /** List of components to render on single-project view */
@@ -120,6 +125,51 @@ class UsageStatsOrganization<
     };
   }
 
+  // Metric stats are not reported when grouping by category, so we make a separate request
+  // and combine the results
+  get metricsEndpoint(): [string, string, {query: Record<string, any>}][] {
+    if (hasMetricStats(this.props.organization)) {
+      return [
+        [
+          'metricOrgStats',
+          this.endpointPath,
+          {
+            query: {
+              ...this.endpointQuery,
+              category: DATA_CATEGORY_INFO.metrics.apiName,
+              groupBy: ['outcome'],
+            },
+          },
+        ],
+      ];
+    }
+    return [];
+  }
+
+  // Combines non-metric and metric stats
+  get orgStats() {
+    const {orgStats, metricOrgStats} = this.state;
+
+    if (!orgStats || !metricOrgStats) {
+      return orgStats;
+    }
+
+    const metricsGroups = metricOrgStats.groups.map(group => {
+      return {
+        ...group,
+        by: {
+          ...group.by,
+          category: DATA_CATEGORY_INFO.metrics.apiName,
+        },
+      };
+    });
+
+    return {
+      ...orgStats,
+      groups: [...orgStats.groups, ...metricsGroups],
+    };
+  }
+
   get chartData(): {
     cardStats: {
       accepted?: string;
@@ -138,10 +188,8 @@ class UsageStatsOrganization<
     chartTransform: ChartDataTransform;
     dataError?: Error;
   } {
-    const {orgStats} = this.state;
-
     return {
-      ...this.mapSeriesToChart(orgStats),
+      ...this.mapSeriesToChart(this.orgStats),
       ...this.chartDateRange,
       ...this.chartTransform,
     };
@@ -363,6 +411,7 @@ class UsageStatsOrganization<
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
         [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
+        [Outcome.CARDINALITY_LIMITED]: 0, // Combined with dropped later
       };
 
       orgStats.groups.forEach(group => {
@@ -386,6 +435,7 @@ class UsageStatsOrganization<
               return;
             case Outcome.DROPPED:
             case Outcome.RATE_LIMITED:
+            case Outcome.CARDINALITY_LIMITED:
             case Outcome.INVALID:
               usageStats[i].dropped.total += stat;
               // TODO: add client discards to dropped?
@@ -399,6 +449,7 @@ class UsageStatsOrganization<
       // Invalid and rate_limited data is combined with dropped
       count[Outcome.DROPPED] += count[Outcome.INVALID];
       count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
+      count[Outcome.DROPPED] += count[Outcome.CARDINALITY_LIMITED];
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;

@@ -24,8 +24,9 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
+import {TraceDrawerComponents} from './traceDrawer/details/styles';
+import type {TraceTree} from './traceModels/traceTree';
 import {isTraceNode} from './guards';
-import type {TraceTree} from './traceTree';
 
 function TraceHeaderEmptyTrace() {
   return (
@@ -102,7 +103,7 @@ export function TraceHeader({
     traceNode.performance_issues.size || metaResults.data?.performance_issues || 0;
   const errorsAndIssuesCount = errors + performanceIssues;
 
-  const replay_id = rootEventResults?.data?.contexts.replay?.replay_id;
+  const replay_id = rootEventResults?.data?.contexts?.replay?.replay_id;
   const showLoadingIndicator =
     (rootEventResults.isLoading && rootEventResults.fetchStatus !== 'idle') ||
     metaResults.isLoading;
@@ -221,8 +222,10 @@ export function TraceHeader({
             >
               {metaResults.isLoading ? (
                 <LoadingIndicator size={20} mini />
-              ) : errorsAndIssuesCount >= 0 ? (
-                errorsAndIssuesCount
+              ) : errorsAndIssuesCount > 0 ? (
+                <TraceDrawerComponents.IssuesLink>
+                  {errorsAndIssuesCount}
+                </TraceDrawerComponents.IssuesLink>
               ) : (
                 '\u2014'
               )}
@@ -256,6 +259,8 @@ const FlexBox = styled('div')`
 
 const TraceHeaderContainer = styled(FlexBox)`
   justify-content: space-between;
+  background-color: ${p => p.theme.background};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
 `;
 
 const TraceHeaderRow = styled(FlexBox)<{textAlign: 'left' | 'right'}>`

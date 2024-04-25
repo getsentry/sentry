@@ -10,7 +10,9 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
@@ -18,8 +20,8 @@ import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimel
 import {CheckInPlaceholder} from 'sentry/views/monitors/components/timeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/views/monitors/components/timeline/checkInTimeline';
 import {
+  GridLineLabels,
   GridLineOverlay,
-  GridLineTimeLabels,
 } from 'sentry/views/monitors/components/timeline/gridLines';
 import type {
   MonitorBucketData,
@@ -139,7 +141,7 @@ const TimelineContainer = styled(Panel)`
   align-items: center;
 `;
 
-const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
+const StyledGridLineTimeLabels = styled(GridLineLabels)`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 

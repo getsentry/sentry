@@ -12,7 +12,7 @@ from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -20,7 +20,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.utils import (
@@ -164,12 +164,7 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                group_id_alias = (
-                    "events.group_id"
-                    if features.has("organizations:snql-join-reports", project.organization)
-                    else "group_id"
-                )
-                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
+                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
 
                 if ctx.organization.slug == "sentry":
                     logger.info(

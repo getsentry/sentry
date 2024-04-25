@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
+import Tag, {Background} from 'sentry/components/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
-import {Background, Tag} from 'sentry/components/tag';
 import Truncate from 'sentry/components/truncate';
 import {space} from 'sentry/styles/space';
 import {getDuration} from 'sentry/utils/formatters';

@@ -52,7 +52,7 @@ def get_stacktrace_string(data):
     frame_count = 0
     stacktrace_str = ""
     for exception in exceptions:
-        if exception.get("id") != "exception":
+        if exception.get("id") not in ["exception", "threads"]:
             continue
 
         # For each exception, extract its type, value, and stacktrace frames
@@ -88,7 +88,8 @@ def get_stacktrace_string(data):
 
         # Add the exception values into the formatted string
         if exception.get("contributes"):
-            stacktrace_str += f"{exc_type}: {exc_value}\n"
+            if exception.get("id") == "exception":
+                stacktrace_str += f"{exc_type}: {exc_value}\n"
             if frame_str:
                 stacktrace_str += frame_str
 

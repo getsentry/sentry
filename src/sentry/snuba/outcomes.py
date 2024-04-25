@@ -17,7 +17,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.constants import DataCategory
 from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
-from sentry.sentry_metrics.querying.data import MetricsQueriesPlan, run_metrics_queries_plan
+from sentry.sentry_metrics.querying.data import MQLQuery, run_queries
 from sentry.sentry_metrics.querying.data.transformation.stats import MetricsStatsTransformer
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import (
@@ -467,16 +467,33 @@ def massage_outcomes_result(
     return result
 
 
+def _get_outcomes_mql_string(query: QueryDict) -> str:
+    # metric_stats/volume counts the metric outcomes
+    aggregate = "sum(c:metric_stats/volume@none)"
+
+    # TODO(metrics): add support for reason tag
+    group_by = []
+    if "outcome" in query.getlist("groupBy", []):
+        group_by.append("outcome.id")
+    if "project" in query.getlist("groupBy", []):
+        group_by.append("project_id")
+
+    if group_by:
+        return f"{aggregate} by ({', '.join(group_by)})"
+
+    return aggregate
+
+
 def run_metrics_outcomes_query(
     query: QueryDict, organization, projects, environments
 ) -> dict[str, list]:
     start, end = get_date_range_from_params(query)
     interval = parse_stats_period(query.get("interval", "1h"))
 
-    # TODO(metrics): add support for reason tag
-    plan = MetricsQueriesPlan().apply_formula("sum(c:metric_stats/volume@none) by (outcome.id)")
-    rows = run_metrics_queries_plan(
-        plan,
+    mql_string = _get_outcomes_mql_string(query)
+
+    rows = run_queries(
+        mql_queries=[MQLQuery(mql_string)],
         start=start,
         end=end,
         interval=int(3600 if interval is None else interval.total_seconds()),

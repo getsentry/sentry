@@ -6,7 +6,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import PluginDetailedView from 'sentry/views/settings/organizationIntegrations/pluginDetailedView';
 
 function renderMockRequests(orgSlug: Organization['slug']) {

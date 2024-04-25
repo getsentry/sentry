@@ -9,7 +9,7 @@ import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -18,7 +18,7 @@ import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import {OverviewRow} from './overviewTimeline/overviewRow';
-import {GridLineOverlay, GridLineTimeLabels} from './timeline/gridLines';
+import {GridLineLabels, GridLineOverlay} from './timeline/gridLines';
 import {useMonitorStats} from './timeline/hooks/useMonitorStats';
 import {useTimeWindowConfig} from './timeline/hooks/useTimeWindowConfig';
 
@@ -100,9 +100,9 @@ export function DetailsTimeline({monitor, organization}: Props) {
       <TimelineWidthTracker ref={elementRef} />
       <Header>
         <TimelineTitle>{t('Check-Ins')}</TimelineTitle>
-        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
+        <GridLineLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
       </Header>
-      <StyledGridLineOverlay
+      <AlignedGridLineOverlay
         allowZoom={!isLoading}
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
@@ -133,14 +133,14 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledGridLineOverlay = styled(GridLineOverlay)`
-  grid-column: 2;
-`;
-
 const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
   grid-row: 1;
+  grid-column: 2;
+`;
+
+const AlignedGridLineOverlay = styled(GridLineOverlay)`
   grid-column: 2;
 `;
 

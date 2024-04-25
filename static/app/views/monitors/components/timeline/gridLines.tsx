@@ -103,11 +103,11 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
   return markers;
 }
 
-export function GridLineTimeLabels({width, timeWindowConfig, className}: Props) {
+export function GridLineLabels({width, timeWindowConfig, className}: Props) {
   const markers = getTimeMarkersFromConfig(timeWindowConfig, width);
 
   return (
-    <LabelsContainer className={className}>
+    <LabelsContainer aria-hidden className={className}>
       {markers.map(({date, position, dateTimeProps}) => (
         <TimeLabelContainer key={date.getTime()} left={position}>
           <TimeLabel date={date} {...dateTimeProps} />
@@ -172,7 +172,7 @@ export function GridLineOverlay({
   markers.shift();
 
   return (
-    <Overlay ref={overlayRef} className={className}>
+    <Overlay aria-hidden ref={overlayRef} className={className}>
       {timelineCursor}
       {timelineSelector}
       <GridLineContainer>
@@ -185,8 +185,6 @@ export function GridLineOverlay({
 }
 
 const Overlay = styled('div')`
-  grid-row: 1;
-  grid-column: 3/-1;
   height: 100%;
   width: 100%;
   position: absolute;
@@ -200,8 +198,7 @@ const GridLineContainer = styled('div')`
 `;
 
 const LabelsContainer = styled('div')`
-  grid-row: 1;
-  grid-column: 3/-1;
+  height: 50px;
   box-shadow: -1px 0 0 ${p => p.theme.translucentInnerBorder};
   position: relative;
   align-self: stretch;

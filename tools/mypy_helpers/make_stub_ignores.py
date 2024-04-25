@@ -38,6 +38,10 @@ def main() -> int:
             if match is not None and match[1] not in seen:
                 seen.add(match[1])
 
+    # google's weird namespace package breaks mypy's errors
+    assert {s for s in seen if s.startswith("google.cloud.")}, "google.cloud got typed!"
+    seen.add("google.cloud")
+
     mods: list[str] = []
     for mod in sorted(seen):
         if not mods or not mod.startswith(f"{mods[-1]}."):

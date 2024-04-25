@@ -1,5 +1,6 @@
 import logging
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.lang.java.utils import (
@@ -41,7 +42,7 @@ def deobfuscate_exception_value(data: Any) -> Any:
     return data
 
 
-def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]):
+def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]) -> None:
     """Merges `symbolicated` into `new_frame`. This updates
     `new_frame` in place."""
 
@@ -81,14 +82,16 @@ def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
     "Returns whether the frame should be symbolicated by JVM symbolication."
 
     return (
-        "function" in frame and "module" in frame and (frame.get("platform") or platform) == "java"
+        "function" in frame
+        and "module" in frame
+        and (frame.get("platform", None) or platform) == "java"
     )
 
 
 FRAME_FIELDS = ("abs_path", "lineno", "function", "module", "filename", "in_app")
 
 
-def _normalize_frame(raw_frame: Any, index: int) -> dict:
+def _normalize_frame(raw_frame: dict[str, Any], index: int) -> dict[str, Any]:
     "Normalizes the frame into just the fields necessary for symbolication and adds an index."
 
     frame = {"index": index}
@@ -99,15 +102,14 @@ def _normalize_frame(raw_frame: Any, index: int) -> dict:
     return frame
 
 
-def _get_exceptions_for_symbolication(data: Any) -> list[dict[str, Any]]:
-    "Returns the exceptions contained in `data` for symbolication."
+def _get_exceptions_for_symbolication(data: Mapping[str, Any]) -> list[dict[str, Any]]:
+    "Returns those exceptions in all_exceptions that should be symbolicated."
 
-    exceptions = []
-
-    for exc in get_path(data, "exception", "values", filter=True, default=()):
-        if exc.get("type") is not None and exc.get("module") is not None:
-            exceptions.append({"type": exc["type"], "module": exc["module"]})
-    return exceptions
+    return [
+        exc
+        for exc in get_path(data, "exception", "values", filter=True, default=())
+        if exc.get("type", None) and exc.get("module", None)
+    ]
 
 
 def _handle_response_status(event_data: Any, response_json: dict[str, Any]) -> bool | None:
@@ -196,18 +198,20 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         for sinfo in stacktrace_infos
     ]
 
-    exceptions = _get_exceptions_for_symbolication(data)
+    processable_exceptions = _get_exceptions_for_symbolication(data)
 
     metrics.incr("proguard.symbolicator.events")
 
-    if not any(stacktrace["frames"] for stacktrace in stacktraces) and not exceptions:
+    if not any(stacktrace["frames"] for stacktrace in stacktraces) and not processable_exceptions:
         metrics.incr("proguard.symbolicator.events.skipped")
         return
 
     release_package = _get_release_package(symbolicator.project, data.get("release"))
     metrics.incr("process.java.symbolicate.request")
     response = symbolicator.process_jvm(
-        exceptions=exceptions,
+        exceptions=[
+            {"module": exc["module"], "type": exc["type"]} for exc in processable_exceptions
+        ],
         stacktraces=stacktraces,
         modules=modules,
         release_package=release_package,
@@ -217,14 +221,11 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     should_do_ab_test = do_proguard_processing_ab_test()
-    symbolicator_exceptions: list[dict[str, Any]] = []
     symbolicator_stacktraces: list[list[dict[str, Any]]] = []
 
     processing_errors = response.get("errors", [])
-    if len(processing_errors) > 0 and not should_do_ab_test:
+    if processing_errors and not should_do_ab_test:
         data.setdefault("errors", []).extend(map_symbolicator_process_jvm_errors(processing_errors))
-
-    assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
     for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
         raw_frames = sinfo.stacktrace["frames"]
@@ -253,26 +254,22 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 "frames": raw_frames,
             }
 
-    assert len(exceptions) == len(response["exceptions"])
-
-    # NOTE: we are using the `data.exception.values` directory here
-    for exception, complete_exception in zip(
-        get_path(data, "exception", "values", filter=True, default=()),
-        response["exceptions"],
-    ):
-        if should_do_ab_test:
-            new_exception = dict(exception)
-            new_exception["type"] = complete_exception["type"]
-            new_exception["module"] = complete_exception["module"]
-            symbolicator_exceptions.append(new_exception)
-        else:
-            exception["type"] = complete_exception["type"]
-            exception["module"] = complete_exception["module"]
-
     if should_do_ab_test:
+        symbolicator_exceptions: list[dict[str, Any]] = []
+        for raw_exc in get_path(data, "exception", "values", filter=True, default=()):
+            if raw_exc.get("type", None) and raw_exc.get("module", None):
+                new_exc = response["exceptions"].pop(0)
+            else:
+                new_exc = {"module": raw_exc.get("module", None), "type": raw_exc.get("type", None)}
+            symbolicator_exceptions.append(new_exc)
+
         data["symbolicator_stacktraces"] = symbolicator_stacktraces
         data["symbolicator_exceptions"] = symbolicator_exceptions
     else:
+        for raw_exc, exc in zip(processable_exceptions, response["exceptions"]):
+            raw_exc["module"] = exc["module"]
+            raw_exc["type"] = exc["type"]
+
         data["processed_by_symbolicator"] = True
 
     return data

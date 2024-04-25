@@ -44,27 +44,25 @@ import {
   type Organization,
 } from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
 import type {
   TraceTree,
   TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {useTraceAverageTransactionDuration} from '../../useTraceAverageTransactionDuration';
+import {useTraceAverageTransactionDuration} from '../../traceApi/useTraceAverageTransactionDuration';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -136,7 +134,7 @@ function BreadCrumbsSection({
     }, 100);
   }, [showBreadCrumbs, breadCrumbsContainerRef]);
 
-  const matchingEntry: EntryBreadcrumbs | undefined = event?.entries.find(
+  const matchingEntry: EntryBreadcrumbs | undefined = event?.entries?.find(
     (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
   );
 
@@ -179,7 +177,7 @@ function ReplaySection({
 }) {
   const replayId = getReplayIdFromEvent(event);
   const startTimestampMS =
-    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
+    event && 'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
@@ -205,6 +203,35 @@ function ReplaySection({
   ) : null;
 }
 
+function AdditionalMobileEventContexts({event}: {event: EventTransaction}) {
+  if (!event.contexts) {
+    return null;
+  }
+  return (
+    <Fragment>
+      {Object.entries(omit(event.contexts ?? {}, ['feedback', 'response'])).map(
+        ([key, value]) => {
+          // Ignore profile as it's handled separately in the drawer.
+          if (key === 'profile') {
+            return null;
+          }
+
+          return (
+            <Chunk
+              key={key}
+              type={value?.type ?? ''}
+              alias={key}
+              group={undefined}
+              event={event}
+              value={value}
+            />
+          );
+        }
+      )}
+    </Fragment>
+  );
+}
+
 const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
   observerOptions: {rootMargin: '50px'},
 };
@@ -212,7 +239,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 export function TransactionNodeDetails({
   node,
   organization,
-  scrollToNode,
+  onTabScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const location = useLocation();
@@ -229,7 +256,7 @@ export function TransactionNodeDetails({
 
   const avgDurationInSeconds: number = useMemo(() => {
     return (
-      Number(averageDurationQueryResult?.data[0]?.['avg(transaction.duration)']) / 1000
+      Number(averageDurationQueryResult?.data?.[0]?.['avg(transaction.duration)']) / 1000
     );
   }, [averageDurationQueryResult]);
 
@@ -237,20 +264,10 @@ export function TransactionNodeDetails({
     data: event,
     isError,
     isLoading,
-  } = useApiQuery<EventTransaction>(
-    [
-      `/organizations/${organization.slug}/events/${node.value.project_slug}:${node.value.event_id}/`,
-      {
-        query: {
-          referrer: 'trace-details-summary',
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: !!node,
-    }
-  );
+  } = useTransaction({
+    node,
+    organization,
+  });
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -296,17 +313,17 @@ export function TransactionNodeDetails({
             <div>{t('transaction')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {node.value['transaction.op']}
+              {node.value['transaction.op'] + ' - ' + node.value.transaction}
             </TraceDrawerComponents.TitleOp>
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
+          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
             {t('Show in view')}
           </Button>
           <TraceDrawerComponents.EventDetailsLink
-            eventId={node.value.event_id}
-            projectSlug={node.metadata.project_slug}
+            node={node}
+            organization={organization}
           />
           <Button
             size="xs"
@@ -335,7 +352,7 @@ export function TransactionNodeDetails({
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
-                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                <a onClick={() => onParentClick(parentTransaction)}>
                   {getTraceTabTitle(parentTransaction)}
                 </a>
               </td>
@@ -362,31 +379,7 @@ export function TransactionNodeDetails({
               {node.value.transaction}
             </Link>
           </Row>
-          {node.value.profile_id ? (
-            <Row
-              title="Profile ID"
-              extra={
-                <TraceDrawerComponents.Button
-                  size="xs"
-                  to={generateProfileFlamechartRoute({
-                    orgSlug: organization.slug,
-                    projectSlug: node.value.project_slug,
-                    profileId: node.value.profile_id,
-                  })}
-                  onClick={function handleOnClick() {
-                    trackAnalytics('profiling_views.go_to_flamegraph', {
-                      organization,
-                      source: 'performance.trace_view',
-                    });
-                  }}
-                >
-                  {t('View Profile')}
-                </TraceDrawerComponents.Button>
-              }
-            >
-              {node.value.profile_id}
-            </Row>
-          ) : null}
+          <TraceDrawerComponents.ProfileLink event={event} project={project} />
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',
@@ -509,10 +502,12 @@ export function TransactionNodeDetails({
           value={event.user}
         />
       ) : null}
+      <AdditionalMobileEventContexts event={event} />
       <EventExtraData event={event} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event._metrics_summary ? (
         <CustomMetricsEventData
+          projectId={event.projectID}
           metricsSummary={event._metrics_summary}
           startTimestamp={event.startTimestamp}
         />

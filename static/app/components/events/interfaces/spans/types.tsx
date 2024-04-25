@@ -58,7 +58,10 @@ export type RawSpanType = {
   parent_span_id?: string;
   same_process_as_parent?: boolean;
   sentry_tags?: Record<string, string>;
-  'span.average_time'?: number;
+  'span.averageResults'?: {
+    'avg(span.duration)'?: number;
+    'avg(span.self_time)'?: number;
+  };
   status?: string;
   tags?: {[key: string]: string};
 };
@@ -66,7 +69,12 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: Array<[string, string]>;
+  samples: Array<{
+    span: string;
+    timestamp: number;
+    trace: string;
+    transaction: string;
+  }>;
   total: number;
   type: 'aggregate';
 };
@@ -200,9 +208,9 @@ export type ParsedTraceType = {
 };
 
 export enum TickAlignment {
-  LEFT,
-  RIGHT,
-  CENTER,
+  LEFT = 0,
+  RIGHT = 1,
+  CENTER = 2,
 }
 
 export type TraceContextType = {
@@ -255,15 +263,15 @@ export type DescendantGroup = {
 };
 
 export enum GroupType {
-  DESCENDANTS,
-  SIBLINGS,
+  DESCENDANTS = 0,
+  SIBLINGS = 1,
 }
 
 export enum SpanTreeNodeType {
-  SPAN,
-  DESCENDANT_GROUP,
-  SIBLING_GROUP,
-  MESSAGE,
+  SPAN = 0,
+  DESCENDANT_GROUP = 1,
+  SIBLING_GROUP = 2,
+  MESSAGE = 3,
 }
 
 type SpanBarNode = {

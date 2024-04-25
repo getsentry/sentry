@@ -32,9 +32,9 @@ class GlobalParams:
         type=str,
         location="path",
     )
-    TEAM_SLUG = OpenApiParameter(
-        name="team_slug",
-        description="The slug of the team the resource belongs to.",
+    TEAM_ID_OR_SLUG = OpenApiParameter(
+        name="team_id_or_slug",
+        description="The id or slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",
@@ -216,6 +216,13 @@ class MonitorParams:
         required=False,
         type=str,
         description="The name of environment for the monitor environment.",
+    )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=str,
+        description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
     )
 
 

@@ -1,3 +1,6 @@
+import type {RefObject} from 'react';
+
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -155,4 +158,24 @@ export function useHasNewTagsUI() {
     location.query.tagsTree === '1' ||
     organization.features.includes('event-tags-tree-ui')
   );
+}
+
+const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
+  {minWidth: 1950, columnCount: 3},
+  {minWidth: 700, columnCount: 2},
+  {minWidth: 0, columnCount: 1},
+];
+
+/**
+ * Determine the column count using available space.
+ * Note: This is pretty inefficient since it recalculates on resize, but since Tags/Context is
+ * rendered in the page contents, modals, and asides, we can't rely on window breakpoint to
+ * accurately describe the available space.
+ */
+export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): number {
+  const {width} = useDimensions<HTMLElement>({elementRef});
+  const breakPoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
+    ({minWidth}) => width >= minWidth
+  );
+  return breakPoint?.columnCount ?? 1;
 }

@@ -2060,7 +2060,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
         {this.shouldShowDatePicker && (
           <SearchBarDatePicker
-            date={this.cursorValueIsoDate?.value}
             dateString={this.cursorValueIsoDate?.text}
             handleSelectDateTime={this.onAutoCompleteIsoDate}
           />

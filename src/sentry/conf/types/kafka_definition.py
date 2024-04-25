@@ -22,7 +22,6 @@ class Topic(Enum):
     EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
-    SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
@@ -49,6 +48,7 @@ class Topic(Enum):
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_SPANS = "snuba-spans"
     BUFFERED_SEGMENTS = "buffered-segments"
+    BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
 
 
 class ConsumerDefinition(TypedDict, total=False):

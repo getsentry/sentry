@@ -13,7 +13,7 @@ import {ScheduleType} from 'sentry/views/monitors/types';
 
 import {CheckInPlaceholder} from './timeline/checkInPlaceholder';
 import {MockCheckInTimeline} from './timeline/checkInTimeline';
-import {GridLineOverlay, GridLineTimeLabels} from './timeline/gridLines';
+import {GridLineLabels, GridLineOverlay} from './timeline/gridLines';
 import {getConfigFromTimeRange} from './timeline/utils/getConfigFromTimeRange';
 
 interface ScheduleConfig {
@@ -21,6 +21,7 @@ interface ScheduleConfig {
   intervalFrequency?: FieldValue;
   intervalUnit?: FieldValue;
   scheduleType?: FieldValue;
+  timezone?: FieldValue;
 }
 
 const NUM_SAMPLE_TICKS = 9;
@@ -38,13 +39,16 @@ interface Props {
 }
 
 export function MockTimelineVisualization({schedule}: Props) {
-  const {scheduleType, cronSchedule, intervalFrequency, intervalUnit} = schedule;
+  const {scheduleType, cronSchedule, timezone, intervalFrequency, intervalUnit} =
+    schedule;
+
   const organization = useOrganization();
   const {form} = useContext(FormContext);
 
   const query = {
     num_ticks: NUM_SAMPLE_TICKS,
     schedule_type: scheduleType,
+    timezone,
     schedule:
       scheduleType === 'interval' ? [intervalFrequency, intervalUnit] : cronSchedule,
   };
@@ -90,20 +94,16 @@ export function MockTimelineVisualization({schedule}: Props) {
       <TimelineWidthTracker ref={elementRef} />
       {isLoading || !start || !end || !timeWindowConfig || !mockTimestamps ? (
         <Fragment>
-          <Placeholder height="40px" />
-          {errorMessage ? (
-            <Placeholder testId="error-placeholder" height="100px" />
-          ) : (
-            <CheckInPlaceholder />
-          )}
+          <Placeholder height="50px" />
+          {errorMessage ? null : <CheckInPlaceholder />}
         </Fragment>
       ) : (
         <Fragment>
-          <StyledGridLineTimeLabels
+          <AlignedGridLineLabels
             timeWindowConfig={timeWindowConfig}
             width={timelineWidth}
           />
-          <StyledGridLineOverlay
+          <AlignedGridLineOverlay
             showCursor={!isLoading}
             timeWindowConfig={timeWindowConfig}
             width={timelineWidth}
@@ -122,16 +122,16 @@ export function MockTimelineVisualization({schedule}: Props) {
 const TimelineContainer = styled(Panel)`
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-rows: 40px 100px;
+  grid-template-rows: auto 60px;
   align-items: center;
 `;
 
-const StyledGridLineTimeLabels = styled(GridLineTimeLabels)`
+const AlignedGridLineLabels = styled(GridLineLabels)`
   grid-column: 0;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledGridLineOverlay = styled(GridLineOverlay)`
+const AlignedGridLineOverlay = styled(GridLineOverlay)`
   grid-column: 0;
 `;
 

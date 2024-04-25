@@ -46,7 +46,7 @@ from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_s
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import relocated, relocation_redeem_promo_code
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
@@ -67,21 +67,23 @@ logger = logging.getLogger(__name__)
 
 # Time limits for various steps in the process.
 RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min, etc.
-FAST_TIME_LIMIT = 60
-MEDIUM_TIME_LIMIT = 60 * 5
-SLOW_TIME_LIMIT = 60 * 30
+FAST_TIME_LIMIT = 60  # 1 minute
+MEDIUM_TIME_LIMIT = 60 * 5  # 5 minutes
+SLOW_TIME_LIMIT = 60 * 60  # 1 hour
 DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=60)
 
-# All pre and post processing tasks have the same number of retries.
-MAX_FAST_TASK_RETRIES = 2
+# All pre and post processing tasks have the same number of retries. A "fast" task is one that almost always completes in <=5 minutes, and does relatively little bulk writing to the database.
+MAX_FAST_TASK_RETRIES = 3
 MAX_FAST_TASK_ATTEMPTS = MAX_FAST_TASK_RETRIES + 1
+MAX_SLOW_TASK_RETRIES = 2
+MAX_SLOW_TASK_ATTEMPTS = MAX_SLOW_TASK_RETRIES + 1
 MAX_VALIDATION_POLLS = 60
 MAX_VALIDATION_POLL_ATTEMPTS = MAX_VALIDATION_POLLS + 1
 MAX_VALIDATION_RUNS = 3
 
 # Some reasonable limits on the amount of data we import - we can adjust these as needed.
 MAX_ORGS_PER_RELOCATION = 20
-MAX_USERS_PER_RELOCATION = 200
+MAX_USERS_PER_RELOCATION = 2000
 
 RELOCATION_FILES_TO_BE_VALIDATED = [
     RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
@@ -981,7 +983,22 @@ def validating_complete(uuid: str, build_id: str) -> None:
 @instrumented_task(
     name="sentry.relocation.importing",
     queue="relocation",
-    max_retries=0,
+    autoretry_for=(Exception,),
+    # At first blush, it would seem that retrying a failed import will leave a bunch of "abandoned"
+    # data from the previous one, but that is not actually the case: because we use this relocation
+    # UUID as the `import_uuid` for the `import...` call, we'll be able to re-use all of the
+    # already-written import chunks (and, by extension, their models). This is due to each import
+    # write operation atomically checking the relevant `ImportChunk` table for collisions at
+    # database write time. So it will attempt to write a new copy, realize that this `(import_uuid,
+    # model, ordinal)` three-tuple has already been written, and return that information instead.
+    # Basically, all of the already completed write operations will be no-ops that return the
+    # already-written models and pk maps, and we'll pick up right where we left off.
+    #
+    # The main reason to have this at all is to guard against transient errors, especially with RPC
+    # or task timeouts.
+    max_retries=MAX_SLOW_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
     soft_time_limit=SLOW_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
@@ -998,7 +1015,7 @@ def importing(uuid: str) -> None:
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.IMPORTING,
-        allowed_task_attempts=1,
+        allowed_task_attempts=MAX_SLOW_TASK_ATTEMPTS,
     )
     if relocation is None:
         return
@@ -1097,6 +1114,7 @@ def postprocessing(uuid: str) -> None:
                 user_id=relocation.owner_id,
                 role="owner",
             )
+
         # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
         # getsentry can do whatever postprocessing they need to. If even a single one fails, we fail
         # the entire task.
@@ -1104,8 +1122,8 @@ def postprocessing(uuid: str) -> None:
             if isinstance(result, Exception):
                 raise result
 
-        # This signal nust come after the relocated signal, to ensure that the subscription and customer models
-        # have been appropriately set up before attempting to redeem a promo code.
+        # This signal must come after the relocated signal, to ensure that the subscription and
+        # customer models have been appropriately set up before attempting to redeem a promo code.
         relocation_redeem_promo_code.send_robust(
             sender=postprocessing,
             user_id=relocation.owner_id,
@@ -1166,6 +1184,12 @@ def notifying_users(uuid: str) -> None:
         for chunk in chunks:
             imported_user_ids = imported_user_ids.union(set(chunk.inserted_map.values()))
 
+        imported_org_slugs: set[int] = set()
+        for chunk in RegionImportChunk.objects.filter(
+            import_uuid=str(uuid), model="sentry.organization"
+        ):
+            imported_org_slugs = imported_org_slugs.union(set(chunk.inserted_identifiers.values()))
+
         # Do a sanity check on pk-mapping before we go and reset the passwords of random users - are
         # all of these usernames plausibly ones that were included in the import, based on username
         # prefix matching?
@@ -1184,7 +1208,7 @@ def notifying_users(uuid: str) -> None:
         # Okay, everything seems fine - go ahead and send those emails.
         for user in imported_users:
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
-            LostPasswordHash.send_relocate_account_email(user, hash, relocation.want_org_slugs)
+            LostPasswordHash.send_relocate_account_email(user, hash, list(imported_org_slugs))
 
         relocation.latest_unclaimed_emails_sent_at = datetime.now(UTC)
         relocation.save()
@@ -1223,12 +1247,18 @@ def notifying_owner(uuid: str) -> None:
         attempts_left,
         ERR_NOTIFYING_INTERNAL,
     ):
+        imported_org_slugs: set[int] = set()
+        for chunk in RegionImportChunk.objects.filter(
+            import_uuid=str(uuid), model="sentry.organization"
+        ):
+            imported_org_slugs = imported_org_slugs.union(set(chunk.inserted_identifiers.values()))
+
         send_relocation_update_email(
             relocation,
             Relocation.EmailKind.SUCCEEDED,
             {
                 "uuid": str(relocation.uuid),
-                "orgs": relocation.want_org_slugs,
+                "orgs": list(imported_org_slugs),
             },
         )
 

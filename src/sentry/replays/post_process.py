@@ -102,7 +102,7 @@ def _strip_dashes(field: str) -> str:
 
 
 def generate_normalized_output(
-    response: list[dict[str, Any]],
+    response: list[dict[str, Any]]
 ) -> Generator[ReplayDetailsResponse, None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:

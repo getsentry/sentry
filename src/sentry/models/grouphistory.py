@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
+from django.conf import settings
 from django.db import models
 from django.db.models import SET_NULL, Q
 from django.utils import timezone
@@ -14,7 +15,8 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models.actor import get_actor_id_for_user
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.actor import get_actor_for_user
 from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
@@ -180,7 +182,12 @@ class GroupHistory(Model):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
+
+    # Deprecated. Use user_id and team instead.
     actor = FlexibleForeignKey("sentry.Actor", null=True, on_delete=SET_NULL)
+
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     status = BoundedPositiveIntegerField(
         default=0,
@@ -209,6 +216,14 @@ class GroupHistory(Model):
         null=True
     )  # This field is used to simplify query calculations.
     date_added = models.DateTimeField(default=timezone.now)
+
+    def _validate_owner(self) -> None:
+        if self.actor_id is not None and self.team_id is None and self.user_id is None:
+            raise ValueError("GroupHistory with actor requires either team_id or user_id")
+
+    def save(self, *args, **kwargs):
+        self._validate_owner()
+        return super().save(*args, **kwargs)
 
     class Meta:
         db_table = "sentry_grouphistory"
@@ -270,11 +285,15 @@ def record_group_history(
 
     prev_history = get_prev_history(group, status)
     actor_id = None
+    user_id = None
+    team_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            actor_id = get_actor_for_user(actor).id
+            user_id = actor.id
         elif isinstance(actor, Team):
             actor_id = actor.actor_id
+            team_id = actor.id
         else:
             raise ValueError("record_group_history actor argument must be RPCUser or Team")
 
@@ -284,6 +303,8 @@ def record_group_history(
         project=group.project,
         release=release,
         actor_id=actor_id,
+        user_id=user_id,
+        team_id=team_id,
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
@@ -304,12 +325,16 @@ def bulk_record_group_history(
         prev_history = get_prev_history(group, status)
         return prev_history.date_added if prev_history else None
 
-    actor_id = None
+    actor_id: int | None = None
+    user_id: int | None = None
+    team_id: int | None = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            actor_id = get_actor_for_user(actor).id
+            user_id = actor.id
         elif isinstance(actor, Team):
             actor_id = actor.actor_id
+            team_id = actor.id
         else:
             raise ValueError("record_group_history actor argument must be RPCUser or Team")
 
@@ -321,6 +346,8 @@ def bulk_record_group_history(
                 project=group.project,
                 release=release,
                 actor_id=actor_id,
+                team_id=team_id,
+                user_id=user_id,  # type:ignore[misc]
                 status=status,
                 prev_history=get_prev_history(group, status),
                 prev_history_date=get_prev_history_date(group, status),

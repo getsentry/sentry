@@ -14,7 +14,6 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
@@ -135,9 +134,36 @@ class GitlabRequestParserTest(TestCase):
             region_names=[region.name],
         )
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    @responses.activate
+    def test_routing_webhook_properly_with_multiple_orgs(self):
+        integration = self.get_integration()
+        other_org = self.create_organization(owner=self.user)
+        integration.add_organization(other_org)
+
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 202
+        assert response.content == b""
+        assert len(responses.calls) == 0
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"gitlab:{integration.id}",
+            region_names=[region.name],
+        )
+
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_options({"hybridcloud.webhookpayload.use_mailbox_buckets": True})
     @responses.activate
     def test_routing_webhook_with_mailbox_buckets(self):
         integration = self.get_integration()
@@ -149,7 +175,7 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         with mock.patch(
-            "sentry.middleware.integrations.parsers.gitlab.ratelimiter.is_limited"
+            "sentry.middleware.integrations.parsers.base.ratelimiter.is_limited"
         ) as mock_is_limited:
             mock_is_limited.return_value = True
             parser = GitlabRequestParser(request=request, response_handler=self.get_response)

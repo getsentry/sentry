@@ -12,12 +12,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
-import type {EventAttachment} from 'sentry/types';
-
-import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
+import type {EventAttachment} from 'sentry/types/group';
 
 describe('EventTagsAndScreenshot', function () {
   const contexts = {
@@ -514,7 +513,7 @@ describe('EventTagsAndScreenshot', function () {
     });
   });
 
-  describe("renders changes for 'event-tags-new-ui' flag", function () {
+  describe("renders changes for 'event-tags-tree-ui' flag", function () {
     const featuredOrganization = OrganizationFixture({
       features: ['event-attachments', 'event-tags-tree-ui'],
     });
@@ -595,7 +594,7 @@ describe('EventTagsAndScreenshot', function () {
       assertFlagAndQueryParamWork();
     });
 
-    it("allows filtering with 'event-tags-new-ui' flag", async function () {
+    it("allows filtering with 'event-tags-tree-ui' flag", async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -636,7 +635,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(rows).toHaveLength(allTags.length);
     });
 
-    it("promotes custom tags with 'event-tags-new-ui' flag", async function () {
+    it("promotes custom tags with 'event-tags-tree-ui' flag", async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],

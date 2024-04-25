@@ -97,6 +97,7 @@ export enum DataCategoryExact {
   TRANSACTION_INDEXED = 'transaction_indexed',
   MONITOR = 'monitor',
   MONITOR_SEAT = 'monitorSeat',
+  METRICS = 'metrics',
 }
 
 export interface DataCategoryInfo {
@@ -117,6 +118,7 @@ export enum Outcome {
   DROPPED = 'dropped', // this is not a real outcome coming from the server
   RATE_LIMITED = 'rate_limited',
   CLIENT_DISCARD = 'client_discard',
+  CARDINALITY_LIMITED = 'cardinality_limited',
 }
 
 export type IntervalPeriod = ReturnType<typeof getInterval>;

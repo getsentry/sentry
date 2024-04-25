@@ -42,9 +42,6 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.SPAN_OP: lambda search_filter: filter_aliases.lowercase_search(
                 self.builder, search_filter
             ),
-            constants.SPAN_DESCRIPTION: lambda search_filter: filter_aliases.lowercase_search(
-                self.builder, search_filter
-            ),
         }
 
     @property
@@ -237,6 +234,45 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
+                SnQLFunction(
+                    "trace_name",
+                    snql_aggregate=lambda args, alias: Function(
+                        "anyIf",
+                        [
+                            Column("segment_name"),
+                            Function(
+                                "or",
+                                [
+                                    Function("isNull", [Column("parent_span_id")]),
+                                    Function("equals", [Column("parent_span_id"), "00"]),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="string",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "first_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "min",
+                        [self._resolve_timestamp_with_ms("start_timestamp", "start_ms")],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "max",
+                        [self._resolve_timestamp_with_ms("end_timestamp", "end_ms")],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
+                ),
             ]
         }
 
@@ -391,4 +427,19 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             offset,
             limit,
             size=int(args["count"]),
+        )
+
+    def _resolve_timestamp_with_ms(self, timestamp_column: str, ms_column: str) -> SelectType:
+        return Function(
+            "plus",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function("toUInt64", [Column(timestamp_column)]),
+                        1000,
+                    ],
+                ),
+                Column(ms_column),
+            ],
         )

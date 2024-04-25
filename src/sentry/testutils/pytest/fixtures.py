@@ -448,7 +448,6 @@ def reset_snuba(call_snuba):
         "/tests/events/drop",
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
-        "/tests/sessions/drop",
         "/tests/metrics/drop",
         "/tests/generic_metrics/drop",
         "/tests/search_issues/drop",

@@ -106,3 +106,20 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                     "includeSeries": "false",
                 },
             )
+
+    def test_recursion_error_query(self):
+        conds = " OR ".join([f'transaction:"{e}"' for e in range(500)])
+        error_mql = f"avg(d:transactions/duration@millisecond) by (transaction){{({conds})}}"
+        self.get_success_response(
+            self.project.organization.slug,
+            status_code=200,
+            queries=[{"name": "query_1", "mql": error_mql}],
+            formulas=[{"mql": "$query_1"}],
+            qs_params={
+                "statsPeriod": "3h",
+                "interval": "1h",
+                "project": [self.project.id],
+                "environment": [],
+                "includeSeries": "false",
+            },
+        )

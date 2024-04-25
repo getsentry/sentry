@@ -7,6 +7,7 @@ export function MetricRuleFixture(
   params: Partial<SavedMetricRule> = {}
 ): SavedMetricRule {
   return {
+    activations: [],
     status: 0,
     dateCreated: '2019-07-31T23:02:02.731Z',
     dataset: Dataset.ERRORS,
