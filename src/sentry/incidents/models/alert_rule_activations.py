@@ -74,7 +74,7 @@ class AlertRuleActivations(Model):
         "sentry.QuerySubscription", null=True, on_delete=models.SET_NULL
     )
     # short string descriptor of the specific activation condition met to create the instance (eg. "Release xyz created")
-    activation_reason = models.CharField(max_length=100)
+    activation_reason = models.CharField(max_length=100, null=True)
 
     class Meta:
         app_label = "sentry"
