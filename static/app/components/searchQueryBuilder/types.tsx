@@ -2,6 +2,7 @@ export enum QueryBuilderFocusType {
   FILTER_VALUE = 'filter_value',
   FILTER_OP = 'filter_op',
   FILTER_DELETE = 'filter_delete',
+  TOKEN = 'token',
 }
 
 interface BaseTokenFocus {
@@ -25,4 +26,12 @@ interface FilterOpFocus extends BaseTokenFocus {
   type: QueryBuilderFocusType.FILTER_OP;
 }
 
-export type QueryBuilderFocusState = FilterValueFocus | FilterOpFocus | FilterDeleteFocus;
+interface TokenFocus extends BaseTokenFocus {
+  type: QueryBuilderFocusType.TOKEN;
+}
+
+export type QueryBuilderFocusState =
+  | FilterValueFocus
+  | FilterOpFocus
+  | FilterDeleteFocus
+  | TokenFocus;

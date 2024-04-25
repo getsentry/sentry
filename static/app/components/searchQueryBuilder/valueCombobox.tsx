@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
@@ -32,13 +32,11 @@ function getPredefinedValues({key}: {key?: Tag}): string[] {
 
   const fieldDef = getFieldDefinition(key.key);
 
-  if (!key.values) {
-    return [];
-  }
-
-  if (isStringFilterValues(key.values)) {
+  if (key.values && isStringFilterValues(key.values)) {
     return key.values;
   }
+
+  // TODO(malwilley): Add support for grouped values
 
   switch (fieldDef?.valueType) {
     // TODO(malwilley): Better duration suggestions
@@ -84,25 +82,31 @@ export function SearchQueryBuilderValueCombobox({token}: SearchQueryValueBuilder
     );
   }, [data, key, shouldFetchValues]);
 
+  const handleSelectValue = useCallback(
+    (value: string) => {
+      dispatch({
+        type: 'UPDATE_TOKEN_VALUE',
+        token: token.value,
+        value: escapeTagValue(value),
+      });
+    },
+    [dispatch, token.value]
+  );
+
   return (
     // TODO(malwilley): Support for multiple values
     <SearchQueryBuilderCombobox
       items={items}
-      onChange={value => {
-        dispatch({
-          type: 'UPDATE_TOKEN_VALUE',
-          token: token.value,
-          value: escapeTagValue(value),
-        });
-      }}
+      onOptionSelected={handleSelectValue}
+      onCustomValueSelected={handleSelectValue}
       onExit={() => {
         dispatch({type: 'EXIT_TOKEN'});
       }}
       inputValue={inputValue}
-      setInputValue={setInputValue}
       placeholder={formatFilterValue(token)}
       token={token}
-      inputLabel={t('Filter value')}
+      inputLabel={t('Edit filter value')}
+      onInputChange={e => setInputValue(e.target.value)}
     >
       <Section>
         {items.map(item => (
