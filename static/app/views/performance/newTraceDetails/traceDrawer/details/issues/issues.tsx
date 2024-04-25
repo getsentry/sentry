@@ -33,7 +33,12 @@ type IssueProps = {
 
 const MAX_DISPLAYED_ISSUES_COUNT = 10;
 
-const MIN_ISSUES_TABLE_WIDTH = 600;
+const TABLE_WIDTH_BREAKPOINTS = {
+  FIRST: 700,
+  SECOND: 600,
+  THIRD: 500,
+  FOURTH: 400,
+};
 
 function Issue(props: IssueProps) {
   const {
@@ -77,12 +82,12 @@ function Issue(props: IssueProps) {
           showMarkLine
         />
       </ChartWrapper>
-      <ColumnWrapper>
+      <EventsWrapper>
         <PrimaryCount
           value={fetchedIssue.filtered ? fetchedIssue.filtered.count : fetchedIssue.count}
         />
-      </ColumnWrapper>
-      <ColumnWrapper>
+      </EventsWrapper>
+      <UserCountWrapper>
         <PrimaryCount
           value={
             fetchedIssue.filtered
@@ -90,8 +95,8 @@ function Issue(props: IssueProps) {
               : fetchedIssue.userCount
           }
         />
-      </ColumnWrapper>
-      <ColumnWrapper>
+      </UserCountWrapper>
+      <AssineeWrapper>
         {fetchedIssue.assignedTo ? (
           <ActorAvatar actor={fetchedIssue.assignedTo} hasTooltip size={24} />
         ) : (
@@ -99,7 +104,7 @@ function Issue(props: IssueProps) {
             <IconUser size="md" />
           </StyledIconWrapper>
         )}
-      </ColumnWrapper>
+      </AssineeWrapper>
     </StyledPanelItem>
   ) : isError ? (
     <LoadingError message={t('Failed to fetch issue')} />
@@ -176,9 +181,9 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
                 )}
       </IssueHeading>
       <GraphHeading>{t('Graph')}</GraphHeading>
-      <Heading>{t('Events')}</Heading>
+      <EventsHeading>{t('Events')}</EventsHeading>
       <UsersHeading>{t('Users')}</UsersHeading>
-      <Heading>{t('Assignee')}</Heading>
+      <AssigneeHeading>{t('Assignee')}</AssigneeHeading>
     </StyledPanelHeader>
   );
 }
@@ -209,7 +214,13 @@ const GraphHeading = styled(Heading)`
   display: flex;
   justify-content: center;
 
-  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FIRST}px) {
+    display: none;
+  }
+`;
+
+const EventsHeading = styled(Heading)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.SECOND}px) {
     display: none;
   }
 `;
@@ -217,6 +228,16 @@ const GraphHeading = styled(Heading)`
 const UsersHeading = styled(Heading)`
   display: flex;
   justify-content: center;
+
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.THIRD}px) {
+    display: none;
+  }
+`;
+
+const AssigneeHeading = styled(Heading)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FOURTH}px) {
+    display: none;
+  }
 `;
 
 const StyledPanel = styled(Panel)`
@@ -255,21 +276,39 @@ const IssueSummaryWrapper = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')`
-  width: 200px;
-  align-self: center;
-
-  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
-    display: none;
-  }
-`;
-
 const ColumnWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-self: center;
   width: 60px;
   margin: 0 ${space(2)};
+`;
+
+const EventsWrapper = styled(ColumnWrapper)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.SECOND}px) {
+    display: none;
+  }
+`;
+
+const UserCountWrapper = styled(ColumnWrapper)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.THIRD}px) {
+    display: none;
+  }
+`;
+
+const AssineeWrapper = styled(ColumnWrapper)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FOURTH}px) {
+    display: none;
+  }
+`;
+
+const ChartWrapper = styled('div')`
+  width: 200px;
+  align-self: center;
+
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FIRST}px) {
+    display: none;
+  }
 `;
 
 const PrimaryCount = styled(Count)`
