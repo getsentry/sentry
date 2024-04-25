@@ -11,7 +11,6 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,6 +23,8 @@ import {
   SpanIndexedField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
+import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
+import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 
 type DataRowKeys =
   | SpanIndexedField.ID
@@ -69,11 +70,6 @@ const COLUMN_TYPE: Omit<
   'span.duration': 'duration',
 };
 
-const DEFAULT_SORT = {
-  field: 'spm()' as const,
-  kind: 'desc' as const,
-};
-
 const LIMIT = 8;
 
 export default function SpanSummaryTable() {
@@ -90,12 +86,8 @@ export default function SpanSummaryTable() {
     transaction: transaction as string,
   };
 
-  let sort: any = undefined; // decodeSorts(sortField).filter(isAValidSort)[0];
-  if (!sort) {
-    sort = DEFAULT_SORT;
-  }
-
-  const cursor = decodeScalar('spansCursor');
+  const sort = useSpanSummarySort();
+  console.dir(sort);
 
   const {data, pageLinks, isLoading, isError} = useIndexedSpans({
     fields: [
@@ -108,10 +100,8 @@ export default function SpanSummaryTable() {
     search: MutableSearch.fromQueryObject(filters),
     limit: LIMIT,
     referrer: 'api.performance.span-summary-table',
+    sorts: [sort],
   });
-
-  console.dir(data);
-  console.dir(pageLinks);
 
   if (!data) {
     return null;
@@ -152,31 +142,41 @@ export default function SpanSummaryTable() {
           isLoading={isLoading}
           data={data}
           columnOrder={COLUMN_ORDER}
-          columnSortBy={[]}
+          columnSortBy={[
+            {
+              key: sort.field,
+              order: sort.kind,
+            },
+          ]}
           grid={{
-            renderHeadCell,
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                location,
+                sort,
+              }),
             renderBodyCell: renderBodyCell(location, organization, spanOp),
           }}
           location={location}
         />
       </VisuallyCompleteWithData>
-      <Pagination pageLinks={pageLinks ?? null} />
+      <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
 }
 
-function renderHeadCell(column: Column, _index: number): React.ReactNode {
-  const align = fieldAlignment(column.key, COLUMN_TYPE[column.key]);
-  return (
-    <SortLink
-      title={column.name}
-      align={align}
-      direction={undefined}
-      canSort={false}
-      generateSortLink={() => undefined}
-    />
-  );
-}
+// function renderHeadCell(column: Column, _index: number): React.ReactNode {
+//   const align = fieldAlignment(column.key, COLUMN_TYPE[column.key]);
+//   return (
+//     <SortLink
+//       title={column.name}
+//       align={align}
+//       direction={undefined}
+//       canSort={false}
+//       generateSortLink={() => undefined}
+//     />
+//   );
+// }
 
 function renderBodyCell(
   location: Location,

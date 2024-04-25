@@ -62,7 +62,7 @@ export default function SpanSummaryHeader() {
         </SectionBody>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
-        <StyledSectionHeading>{t('Total Self Time')}</StyledSectionHeading>
+        <StyledSectionHeading>{t('Time Spent')}</StyledSectionHeading>
         <SectionBody>
           {defined(sumExclusiveTime) ? (
             <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />
