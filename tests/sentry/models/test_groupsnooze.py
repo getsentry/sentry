@@ -209,7 +209,7 @@ class GroupSnoozeWCacheTest(GroupSnoozeTest):
                 "sentry.models.groupsnooze.tsdb.backend.get_distinct_counts_totals"
             ) as mocked_get_distinct_counts_totals,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
             mocked_get_distinct_counts_totals.side_effect = [
@@ -258,7 +258,7 @@ class GroupSnoozeWCacheTest(GroupSnoozeTest):
                 "sentry.models.groupsnooze.tsdb.backend.get_distinct_counts_totals"
             ) as mocked_get_distinct_counts_totals,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
             mocked_get_distinct_counts_totals.side_effect = [
@@ -298,7 +298,7 @@ class GroupSnoozeWCacheTest(GroupSnoozeTest):
                 side_effect=[95, 98, 100],
             ) as mocked_count_users_seen,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
 
@@ -346,7 +346,7 @@ class GroupSnoozeWCacheTest(GroupSnoozeTest):
                 side_effect=[95, 98, 100],
             ) as mocked_count_users_seen,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
             cache_spy.set = mock.Mock(side_effect=cache_spy.set)
