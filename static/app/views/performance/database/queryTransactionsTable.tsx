@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -186,14 +185,8 @@ export function QueryTransactionsTable({
         }}
         location={location}
       />
-      <Footer>
-        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
-      </Footer>
+
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
