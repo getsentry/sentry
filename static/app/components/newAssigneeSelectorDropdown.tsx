@@ -5,6 +5,7 @@ import uniqBy from 'lodash/uniqBy';
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
 import {AssigneeAvatar} from 'sentry/components/assigneeSelector';
 import type {SuggestedAssignee} from 'sentry/components/assigneeSelectorDropdown';
+import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {
   CompactSelect,
@@ -13,6 +14,7 @@ import {
 } from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -61,9 +63,13 @@ export interface NewAssigneeSelectorDropdownProps {
 }
 
 type AssigneeDropdownState = {
+  /** The user or team that the issue is assigned to. '' if no one is assigned */
   assignedTo: AssignableTeam | User | '';
+  /** The type of the assignee. Choices are 'user', 'team', or '' if no one is assigned  */
   assignedToType: 'user' | 'team' | '';
+  /** Loading state for assignee dropdown */
   loading: boolean;
+  /** The issue's suggested owners, if they exist */
   suggestedOwners?: SuggestedOwner[];
 };
 
@@ -156,7 +162,6 @@ function NewAssigneeSelectorDropdown({
     const uniqueSuggestions = uniqBy(suggestedOwners, owner => owner.owner);
     return uniqueSuggestions
       .map<SuggestedAssignee | null>(suggestion => {
-        // converts a backend suggested owner to a suggested assignee
         const [suggestionType, suggestionId] = suggestion.owner.split(':');
         const suggestedReasonText = suggestedReasonTable[suggestion.type];
         if (suggestionType === 'user') {
@@ -205,13 +210,14 @@ function NewAssigneeSelectorDropdown({
   };
 
   const handleSelect = async (selectedOption: SelectOption<string> | null) => {
+    // selectedOption is falsey when the option selected is currently selected
     if (!selectedOption) {
-      // Runs when a selected option is clicked on and deselected
       setState({...state, loading: true});
       await handleClear();
       setState({loading: false, assignedTo: '', assignedToType: ''});
       return;
     }
+    // See makeMemberOption and makeTeamOption for how the value is formatted
     const type = selectedOption.value.startsWith('USER_') ? 'user' : 'team';
     const assigneeId =
       type === 'user'
@@ -417,6 +423,19 @@ function NewAssigneeSelectorDropdown({
     );
   };
 
+  // Haven't implemented the functionality for this button yet, just for visual purposes currently
+  const makeFooterInviteButton = () => {
+    return (
+      <Button
+        size="xs"
+        aria-label={t('Invite Member')}
+        // to={`/organizations/${organization.slug}/projects/new/`}
+        icon={<IconAdd isCircled />}
+      >
+        {t('Invite Member')}
+      </Button>
+    );
+  };
   return (
     <AssigneeWrapper>
       <CompactSelect
@@ -434,6 +453,7 @@ function NewAssigneeSelectorDropdown({
         onChange={handleSelect}
         options={makeAllOptions()}
         trigger={makeTrigger}
+        menuFooter={makeFooterInviteButton()}
       />
     </AssigneeWrapper>
   );
