@@ -113,8 +113,6 @@ function SpanSummaryCharts() {
       })) ?? [],
   };
 
-  console.dir(txnThroughputData);
-
   return (
     <BlockContainer>
       <Block>

@@ -229,8 +229,8 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     const transactionName = event.title;
-
-    const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
+    // TODO: dont hardcode this
+    const hasNewSpansUIFlag = true; // organization.features.includes('performance-spans-new-ui');
     // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
     const groupHash = hasNewSpansUIFlag
       ? props.node.value.sentry_tags?.group ?? ''

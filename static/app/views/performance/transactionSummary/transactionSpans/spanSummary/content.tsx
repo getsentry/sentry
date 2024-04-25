@@ -14,6 +14,7 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
+import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
@@ -22,7 +23,6 @@ import {getTotalsView} from '../utils';
 
 import SpanSummaryControls from './spanSummaryControls';
 import SpanSummaryHeader from './spanSummaryHeader';
-import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 
 type Props = {
   eventView: EventView;
@@ -135,11 +135,7 @@ function SpanSummaryContent(props: ContentProps) {
       </Feature>
       <SpanSummaryHeader />
       <SpanSummaryCharts />
-      <SpanSummaryTable
-        project={project}
-        suspectSpan={suspectSpan}
-        transactionName={transactionName}
-      />
+      <SpanSummaryTable project={project} />
     </Fragment>
   );
 }
