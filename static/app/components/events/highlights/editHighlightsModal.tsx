@@ -356,6 +356,7 @@ export default function EditHighlightsModal({
                 setHighlightContext(highlightPreset.context);
                 setHighlightTags(highlightPreset.tags);
               }}
+              size="sm"
             >
               {t('Use Defaults')}
             </Button>
