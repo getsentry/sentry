@@ -15,9 +15,9 @@
         }
       },
       {
-        "name": "team_slug",
+        "name": "team_id_or_slug",
         "in": "path",
-        "description": "The slug of the team to get.",
+        "description": "The id or slug of the team to get.",
         "required": true,
         "schema": {
           "type": "string"

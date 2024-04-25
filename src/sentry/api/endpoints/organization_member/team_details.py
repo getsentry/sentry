@@ -106,7 +106,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
-        team_slug = kwargs.pop("team_slug")
+        team_id_or_slug = kwargs.pop("team_id_or_slug")
         organization = kwargs["organization"]
         member = kwargs["member"]
 
@@ -116,11 +116,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                     self.get.__qualname__, organization_slug=organization.slug
                 ):
                     omt = OrganizationMemberTeam.objects.get(
-                        team__slug__id_or_slug=team_slug, organizationmember=member
+                        team__slug__id_or_slug=team_id_or_slug, organizationmember=member
                     )
                 else:
                     omt = OrganizationMemberTeam.objects.get(
-                        team__slug=team_slug, organizationmember=member
+                        team__slug=team_id_or_slug, organizationmember=member
                     )
             except OrganizationMemberTeam.DoesNotExist:
                 raise ResourceDoesNotExist
@@ -133,10 +133,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                     self.post.__qualname__, organization_slug=organization.slug
                 ):
                     team = Team.objects.get(
-                        organization__slug__id_or_slug=organization.slug, slug__id_or_slug=team_slug
+                        organization__slug__id_or_slug=organization.slug,
+                        slug__id_or_slug=team_id_or_slug,
                     )
                 else:
-                    team = Team.objects.get(organization=organization, slug=team_slug)
+                    team = Team.objects.get(organization=organization, slug=team_id_or_slug)
             except Team.DoesNotExist:
                 raise ResourceDoesNotExist
             kwargs["team"] = team
@@ -230,7 +231,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.member_id("The ID of the organization member to add to the team"),
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=None,
         responses={
@@ -420,7 +421,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.member_id("The ID of the organization member to delete from the team"),
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         responses={
             200: BaseTeamSerializer,

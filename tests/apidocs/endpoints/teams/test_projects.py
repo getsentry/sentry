@@ -11,7 +11,7 @@ class TeamsProjectsDocs(APIDocsTestCase):
 
         self.url = reverse(
             "sentry-api-0-team-project-index",
-            kwargs={"organization_slug": self.organization.slug, "team_slug": team.slug},
+            kwargs={"organization_slug": self.organization.slug, "team_id_or_slug": team.slug},
         )
 
         self.login_as(user=self.user)

@@ -53,7 +53,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string team_slug: the slug of the team to get.
+        :pparam string team_id_or_slug: the id or slug of the team to get.
         :qparam list expand: an optional list of strings to opt in to additional
             data. Supports `projects`, `externalTeams`.
         :qparam list collapse: an optional list of strings to opt out of certain
@@ -83,7 +83,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team belongs to.
-        :pparam string team_slug: the slug of the team to get.
+        :pparam string team_id_or_slug: the id or slug of the team to get.
         :param string name: the new name for the team.
         :param string slug: a new slug for the team.  It has to be unique
                             and available.

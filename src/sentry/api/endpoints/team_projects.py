@@ -88,7 +88,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         operation_id="List a Team's Projects",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
             CursorQueryParam,
         ],
         request=None,
@@ -143,7 +143,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         operation_id="Create a New Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=ProjectPostSerializer,
         responses={
