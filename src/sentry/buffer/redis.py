@@ -273,7 +273,7 @@ class RedisBuffer(Buffer):
         getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:
             pipe.expire(key, self.key_expire)
-        return pipe.execute()
+        return pipe.execute()[0]
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
@@ -283,7 +283,7 @@ class RedisBuffer(Buffer):
             key, RedisOperation.SORTED_SET_GET_RANGE, start=0, end=-1, withscores=True
         )
         decoded_set = []
-        for items in redis_set[0]:
+        for items in redis_set:
             item = items[0]
             if isinstance(item, bytes):
                 item = item.decode("utf-8")
@@ -319,7 +319,7 @@ class RedisBuffer(Buffer):
         key = self._make_key(model, field)
         redis_hash = self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
         decoded_hash = {}
-        for key, value in redis_hash[0].items():
+        for key, value in redis_hash.items():
             if isinstance(key, bytes):
                 key = key.decode("utf-8")
             if isinstance(value, bytes):
