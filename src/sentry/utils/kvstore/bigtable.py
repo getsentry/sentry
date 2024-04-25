@@ -114,7 +114,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             return table
 
     def get(self, key: str) -> bytes | None:
-        row = self._get_table().read_row(key)
+        row = self.get_table().read_row(key)
         if row is None:
             return None
 
