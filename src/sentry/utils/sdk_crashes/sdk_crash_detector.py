@@ -75,11 +75,12 @@ class SDKCrashDetector:
         # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
         # are SDK frames or from system libraries.
         for frame in reversed(frames):
-            function = frame.get("function")
-            if function:
-                for matcher in self.config.sdk_crash_ignore_functions_matchers:
-                    if glob_match(function, matcher, ignorecase=True):
-                        return False
+            if frame is not None:
+                function = frame.get("function")
+                if function:
+                    for matcher in self.config.sdk_crash_ignore_functions_matchers:
+                        if glob_match(function, matcher, ignorecase=True):
+                            return False
 
             if self.is_sdk_frame(frame):
                 return True
