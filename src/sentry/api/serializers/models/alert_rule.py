@@ -351,7 +351,7 @@ class CombinedRuleSerializer(Serializer):
             if item_id in serialized_map_by_id:
                 serialized_alert_rule = serialized_map_by_id[item_id]
                 if "latestIncident" in self.expand:
-                    serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
+                    serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)
                 results[item] = serialized_alert_rule
             elif item_id in serialized_issue_rule_map_by_id:
                 results[item] = serialized_issue_rule_map_by_id[item_id]
