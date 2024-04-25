@@ -333,7 +333,7 @@ function ProviderNonMemo({
         window.clearTimeout(playTimer.current);
       }
 
-      replayer.setConfig({skipInactive: skipInactive});
+      replayer.setConfig({skipInactive});
 
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => replayer.play(time), 0);
