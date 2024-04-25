@@ -325,6 +325,7 @@ function Sidebar() {
                   label={
                     <GuideAnchor target="performance-queues">{t('Queues')}</GuideAnchor>
                   }
+                  isAlpha
                   to={`/organizations/${organization.slug}/performance/queues/`}
                   id="performance-queues"
                   icon={<SubitemDot collapsed />}
