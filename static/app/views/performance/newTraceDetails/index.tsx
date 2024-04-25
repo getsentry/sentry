@@ -293,6 +293,13 @@ function TraceViewContent(props: TraceViewContentProps) {
 
     const newTabs = [TRACE_TAB];
 
+    if (tree.profiled_events.size > 0) {
+      newTabs.push({
+        node: 'profiles',
+        label: 'Profiles',
+      });
+    }
+
     if (tree.vitals.size > 0) {
       const types = Array.from(tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';

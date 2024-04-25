@@ -44,11 +44,9 @@ import {
   type Organization,
 } from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -381,31 +379,6 @@ export function TransactionNodeDetails({
               {node.value.transaction}
             </Link>
           </Row>
-          {node.value.profile_id ? (
-            <Row
-              title="Profile ID"
-              extra={
-                <TraceDrawerComponents.Button
-                  size="xs"
-                  to={generateProfileFlamechartRoute({
-                    orgSlug: organization.slug,
-                    projectSlug: node.value.project_slug,
-                    profileId: node.value.profile_id,
-                  })}
-                  onClick={function handleOnClick() {
-                    trackAnalytics('profiling_views.go_to_flamegraph', {
-                      organization,
-                      source: 'performance.trace_view',
-                    });
-                  }}
-                >
-                  {t('View Profile')}
-                </TraceDrawerComponents.Button>
-              }
-            >
-              {node.value.profile_id}
-            </Row>
-          ) : null}
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',

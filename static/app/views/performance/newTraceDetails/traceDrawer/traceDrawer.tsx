@@ -30,6 +30,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
@@ -420,6 +421,8 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 />
               ) : props.trace_state.tabs.current_tab.node === 'vitals' ? (
                 <TraceVitals trace={props.trace} />
+              ) : props.trace_state.tabs.current_tab.node === 'profiles' ? (
+                <TraceProfiles tree={props.trace} />
               ) : (
                 <TraceTreeNodeDetails
                   manager={props.manager}
@@ -460,14 +463,16 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
           props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'
         }
         onClick={() => {
-          if (props.tab.node !== 'vitals') {
+          if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
             props.onTabScrollToNode(root);
           }
           props.trace_dispatch({type: 'activate tab', payload: props.index});
         }}
       >
         {/* A trace is technically an entry in the list, so it has a color */}
-        {props.tab.node === 'trace' || props.tab.node === 'vitals' ? null : (
+        {props.tab.node === 'trace' ||
+        props.tab.node === 'vitals' ||
+        props.tab.node === 'profiles' ? null : (
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
