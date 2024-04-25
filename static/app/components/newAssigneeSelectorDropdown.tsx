@@ -436,6 +436,7 @@ function NewAssigneeSelectorDropdown({
       </Button>
     );
   };
+
   return (
     <AssigneeWrapper>
       <CompactSelect
