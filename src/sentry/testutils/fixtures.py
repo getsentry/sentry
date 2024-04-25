@@ -397,6 +397,7 @@ class Fixtures:
         query_subscriptions=None,
         project=None,
         monitor_type=AlertRuleMonitorType.ACTIVATED,
+        activation_reason=None,
         *args,
         **kwargs,
     ):
@@ -409,6 +410,7 @@ class Fixtures:
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
                 monitor_type=monitor_type,
+                activation_reason=activation_reason,
             )
 
         created_activations = []

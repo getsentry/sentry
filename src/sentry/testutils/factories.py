@@ -31,12 +31,13 @@ from sentry.event_manager import EventManager
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
-    create_alert_rule_activation,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     query_datasets_to_type,
 )
 from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleActivations,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -143,6 +144,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -1532,14 +1534,22 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_alert_rule_activation(
-        alert_rule,
-        query_subscription,
-        **kwargs,
+        alert_rule: AlertRule,
+        query_subscription: QuerySubscription,
+        metric_value: int | None = None,
+        finished_at: datetime | None = None,
     ):
 
-        return create_alert_rule_activation(
-            alert_rule=alert_rule, query_subscription=query_subscription, **kwargs
-        )
+        with transaction.atomic(router.db_for_write(AlertRuleActivations)):
+            activation = AlertRuleActivations.objects.create(
+                alert_rule=alert_rule,
+                finished_at=finished_at,
+                metric_value=metric_value,
+                query_subscription=query_subscription,
+                activation_reason="testing",
+            )
+
+        return activation
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
