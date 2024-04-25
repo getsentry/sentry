@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -14,9 +14,18 @@ import {
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-export function TraceProfiles({tree}: {tree: TraceTree}) {
+export function TraceProfiles({
+  tree,
+  onScrollToNode,
+}: {
+  onScrollToNode: (node: TraceTreeNode<any>) => void;
+  tree: TraceTree;
+}) {
   const {projects} = useProjects();
   const organization = useOrganization();
 
@@ -37,8 +46,10 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
 
   return (
     <ProfilesTable>
-      <ProfilesTableTitle>{t('Profiled Transaction')}</ProfilesTableTitle>
-      <ProfilesTableTitle>{t('Profile')}</ProfilesTableTitle>
+      <ProfilesTableRow>
+        <ProfilesTableTitle>{t('Profiled Transaction')}</ProfilesTableTitle>
+        <ProfilesTableTitle>{t('Profile')}</ProfilesTableTitle>
+      </ProfilesTableRow>
 
       {profiles.map((node, index) => {
         const link = generateProfileFlamechartRouteWithQuery({
@@ -55,47 +66,45 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
 
         if (isTransactionNode(node)) {
           return (
-            <Fragment key={index}>
+            <ProfilesTableRow key={index}>
               <div>
-                <PlatformIcon
-                  platform={projectLookup[node.value.project_slug] ?? 'default'}
-                />
-                <strong>
-                  <span>{node.value['transaction.op']}</span>
-                </strong>
-                <strong> — </strong>
-                <span>{node.value.transaction}</span>
+                <a onClick={() => onScrollToNode(node)}>
+                  <PlatformIcon
+                    platform={projectLookup[node.value.project_slug] ?? 'default'}
+                  />
+                  <span>{node.value['transaction.op']}</span> —{' '}
+                  <span>{node.value.transaction}</span>
+                </a>
               </div>
               <div>
                 <Link to={link} onClick={onClick}>
                   {node.profiles?.[0].profile_id?.substring(0, 8)}
                 </Link>
               </div>
-            </Fragment>
+            </ProfilesTableRow>
           );
         }
         if (isSpanNode(node)) {
           return (
-            <Fragment key={index}>
+            <ProfilesTableRow key={index}>
               <div>
-                <strong>
-                  <span>{node.value.op ?? '<unknown>'}</span>
-                </strong>
-                <strong> — </strong>
-                <span className="TraceDescription" title={node.value.description}>
-                  {!node.value.description
-                    ? node.value.span_id ?? 'unknown'
-                    : node.value.description.length > 100
-                      ? node.value.description.slice(0, 100).trim() + '\u2026'
-                      : node.value.description}
-                </span>
+                <a onClick={() => onScrollToNode(node)}>
+                  <span>{node.value.op ?? '<unknown>'}</span> —{' '}
+                  <span className="TraceDescription" title={node.value.description}>
+                    {!node.value.description
+                      ? node.value.span_id ?? 'unknown'
+                      : node.value.description.length > 100
+                        ? node.value.description.slice(0, 100).trim() + '\u2026'
+                        : node.value.description}
+                  </span>
+                </a>
               </div>
               <div>
                 <Link to={link} onClick={onClick}>
                   {node.profiles?.[0].profile_id?.substring(0, 8)}
                 </Link>
               </div>
-            </Fragment>
+            </ProfilesTableRow>
           );
         }
         return null;
@@ -106,17 +115,19 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
 
 const ProfilesTable = styled('div')`
   margin-top: ${space(1)};
-  padding: 0 ${space(0.5)};
   display: grid !important;
   grid-template-columns: 1fr min-content;
   grid-template-rows: auto;
   width: 100%;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
 
   > div {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: ${space(0.5)} 0;
+    padding: ${space(0.5)} ${space(1)};
   }
 
   img {
@@ -126,10 +137,33 @@ const ProfilesTable = styled('div')`
   }
 `;
 
+const ProfilesTableRow = styled('div')`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  width: 100%;
+  padding: ${space(0.5)};
+  padding: ${space(0.5)} ${space(2)};
+
+  & > div {
+    padding: ${space(0.5)} ${space(1)};
+  }
+
+  &:first-child {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+`;
+
 const ProfilesTableTitle = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
+  padding: 0 ${space(0.5)};
+  background-color: ${p => p.theme.backgroundSecondary};
 
   &:not(:first-child) {
     text-align: right;

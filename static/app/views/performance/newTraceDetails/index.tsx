@@ -553,6 +553,41 @@ function TraceViewContent(props: TraceViewContentProps) {
     [api, organization, setRowAsFocused, scrollRowIntoView, tree, traceDispatch]
   );
 
+  // Unlike onTabScrollToNode, this function does not set the node as the current
+  // focused node, but rather scrolls the node into view and sets the roving index to the node.
+  const onScrollToNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      TraceTree.ExpandToPath(tree, node.path, rerender, {
+        api,
+        organization,
+      }).then(maybeNode => {
+        if (maybeNode) {
+          previouslyFocusedNodeRef.current = null;
+          scrollRowIntoView(maybeNode.node, maybeNode.index, 'center if outside', true);
+          traceDispatch({
+            type: 'set roving index',
+            node: maybeNode.node,
+            index: maybeNode.index,
+            action_source: 'click',
+          });
+
+          if (traceStateRef.current.search.resultsLookup.has(maybeNode.node)) {
+            traceDispatch({
+              type: 'set search iterator index',
+              resultIndex: maybeNode.index,
+              resultIteratorIndex: traceStateRef.current.search.resultsLookup.get(
+                maybeNode.node
+              )!,
+            });
+          } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
+            traceDispatch({type: 'clear search iterator index'});
+          }
+        }
+      });
+    },
+    [api, organization, scrollRowIntoView, tree, traceDispatch]
+  );
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
@@ -769,6 +804,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             trace_state={traceState}
             trace_dispatch={traceDispatch}
             onTabScrollToNode={onTabScrollToNode}
+            onScrollToNode={onScrollToNode}
             rootEventResults={rootEvent}
             traceEventView={props.traceEventView}
           />

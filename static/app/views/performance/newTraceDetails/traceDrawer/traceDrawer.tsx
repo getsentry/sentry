@@ -55,6 +55,7 @@ import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
+  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   trace: TraceTree;
@@ -420,7 +421,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
               ) : props.trace_state.tabs.current_tab.node === 'vitals' ? (
                 <TraceVitals trace={props.trace} />
               ) : props.trace_state.tabs.current_tab.node === 'profiles' ? (
-                <TraceProfiles tree={props.trace} />
+                <TraceProfiles tree={props.trace} onScrollToNode={props.onScrollToNode} />
               ) : (
                 <TraceTreeNodeDetails
                   manager={props.manager}
