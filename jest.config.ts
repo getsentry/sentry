@@ -225,6 +225,9 @@ const config: Config.InitialOptions = {
     // transform
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
+
+    '^preact$': require.resolve('preact'),
+    '^@sentry/react$': require.resolve('@sentry/react'),
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
@@ -235,7 +238,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setupFramework.ts',
   ],
   testMatch: testMatch || ['<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/', '/node_modules/'],
 
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',
@@ -244,12 +247,13 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.ts?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
-      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
-      : '/node_modules/',
+      ? `node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      : 'node_modules/',
   ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
