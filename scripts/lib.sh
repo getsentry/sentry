@@ -168,9 +168,10 @@ create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
-    echo "--> Creating 'control' and 'region' database"
+    echo "--> Creating 'control', 'region' and 'secondary' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 secondary || true
 }
 
 apply-migrations() {
