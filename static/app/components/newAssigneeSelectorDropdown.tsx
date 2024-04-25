@@ -5,13 +5,18 @@ import uniqBy from 'lodash/uniqBy';
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
 import {AssigneeAvatar} from 'sentry/components/assigneeSelector';
 import {Chevron} from 'sentry/components/chevron';
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {
+  CompactSelect,
+  type SelectOption,
+  type SelectOptionOrSection,
+} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
+import ConfigStore from 'sentry/stores/configStore';
+// import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+// import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {
   Actor,
@@ -32,17 +37,12 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   codeowners: t('Codeowners'),
 };
 
+// Major (?) change where assignee is now User or AssignableTeam, not User or Actor
 export type OnAssignCallback = (
   type: Actor['type'],
-  assignee: User | Actor,
+  assignee: User | AssignableTeam,
   suggestedAssignee?: SuggestedAssignee
 ) => void;
-
-export type SuggestedAssignee = Actor & {
-  assignee: AssignableTeam | User;
-  suggestedReason: SuggestedOwnerReason;
-  suggestedReasonText?: React.ReactNode;
-};
 
 type AssignableTeam = {
   display: string;
@@ -52,11 +52,7 @@ type AssignableTeam = {
 };
 
 export interface NewAssigneeSelectorDropdownProps {
-  // alignMenu?: 'left' | 'right' | undefined;
-  // assignedTo?: Actor | null;
-  // disabled?: boolean;
   group: Group;
-  // id: string;
   memberList?: User[];
   noDropdown?: boolean;
   onAssign?: OnAssignCallback;
@@ -65,27 +61,33 @@ export interface NewAssigneeSelectorDropdownProps {
 }
 
 type AssigneeDropdownState = {
+  assignedTo: AssignableTeam | User | '';
+  assignedToType: 'user' | 'team' | '';
   loading: boolean;
-  assignedTo?: AssignableTeam | User;
-  suggestedOwners?: SuggestedOwner[] | null;
+  suggestedOwners?: SuggestedOwner[];
+};
+
+export type SuggestedAssignee = Actor & {
+  assignee: AssignableTeam | User;
+  suggestedReason: SuggestedOwnerReason;
+  suggestedReasonText?: React.ReactNode;
 };
 
 function NewAssigneeSelectorDropdown({
   group,
   memberList,
+  noDropdown = false,
   onAssign,
   onClear,
   owners,
-  noDropdown = false,
 }: NewAssigneeSelectorDropdownProps) {
-  // XXX: okay to get rid of 'group' prop here? (PASS GROUP IN, DO NOT USE GROUPSTORE)
   const organization = useOrganization();
-  // XXX: DEFAULT TO PROP MEMBERLIST
-  const memberLists = useLegacyStore(MemberListStore);
+  // const memberLists = useLegacyStore(MemberListStore);
+  const sessionUser = ConfigStore.get('user');
 
   const [state, setState] = useState<AssigneeDropdownState>(() => {
-    // const stateAssignedTo = group.assignedTo;
-    let assignee;
+    let assignee: User | AssignableTeam | undefined;
+
     if (group.assignedTo?.type === 'team') {
       const teams = ProjectsStore.getBySlug(group?.project.slug)?.teams ?? [];
       if (teams) {
@@ -103,23 +105,19 @@ function NewAssigneeSelectorDropdown({
       assignee = memberList?.find(user => user.id === group.assignedTo?.id);
     }
 
-    // XXX: guessing there's ab better way to do these two lines w/ useLegacyStore
-    // const stateLoading = GroupStore.hasStatus(id, 'assignTo'); // In the middle of assigning new user
-
     const stateSuggestedOwners = group?.owners;
 
     return {
-      // loading: stateLoading,
-      loading: false, // TODO: FIX DIS
-      assignedTo: assignee ?? undefined,
-      suggestedOwners: stateSuggestedOwners,
+      loading: false,
+      assignedTo: assignee ?? '',
+      assignedToType:
+        (group.assignedTo && group.assignedTo.type === 'team' ? 'team' : 'user') ?? '',
+      suggestedOwners: stateSuggestedOwners ?? [],
     };
   });
 
-  // Previously memberList()
-  // XXX: what to call this function?
   const currentMemberList = (): User[] | undefined => {
-    return memberList ?? memberLists.members;
+    return memberList;
   };
 
   const getSuggestedAssignees = (): SuggestedAssignee[] => {
@@ -212,29 +210,64 @@ function NewAssigneeSelectorDropdown({
       }));
   };
 
-  const handleSelect = (selectedOption: SelectOption<string>) => {
+  const handleSelect = async (selectedOption: SelectOption<string> | null) => {
+    if (!selectedOption) {
+      // Runs when a selected option is clicked on and deselected
+      setState({...state, loading: true});
+      await handleClear();
+      setState({loading: false, assignedTo: '', assignedToType: ''});
+      return;
+    }
     const type = selectedOption.value.startsWith('USER_') ? 'user' : 'team';
     const assigneeId =
       type === 'user'
         ? selectedOption.value.split('USER_')[1]
         : selectedOption.value.split('TEAM_')[1];
 
-    let assignee;
+    if (state.assignedTo && assigneeId === state.assignedTo?.id) {
+      setState({...state, loading: true});
+      await handleClear();
+      setState({loading: false, assignedTo: '', assignedToType: ''});
+      return;
+    }
+
     if (type === 'user') {
-      assignee = currentMemberList()?.find(member => member.id === assigneeId);
-      handleUserAssign(assignee);
-    }
+      const assignee = currentMemberList()?.find(member => member.id === assigneeId);
+      setState({...state, loading: true});
+      await assignToUser({
+        id: group.id,
+        orgSlug: organization.slug,
+        user: assignee as User,
+        assignedBy: 'assignee_selector',
+      });
+      setState({loading: false, assignedTo: assignee as User, assignedToType: 'user'});
 
-    if (type === 'team') {
-      assignee = getAssignableTeams().find(team => team.id === assigneeId);
-      handleTeamAssign(assignee);
-    }
+      if (onAssign) {
+        const suggestion = getSuggestedAssignees().find(
+          actor => actor.type === type && actor.id === assignee?.id // wtf is going on here (uncomment the ?)
+        );
+        onAssign(type, assignee as User, suggestion);
+      }
+    } else if (type === 'team') {
+      const assignee = getAssignableTeams().find(team => team.id === assigneeId);
+      await assignToActor({
+        id: group.id,
+        orgSlug: organization.slug,
+        actor: {id: (assignee as AssignableTeam).id, type: 'team'},
+        assignedBy: 'assignee_selector',
+      });
+      setState({
+        loading: false,
+        assignedTo: assignee as AssignableTeam,
+        assignedToType: 'team',
+      });
 
-    if (onAssign) {
-      const suggestion = getSuggestedAssignees().find(
-        actor => actor.type === type && actor.id === assignee.id
-      );
-      onAssign(type, assignee, suggestion);
+      if (onAssign) {
+        const suggestion = getSuggestedAssignees().find(
+          actor => actor.type === type && actor.id === assignee?.id // wtf is going on here (uncomment the ?)
+        );
+        onAssign(type, assignee as AssignableTeam, suggestion);
+      }
     }
   };
 
@@ -251,55 +284,39 @@ function NewAssigneeSelectorDropdown({
   //   });
   // };
 
-  // Previously assignToTeam
-  const handleTeamAssign = async (team: Team) => {
-    setState({loading: true});
-    await assignToActor({
-      actor: {id: team.id, type: 'team'},
-      id: group.id,
-      orgSlug: organization.slug,
-      assignedBy: 'assignee_selector',
-    });
-    setState({loading: false});
-  };
-  // Previously assignToUser
-  const handleUserAssign = async (user: User | Actor) => {
-    setState({loading: true});
-    await assignToUser({
-      id: group.id,
-      orgSlug: organization.slug,
-      user,
-      assignedBy: 'assignee_selector',
-    });
-    setState({loading: false});
-  };
-
-  const handleClear = () => {
-    // clears assignment
-    clearAssignment(group.id, organization.slug, 'assignee_selector');
-    setState({loading: true});
+  const handleClear = async () => {
+    setState({...state, loading: true});
+    await clearAssignment(group.id, organization.slug, 'assignee_selector');
+    setState({loading: false, assignedTo: '', assignedToType: ''});
 
     if (onClear) {
       onClear();
     }
   };
 
-  const makeMemberOption = (member: User): SelectOption<string> => ({
-    label: (
-      <IdBadge
-        actor={{
-          id: member.id,
-          name: member.name,
-          type: 'user',
-        }}
-      />
-    ),
-    value: `USER_${member.id}`,
-  });
+  const makeMemberOption = (member: User): SelectOption<string> => {
+    const isCurrentUser = member.id === sessionUser?.id;
+
+    return {
+      label: (
+        <IdBadge
+          actor={{
+            id: member.id,
+            name: `${member.name || member.email}${isCurrentUser ? ' (You)' : ''}`,
+            type: 'user',
+          }}
+        />
+      ),
+      // Jank way to pass assignee type (team or user) into each row
+      value: `USER_${member.id}`,
+      textValue: member.name || member.email,
+    };
+  };
 
   const makeTeamOption = (assignableTeam: AssignableTeam): SelectOption<string> => ({
     label: <IdBadge team={assignableTeam.team} />,
     value: `TEAM_${assignableTeam.id}`,
+    textValue: assignableTeam.team.slug,
   });
 
   const makeSuggestedAssigneeOption = (
@@ -332,69 +349,110 @@ function NewAssigneeSelectorDropdown({
     };
   };
 
-  // XXX: 'multiple' prop causing check box to show up
+  const makeAllOptions = (): SelectOptionOrSection<string>[] => {
+    const options: SelectOptionOrSection<string>[] = [];
+
+    const memList = currentMemberList();
+    const assignableTeamList = getAssignableTeams();
+    const suggestedAssignees = getSuggestedAssignees();
+
+    // if (state.assignedTo) {
+    //   if (state.assignedToType === 'team') {
+    //     options.unshift({
+    //       value: '_current_assignee',
+    //       label: t('Current Assignee'),
+    //       options: [makeTeamOption(state.assignedTo as AssignableTeam)],
+    //     });
+    //     assignableTeamList = assignableTeamList?.filter(
+    //       team => team.id !== state.assignedTo?.id
+    //     );
+    //   } else {
+    //     options.unshift({
+    //       value: '_current_assignee',
+    //       label: t('Current Assignee'),
+    //       options: [makeMemberOption(state.assignedTo as User)],
+    //     });
+    //     memList = memList?.filter(member => member.id !== state.assignedTo?.id);
+    //   }
+    // }
+
+    const memberOptions = {
+      value: '_members',
+      label: t('Everyone Else'),
+      options: memList?.map(makeMemberOption) ?? [],
+    };
+
+    const teamOptions = {
+      value: '_teams',
+      label: t('Teams'),
+      options: assignableTeamList?.map(makeTeamOption) ?? [],
+    };
+
+    const suggestedOptions = {
+      value: '_suggested_assignees',
+      label: t('Suggested Assignees'),
+      options: suggestedAssignees?.map(makeSuggestedAssigneeOption) ?? [],
+    };
+
+    options.push(suggestedOptions, memberOptions, teamOptions);
+
+    return options;
+  };
+
+  const makeTrigger = (props, isOpen) => {
+    if (state.assignedTo) {
+      state.assignedTo;
+    }
+    const avatarElement = (
+      <AssigneeAvatar
+        assignedTo={
+          (state.assignedTo &&
+            state.assignedToType && {
+              id: state.assignedTo.id,
+              name:
+                state.assignedToType === 'team'
+                  ? `#${(state.assignedTo as AssignableTeam).display}`
+                  : (state.assignedTo as User).name,
+              type: state.assignedToType,
+              email: state.assignedTo.email,
+            }) as Actor
+        }
+        suggestedActors={getSuggestedAssignees()}
+      />
+    );
+    return (
+      <Fragment>
+        {state.loading && (
+          <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
+        )}
+        {!state.loading && !noDropdown && (
+          <DropdownButton data-test-id="assignee-selector" {...props}>
+            {avatarElement}
+            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
+          </DropdownButton>
+        )}
+        {!state.loading && noDropdown && avatarElement}
+      </Fragment>
+    );
+  };
+
   return (
-    // Look for 'hidecheck' prop
     <AssigneeWrapper>
       <CompactSelect
-        // multiple
         searchable
         clearable
-        closeOnSelect
-        defaultValue={
-          state.assignedTo
-            ? `${group.assignedTo?.type ? 'USER_' : 'TEAM_'}${state.assignedTo?.id}`
-            : undefined
+        disallowEmptySelection={false}
+        onClick={e => e.stopPropagation()}
+        value={
+          state.assignedTo &&
+          `${state.assignedToType ? 'USER_' : 'TEAM_'}${state.assignedTo.id}`
         }
         onClear={handleClear}
         menuTitle={t('Select Assignee')}
-        size="xs"
+        size="sm"
         onChange={handleSelect}
-        options={[
-          {
-            value: '_suggested_assignees',
-            label: t('Suggested Assignees'),
-            options: getSuggestedAssignees()?.map(makeSuggestedAssigneeOption) ?? [],
-            hideCheck: true,
-          },
-          {
-            value: '_members',
-            label: t('Everyone Else'),
-            options: memberList?.map(makeMemberOption) ?? [],
-            hideCheck: true,
-          },
-          {
-            value: '_teams',
-            label: t('Teams'),
-            options: getAssignableTeams().map(makeTeamOption) ?? [],
-            hideCheck: true,
-          },
-        ]}
-        trigger={(props, isOpen) => {
-          const avatarElement = (
-            <AssigneeAvatar
-              assignedTo={group?.assignedTo ?? undefined}
-              suggestedActors={getSuggestedAssignees()}
-            />
-          );
-          return (
-            <Fragment>
-              {state.loading && (
-                <LoadingIndicator
-                  mini
-                  style={{height: '24px', margin: 0, marginRight: 11}}
-                />
-              )}
-              {!state.loading && !noDropdown && (
-                <DropdownButton data-test-id="assignee-selector" {...props}>
-                  {avatarElement}
-                  <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
-                </DropdownButton>
-              )}
-              {!state.loading && noDropdown && avatarElement}
-            </Fragment>
-          );
-        }}
+        options={makeAllOptions()}
+        trigger={makeTrigger}
       />
     </AssigneeWrapper>
   );
