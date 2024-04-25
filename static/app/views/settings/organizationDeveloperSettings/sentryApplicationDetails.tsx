@@ -328,15 +328,14 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
       );
       openModal(({Body, Header}) => (
         <Fragment>
-          <Header>{t('Rotated Client Secret')}</Header>
+          <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert type="info" showIcon>
               {t('This will be the only time your client secret is visible!')}
             </Alert>
-            <p>
-              {t('Your client secret is:')}
-              <code>{rotateResponse.clientSecret}</code>
-            </p>
+            <TextCopyInput aria-label="new-client-secret">
+              {rotateResponse.clientSecret}
+            </TextCopyInput>
           </Body>
         </Fragment>
       ));
