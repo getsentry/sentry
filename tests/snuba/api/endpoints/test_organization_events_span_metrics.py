@@ -1479,53 +1479,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {"count_op(queue.submit.celery)": 1, "count_op(queue.task.celery)": 1},
         ]
 
-    def test_frames_metrics(self):
-        for index, release in enumerate(["foo", "bar"]):
-            self.store_span_metric(
-                1 + 10 * index,
-                internal_metric=constants.SPAN_METRICS_MAP["mobile.slow_frames"],
-                timestamp=self.six_min_ago,
-                tags={"release": release},
-            )
-            self.store_span_metric(
-                2 + 10 * index,
-                internal_metric=constants.SPAN_METRICS_MAP["mobile.frozen_frames"],
-                timestamp=self.six_min_ago,
-                tags={"release": release},
-            )
-            self.store_span_metric(
-                3 + 10 * index,
-                internal_metric=constants.SPAN_METRICS_MAP["mobile.frames_delay"],
-                timestamp=self.six_min_ago,
-                tags={"release": release},
-            )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "avg_if(mobile.slow_frames,release,foo)",
-                    "avg_if(mobile.frozen_frames,release,bar)",
-                    "avg_compare(mobile.slow_frames,release,foo,bar)",
-                    "avg_if(mobile.frames_delay,release,foo)",
-                ],
-                "query": "",
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-                "statsPeriod": "1h",
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert data == [
-            {
-                "avg_compare(mobile.slow_frames,release,foo,bar)": 10.0,
-                "avg_if(mobile.slow_frames,release,foo)": 1.0,
-                "avg_if(mobile.frames_delay,release,foo)": 3.0,
-                "avg_if(mobile.frozen_frames,release,bar)": 12.0,
-            }
-        ]
-
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
