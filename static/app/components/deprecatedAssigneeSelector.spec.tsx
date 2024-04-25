@@ -8,8 +8,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import AssigneeSelectorComponent from 'sentry/components/assigneeSelector';
-import {putSessionUserFirst} from 'sentry/components/assigneeSelectorDropdown';
+import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
+import {putSessionUserFirst} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import IndicatorStore from 'sentry/stores/indicatorStore';
@@ -21,7 +21,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
 
-describe('AssigneeSelector', () => {
+describe('DeprecatedAssigneeSelector', () => {
   let assignMock;
   let assignGroup2Mock;
   let USER_1, USER_2, USER_3, USER_4;
@@ -124,7 +124,9 @@ describe('AssigneeSelector', () => {
   describe('render with props', () => {
     it('renders members from the prop when present', async () => {
       MemberListStore.loadInitialData([USER_1]);
-      render(<AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />);
+      render(
+        <DeprecatedAssigneeSelector id={GROUP_1.id} memberList={[USER_2, USER_3]} />
+      );
       await openMenu();
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -140,14 +142,14 @@ describe('AssigneeSelector', () => {
 
   describe('putSessionUserFirst()', () => {
     it('should place the session user at the top of the member list if present', () => {
-      render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+      render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => USER_2);
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
       (ConfigStore.get as jest.Mock).mockRestore();
     });
 
     it("should return the same member list if the session user isn't present", () => {
-      render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+      render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() =>
         UserFixture({
           id: '555',
@@ -162,13 +164,13 @@ describe('AssigneeSelector', () => {
   });
 
   it('should initially have loading state', async () => {
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
     await openMenu();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', async () => {
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -183,7 +185,7 @@ describe('AssigneeSelector', () => {
   });
 
   it('does NOT update member list after initial load', async () => {
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -200,7 +202,7 @@ describe('AssigneeSelector', () => {
   });
 
   it('successfully assigns users', async () => {
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -229,7 +231,7 @@ describe('AssigneeSelector', () => {
         assignedTo: {...TEAM_1, type: 'team'},
       },
     });
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -251,7 +253,7 @@ describe('AssigneeSelector', () => {
   });
 
   it('successfully clears assignment', async () => {
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
     await openMenu();
 
@@ -283,7 +285,7 @@ describe('AssigneeSelector', () => {
 
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />, {
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />, {
       context: RouterContextFixture(),
     });
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
@@ -297,7 +299,7 @@ describe('AssigneeSelector', () => {
   });
 
   it('filters user by email and selects with keyboard', async () => {
-    render(<AssigneeSelectorComponent id={GROUP_2.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_2.id} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -328,7 +330,7 @@ describe('AssigneeSelector', () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
     const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
 
-    render(<AssigneeSelectorComponent id={GROUP_2.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_2.id} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]));
 
     assignMock = MockApiClient.addMockResponse({
@@ -361,7 +363,7 @@ describe('AssigneeSelector', () => {
   it('successfully shows suggested assignees', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
     const onAssign = jest.fn();
-    render(<AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_2.id} onAssign={onAssign} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2, USER_3]));
 
     expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
@@ -399,7 +401,7 @@ describe('AssigneeSelector', () => {
 
   it('renders unassigned', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
-    render(<AssigneeSelectorComponent id={GROUP_1.id} />);
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
 
     await userEvent.hover(screen.getByTestId('unassigned'));
     expect(await screen.findByText('Unassigned')).toBeInTheDocument();
