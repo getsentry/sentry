@@ -1689,7 +1689,7 @@ register(
 register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
-    default=500,
+    default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
