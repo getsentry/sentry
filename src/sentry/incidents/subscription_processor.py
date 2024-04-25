@@ -600,8 +600,8 @@ class SubscriptionProcessor:
                 activation: AlertRuleActivations | None
                 if self.alert_rule.monitor_type == AlertRuleMonitorType.ACTIVATED:
                     activations = list(self.subscription.alertruleactivations_set)
-                    if len(activations) > 1 or len(activations) == 0:
-                        logger.warning(
+                    if len(activations) != 1:
+                        logger.error(
                             "activated alert rule subscription has unexpected activation instances",
                             extra={
                                 "activations_count": len(activations),
