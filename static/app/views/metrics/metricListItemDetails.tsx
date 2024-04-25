@@ -92,6 +92,7 @@ export function MetricListItemDetails({
     [tagsData]
   );
   const truncatedTags = showAllTags ? sortedTags : sortedTags.slice(0, MAX_TAGS_TO_SHOW);
+  const firstMetricProject = metricProjects[0];
 
   return (
     <DetailsWrapper>
@@ -106,10 +107,10 @@ export function MetricListItemDetails({
             </SamplingWarning>
           )}
         </MetricName>
-        {isCustomMetric && (
+        {isCustomMetric && firstMetricProject && (
           <LinkButton
             size="xs"
-            to={`/settings/projects/${metricProjects[0].slug}/metrics/${encodeURIComponent(metric.mri)}`}
+            to={`/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`}
             aria-label={t('Open metric settings')}
             icon={<IconSettings />}
             borderless
