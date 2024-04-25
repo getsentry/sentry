@@ -6,8 +6,8 @@ import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrati
 import type {Incident} from '../../types';
 
 export enum AlertRuleThresholdType {
-  ABOVE,
-  BELOW,
+  ABOVE = 0,
+  BELOW = 1,
 }
 
 export enum AlertRuleTriggerType {

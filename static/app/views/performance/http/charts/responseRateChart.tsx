@@ -5,7 +5,7 @@ import {
   HTTP_RESPONSE_3XX_COLOR,
   HTTP_RESPONSE_4XX_COLOR,
   HTTP_RESPONSE_5XX_COLOR,
-} from 'sentry/views/starfish/colours';
+} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
