@@ -9,9 +9,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor
 from sentry.sentry_metrics.querying.data.mapping.base import MapperConfig
-from sentry.sentry_metrics.querying.data.mapping.project_to_project_id_mapper import (
-    Project2ProjectIDMapper,
-)
+from sentry.sentry_metrics.querying.data.mapping.mapper import Project2ProjectIDMapper
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
 from sentry.sentry_metrics.querying.data.postprocessing.base import run_post_processing_steps
 from sentry.sentry_metrics.querying.data.postprocessing.remapping import QueryRemappingStep
