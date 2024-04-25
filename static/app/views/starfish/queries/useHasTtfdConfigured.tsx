@@ -4,7 +4,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useTableQuery} from 'sentry/views/performance/screenload/screens/screensTable';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
