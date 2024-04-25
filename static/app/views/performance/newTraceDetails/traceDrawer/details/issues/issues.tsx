@@ -31,10 +31,10 @@ type IssueProps = {
   organization: Organization;
 };
 
-const MAX_DISPLAYED_ISSUES_COUNT = 10;
+const MAX_DISPLAYED_ISSUES_COUNT = 3;
 
 const TABLE_WIDTH_BREAKPOINTS = {
-  FIRST: 700,
+  FIRST: 800,
   SECOND: 600,
   THIRD: 500,
   FOURTH: 400,
