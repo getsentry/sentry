@@ -24,7 +24,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 /**
  * @deprecated use AssigneeSelectorDropdown instead (Coming in future PR)
  */
-
 interface DeprecatedAssigneeSelectorProps
   extends Omit<
     DeprecatedAssigneeSelectorDropdownProps,
