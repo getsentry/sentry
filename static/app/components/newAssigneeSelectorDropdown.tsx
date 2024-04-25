@@ -424,12 +424,12 @@ function NewAssigneeSelectorDropdown({
     );
   };
 
-  // Haven't implemented the functionality for this button yet, just for visual purposes currently
   const makeFooterInviteButton = () => {
     return (
       <Button
         size="xs"
         aria-label={t('Invite Member')}
+        disabled={state.loading}
         onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
@@ -454,6 +454,7 @@ function NewAssigneeSelectorDropdown({
         }
         onClear={handleClear}
         menuTitle={t('Select Assignee')}
+        searchPlaceholder="Search users or teams..."
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
