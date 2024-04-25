@@ -23,7 +23,7 @@ interface ContextData extends ContextItem {
   data: KeyValueListData;
 }
 
-const EMPTY_HIGHLIGHT_DEFAULT = '--';
+export const EMPTY_HIGHLIGHT_DEFAULT = '--';
 
 /**
  * Helper function to use try HighlightContext saved values on multiple fields improve match rate.
@@ -129,6 +129,10 @@ export function getHighlightContextData({
     if (!matchingHighlight) {
       return;
     }
+    // We can't use Object.assign since the 'data' property is being mutated
+    matchingHighlight.type = ctxData.type;
+    matchingHighlight.value = ctxData.value;
+    matchingHighlight.alias = ctxData.alias;
     matchingHighlight.data = [
       ...highlightItems,
       ...matchingHighlight.data.filter(

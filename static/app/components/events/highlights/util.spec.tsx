@@ -3,6 +3,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {
+  EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
@@ -78,8 +79,9 @@ describe('getHighlightContextData', function () {
     const event = EventFixture({
       contexts: TEST_EVENT_CONTEXTS,
     });
+    const missingContextKey = 'color';
     const highlightContext = {
-      keyboard: ['brand', 'switches'],
+      keyboard: ['brand', 'switches', missingContextKey],
     };
     const highlightCtxData = getHighlightContextData({
       event,
@@ -95,6 +97,10 @@ describe('getHighlightContextData', function () {
     for (const ctxKey of highlightContext.keyboard) {
       expect(highlightCtxDataKeys.has(ctxKey)).toBe(true);
     }
+    const missingCtxHighlightFromEvent = highlightCtxData[0].data?.find(
+      d => d.key === missingContextKey
+    );
+    expect(missingCtxHighlightFromEvent?.value).toBe(EMPTY_HIGHLIGHT_DEFAULT);
   });
 
   it.each([
@@ -122,7 +128,8 @@ describe('getHighlightTagData', function () {
     const event = EventFixture({
       tags: TEST_EVENT_TAGS,
     });
-    const highlightTags = ['release', 'url', 'environment'];
+    const missingTag = 'zamboni';
+    const highlightTags = ['release', 'url', 'environment', missingTag];
     const highlightTagsSet = new Set(highlightTags);
 
     const highlightTagData = getHighlightTagData({event, highlightTags});
@@ -131,5 +138,9 @@ describe('getHighlightTagData', function () {
     for (const content of highlightTagData) {
       expect(highlightTagsSet.has(content.originalTag.key)).toBe(true);
     }
+    const missingTagHighlightFromEvent = highlightTagData.find(
+      td => td.originalTag.key === missingTag
+    );
+    expect(missingTagHighlightFromEvent?.value).toBe(EMPTY_HIGHLIGHT_DEFAULT);
   });
 });

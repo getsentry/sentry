@@ -114,7 +114,7 @@ function ContextSummary({event}: Props) {
     return <Component key={key} {...props} />;
   });
 
-  return <Wrapper>{contexts}</Wrapper>;
+  return <Wrapper data-test-id="context-summary">{contexts}</Wrapper>;
 }
 
 export default ContextSummary;
