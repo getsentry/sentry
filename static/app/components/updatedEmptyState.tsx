@@ -260,13 +260,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         </Setup>
         <Preview>
           <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-          <ArcadeWrapper>
-            <Arcade
-              src="https://demo.arcade.software/LjEJ1sfLaVRdtOs3mri1?embed"
+          <VideoWrapper>
+            <Video
+              src="https://s3.us-east-1.amazonaws.com/remotionlambda-production/renders/x87ndylphr/out.mp4?v=415e1797fdba69d917459d119dc6c5af"
               loading="lazy"
               allowFullScreen
             />
-          </ArcadeWrapper>
+          </VideoWrapper>
         </Preview>
       </Body>
     </div>
@@ -282,7 +282,7 @@ const Description = styled('div')`
   max-width: 340px;
 `;
 
-const ArcadeWrapper = styled('div')`
+const VideoWrapper = styled('div')`
   margin-top: ${space(1)};
 `;
 
@@ -347,10 +347,10 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const Arcade = styled('iframe')`
+const Video = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  height: 600px;
+  height: 500px;
   border: 0;
 `;
 
