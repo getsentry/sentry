@@ -51,7 +51,7 @@ type Props = {
 
 export type TableColumnHeader = GridColumnHeader<keyof Row>;
 
-export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Props) {
+export function QueryTransactionsTable({span, endpoint, endpointMethod, sort}: Props) {
   const location = useLocation();
   const routingContext = useRoutingContext();
   const organization = useOrganization();
