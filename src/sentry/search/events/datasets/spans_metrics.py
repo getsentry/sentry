@@ -388,6 +388,15 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="percentage",
                 ),
+                fields.MetricsFunction(
+                    "cache_miss_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_miss_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
                 # TODO: Deprecated, use `http_response_rate(5)` instead
                 fields.MetricsFunction(
                     "http_error_rate",
@@ -736,6 +745,30 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 [
                     self.builder.column("cache.hit"),
                     self.builder.resolve_tag_value("true"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("false"),
                 ],
             ),
             alias,
