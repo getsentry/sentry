@@ -1260,13 +1260,6 @@ function TraceBar(props: TraceBarProps) {
     <Fragment>
       <div ref={registerSpanBarRef} className="TraceBar">
         {/* @TODO Figure out what we want with metrics and profile icons */}
-        {/* {props.profiles.length > 0 ? (
-          <ProfileIcons
-            node_space={props.node_space}
-            profiles={props.profiles}
-            manager={props.manager}
-          />
-        ) : null} */}
         {props.errors.size > 0 ? (
           <ErrorIcons
             node_space={props.node_space}
@@ -1554,44 +1547,6 @@ function PerformanceIssueIcons(props: PerformanceIssueIconsProps) {
   );
 }
 
-interface ProfileIconsProps {
-  manager: VirtualizedViewManager;
-  node_space: [number, number] | null;
-  profiles: TraceTree.Profile[];
-}
-
-function _ProfileIcons(props: ProfileIconsProps) {
-  if (!props.profiles.length) {
-    return null;
-  }
-  return (
-    <Fragment>
-      {props.profiles.map((profile, _i) => {
-        const timestamp = profile.space[0];
-        // Clamp the profile timestamp to the span's timestamp
-        const left = props.manager.computeRelativeLeftPositionFromOrigin(
-          clamp(
-            timestamp,
-            props.node_space![0],
-            props.node_space![0] + props.node_space![1]
-          ),
-          props.node_space!
-        );
-
-        return (
-          <div
-            key={profile.profile_id}
-            className="TraceIcon profile"
-            style={{left: left * 100 + '%'}}
-          >
-            <TraceIcons.Icon event={profile} />
-          </div>
-        );
-      })}
-    </Fragment>
-  );
-}
-
 interface AutogroupedTraceBarProps {
   color: string;
   entire_space: [number, number] | null;
@@ -1671,13 +1626,6 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         {/* Autogrouped bars only render icons. That is because in the case of multiple bars
             with tiny gaps, the background pattern looks broken as it does not repeat nicely */}
         {/* @TODO Figure out what we want with metrics and profile icons */}
-        {/* {props.profiles.length > 0 ? (
-          <ProfileIcons
-            node_space={props.entire_space}
-            profiles={props.profiles}
-            manager={props.manager}
-          />
-        ) : null} */}
         {props.errors.size > 0 ? (
           <ErrorIcons
             node_space={props.entire_space}
