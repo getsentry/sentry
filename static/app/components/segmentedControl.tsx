@@ -166,6 +166,8 @@ function Segment<Value extends string>({
           transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
           priority={priority}
           aria-hidden
+          // Prevent animations until the user has made a change
+          layoutDependency={isSelected}
         />
       )}
 
