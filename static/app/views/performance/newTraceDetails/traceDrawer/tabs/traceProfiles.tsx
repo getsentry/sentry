@@ -147,6 +147,9 @@ const ProfilesTableRow = styled('div')`
 
   & > div {
     padding: ${space(0.5)} ${space(1)};
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 
   &:first-child {
@@ -164,8 +167,4 @@ const ProfilesTableTitle = styled('div')`
   font-weight: bold;
   padding: 0 ${space(0.5)};
   background-color: ${p => p.theme.backgroundSecondary};
-
-  &:not(:first-child) {
-    text-align: right;
-  }
 `;
