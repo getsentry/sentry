@@ -25,6 +25,7 @@ import {
 } from 'sentry/views/starfish/types';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import Pagination from 'sentry/components/pagination';
 
 type DataRowKeys =
   | SpanIndexedField.ID
@@ -161,7 +162,7 @@ export default function SpanSummaryTable() {
           location={location}
         />
       </VisuallyCompleteWithData>
-      {/* <Pagination pageLinks={pageLinks ?? null} /> */}
+      <Pagination pageLinks={pageLinks ?? null} />
     </Fragment>
   );
 }
