@@ -1438,37 +1438,40 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {"count_op(queue.submit.celery)": 1, "count_op(queue.task.celery)": 1},
         ]
 
-    def test_frames_metrics(self):
-        for index, release in enumerate(["foo", "bar"]):
-            self.store_span_metric(
-                1 + 10 * index,
-                entity="metrics_gauges",
-                metric="mobile.slow_frames",
-                timestamp=self.six_min_ago,
-                tags={"release": release},
-            )
-            self.store_span_metric(
-                2 + 10 * index,
-                entity="metrics_gauges",
-                metric="mobile.frozen_frames",
-                timestamp=self.six_min_ago,
-                tags={"release": release},
-            )
-            self.store_span_metric(
-                3 + 10 * index,
-                entity="metrics_gauges",
-                metric="mobile.frames_delay",
-                timestamp=self.six_min_ago,
-                tags={"release": release},
-            )
+    def test_slow_frames_gauge_metric(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            entity="metrics_gauges",
+            metric="mobile.slow_frames",
+            timestamp=self.six_min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            {
+                "min": 10,
+                "max": 10,
+                "sum": 10,
+                "count": 1,
+                "last": 10,
+            },
+            entity="metrics_gauges",
+            metric="mobile.slow_frames",
+            timestamp=self.six_min_ago,
+            tags={"release": "bar"},
+        )
 
         response = self.do_request(
             {
                 "field": [
                     "avg_if(mobile.slow_frames,release,foo)",
-                    "avg_if(mobile.frozen_frames,release,bar)",
+                    "avg_if(mobile.slow_frames,release,bar)",
                     "avg_compare(mobile.slow_frames,release,foo,bar)",
-                    "avg_if(mobile.frames_delay,release,foo)",
                 ],
                 "query": "",
                 "project": self.project.id,
@@ -1481,10 +1484,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         assert data == [
             {
-                "avg_compare(mobile.slow_frames,release,foo,bar)": 10.0,
-                "avg_if(mobile.slow_frames,release,foo)": 1.0,
-                "avg_if(mobile.frames_delay,release,foo)": 3.0,
-                "avg_if(mobile.frozen_frames,release,bar)": 12.0,
+                "avg_compare(mobile.slow_frames,release,foo,bar)": 1.0,
+                "avg_if(mobile.slow_frames,release,foo)": 5.0,
+                "avg_if(mobile.slow_frames,release,bar)": 10.0,
             }
         ]
 

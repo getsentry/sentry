@@ -185,29 +185,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "avgIf",
-                        [
-                            Column("value"),
-                            Function(
-                                "and",
-                                [
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            args["metric_id"],
-                                        ],
-                                    ),
-                                    Function(
-                                        "equals",
-                                        [self.builder.column(args["if_col"]), args["if_val"]],
-                                    ),
-                                ],
-                            ),
-                        ],
-                        alias,
-                    ),
+                    snql_gauge=self._resolve_avg_if,
+                    snql_distribution=self._resolve_avg_if,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -506,9 +485,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_avg_compare(
-                        self.builder.column, args, alias
-                    ),
+                    snql_gauge=self._resolve_avg_compare,
+                    snql_distribution=self._resolve_avg_compare,
                     default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
@@ -1072,6 +1050,34 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             ),
             alias,
         )
+
+    def _resolve_avg_if(self, args, alias):
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                args["metric_id"],
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [self.builder.column(args["if_col"]), args["if_val"]],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_avg_compare(self, args, alias):
+        return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
 
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:

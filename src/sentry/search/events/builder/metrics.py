@@ -97,6 +97,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: list[CurriedFunction] = []
         self.sets: list[CurriedFunction] = []
         self.counters: list[CurriedFunction] = []
+        self.gauges: list[CurriedFunction] = []
         self.percentiles: list[CurriedFunction] = []
         # only used for metrics_layer right now
         self.metrics_layer_functions: list[CurriedFunction] = []
@@ -592,7 +593,11 @@ class MetricsQueryBuilder(QueryBuilder):
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-        if snql_function.snql_distribution is not None:
+        metric_id = arguments.get("metric_id")
+
+        if snql_function.snql_distribution is not None and self.evaluate_metric_matches_function(
+            metric_id, "d"
+        ):
             resolved_function = snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
                 if snql_function.is_percentile:
@@ -602,17 +607,30 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_set is not None:
+        if snql_function.snql_set is not None and self.evaluate_metric_matches_function(
+            metric_id, "s"
+        ):
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
                 self.sets.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_counter is not None:
+        if snql_function.snql_counter is not None and self.evaluate_metric_matches_function(
+            metric_id, "c"
+        ):
             resolved_function = snql_function.snql_counter(arguments, alias)
             if not resolve_only:
                 self.counters.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        if snql_function.snql_gauge is not None and self.evaluate_metric_matches_function(
+            metric_id, "g"
+        ):
+            resolved_function = snql_function.snql_gauge(arguments, alias)
+            if not resolve_only:
+                self.gauges.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
@@ -760,6 +778,17 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return env_conditions[0]
 
+    def _evaluate_metric_matches_function(self, metric_id, expected_prefix):
+        primary_metric_argument = None
+        if metric_id is not None:
+            primary_metric_argument = indexer.reverse_resolve(
+                self.use_case_id, self.organization_id, metric_id
+            )
+
+        return metric_id is None or (
+            primary_metric_argument is not None and primary_metric_argument[0] == expected_prefix
+        )
+
     def get_metrics_layer_snql_query(
         self,
         query_framework: QueryFramework | None = None,
@@ -875,6 +904,12 @@ class MetricsQueryBuilder(QueryBuilder):
                 having=[],
                 functions=self.sets,
                 entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
+            ),
+            "gauge": QueryFramework(
+                orderby=[],
+                having=[],
+                functions=self.gauges,
+                entity=Entity(f"{prefix}metrics_gauges", sample=self.sample_rate),
             ),
             "metrics_layer": QueryFramework(
                 orderby=[],
