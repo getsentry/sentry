@@ -1,5 +1,11 @@
-import {forwardRef as reactForwardRef, memo, useMemo, useRef, useState} from 'react';
-import {createPortal} from 'react-dom';
+import {
+  forwardRef as reactForwardRef,
+  memo,
+  type SyntheticEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import {type Theme, useTheme} from '@emotion/react';
@@ -187,11 +193,6 @@ function BaseMenuListItem({
                   {details}
                 </Details>
               )}
-              {showDetailsInOverlay && details && isFocused && (
-                <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
-                  {details}
-                </DetailsOverlay>
-              )}
             </LabelWrap>
             {trailingItems && (
               <TrailingItems
@@ -206,6 +207,11 @@ function BaseMenuListItem({
           </ContentWrap>
         </InnerWrap>
       </Tooltip>
+      {showDetailsInOverlay && details && isFocused && (
+        <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
+          {details}
+        </DetailsOverlay>
+      )}
     </MenuItemWrap>
   );
 }
@@ -220,6 +226,7 @@ export default MenuListItem;
 
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
+  strategy: 'fixed' as const,
   modifiers: [
     {
       name: 'offset',
@@ -229,6 +236,10 @@ const POPPER_OPTIONS = {
     },
   ],
 };
+
+function stopPropagation(e: SyntheticEvent) {
+  e.stopPropagation();
+}
 
 function DetailsOverlay({
   children,
@@ -246,8 +257,12 @@ function DetailsOverlay({
 
   const popper = usePopper(itemRef.current, overlayElement, POPPER_OPTIONS);
 
-  return createPortal(
+  return (
     <StyledPositionWrapper
+      // Stop propagation so listeners on the menu-item are not triggered
+      onPointerDown={stopPropagation}
+      onMouseDown={stopPropagation}
+      onTouchStart={stopPropagation}
       {...popper.attributes.popper}
       ref={setOverlayElement}
       zIndex={theme.zIndex.tooltip}
@@ -256,8 +271,7 @@ function DetailsOverlay({
       <StyledOverlay id={id} role="tooltip" placement="right-start" size={size}>
         {children}
       </StyledOverlay>
-    </StyledPositionWrapper>,
-    document.body
+    </StyledPositionWrapper>
   );
 }
 
@@ -274,7 +288,9 @@ const StyledOverlay = styled(Overlay)<{
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;
-  user-select: text;
+  user-select: contain;
+  max-height: 80vh;
+  overflow: auto;
 `;
 
 const MenuItemWrap = styled('li')`

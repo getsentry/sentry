@@ -231,7 +231,13 @@ export const QueryBuilder = memo(function QueryBuilder({
         value: metric.mri,
         details:
           metric.projectIds.length > 0 ? (
-            <MetricListItemDetails metric={metric} selectedProjects={selectedProjects} />
+            <MetricListItemDetails
+              metric={metric}
+              selectedProjects={selectedProjects}
+              onTagClick={(mri, tag) => {
+                onChange({mri, groupBy: [tag]});
+              }}
+            />
           ) : null,
         showDetailsInOverlay: true,
         trailingItems:
@@ -239,7 +245,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             <CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>
           ),
       })),
-    [displayedMetrics, mriMode, selectedProjects]
+    [displayedMetrics, mriMode, onChange, selectedProjects]
   );
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
