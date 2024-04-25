@@ -682,6 +682,8 @@ const TabLayoutControlItem = styled('li')`
   display: inline-block;
   margin: 0;
   position: relative;
+  z-index: 10;
+  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 const Tab = styled('li')`
@@ -796,10 +798,10 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
 
 const TabIconButton = styled(Button)<{active: boolean}>`
   border: none;
-  background-color: transparent;
   box-shadow: none;
   transition: none !important;
   opacity: ${p => (p.active ? 0.7 : 0.5)};
+  background-color: ${p => p.theme.backgroundSecondary};
 
   &:not(:last-child) {
     margin-right: ${space(1)};
