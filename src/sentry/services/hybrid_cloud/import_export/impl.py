@@ -339,9 +339,7 @@ class UniversalImportExportService(ImportExportService):
                 reason="The submitted JSON could not be deserialized into Django model instances",
             )
 
-        # Catch `IntegrityError` before `DatabaseError`, since the former is a subclass of the
-        # latter.
-        except IntegrityError as e:
+        except DatabaseError as e:
             # This race-detection code is a bit hacky, since it relies on string matching the error
             # description from postgres but... ¯\_(ツ)_/¯.
             if len(e.args) > 0:
@@ -367,14 +365,14 @@ class UniversalImportExportService(ImportExportService):
             # All non-`ImportChunk`-related kinds of `IntegrityError` mean that the user's data was
             # not properly sanitized against collision. This could be the fault of either the import
             # logic, or the user's data itself.
-            sentry_sdk.capture_exception()
-            return RpcImportError(
-                kind=RpcImportErrorKind.IntegrityError,
-                on=InstanceID(model_name),
-                reason=str(e),
-            )
+            if isinstance(e, IntegrityError):
+                sentry_sdk.capture_exception()
+                return RpcImportError(
+                    kind=RpcImportErrorKind.IntegrityError,
+                    on=InstanceID(model_name),
+                    reason=str(e),
+                )
 
-        except DatabaseError as e:
             sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.DatabaseError,
