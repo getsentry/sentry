@@ -173,8 +173,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
-                            | constants.SPAN_METRIC_COUNT_COLUMNS,
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                         ),
                         fields.MetricArg(
                             "if_col",
@@ -496,8 +495,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
-                            | constants.SPAN_METRIC_COUNT_COLUMNS,
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                             allow_custom_measurements=False,
                         ),
                         fields.MetricArg(
