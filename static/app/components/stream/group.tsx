@@ -182,6 +182,7 @@ function BaseGroupRow({
     typeof NewAssigneeSelectorDropdown
   >['onAssign'] = useCallback(
     (type, _assignee, suggestedAssignee) => {
+      GroupStore.onAssignToSuccess(group.id, type, suggestedAssignee);
       if (query !== undefined) {
         trackAnalytics('issues_stream.issue_assigned', {
           ...sharedAnalytics,
@@ -191,7 +192,7 @@ function BaseGroupRow({
         });
       }
     },
-    [query, sharedAnalytics]
+    [query, sharedAnalytics, group.id] // TODO(msun): double check this one
   );
 >>>>>>> dec06fc907 (Functionality and design are done. QA and cleanup after this)
 

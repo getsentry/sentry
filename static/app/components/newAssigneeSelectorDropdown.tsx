@@ -22,14 +22,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {
-  Actor,
-  Group,
-  SuggestedOwner,
-  SuggestedOwnerReason,
-  Team,
-  User,
-} from 'sentry/types';
+import type {Actor, Group, SuggestedOwnerReason, Team, User} from 'sentry/types';
 import {buildTeamId} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -64,14 +57,8 @@ export interface NewAssigneeSelectorDropdownProps {
 }
 
 type AssigneeDropdownState = {
-  /** The user or team that the issue is assigned to. '' if no one is assigned */
-  assignedTo: AssignableTeam | User | '';
-  /** The type of the assignee. Choices are 'user', 'team', or '' if no one is assigned  */
-  assignedToType: 'user' | 'team' | '';
   /** Loading state for assignee dropdown */
   loading: boolean;
-  /** The issue's suggested owners, if they exist */
-  suggestedOwners?: SuggestedOwner[];
 };
 
 function NewAssigneeSelectorDropdown({
@@ -155,7 +142,7 @@ function NewAssigneeSelectorDropdown({
         .filter((owner): owner is SuggestedAssignee => !!owner);
     }
 
-    const {suggestedOwners} = state;
+    const suggestedOwners = group.owners ?? [];
     if (!suggestedOwners) {
       return [];
     }
@@ -215,7 +202,7 @@ function NewAssigneeSelectorDropdown({
     if (!selectedOption) {
       setState({...state, loading: true});
       await handleClear();
-      setState({loading: false, assignedTo: '', assignedToType: ''});
+      setState({loading: false});
       return;
     }
     // See makeMemberOption and makeTeamOption for how the value is formatted
@@ -225,10 +212,10 @@ function NewAssigneeSelectorDropdown({
         ? selectedOption.value.split('USER_')[1]
         : selectedOption.value.split('TEAM_')[1];
 
-    if (state.assignedTo && assigneeId === state.assignedTo?.id) {
+    if (group.assignedTo && assigneeId === group.assignedTo?.id) {
       setState({...state, loading: true});
       await handleClear();
-      setState({loading: false, assignedTo: '', assignedToType: ''});
+      setState({loading: false});
       return;
     }
 
@@ -241,7 +228,7 @@ function NewAssigneeSelectorDropdown({
         user: assignee as User,
         assignedBy: 'assignee_selector',
       });
-      setState({loading: false, assignedTo: assignee as User, assignedToType: 'user'});
+      setState({loading: false});
 
       if (onAssign) {
         const suggestion = getSuggestedAssignees().find(
@@ -259,8 +246,6 @@ function NewAssigneeSelectorDropdown({
       });
       setState({
         loading: false,
-        assignedTo: assignee as AssignableTeam,
-        assignedToType: 'team',
       });
 
       if (onAssign) {
@@ -275,7 +260,7 @@ function NewAssigneeSelectorDropdown({
   const handleClear = async () => {
     setState({...state, loading: true});
     await clearAssignment(group.id, organization.slug, 'assignee_selector');
-    setState({loading: false, assignedTo: '', assignedToType: ''});
+    setState({loading: false});
 
     if (onClear) {
       onClear();
@@ -344,23 +329,31 @@ function NewAssigneeSelectorDropdown({
     let assignableTeamList = getAssignableTeams();
     const suggestedAssignees = getSuggestedAssignees();
 
-    if (state.assignedTo) {
-      if (state.assignedToType === 'team') {
-        options.unshift({
-          value: '_current_assignee',
-          label: t('Current Assignee'),
-          options: [makeTeamOption(state.assignedTo as AssignableTeam)],
-        });
-        assignableTeamList = assignableTeamList?.filter(
-          team => team.id !== (state.assignedTo as AssignableTeam).id
+    if (group.assignedTo) {
+      if (group.assignedTo.type === 'team') {
+        const assignedTeam = assignableTeamList.find(
+          team => team.id === group.assignedTo?.id
         );
+        if (assignedTeam) {
+          options.unshift({
+            value: '_current_assignee',
+            label: t('Current Assignee'),
+            options: [makeTeamOption(assignedTeam)],
+          });
+          assignableTeamList = assignableTeamList?.filter(
+            team => team.id !== group.assignedTo?.id
+          );
+        }
       } else {
-        options.unshift({
-          value: '_current_assignee',
-          label: t('Current Assignee'),
-          options: [makeMemberOption(state.assignedTo as User)],
-        });
-        memList = memList?.filter(member => member.id !== (state.assignedTo as User).id);
+        const assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
+        if (assignedUser) {
+          options.unshift({
+            value: '_current_assignee',
+            label: t('Current Assignee'),
+            options: [makeMemberOption(assignedUser)],
+          });
+          memList = memList?.filter(member => member.id !== group.assignedTo?.id);
+        }
       }
     }
 
@@ -388,23 +381,9 @@ function NewAssigneeSelectorDropdown({
   };
 
   const makeTrigger = (props, isOpen) => {
-    if (state.assignedTo) {
-      state.assignedTo;
-    }
     const avatarElement = (
       <AssigneeAvatar
-        assignedTo={
-          (state.assignedTo &&
-            state.assignedToType && {
-              id: state.assignedTo.id,
-              name:
-                state.assignedToType === 'team'
-                  ? `#${(state.assignedTo as AssignableTeam).display}`
-                  : (state.assignedTo as User).name,
-              type: state.assignedToType,
-              email: state.assignedTo.email,
-            }) as Actor
-        }
+        assignedTo={group.assignedTo} // TODO(msun): Check if teams still have a # in front of them
         suggestedActors={getSuggestedAssignees()}
       />
     );
@@ -449,8 +428,9 @@ function NewAssigneeSelectorDropdown({
         disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
         value={
-          state.assignedTo &&
-          `${state.assignedToType ? 'USER_' : 'TEAM_'}${state.assignedTo.id}`
+          group.assignedTo
+            ? `${group.assignedTo?.type === 'user' ? 'USER_' : 'TEAM_'}${group.assignedTo.id}`
+            : undefined
         }
         onClear={handleClear}
         menuTitle={t('Select Assignee')}
