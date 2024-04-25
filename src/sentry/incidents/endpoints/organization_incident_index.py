@@ -99,7 +99,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
             team_filter_query = Q(alert_rule__team_id__in=teams_query.values_list("id", flat=True))
             if unassigned:
-                team_filter_query = team_filter_query | Q(alert_rule__team_id=None)
+                team_filter_query = team_filter_query | Q(alert_rule__team_id__isnull=True)
 
             incidents = incidents.filter(team_filter_query)
 
