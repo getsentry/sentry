@@ -297,56 +297,58 @@ export const SummaryTable = memo(function SummaryTable({
                           </div>
                         )}
 
-                        <DropdownMenu
-                          items={[
-                            {
-                              key: 'add-to-filter',
-                              label: t('Add to filter'),
-                              size: 'sm',
-                              onAction: () => {
-                                handleRowFilter(
-                                  queryIndex,
-                                  {
-                                    id,
-                                    groupBy,
-                                  },
-                                  MetricSeriesFilterUpdateType.ADD
-                                );
+                        {/* do not show add/exclude filter if there's no groupby or if this is an equation */}
+                        {Object.keys(groupBy ?? {}).length > 0 && !isEquationSeries && (
+                          <DropdownMenu
+                            items={[
+                              {
+                                key: 'add-to-filter',
+                                label: t('Add to filter'),
+                                size: 'sm',
+                                onAction: () => {
+                                  handleRowFilter(
+                                    queryIndex,
+                                    {
+                                      id,
+                                      groupBy,
+                                    },
+                                    MetricSeriesFilterUpdateType.ADD
+                                  );
+                                },
                               },
-                            },
-                            {
-                              key: 'exclude-from-filter',
-                              label: t('Exclude from filter'),
-                              size: 'sm',
-                              onAction: () => {
-                                handleRowFilter(
-                                  queryIndex,
-                                  {
-                                    id,
-                                    groupBy,
-                                  },
-                                  MetricSeriesFilterUpdateType.EXCLUDE
-                                );
+                              {
+                                key: 'exclude-from-filter',
+                                label: t('Exclude from filter'),
+                                size: 'sm',
+                                onAction: () => {
+                                  handleRowFilter(
+                                    queryIndex,
+                                    {
+                                      id,
+                                      groupBy,
+                                    },
+                                    MetricSeriesFilterUpdateType.EXCLUDE
+                                  );
+                                },
                               },
-                            },
-                          ]}
-                          trigger={triggerProps => (
-                            <Button
-                              {...triggerProps}
-                              aria-label={t('Quick Context Action Menu')}
-                              data-test-id="quick-context-action-trigger"
-                              borderless
-                              size="zero"
-                              disabled={isEquationSeries}
-                              onClick={e => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                triggerProps.onClick?.(e);
-                              }}
-                              icon={<IconFilter size="sm" />}
-                            />
-                          )}
-                        />
+                            ]}
+                            trigger={triggerProps => (
+                              <Button
+                                {...triggerProps}
+                                aria-label={t('Quick Context Action Menu')}
+                                data-test-id="quick-context-action-trigger"
+                                borderless
+                                size="zero"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  triggerProps.onClick?.(e);
+                                }}
+                                icon={<IconFilter size="sm" />}
+                              />
+                            )}
+                          />
+                        )}
                       </ButtonBar>
                     </CenterCell>
                   )}
