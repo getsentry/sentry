@@ -330,7 +330,9 @@
     "sentry.group",
     "sentry.organization",
     "sentry.project",
-    "sentry.release"
+    "sentry.release",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.groupinbox": [
     "sentry.group",
