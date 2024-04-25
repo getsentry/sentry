@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryResult
-from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper
+from sentry.sentry_metrics.querying.data.mapping.base import Mapper
 from sentry.sentry_metrics.querying.data.postprocessing.base import PostProcessingStep
 
 
