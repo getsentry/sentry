@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -60,6 +61,12 @@ export const TraceBreakdownContainer = styled('div')`
   min-width: 150px;
   height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
   background-color: ${p => p.theme.gray100};
+
+  perspective-origin: -50px -50px;
+  transition-duration: 0.2s;
+  transition-property: perspective;
+  transition-timing-function: ease-in-out;
+  transition-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
 `;
 
 const RectangleTraceBreakdown = styled(RowRectangle)`
@@ -69,10 +76,19 @@ const RectangleTraceBreakdown = styled(RowRectangle)`
 
 export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
   const theme = useTheme();
+  const [hovered, setHover] = useState(false);
+  const [basis, setBasis] = useState(0);
+
+  const zBasis = 0;
 
   return (
-    <TraceBreakdownContainer data-test-id="relative-ops-breakdown">
-      {trace.breakdowns.map(breakdown => {
+    <TraceBreakdownContainer
+      data-test-id="relative-ops-breakdown"
+      style={{perspective: hovered ? 50 : 5000}}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {trace.breakdowns.map((breakdown, index) => {
         return (
           <SpanBreakdownSliceRenderer
             key={breakdown.start + (breakdown.project ?? t('missing instrumentation'))}
@@ -81,6 +97,8 @@ export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
             sliceEnd={breakdown.end}
             trace={trace}
             theme={theme}
+            zTransform={index - basis}
+            onMouseEnter={() => setBasis(index)}
           />
         );
       })}
@@ -94,12 +112,16 @@ export function SpanBreakdownSliceRenderer({
   sliceName,
   sliceStart,
   sliceEnd,
+  zTransform,
+  onMouseEnter,
 }: {
   sliceEnd: number;
   sliceName: string | null;
   sliceStart: number;
   theme: Theme;
   trace: TraceResult<Field>;
+  onMouseEnter?: () => void;
+  zTransform?: number;
 }) {
   const traceDuration = trace.end - trace.start;
 
@@ -113,7 +135,15 @@ export function SpanBreakdownSliceRenderer({
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset = toPercent(relativeSliceStart / traceDuration);
   return (
-    <div style={{width: slicePercent, left: sliceOffset, position: 'absolute'}}>
+    <div
+      onMouseEnter={onMouseEnter}
+      style={{
+        width: slicePercent,
+        left: sliceOffset,
+        position: 'absolute',
+        transform: `translateZ(${zTransform}px)`,
+      }}
+    >
       <Tooltip
         title={
           <div>

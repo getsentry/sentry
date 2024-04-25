@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface TracesSearchBarProps {
@@ -53,7 +54,9 @@ export function TracesSearchBar({
           icon={<IconAdd size="xs" />}
           size="sm"
           onClick={() => handleSearch(queries.length + 1, '')}
-        />
+        >
+          {t('Add Span Conditions')}
+        </Button>
       </TraceBar>
     </TraceSearchBarsContainer>
   );
@@ -64,6 +67,9 @@ const TraceSearchBarsContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  border: 1px solid ${p => p.theme.gray200};
+  border-radius: 5px;
+  padding: ${space(2)};
 `;
 
 const TraceBar = styled('div')`
