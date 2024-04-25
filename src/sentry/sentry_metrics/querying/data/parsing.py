@@ -5,6 +5,7 @@ from snuba_sdk.mql.mql import InvalidMQLQueryError, parse_mql
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.data.mapping.base import MapperConfig
 from sentry.sentry_metrics.querying.data.query import MQLQuery
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression, QueryOrder
@@ -13,6 +14,7 @@ from sentry.sentry_metrics.querying.visitors import (
     LatestReleaseTransformationVisitor,
     QueryConditionsCompositeVisitor,
     QueryValidationV2Visitor,
+    SuffixWildcardConditionVisitor,
     VisitableQueryExpression,
 )
 from sentry.utils import metrics
@@ -28,10 +30,12 @@ class QueryParser:
         projects: Sequence[Project],
         environments: Sequence[Environment],
         mql_queries: Sequence[MQLQuery],
+        mapper_config: MapperConfig,
     ):
         self._projects = projects
         self._environments = environments
         self._mql_queries = mql_queries
+        self._mapper_config = mapper_config
 
     def _parse_mql(self, mql: str) -> VisitableQueryExpression:
         """
@@ -80,7 +84,8 @@ class QueryParser:
                 # We transform all `release:latest` filters into the actual latest releases.
                 .add_visitor(
                     QueryConditionsCompositeVisitor(
-                        LatestReleaseTransformationVisitor(self._projects)
+                        LatestReleaseTransformationVisitor(self._projects),
+                        SuffixWildcardConditionVisitor(self._mapper_config),
                     )
                 ).get()
             )

@@ -4,7 +4,7 @@ from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.mapping.mapper import (
+from sentry.sentry_metrics.querying.data.mapping.base import (
     Mapper,
     MapperConfig,
     get_or_create_mapper,
@@ -117,12 +117,19 @@ class MapperConditionVisitor(QueryConditionVisitor):
             mapper = get_or_create_mapper(self.mapper_config, self.mappers, from_key=lhs.name)
             if mapper:
                 new_lhs = Column(mapper.to_key)
-                if isinstance(rhs, list):
+                new_op = condition.op
+
+                if condition.op == Op.EQ and isinstance(rhs, str) and rhs.endswith("*"):
+                    new_op = Op.IN
+                    new_rhs = mapper.map_wildcard(self.projects, wildcard=rhs)
+
+                elif isinstance(rhs, list):
                     new_rhs = [mapper.forward(self.projects, element) for element in rhs]
+
                 else:
                     new_rhs = mapper.forward(self.projects, rhs)
 
-                return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
+                return Condition(lhs=new_lhs, op=new_op, rhs=new_rhs)
 
         return condition
 
@@ -132,3 +139,34 @@ class MapperConditionVisitor(QueryConditionVisitor):
             conditions.append(self.visit(condition))
 
         return BooleanCondition(op=boolean_condition.op, conditions=conditions)
+
+
+class SuffixWildcardConditionVisitor(QueryConditionVisitor):
+    """Implements the conversion of equality conditions to wildcard conditions using 'like' operators
+    when using suffix wildcards (e.g. 'project-*', where * matches any string).
+    This functionality only works for columns that are not mapped by the API using one of the mappers
+    in MapperConfig and therefore directly forwarded to Snuba & Clickhouse.
+    """
+
+    def __init__(self, mapper_config: MapperConfig):
+        self.mapper_config = mapper_config
+
+    def _visit_condition(self, condition: Condition) -> QueryCondition:
+        if not isinstance(condition.lhs, Column):
+            return condition
+
+        if not self.constains_suffix_wildcard(condition):
+            return condition
+
+        if condition.op == Op.EQ and not self.mapper_config.get(condition.lhs.name):
+            return Condition(lhs=condition.lhs, op=Op.LIKE, rhs=condition.rhs.replace("*", "%"))
+
+        if condition.op == Op.NEQ and not self.mapper_config.get(condition.lhs.name):
+            return Condition(lhs=condition.lhs, op=Op.NOT_LIKE, rhs=condition.rhs.replace("*", "%"))
+
+        return condition
+
+    def constains_suffix_wildcard(self, condition: Condition) -> bool:
+        if not isinstance(condition.rhs, str):
+            return False
+        return condition.rhs.endswith("*")

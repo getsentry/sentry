@@ -2,6 +2,7 @@ from .base import QueryConditionVisitor, QueryExpressionVisitor, VisitableQueryE
 from .query_condition import (
     LatestReleaseTransformationVisitor,
     MappingTransformationVisitor,
+    SuffixWildcardConditionVisitor,
     TagsTransformationVisitor,
 )
 from .query_expression import (
@@ -30,4 +31,5 @@ __all__ = [
     "QueriedMetricsVisitor",
     "UsedGroupBysVisitor",
     "UnitsNormalizationVisitor",
+    "SuffixWildcardConditionVisitor",
 ]

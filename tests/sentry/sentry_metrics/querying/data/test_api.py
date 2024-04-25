@@ -1729,6 +1729,32 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.TRANSACTIONS,
             )
 
+    def setup_fourth_project(self):
+        self.new_project_3 = self.create_project(name="Foo")
+
+        for value, transaction, platform, env, time in (
+            (1, "/hello", "android", "prod", self.now()),
+            (3, "/hello", "android", "prod", self.now()),
+            (5, "/hello", "android", "prod", self.now()),
+            (2, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (5, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (8, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+        ):
+            self.store_metric(
+                self.new_project_2.organization.id,
+                self.new_project_2.id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                },
+                self.ts(time),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_groupby_project_mapping(self) -> None:
         self.setup_second_project()
@@ -1984,3 +2010,71 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(data) == 1
         assert data[0]["series"] == [None, None, None]
         assert data[0]["totals"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_suffix_wildcard_filtering(self) -> None:
+        raise NotImplementedError()
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_negated_suffix_wildcard_filtering(self) -> None:
+        prod_1_env = self.create_environment(name="prod_1", project=self.project)
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "distribution",
+            TransactionMRI.DURATION.value,
+            {
+                "environment": "prod_1",
+            },
+            self.ts(self.now() + timedelta(minutes=30)),
+            123,
+            UseCaseID.TRANSACTIONS,
+        )
+
+        query = self.mql("sum", TransactionMRI.DURATION.value, "!environment:prod*", "environment")
+
+        results = self.run_query(
+            mql_queries=[MQLQuery(query)],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[self.prod_env, self.dev_env, prod_1_env],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 1
+        data = sorted(data, key=lambda value: value["by"]["environment"])
+        assert data[0]["by"] == {"environment": "dev"}
+        assert data[0]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[0]["totals"] == self.to_reference_unit(11.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_suffix_wildcard_filtering_with_mapped_column(self) -> None:
+        self.setup_second_project()
+        self.setup_third_project()
+        self.setup_fourth_project()
+
+        query = self.mql("sum", TransactionMRI.DURATION.value, "project:bar*", "project")
+
+        results = self.run_query(
+            mql_queries=[MQLQuery(query)],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1, self.new_project_2, self.new_project_3],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 3
+        data_sorted = sorted(data, key=lambda value: value["by"]["project"])
+        assert data_sorted[0]["by"] == {"project": "bar"}
+        assert data_sorted[1]["by"] == {"project": "bar-again"}
+        assert data_sorted[2]["by"] == {"project": "bar-yet-again"}

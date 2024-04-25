@@ -8,7 +8,8 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor
-from sentry.sentry_metrics.querying.data.mapping.mapper import MapperConfig, Project2ProjectIDMapper
+from sentry.sentry_metrics.querying.data.mapping.base import MapperConfig
+from sentry.sentry_metrics.querying.data.mapping.mapper import Project2ProjectIDMapper
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
 from sentry.sentry_metrics.querying.data.postprocessing.base import run_post_processing_steps
 from sentry.sentry_metrics.querying.data.postprocessing.remapping import QueryRemappingStep
@@ -58,7 +59,12 @@ def run_queries(
 
     intermediate_queries = []
     # We parse the query plan and obtain a series of queries.
-    parser = QueryParser(projects=projects, environments=environments, mql_queries=mql_queries)
+    parser = QueryParser(
+        projects=projects,
+        environments=environments,
+        mql_queries=mql_queries,
+        mapper_config=DEFAULT_MAPPINGS,
+    )
     for query_expression, query_order, query_limit in parser.generate_queries():
         intermediate_queries.append(
             IntermediateQuery(
