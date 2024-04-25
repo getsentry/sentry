@@ -75,6 +75,45 @@ def split_conditions_and_filters(rule_condition_list):
     return condition_list, filter_list
 
 
+def activate_downstream_actions(
+    rule: Rule,
+    event: GroupEvent,
+    notification_uuid: str | None = None,
+    rule_fire_history: RuleFireHistory | None = None,
+) -> MutableMapping[
+    str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+]:
+    for action in rule.data.get("actions", ()):
+        action_inst = instantiate_action(rule, action, rule_fire_history)
+        if not action_inst:
+            continue
+
+        results = safe_execute(
+            action_inst.after,
+            event=event,
+            _with_transaction=False,
+            notification_uuid=notification_uuid,
+        )
+        if results is None:
+            logger.warning("Action %s did not return any futures", action["id"])
+            continue
+
+        grouped_futures: MutableMapping[
+            str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+        ] = {}
+
+        for future in results:
+            key = future.key if future.key is not None else future.callback
+            rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
+
+            if key not in grouped_futures:
+                grouped_futures[key] = (future.callback, [rule_future])
+            else:
+                grouped_futures[key][1].append(rule_future)
+
+    return grouped_futures
+
+
 class RuleProcessor:
     def __init__(
         self,
@@ -279,37 +318,14 @@ class RuleProcessor:
 
         notification_uuid = str(uuid.uuid4())
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
-        self.activate_downstream_actions(rule, notification_uuid, rule_fire_history)
+        grouped_futures = activate_downstream_actions(
+            rule, self.event, notification_uuid, rule_fire_history
+        )
 
-    def activate_downstream_actions(
-        self,
-        rule: Rule,
-        notification_uuid: str | None = None,
-        rule_fire_history: RuleFireHistory | None = None,
-    ) -> None:
-        for action in rule.data.get("actions", ()):
-            action_inst = instantiate_action(rule, action, rule_fire_history)
-            if not action_inst:
-                continue
-
-            results = safe_execute(
-                action_inst.after,
-                event=self.event,
-                _with_transaction=False,
-                notification_uuid=notification_uuid,
-            )
-            if results is None:
-                logger.warning("Action %s did not return any futures", action["id"])
-                continue
-
-            for future in results:
-                key = future.key if future.key is not None else future.callback
-                rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
-
-                if key not in self.grouped_futures:
-                    self.grouped_futures[key] = (future.callback, [rule_future])
-                else:
-                    self.grouped_futures[key][1].append(rule_future)
+        if not self.grouped_futures:
+            self.grouped_futures = grouped_futures
+        else:
+            self.grouped_futures.update(grouped_futures)
 
     def apply(
         self,
