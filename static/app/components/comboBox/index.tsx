@@ -267,8 +267,16 @@ function ControlledComboBox<Value extends string>({
     [hiddenOptions, items]
   );
 
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   const handleChange = useCallback(
     (key: string | number) => {
+      // Prevent calling onChange on closing the menu without selecting a different value
+      if (getEscapedKey(valueRef.current) === key) {
+        return;
+      }
+
       if (props.onSelectionChange) {
         props.onSelectionChange(key);
       }

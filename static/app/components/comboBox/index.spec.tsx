@@ -97,11 +97,40 @@ describe('ComboBox', function () {
     expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
   });
+
+  it('does not trigger onChange on closing the menu', async function () {
+    const onChangeMock = jest.fn();
+    render(
+      <ComboBox
+        aria-label="Test Input"
+        onChange={onChangeMock}
+        value="opt_one"
+        options={[
+          {value: 'opt_one', label: 'Option One'},
+          {value: 'opt_two', label: 'Option Two'},
+        ]}
+      />
+    );
+
+    const combobox = screen.getByRole('combobox');
+    expect(combobox).toHaveAttribute('aria-expanded', 'false');
+
+    // click on the trigger button
+    await userEvent.click(combobox);
+    expect(combobox).toHaveAttribute('aria-expanded', 'true');
+
+    // close the menu
+    await userEvent.keyboard('{Escape}');
+    expect(combobox).toHaveAttribute('aria-expanded', 'false');
+
+    // onChange should not have been called
+    expect(onChangeMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('ListBox', function () {
   it('can select options with values containing quotes', async function () {
-    const mock = jest.fn();
+    const onChangeMock = jest.fn();
     render(
       <ComboBox
         aria-label="Test Input"
@@ -109,17 +138,17 @@ describe('ListBox', function () {
           {value: '"opt_one"', label: 'Option One'},
           {value: '"opt_two"', label: 'Option Two'},
         ]}
-        onChange={mock}
+        onChange={onChangeMock}
       />
     );
     // click on the trigger button
     await userEvent.click(screen.getByRole('combobox'));
     // select Option One & Option Two
     await userEvent.click(screen.getByRole('option', {name: 'Option One'}));
-    expect(mock).toHaveBeenCalledWith({value: '"opt_one"', label: 'Option One'});
+    expect(onChangeMock).toHaveBeenCalledWith({value: '"opt_one"', label: 'Option One'});
 
     await userEvent.clear(screen.getByRole('combobox'));
     await userEvent.click(screen.getByRole('option', {name: 'Option Two'}));
-    expect(mock).toHaveBeenCalledWith({value: '"opt_two"', label: 'Option Two'});
+    expect(onChangeMock).toHaveBeenCalledWith({value: '"opt_two"', label: 'Option Two'});
   });
 });
