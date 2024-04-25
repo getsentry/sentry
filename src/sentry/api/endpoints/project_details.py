@@ -105,6 +105,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "safeFields",
         "storeCrashReports",
         "relayPiiConfig",
+        "relayCustomMetricCardinalityLimit",
         "builtinSymbolSources",
         "symbolSources",
         "scrubIPAddresses",
