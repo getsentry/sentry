@@ -321,7 +321,7 @@ class GroupSnoozeWCacheTest(GroupSnoozeTest):
             assert snooze.is_valid(test_rates=True)
             assert cache_spy.get(cache_key) == 99
 
-            # cache counter reaches 100, but gets 98 from get_distinct_counts_totals
+            # cache counter reaches 100, but gets 98 from count_users_seen
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 2
@@ -330,7 +330,7 @@ class GroupSnoozeWCacheTest(GroupSnoozeTest):
 
             assert snooze.is_valid(test_rates=True)
             assert cache_spy.get(cache_key) == 99
-            # with this call counter reaches 100, gets 100 from get_distinct_counts_totals, so is_valid returns False
+            # with this call counter reaches 100, gets 100 from count_users_seen, so is_valid returns False
             assert not snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 3
 
