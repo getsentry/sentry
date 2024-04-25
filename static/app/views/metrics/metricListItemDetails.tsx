@@ -1,6 +1,7 @@
 import {Fragment, startTransition, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,6 +17,7 @@ import {
 } from 'sentry/utils/metrics/useMetricsTags';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 
 const MAX_PROJECTS_TO_SHOW = 3;
 const MAX_TAGS_TO_SHOW = 5;
@@ -31,11 +33,13 @@ export function MetricListItemDetails({
   onTagClick: (mri: MRI, tag: string) => void;
   selectedProjects: Project[];
 }) {
+  const router = useRouter();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const isCustomMetric = parseMRI(metric.mri)?.useCase === 'custom';
 
   const [showAllTags, setShowAllTags] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
 
   const projectIds = useMemo(
     () => selectedProjects.map(project => parseInt(project.id, 10)),
@@ -72,7 +76,9 @@ export function MetricListItemDetails({
     metric.projectIds.includes(parseInt(project.id, 10))
   );
 
-  const truncatedProjects = metricProjects.slice(0, MAX_PROJECTS_TO_SHOW);
+  const truncatedProjects = showAllProjects
+    ? metricProjects
+    : metricProjects.slice(0, MAX_PROJECTS_TO_SHOW);
   // Display custom tags first, then sort alphabetically
   const sortedTags = useMemo(
     () =>
@@ -92,6 +98,7 @@ export function MetricListItemDetails({
     [tagsData]
   );
   const truncatedTags = showAllTags ? sortedTags : sortedTags.slice(0, MAX_TAGS_TO_SHOW);
+  const firstMetricProject = metricProjects[0];
 
   return (
     <DetailsWrapper>
@@ -106,15 +113,30 @@ export function MetricListItemDetails({
             </SamplingWarning>
           )}
         </MetricName>
-        {isCustomMetric && (
-          <LinkButton
-            size="xs"
-            to={`/settings/projects/${metricProjects[0].slug}/metrics/${encodeURIComponent(metric.mri)}`}
-            aria-label={t('Open metric settings')}
-            icon={<IconSettings />}
-            borderless
-          />
-        )}
+        {isCustomMetric &&
+          (firstMetricProject ? (
+            <LinkButton
+              size="xs"
+              to={`/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`}
+              aria-label={t('Open metric settings')}
+              icon={<IconSettings />}
+              borderless
+            />
+          ) : (
+            // TODO: figure out when we can end up in this case
+            <Button
+              size="xs"
+              onClick={() =>
+                navigateTo(
+                  `/settings/projects/:projectId/metrics/${encodeURIComponent(metric.mri)}`,
+                  router
+                )
+              }
+              aria-label={t('Open metric settings')}
+              icon={<IconSettings />}
+              borderless
+            />
+          ))}
       </Header>
       <DetailsGrid>
         <DetailsLabel>{t('Project')}</DetailsLabel>
@@ -122,8 +144,10 @@ export function MetricListItemDetails({
           {truncatedProjects.map(project => (
             <ProjectBadge project={project} key={project.slug} avatarSize={12} />
           ))}
-          {metricProjects.length > MAX_PROJECTS_TO_SHOW && (
-            <span>{t('+%d more', metricProjects.length - MAX_PROJECTS_TO_SHOW)}</span>
+          {metricProjects.length > MAX_PROJECTS_TO_SHOW && !showAllProjects && (
+            <Button priority="link" onClick={() => setShowAllProjects(true)}>
+              {t('+%d more', metricProjects.length - MAX_PROJECTS_TO_SHOW)}
+            </Button>
           )}
         </DetailsValue>
         <DetailsLabel>{t('Type')}</DetailsLabel>
