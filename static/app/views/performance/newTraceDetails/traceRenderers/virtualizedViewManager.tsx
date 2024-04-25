@@ -1045,14 +1045,11 @@ export class VirtualizedViewManager {
     const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
     const width = this.text_measurer.measure(text);
 
-    const has_profiles = node && node.profiles.length > 0;
     const has_error_icons =
       node &&
       (node.profiles.length > 0 ||
         node.errors.size > 0 ||
         node.performance_issues.size > 0);
-
-    const has_icons = has_profiles || has_error_icons;
 
     const node_width = span_space[1] / this.span_to_px[0];
     const TEXT_PADDING = 2;
@@ -1062,10 +1059,10 @@ export class VirtualizedViewManager {
     // to the left (20% of the time) and the node may have many errors, this could be computationally expensive to do on every frame.
     // We'll live with the inaccuracy for now as it is purely visual and just make sure to handle a single error case as it will be easy
     // to determine if there is an overlap.
-    const TEXT_PADDING_LEFT = text_left && has_icons ? 10 : TEXT_PADDING;
+    const TEXT_PADDING_LEFT = text_left && has_error_icons ? 10 : TEXT_PADDING;
 
     const TEXT_PADDING_RIGHT =
-      !text_left && has_icons
+      !text_left && has_error_icons
         ? node_width < 10
           ? // If the node is too small, we need to make sure the text is anchored to the right edge of the icon.
             // We take the distance from the right edge of the node to the right edge of the icon and subtract it from

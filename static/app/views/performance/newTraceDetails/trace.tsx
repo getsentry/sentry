@@ -1259,13 +1259,14 @@ function TraceBar(props: TraceBarProps) {
   return (
     <Fragment>
       <div ref={registerSpanBarRef} className="TraceBar">
-        {props.profiles.length > 0 ? (
+        {/* @TODO Figure out what we want with metrics and profile icons */}
+        {/* {props.profiles.length > 0 ? (
           <ProfileIcons
             node_space={props.node_space}
             profiles={props.profiles}
             manager={props.manager}
           />
-        ) : null}
+        ) : null} */}
         {props.errors.size > 0 ? (
           <ErrorIcons
             node_space={props.node_space}
@@ -1458,16 +1459,6 @@ function BackgroundPatterns(props: BackgroundPatternsProps) {
             );
           })}
         </Fragment>
-      ) : props.profiles.length > 0 ? (
-        <div
-          className="TracePatternContainer"
-          style={{
-            left: 0,
-            width: '100%',
-          }}
-        >
-          <div className="TracePattern profile" />
-        </div>
       ) : null}
     </Fragment>
   );
@@ -1569,7 +1560,7 @@ interface ProfileIconsProps {
   profiles: TraceTree.Profile[];
 }
 
-function ProfileIcons(props: ProfileIconsProps) {
+function _ProfileIcons(props: ProfileIconsProps) {
   if (!props.profiles.length) {
     return null;
   }
@@ -1679,13 +1670,14 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         })}
         {/* Autogrouped bars only render icons. That is because in the case of multiple bars
             with tiny gaps, the background pattern looks broken as it does not repeat nicely */}
-        {props.profiles.length > 0 ? (
+        {/* @TODO Figure out what we want with metrics and profile icons */}
+        {/* {props.profiles.length > 0 ? (
           <ProfileIcons
             node_space={props.entire_space}
             profiles={props.profiles}
             manager={props.manager}
           />
-        ) : null}
+        ) : null} */}
         {props.errors.size > 0 ? (
           <ErrorIcons
             node_space={props.entire_space}
