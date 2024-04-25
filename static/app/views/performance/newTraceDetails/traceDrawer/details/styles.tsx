@@ -1,5 +1,6 @@
 import {Fragment, type PropsWithChildren, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -9,11 +10,13 @@ import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction, Project} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -564,6 +567,40 @@ const ActionsContainer = styled('div')`
   }
 `;
 
+function ProfileLink({
+  event,
+  project,
+  query,
+}: {
+  event: EventTransaction;
+  project: Project | undefined;
+  query?: Location['query'];
+}) {
+  const profileId = event.contexts.profile?.profile_id || '';
+
+  if (!profileId) {
+    return null;
+  }
+
+  return profileId && project?.slug ? (
+    <TraceDrawerComponents.TableRow
+      title="Profile ID"
+      extra={
+        <TransactionToProfileButton
+          size="xs"
+          projectSlug={project.slug}
+          event={event}
+          query={query}
+        >
+          {t('View Profile')}
+        </TransactionToProfileButton>
+      }
+    >
+      {profileId}
+    </TraceDrawerComponents.TableRow>
+  ) : null;
+}
+
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
@@ -583,6 +620,7 @@ const TraceDrawerComponents = {
   LAZY_RENDER_PROPS,
   TableRowButtonContainer,
   TableValueRow,
+  ProfileLink,
   IssuesLink,
 };
 
