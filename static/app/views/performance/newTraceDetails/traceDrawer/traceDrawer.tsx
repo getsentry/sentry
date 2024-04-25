@@ -358,6 +358,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 onClick={onMinimizeClick}
                 trace_state={props.trace_state}
               />
+              <TabSeparator />
             </TabLayoutControlItem>
           </TabActions>
           <TabsContainer
@@ -666,9 +667,25 @@ const TabActions = styled('ul')`
   }
 `;
 
+const TabSeparator = styled('span')`
+  display: inline-block;
+  margin-left: ${space(0.5)};
+  margin-right: ${space(0.5)};
+  height: 16px;
+  width: 1px;
+  background-color: ${p => p.theme.border};
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+`;
+
 const TabLayoutControlItem = styled('li')`
   display: inline-block;
   margin: 0;
+  position: relative;
+  z-index: 10;
+  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 const Tab = styled('li')`
@@ -681,16 +698,16 @@ const Tab = styled('li')`
   position: relative;
 
   &.Static + li:not(.Static) {
-    margin-left: ${space(2)};
+    margin-left: 10px;
 
     &:after {
       display: block;
       content: '';
       position: absolute;
-      left: -14px;
+      left: -10px;
       top: 50%;
       transform: translateY(-50%);
-      height: 72%;
+      height: 16px;
       width: 1px;
       background-color: ${p => p.theme.border};
     }
