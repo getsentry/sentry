@@ -35,23 +35,29 @@ type SearchQueryBuilderComboboxProps = {
   inputLabel: string;
   inputValue: string;
   items: SelectOptionWithKey<string>[];
-  onChange: (key: string) => void;
+  onCustomValueSelected: (value: string) => void;
   onExit: () => void;
-  placeholder: string;
-  setInputValue: (value: string) => void;
-  token: TokenResult<Token.FILTER>;
+  onOptionSelected: (value: string) => void;
+  token: TokenResult<Token>;
+  filterValue?: string;
+  onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  placeholder?: string;
 };
 
 export function SearchQueryBuilderCombobox({
   children,
   items,
   inputValue,
-  setInputValue,
+  filterValue = inputValue,
   placeholder,
-  onChange,
+  onCustomValueSelected,
+  onOptionSelected,
   token,
   inputLabel,
   onExit,
+  onKeyDown,
+  onInputChange,
 }: SearchQueryBuilderComboboxProps) {
   const theme = useTheme();
   const listBoxRef = useRef<HTMLUListElement>(null);
@@ -67,8 +73,8 @@ export function SearchQueryBuilderCombobox({
   }, [focus, token]);
 
   const hiddenOptions = useMemo(() => {
-    return getHiddenOptions(items, inputValue, 10);
-  }, [items, inputValue]);
+    return getHiddenOptions(items, filterValue, 10);
+  }, [items, filterValue]);
 
   const disabledKeys = useMemo(
     () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
@@ -79,25 +85,21 @@ export function SearchQueryBuilderCombobox({
     (key: Key) => {
       const selectedOption = items.find(item => item.key === key);
       if (selectedOption) {
-        onChange(selectedOption.textValue ?? '');
-      } else {
-        onChange(key.toString());
+        onOptionSelected(selectedOption.textValue ?? '');
+      } else if (key) {
+        onOptionSelected(key.toString());
       }
     },
-    [items, onChange]
+    [items, onOptionSelected]
   );
 
   const state = useComboBoxState<SelectOptionWithKey<string>>({
     children,
     items,
     autoFocus: true,
-    inputValue,
-    onInputChange: setInputValue,
+    inputValue: filterValue,
     onSelectionChange,
     disabledKeys,
-    onFocus: () => {
-      state.open();
-    },
   });
   const {inputProps, listBoxProps} = useComboBox<SelectOptionWithKey<string>>(
     {
@@ -106,22 +108,19 @@ export function SearchQueryBuilderCombobox({
       inputRef,
       popoverRef,
       items,
-      inputValue,
+      inputValue: filterValue,
       onSelectionChange,
-      onInputChange: setInputValue,
       autoFocus: true,
-      onFocus: () => {
-        state.open();
-      },
       onBlur: () => {
-        if (state.inputValue) {
-          onChange(state.inputValue);
+        if (inputValue) {
+          onCustomValueSelected(inputValue);
         } else {
           onExit();
         }
         state.close();
       },
       onKeyDown: e => {
+        onKeyDown?.(e);
         switch (e.key) {
           case 'Escape':
             state.close();
@@ -132,7 +131,7 @@ export function SearchQueryBuilderCombobox({
               return;
             }
             state.close();
-            onChange(state.inputValue);
+            onCustomValueSelected(inputValue);
             return;
           default:
             return;
@@ -153,7 +152,7 @@ export function SearchQueryBuilderCombobox({
     shouldCloseOnBlur: true,
     onInteractOutside: () => {
       if (state.inputValue) {
-        onChange(state.inputValue);
+        onCustomValueSelected(inputValue);
       } else {
         onExit();
       }
@@ -171,12 +170,12 @@ export function SearchQueryBuilderCombobox({
 
   const selectContextValue = useMemo(
     () => ({
-      search: inputValue,
+      search: filterValue,
       overlayIsOpen: isOpen,
       registerListState: () => {},
       saveSelectedOptions: () => {},
     }),
-    [inputValue, isOpen]
+    [filterValue, isOpen]
   );
 
   return (
@@ -191,7 +190,7 @@ export function SearchQueryBuilderCombobox({
             placeholder={placeholder}
             onClick={handleInputClick}
             value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
+            onChange={onInputChange}
             autoFocus
           />
           <StyledPositionWrapper
