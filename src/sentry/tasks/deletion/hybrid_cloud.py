@@ -22,8 +22,6 @@ from django.db.models import Max, Min
 from django.db.models.manager import BaseManager
 from django.utils import timezone
 
-from sentry import options
-from sentry.db.models import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
@@ -249,14 +247,30 @@ def _process_tombstone_reconciliation(
         prefix, field, watermark_manager, batch_size=get_batch_size()
     )
     has_more = watermark_batch.has_more
+    to_delete_ids: list[int] = []
+
     if watermark_batch.low < watermark_batch.up:
-        to_delete_ids, oldest_seen = _get_model_ids_for_tombstone_cascade(
-            tombstone_cls=tombstone_cls,
-            model=model,
-            field=field,
-            watermark_batch=watermark_batch,
-            watermark_target=watermark_target,
-        )
+        oldest_seen: datetime.datetime = timezone.now()
+
+        with connections[router.db_for_read(model)].cursor() as conn:
+            conn.execute(
+                f"""
+                SELECT r.id, t.created_at
+                FROM {model._meta.db_table} r
+                JOIN {tombstone_cls._meta.db_table} t
+                    ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
+                WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
+            """,
+                {
+                    "table_name": field.foreign_table_name,
+                    "low": watermark_batch.low,
+                    "up": watermark_batch.up,
+                },
+            )
+
+            for (row_id, tomb_created) in conn.fetchall():
+                to_delete_ids.append(row_id)
+                oldest_seen = min(oldest_seen, tomb_created)
 
         if field.on_delete == "CASCADE":
             task = deletions.get(
@@ -292,83 +306,3 @@ def _process_tombstone_reconciliation(
         )
 
     return has_more
-
-
-def _get_model_ids_for_tombstone_cascade(
-    tombstone_cls: type[TombstoneBase],
-    model: type[Model],
-    field: HybridCloudForeignKey,
-    watermark_target,
-    watermark_batch: WatermarkBatch,
-) -> tuple[list[int], datetime.datetime]:
-    """
-    Queries the database or databases if spanning multiple, and returns
-     a tuple with a list of row IDs to delete, and the oldest
-     tombstone timestamp for the batch.
-
-    :param tombstone_cls: Either a RegionTombstone or ControlTombstone, depending on
-     which silo the tombstone process is running.
-    :param model: The model with a HybridCloudForeignKey.
-    :param field: The HybridCloudForeignKey field from the model to process.
-    :return:
-    """
-
-    to_delete_ids = []
-    oldest_seen = timezone.now()
-    tombstone_and_model_in_same_db = router.db_for_read(model) == router.db_for_read(tombstone_cls)
-
-    if tombstone_and_model_in_same_db:
-        with connections[router.db_for_read(model)].cursor() as conn:
-            conn.execute(
-                f"""
-                    SELECT r.id, t.created_at
-                    FROM {model._meta.db_table} r
-                    JOIN {tombstone_cls._meta.db_table} t
-                        ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
-                    WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
-                """,
-                {
-                    "table_name": field.foreign_table_name,
-                    "low": watermark_batch.low,
-                    "up": watermark_batch.up,
-                },
-            )
-
-            for (row_id, tomb_created) in conn.fetchall():
-                to_delete_ids.append(row_id)
-                oldest_seen = min(oldest_seen, tomb_created)
-
-            return to_delete_ids, oldest_seen
-
-    return get_ids_for_tombstone_cascade_cross_db(
-        tombstone_cls=tombstone_cls, model=model, field=field, watermark_batch=watermark_batch
-    )
-
-
-def get_ids_for_tombstone_cascade_cross_db(
-    tombstone_cls: type[TombstoneBase],
-    model: type[Model],
-    field: HybridCloudForeignKey,
-    watermark_batch: WatermarkBatch,
-) -> tuple[list[int], datetime.datetime]:
-    if not options.get("hybrid_cloud.allow_cross_db_tombstones"):
-        raise Exception("Cannot process tombstones due to model living in separate database.")
-
-    oldest_seen = timezone.now()
-    # Because tombstones can span multiple databases, we can't always rely on
-    # the join code above. Instead, we have to manually query the tombstone IDs
-    # first, then query the model for matching rows.
-    tombstone_entries = tombstone_cls.objects.filter(
-        id__lte=watermark_batch.up, id__gt=watermark_batch.low, table_name=field.foreign_table_name
-    ).values_list("object_identifier", "created_at")
-
-    ids_to_check = []
-    for object_id, created_at in tombstone_entries:
-        ids_to_check.append(object_id)
-        oldest_seen = min(oldest_seen, created_at)
-
-    field_name = f"{field.name}__in"
-    query_kwargs = {field_name: ids_to_check}
-    affected_rows = list(model.objects.filter(**query_kwargs).values_list("id", flat=True))
-
-    return affected_rows, oldest_seen
