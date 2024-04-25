@@ -125,6 +125,8 @@ export type CountUnit = 'count';
 
 export type PercentageUnit = 'percentage';
 
+export type PercentChangeUnit = 'percent_change';
+
 export enum DurationUnit {
   NANOSECOND = 'nanosecond',
   MICROSECOND = 'microsecond',

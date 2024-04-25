@@ -1256,6 +1256,11 @@ export class TraceTree {
 
     if (!zoomedIn) {
       const index = this._list.indexOf(node);
+
+      if (index === -1) {
+        return Promise.resolve(null);
+      }
+
       const childrenCount = node.getVisibleChildrenCount();
       this._list.splice(index + 1, childrenCount);
 
@@ -1299,6 +1304,11 @@ export class TraceTree {
 
         // Remove existing entries from the list
         const index = this._list.indexOf(node);
+
+        if (index === -1) {
+          return data;
+        }
+
         if (node.expanded) {
           const childrenCount = node.getVisibleChildrenCount();
           if (childrenCount > 0) {
