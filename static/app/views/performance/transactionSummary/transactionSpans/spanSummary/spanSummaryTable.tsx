@@ -4,28 +4,26 @@ import type {Location} from 'history';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {
   type IndexedResponse,
   SpanIndexedField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
-import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
-import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
-import Pagination from 'sentry/components/pagination';
 
 type DataRowKeys =
   | SpanIndexedField.ID

@@ -57,15 +57,9 @@ export default function SpanSummaryHeader() {
         <StyledSectionHeading>{t('Avg Duration')}</StyledSectionHeading>
         <SectionBody>
           {defined(avgDuration)
-            ? formatMetricUsingUnit(avgDuration, 'milliseconds') // formatPercentage(Math.min(frequency, totalCount) / totalCount)
+            ? formatMetricUsingUnit(avgDuration, 'milliseconds')
             : '\u2014'}
         </SectionBody>
-        <SectionSubtext>
-          {'XX'}
-          {/* {defined(avgOccurrences)
-            ? tct('[times] times per event', {times: avgOccurrences.toFixed(2)})
-            : '\u2014'} */}
-        </SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
         <StyledSectionHeading>{t('Total Self Time')}</StyledSectionHeading>
