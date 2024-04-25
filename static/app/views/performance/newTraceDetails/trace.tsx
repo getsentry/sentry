@@ -1079,7 +1079,7 @@ function RenderPlaceholderRow(props: {
       key={props.index}
       className="TraceRow"
       style={{
-        top: props.style.top,
+        transform: props.style.transform,
         height: props.style.height,
         pointerEvents: 'none',
         color: props.theme.subText,

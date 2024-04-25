@@ -10,6 +10,7 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
+from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
 from sentry import killswitches
 from sentry.constants import ObjectStatus
@@ -89,12 +90,13 @@ class MonitorConsumerTest(TestCase):
         }
         payload.update(overrides)
 
-        wrapper = {
+        wrapper: CheckIn = {
             "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
             "sdk": "test/1.0",
+            "retention_days": 90,
         }
 
         consumer.submit(

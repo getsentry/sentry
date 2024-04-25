@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
@@ -29,15 +30,17 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
-    def _make_sessions(self, num: int, environment_name: str | None = None):
+    def _make_sessions(
+        self, num: int, environment_name: str | None = None, project: Project | None = None
+    ):
         received = time.time()
 
         def make_session(i):
             return dict(
                 distinct_id=uuid4().hex,
                 session_id=uuid4().hex,
-                org_id=self.project.organization_id,
-                project_id=self.project.id,
+                org_id=project.organization_id if project else self.project.organization_id,
+                project_id=project.id if project else self.project.id,
                 status="ok",
                 seq=0,
                 release="foo@1.0.0",
