@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {AssigneeAvatar} from 'sentry/components/assigneeSelector';
 import type {SuggestedAssignee} from 'sentry/components/assigneeSelectorDropdown';
 import {Button} from 'sentry/components/button';
@@ -429,7 +430,10 @@ function NewAssigneeSelectorDropdown({
       <Button
         size="xs"
         aria-label={t('Invite Member')}
-        // to={`/organizations/${organization.slug}/projects/new/`}
+        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+          event.preventDefault();
+          openInviteMembersModal({source: 'assignee_selector'});
+        }}
         icon={<IconAdd isCircled />}
       >
         {t('Invite Member')}

@@ -108,7 +108,6 @@ export interface AssigneeSelectorDropdownProps {
 }
 
 type State = {
-  // How to handle state?
   loading: boolean;
   memberList?: User[];
   suggestedOwners?: SuggestedOwner[] | null;
@@ -462,7 +461,6 @@ export class AssigneeSelectorDropdown extends Component<
     );
   }
 
-  // DONE
   getSuggestedAssignees(): SuggestedAssignee[] {
     const assignableTeams = this.assignableTeams();
     const memberList = this.memberList() ?? [];
