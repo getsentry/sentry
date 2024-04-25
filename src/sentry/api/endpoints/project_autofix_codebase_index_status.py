@@ -29,7 +29,7 @@ class CodebaseIndexStatus(str, enum.Enum):
 @region_silo_endpoint
 class ProjectAutofixCodebaseIndexStatusEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     private = True
