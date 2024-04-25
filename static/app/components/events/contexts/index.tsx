@@ -44,7 +44,8 @@ export function getOrderedContextItems(event): ContextItem[] {
     ...Object.entries(otherContexts),
   ];
   // For these context keys, use 'key' as 'type' rather than 'value.type'
-  const overrideTypes = new Set(['response', 'feedback', 'user']);
+  const overrideTypesWithKeys = new Set(['response', 'feedback', 'user']);
+
   const items = orderedContext
     .filter(([_k, ctxValue]) => {
       const contextKeys = Object.keys(ctxValue ?? {});
@@ -55,11 +56,24 @@ export function getOrderedContextItems(event): ContextItem[] {
         (contextKeys.length === 1 && contextKeys[0] === 'type');
       return !isInvalid;
     })
-    .map<ContextItem>(([alias, ctx]) => ({
-      alias,
-      type: overrideTypes.has(ctx.type) ? ctx : ctx?.type,
-      value: ctx,
-    }));
+    .map<ContextItem>(([alias, ctx]) => {
+      const contextKey = Object.keys(ctx ?? {}).filter(key => key !== 'type')[0];
+
+      // We get the type of profile context as 'default' but it's possible to route to the profile
+      // page, so we need to set the type to 'profile' in this case, so that we treat it as a known context.
+      const type =
+        alias === 'profile'
+          ? alias
+          : overrideTypesWithKeys.has(contextKey)
+            ? contextKey
+            : ctx?.type;
+
+      return {
+        alias,
+        type,
+        value: ctx,
+      };
+    });
 
   return items;
 }

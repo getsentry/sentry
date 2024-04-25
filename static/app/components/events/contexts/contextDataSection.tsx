@@ -21,17 +21,19 @@ function ContextDataSection({event, group, project}: ContextDataSectionProps) {
   const columnCount = useIssueDetailsColumnCount(containerRef);
   const columns: React.ReactNode[] = [];
 
-  const cards = getOrderedContextItems(event).map(({alias, value: contextValue}) => (
-    <ContextCard
-      key={alias}
-      type={contextValue.type}
-      alias={alias}
-      value={contextValue}
-      event={event}
-      group={group}
-      project={project}
-    />
-  ));
+  const cards = getOrderedContextItems(event).map(
+    ({alias, type, value: contextValue}) => (
+      <ContextCard
+        key={alias}
+        type={type}
+        alias={alias}
+        value={contextValue}
+        event={event}
+        group={group}
+        project={project}
+      />
+    )
+  );
 
   const columnSize = Math.ceil(cards.length / columnCount);
   for (let i = 0; i < cards.length; i += columnSize) {
