@@ -217,6 +217,14 @@ class GroupHistory(Model):
     )  # This field is used to simplify query calculations.
     date_added = models.DateTimeField(default=timezone.now)
 
+    def _validate_owner(self) -> None:
+        if self.actor_id is not None and self.team_id is None and self.user_id is None:
+            raise ValueError("GroupHistory with actor requires either team_id or user_id")
+
+    def save(self, *args, **kwargs):
+        self._validate_owner()
+        return super().save(*args, **kwargs)
+
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
@@ -277,11 +285,15 @@ def record_group_history(
 
     prev_history = get_prev_history(group, status)
     actor_id = None
+    user_id = None
+    team_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
             actor_id = get_actor_for_user(actor).id
+            user_id = actor.id
         elif isinstance(actor, Team):
             actor_id = actor.actor_id
+            team_id = actor.id
         else:
             raise ValueError("record_group_history actor argument must be RPCUser or Team")
 
@@ -291,6 +303,8 @@ def record_group_history(
         project=group.project,
         release=release,
         actor_id=actor_id,
+        user_id=user_id,
+        team_id=team_id,
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
@@ -312,11 +326,15 @@ def bulk_record_group_history(
         return prev_history.date_added if prev_history else None
 
     actor_id = None
+    user_id = None
+    team_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
             actor_id = get_actor_for_user(actor).id
+            user_id = actor.id
         elif isinstance(actor, Team):
             actor_id = actor.actor_id
+            team_id = actor.id
         else:
             raise ValueError("record_group_history actor argument must be RPCUser or Team")
 
@@ -328,6 +346,8 @@ def bulk_record_group_history(
                 project=group.project,
                 release=release,
                 actor_id=actor_id,
+                team_id=team_id,
+                user_id=user_id,
                 status=status,
                 prev_history=get_prev_history(group, status),
                 prev_history_date=get_prev_history_date(group, status),
