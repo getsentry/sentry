@@ -599,7 +599,16 @@ class SubscriptionProcessor:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
                 activation: AlertRuleActivations | None
                 if self.alert_rule.monitor_type == AlertRuleMonitorType.ACTIVATED:
-                    activation = self.subscription.alertruleactivations_set.get()
+                    activations = list(self.subscription.alertruleactivations_set)
+                    if len(activations) > 1 or len(activations) == 0:
+                        logger.warning(
+                            "activated alert rule subscription has unexpected activation instances",
+                            extra={
+                                "activations_count": len(activations),
+                            },
+                        )
+                    else:
+                        activation = activations[0]
 
                 self.active_incident = create_incident(
                     organization=self.alert_rule.organization,
