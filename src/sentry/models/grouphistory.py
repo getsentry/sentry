@@ -325,9 +325,9 @@ def bulk_record_group_history(
         prev_history = get_prev_history(group, status)
         return prev_history.date_added if prev_history else None
 
-    actor_id = None
-    user_id = None
-    team_id = None
+    actor_id: int | None = None
+    user_id: int | None = None
+    team_id: int | None = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
             actor_id = get_actor_for_user(actor).id
@@ -347,7 +347,7 @@ def bulk_record_group_history(
                 release=release,
                 actor_id=actor_id,
                 team_id=team_id,
-                user_id=user_id,
+                user_id=user_id,  # type:ignore[misc]
                 status=status,
                 prev_history=get_prev_history(group, status),
                 prev_history_date=get_prev_history_date(group, status),
