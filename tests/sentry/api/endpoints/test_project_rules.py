@@ -1005,3 +1005,30 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
+
+    def test_rule_with_empty_comparison_interval(self):
+        """
+        Test that the serializer cleans up any empty strings passed in the data
+        """
+        conditions = [
+            {
+                "comparisonInterval": "",
+                "comparisonType": "count",
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "interval": "1h",
+                "value": 5,
+            },
+        ]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hellboy",
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=self.notify_issue_owners_action,
+            conditions=conditions,
+        )
+        clean_rule = Rule.objects.get(id=response.data.get("id"))
+        assert not clean_rule.data.get("comparisonInterval")
