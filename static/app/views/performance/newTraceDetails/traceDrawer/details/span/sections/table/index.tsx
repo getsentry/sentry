@@ -1,10 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -39,7 +36,11 @@ function SpanNodeDetailTable(props: SpanDetailProps) {
     <Fragment>
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
-          <ProfileLink node={props.node} project={project} />
+          <TraceDrawerComponents.ProfileLink
+            event={span.event}
+            project={project}
+            query={{spanId: span.span_id}}
+          />
           <SpanDescription
             node={props.node}
             organization={organization}
@@ -61,35 +62,6 @@ function SpanNodeDetailTable(props: SpanDetailProps) {
   );
 }
 
-function ProfileLink({
-  node,
-  project,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  project: Project | undefined;
-}) {
-  const {event} = node.value;
-  const profileId = event.contexts.profile?.profile_id || '';
-  return profileId && project?.slug ? (
-    <TraceDrawerComponents.TableRow
-      title="Profile ID"
-      extra={
-        <TransactionToProfileButton
-          size="xs"
-          projectSlug={project.slug}
-          event={event}
-          query={{
-            spanId: node.value.span_id,
-          }}
-        >
-          {t('View Profile')}
-        </TransactionToProfileButton>
-      }
-    >
-      {profileId}
-    </TraceDrawerComponents.TableRow>
-  ) : null;
-}
 export const ButtonGroup = styled('div')`
   display: flex;
   flex-direction: column;

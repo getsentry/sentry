@@ -41,7 +41,7 @@ function partitionSizes(data: RawSpanType['data']): {
   const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
     if (data.hasOwnProperty(key) && defined(data[key])) {
       try {
-        keys[key] = parseInt(data[key], 10);
+        keys[key] = parseFloat(data[key]);
       } catch (e) {
         keys[key] = data[key];
       }

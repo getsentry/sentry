@@ -28,7 +28,7 @@ export function SpanHTTPInfo({span}: {span: RawSpanType}) {
         <TraceDrawerComponents.TableRow title={t('Query')}>
           {parsedURL
             ? JSON.stringify(queryString, null, 2)
-            : 'failed to parse query string'}
+            : `failed to parse query string from ${url}`}
         </TraceDrawerComponents.TableRow>
       </Fragment>
     ) : null;
