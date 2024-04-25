@@ -158,6 +158,7 @@ function renderBodyCell(
     );
   }
 
+  // TODO - use field renderer and remove this
   if (column.key === 'project.id') {
     return <ProjectIdCell projectId={row['project.id']?.toString()} />;
   }
