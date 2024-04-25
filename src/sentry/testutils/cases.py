@@ -1710,7 +1710,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         if type == "set":
             # Relay uses a different hashing algorithm, but that's ok
-            value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:8], "big")]
+            value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:4], "big")]
         elif type == "distribution":
             value = [value]
         elif type == "gauge":
