@@ -10,7 +10,7 @@ import {
   ButtonGroup,
   ValueRow,
 } from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
-import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
+import {IconChevron, IconClose, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -489,13 +489,11 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
     >
       <TabButtonIndicator backgroundColor={makeTraceNodeBarColor(props.theme, node)} />
       <TabButton>{getTraceTabTitle(node)}</TabButton>
-      <TabPinButton
+      <TabCloseButton
         pinned={props.pinned}
         onClick={e => {
           e.stopPropagation();
-          props.pinned
-            ? props.trace_dispatch({type: 'unpin tab', payload: props.index})
-            : props.trace_dispatch({type: 'pin tab'});
+          props.trace_dispatch({type: 'close tab', payload: props.index});
         }}
       />
     </Tab>
@@ -815,33 +813,38 @@ const TabIconButton = styled(Button)<{active: boolean}>`
   }
 `;
 
-function TabPinButton(props: {
+function TabCloseButton(props: {
   pinned: boolean;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
   return (
-    <PinButton
+    <CloseButton
       size="zero"
       data-test-id="trace-drawer-tab-pin-button"
       onClick={props.onClick}
     >
-      <StyledIconPin size="xs" isSolid={props.pinned} />
-    </PinButton>
+      <StyledIconClose size="xs" />
+    </CloseButton>
   );
 }
 
-const PinButton = styled(Button)`
+const CloseButton = styled(Button)`
   padding: ${space(0.5)};
   margin: 0;
   background-color: transparent;
   border: none;
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
 
   &:hover {
     background-color: transparent;
   }
 `;
 
-const StyledIconPin = styled(IconPin)`
+const StyledIconClose = styled(IconClose)`
   background-color: transparent;
   border: none;
 `;

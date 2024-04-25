@@ -72,7 +72,7 @@ export type TraceTabsReducerAction =
       pin_previous?: boolean;
     }
   | {type: 'pin tab'}
-  | {payload: number; type: 'unpin tab'}
+  | {payload: number; type: 'close tab'}
   | {type: 'clear'}
   | {type: 'clear clicked tab'};
 
@@ -142,47 +142,21 @@ export function traceTabsReducer(
       };
     }
 
-    case 'unpin tab': {
+    case 'close tab': {
       const newTabs = state.tabs.filter((_tab, index) => {
         return index !== action.payload;
       });
 
-      const nextTabIsPersistent = typeof newTabs[newTabs.length - 1].node === 'string';
-      if (nextTabIsPersistent) {
-        if (!state.last_clicked_tab && !state.current_tab) {
-          throw new Error(
-            'last_clicked and current should not be null when nextTabIsPersistent is true'
-          );
-        }
+      const next =
+        newTabs[newTabs.indexOf(state.current_tab!)] ?? newTabs[newTabs.length - 1];
 
-        const nextTab = nextTabIsPersistent
-          ? state.last_clicked_tab ?? state.current_tab
-          : newTabs[newTabs.length - 1];
-
-        return {
-          ...state,
-          current_tab: nextTab,
-          last_clicked_tab: nextTab,
-          tabs: newTabs,
-        };
-      }
-
-      if (state.current_tab?.node === state.tabs[action.payload].node) {
-        return {
-          ...state,
-          current_tab: newTabs[newTabs.length - 1],
-          last_clicked_tab: state.last_clicked_tab,
-          tabs: newTabs,
-        };
-      }
-
-      const next = state.last_clicked_tab ?? newTabs[newTabs.length - 1];
+      const removing_last_clicked = action.payload === state.tabs.length;
 
       return {
         ...state,
-        current_tab: next,
-        last_clicked_tab: next,
         tabs: newTabs,
+        current_tab: next,
+        last_clicked_tab: removing_last_clicked ? null : state.last_clicked_tab,
       };
     }
 
