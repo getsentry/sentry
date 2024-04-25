@@ -289,9 +289,11 @@ function ProviderNonMemo({
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
   };
-  const onFastForwardStart = (e: {speed: number}) => {
-    setFFSpeed(e.speed);
-  };
+  const onFastForwardStart = useCallback((e: {speed: number}) => {
+    if (savedReplayConfigRef.current.isSkippingInactive) {
+      setFFSpeed(e.speed);
+    }
+  }, []);
   const onFastForwardEnd = () => {
     setFFSpeed(0);
   };
@@ -318,13 +320,7 @@ function ProviderNonMemo({
         return;
       }
 
-      const skipInactive = replayer.config;
-      if (skipInactive) {
-        // If the replayer is set to skip inactive, we should turn it off before
-        // manually scrubbing, so when the player resumes playing its not stuck
-        replayer.setConfig({skipInactive: false});
-      }
-
+      const skipInactive = replayer.config.skipInactive;
       const time = clamp(requestedTimeMs, 0, startTimeOffsetMs + durationMs);
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
@@ -336,9 +332,9 @@ function ProviderNonMemo({
       if (playTimer.current) {
         window.clearTimeout(playTimer.current);
       }
-      if (skipInactive) {
-        replayer.setConfig({skipInactive: true});
-      }
+
+      replayer.setConfig({skipInactive: skipInactive});
+
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
@@ -460,6 +456,7 @@ function ProviderNonMemo({
       theme.purple200,
       startTimeOffsetMs,
       autoStart,
+      onFastForwardStart,
     ]
   );
 
