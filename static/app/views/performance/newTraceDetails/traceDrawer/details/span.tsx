@@ -1,4 +1,3 @@
-import {Button} from 'sentry/components/button';
 import NewTraceDetailsSpanDetail from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
   getSpanOperation,
@@ -50,12 +49,10 @@ export function SpanNodeDetails({
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-            {t('Show in view')}
-          </Button>
-          <TraceDrawerComponents.EventDetailsLink
+          <TraceDrawerComponents.NodeActions
             node={node}
             organization={organization}
+            onTabScrollToNode={onTabScrollToNode}
           />
         </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
