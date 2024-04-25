@@ -50,7 +50,7 @@ def get_slow_conditions(rule: Rule) -> list[MutableMapping[str, str]]:
     return slow_conditions
 
 
-def get_rules_to_groups(rulegroup_to_events: list[dict[str, str]]) -> DefaultDict[int, set[int]]:
+def get_rules_to_groups(rulegroup_to_events: dict[str, str]) -> DefaultDict[int, set[int]]:
     rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
     for rule_group in rulegroup_to_events.keys():
         rule_id, group_id = rule_group.split(":")

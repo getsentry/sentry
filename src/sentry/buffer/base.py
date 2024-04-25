@@ -39,7 +39,7 @@ class Buffer(Service):
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
     ) -> dict[str, str]:
-        return []
+        return {}
 
     def get_set(self, key: str) -> list[tuple[int, datetime]]:
         return []
