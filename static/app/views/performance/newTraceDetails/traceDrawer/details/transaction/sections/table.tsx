@@ -254,7 +254,6 @@ export function Table({node, onParentClick, organization, event, location}: Tabl
   return (
     <TraceDrawerComponents.Table className="table key-value">
       <tbody>
-        <ProfileLink node={node} organization={organization} />
         <DurationSummary node={node} organization={organization} location={location} />
         <EventSummary
           node={node}
@@ -264,6 +263,7 @@ export function Table({node, onParentClick, organization, event, location}: Tabl
         />
         <OpsBreakdown event={event} />
         <WebVitals event={event} />
+        <ProfileLink node={node} organization={organization} />
         <CustomPerformanceMetrics
           event={event}
           location={location}

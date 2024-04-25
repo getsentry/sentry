@@ -378,31 +378,6 @@ export function TransactionNodeDetails({
               {node.value.transaction}
             </Link>
           </Row>
-          {node.value.profile_id ? (
-            <Row
-              title="Profile ID"
-              extra={
-                <TraceDrawerComponents.Button
-                  size="xs"
-                  to={generateProfileFlamechartRoute({
-                    orgSlug: organization.slug,
-                    projectSlug: node.value.project_slug,
-                    profileId: node.value.profile_id,
-                  })}
-                  onClick={function handleOnClick() {
-                    trackAnalytics('profiling_views.go_to_flamegraph', {
-                      organization,
-                      source: 'performance.trace_view',
-                    });
-                  }}
-                >
-                  {t('View Profile')}
-                </TraceDrawerComponents.Button>
-              }
-            >
-              {node.value.profile_id}
-            </Row>
-          ) : null}
           <Row title="Date Range">
             {getDynamicText({
               fixed: 'Mar 19, 2021 11:06:27 AM UTC',
@@ -491,6 +466,31 @@ export function TransactionNodeDetails({
         )}
       </LazyRender>
       {project ? <EventEvidence event={event} project={project} /> : null}
+      {node.value.profile_id ? (
+        <Row
+          title="Profile ID"
+          extra={
+            <TraceDrawerComponents.Button
+              size="xs"
+              to={generateProfileFlamechartRoute({
+                orgSlug: organization.slug,
+                projectSlug: node.value.project_slug,
+                profileId: node.value.profile_id,
+              })}
+              onClick={function handleOnClick() {
+                trackAnalytics('profiling_views.go_to_flamegraph', {
+                  organization,
+                  source: 'performance.trace_view',
+                });
+              }}
+            >
+              {t('View Profile')}
+            </TraceDrawerComponents.Button>
+          }
+        >
+          {node.value.profile_id}
+        </Row>
+      ) : null}
       <LazyRender {...LAZY_RENDER_PROPS} containerHeight={480}>
         <ReplaySection event={event} organization={organization} />
       </LazyRender>
