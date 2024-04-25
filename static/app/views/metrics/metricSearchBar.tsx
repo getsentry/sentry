@@ -181,6 +181,7 @@ export function MetricSearchBar({
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
+      disallowWildcard
       {...searchConfig}
       {...props}
     />
