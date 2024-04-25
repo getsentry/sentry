@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -270,19 +270,6 @@ function NewAssigneeSelectorDropdown({
       }
     }
   };
-
-  useEffect(() => {}, []);
-  // const handleGroupChange = (itemIds: Set<string>) => {
-  //   if (!itemIds.has(id)) {
-  //     return;
-  //   }
-  //   // XXX: bad naming oof (group is now a prop and not state, can't diff with "this")
-  //   const recGroup = GroupStore.get(id);
-  //   setState({
-  //     suggestedOwners: recGroup?.owners,
-  //     loading: GroupStore.hasStatus(id, 'assignTo'),
-  //   });
-  // };
 
   const handleClear = async () => {
     setState({...state, loading: true});
