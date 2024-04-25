@@ -20,7 +20,6 @@ def test_topic_definition() -> None:
         "ingest-transactions",
         "profiles",
         "ingest-occurrences",
-        "ingest-monitors",
     ]
 
     for topic in Topic:
