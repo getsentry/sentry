@@ -12,7 +12,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -288,30 +287,8 @@ function useEventApiQuery({
         ...window.location,
         query: omit(qs.parse(window.location.search), 'query'),
       });
-
-      // 404s are expected if all events have exceeded retention
-      if (latestOrRecommendedEvent.error.status === 404) {
-        return;
-      }
-
-      const scope = new Sentry.Scope();
-      scope.setExtras({
-        groupId,
-        query: recommendedEventQuery,
-        ...pick(latestOrRecommendedEvent.error, ['message', 'status', 'responseJSON']),
-      });
-      scope.setFingerprint(['issue-details-helpful-event-request-failed']);
-      Sentry.captureException(
-        new Error('Issue Details: Helpful event request failed'),
-        scope
-      );
     }
-  }, [
-    latestOrRecommendedEvent.isError,
-    latestOrRecommendedEvent.error,
-    groupId,
-    recommendedEventQuery,
-  ]);
+  }, [latestOrRecommendedEvent.isError]);
 
   return isLatestOrRecommendedEvent ? latestOrRecommendedEvent : otherEventQuery;
 }
