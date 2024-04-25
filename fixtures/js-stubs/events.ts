@@ -26,7 +26,7 @@ export function DetailedEventsFixture(): Event[] {
         {value: 'Mac OS X', key: 'os.name'},
         {value: 'd5241c9d9d2bcda918c7af72f07cea1e39a096ac', key: 'release'},
         {
-          value: 'app/components/deprecatedAssigneeSelector in assignedTo',
+          value: 'app/components/assigneeSelector in assignedTo',
           key: 'transaction',
         },
         {
@@ -63,7 +63,7 @@ export function DetailedEventsFixture(): Event[] {
       entries: [],
       title: "TypeError: Cannot read property 'assignedTo' of undefined",
       message:
-        "TypeError Cannot read property 'assignedTo' of undefined app/components/deprecatedAssigneeSelector in assignedTo",
+        "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
       sdk: {
         version: '3.16.1',
         name: 'raven-js',
@@ -91,7 +91,7 @@ export function DetailedEventsFixture(): Event[] {
         {value: 'Mac OS X', key: 'os.name'},
         {value: 'd5241c9d9d2bcda918c7af72f07cea1e39a096ac', key: 'release'},
         {
-          value: 'app/components/deprecatedAssigneeSelector in assignedTo',
+          value: 'app/components/assigneeSelector in assignedTo',
           key: 'transaction',
         },
         {
@@ -128,7 +128,7 @@ export function DetailedEventsFixture(): Event[] {
       entries: [],
       title: "TypeError: Cannot read property 'assignedTo' of undefined",
       message:
-        "TypeError Cannot read property 'assignedTo' of undefined app/components/deprecatedAssigneeSelector in assignedTo",
+        "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
       sdk: {
         version: '3.16.1',
         name: 'raven-js',
