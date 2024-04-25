@@ -46,22 +46,34 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         # https://us.sentry.io/api/0/organizations/sentry/issues-stats/?groups=4741828952&groups=4489703641&statsPeriod=24h
         assert response.json() == {
             "data": [
-                {"type": "same_root_cause", "data": [5]},
-                {"type": "trace_connected", "data": []},
+                {"type": "same_root_cause", "data": [5], "meta": {}},
+                {"type": "trace_connected", "data": [], "meta": {}},
             ],
         }
 
     def test_trace_connected_errors(self) -> None:
-        error_event, _, another_proj_event = self.load_errors(self.project, uuid4().hex[:16])
-        self.group_id = error_event.group_id  # type: ignore[assignment]
-        assert error_event.group_id != another_proj_event.group_id
-        assert error_event.project.id != another_proj_event.project.id
-        assert error_event.trace_id == another_proj_event.trace_id
+        first_event, _, another_proj_event = self.load_errors(self.project, uuid4().hex[:16])
+        group = first_event.group
+        self.group_id = first_event.group_id  # type: ignore[assignment]
+        error_event = group.get_recommended_event_for_environments()  # type: ignore[union-attr]
+        assert error_event is not None  # It helps with typing
+
+        assert first_event.group_id != another_proj_event.group_id
+        assert first_event.project.id != another_proj_event.project.id
+        assert first_event.trace_id == another_proj_event.trace_id
 
         response = self.get_success_response()
         assert response.json() == {
             "data": [
-                {"type": "same_root_cause", "data": []},
-                {"type": "trace_connected", "data": [another_proj_event.group_id]},
+                {"type": "same_root_cause", "data": [], "meta": {}},
+                {
+                    "type": "trace_connected",
+                    # This is the other issue in the trace that it is not itself
+                    "data": [another_proj_event.group_id],
+                    "meta": {
+                        "event_id": error_event.event_id,
+                        "trace_id": error_event.trace_id,
+                    },
+                },
             ]
         }
