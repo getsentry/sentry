@@ -16,6 +16,7 @@ import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TransactionCell} from 'sentry/views/performance/cache/tables/transactionCell';
+import {ProjectIdCell} from 'sentry/views/performance/http/tables/projectIdCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {type MetricsResponse, SpanFunction} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -31,16 +32,22 @@ type Row = Pick<
   | 'cache_miss_rate()'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
+  | 'project.id'
 >;
 
 type Column = GridColumnHeader<
-  'transaction' | 'spm()' | 'cache_miss_rate()' | 'time_spent_percentage()'
+  'transaction' | 'spm()' | 'cache_miss_rate()' | 'time_spent_percentage()' | 'project.id'
 >;
 
 const COLUMN_ORDER: Column[] = [
   {
     key: 'transaction',
     name: t('Transaction'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'project.id',
+    name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -149,6 +156,10 @@ function renderBodyCell(
         transactionMethod={row['transaction.method']}
       />
     );
+  }
+
+  if (column.key === 'project.id') {
+    return <ProjectIdCell projectId={row['project.id']?.toString()} />;
   }
 
   if (!meta?.fields) {
