@@ -71,7 +71,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           artifact bundle belongs to.
-        :pparam string project_slug: the slug of the project the
+        :pparam string project_id_or_slug: the id or slug of the project the
                                      artifact bundle belongs to.
         :pparam string bundle_id: bundle_id of the artifact bundle to list files from.
         """

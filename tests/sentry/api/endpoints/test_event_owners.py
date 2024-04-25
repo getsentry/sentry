@@ -37,7 +37,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "sentry-api-0-event-owners",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event1.event_id,
             },
         )
@@ -63,7 +63,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "sentry-api-0-event-owners",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event1.event_id,
             },
         )
@@ -89,7 +89,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "sentry-api-0-event-owners",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event1.event_id,
             },
         )
@@ -115,7 +115,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "sentry-api-0-event-owners",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event1.event_id,
             },
         )
@@ -147,7 +147,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "sentry-api-0-event-owners",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event1.event_id,
             },
         )
@@ -180,7 +180,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "sentry-api-0-event-owners",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event1.event_id,
             },
         )
@@ -215,7 +215,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "sentry-api-0-event-owners",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event1.event_id,
             },
         )

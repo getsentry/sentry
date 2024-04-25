@@ -108,7 +108,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         operation_id="Retrieve an Issue Alert Rule for a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         responses={
@@ -208,7 +208,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         operation_id="Update an Issue Alert Rule",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         request=ProjectRuleDetailsPutSerializer,
@@ -395,7 +395,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         operation_id="Delete an Issue Alert Rule",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         responses={
