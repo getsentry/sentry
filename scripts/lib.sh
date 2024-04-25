@@ -228,6 +228,7 @@ drop-db() {
     echo "--> Dropping 'control' and 'region' database"
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres secondary
 }
 
 reset-db() {
