@@ -48,7 +48,11 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source, log_skipped_job
+from sentry.dynamic_sampling.tasks.logging import (
+    log_project_with_zero_root_count,
+    log_sample_rate_source,
+    log_skipped_job,
+)
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
@@ -293,6 +297,7 @@ def adjust_sample_rates_of_projects(
         # for it, thus we consider it as having 0 transactions for the query's time window.
         if project_id not in projects_with_counts:
             projects_with_counts[project_id] = 0
+            log_project_with_zero_root_count(org_id=org_id, project_id=project_id)
 
     projects = []
     for project_id, count_per_root in projects_with_counts.items():
