@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
@@ -30,6 +31,8 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.utils.actor import ActorTuple
+
+logger = logging.getLogger(__name__)
 
 
 class AlertRuleSerializerResponseOptional(TypedDict, total=False):
@@ -330,20 +333,33 @@ class CombinedRuleSerializer(Serializer):
                 incident_map[incident.id] = serialize(incident, user=user)
 
         serialized_alert_rules = serialize(alert_rules, user=user)
-        rules = serialize(
+        serialized_map_by_id = {x.id: x for x in serialized_alert_rules}
+
+        serialized_issue_rules = serialize(
             [x for x in item_list if isinstance(x, Rule)],
             user=user,
             serializer=RuleSerializer(expand=self.expand),
         )
+        serialized_issue_rule_map_by_id = {x.id for x in serialized_issue_rules}
 
         for item in item_list:
-            if isinstance(item, AlertRule):
-                alert_rule = serialized_alert_rules.pop(0)
-                if "latestIncident" in self.expand and alert_rule:
-                    alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
-                results[item] = alert_rule
-            elif isinstance(item, Rule):
-                results[item] = rules.pop(0)
+            item_id = str(item.id)
+            if item_id in serialized_map_by_id:
+                serialized_alert_rule = serialized_map_by_id[item_id]
+                if "latestIncident" in self.expand:
+                    serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
+                results[item] = serialized_alert_rule
+            elif item_id in serialized_issue_rule_map_by_id:
+                results[item] = serialized_issue_rule_map_by_id[item_id]
+            else:
+                logger.warning(
+                    "Alert Rule found but dropped during serialization",
+                    extra={
+                        "id": item_id,
+                        "issue_rule": isinstance(item, Rule),
+                        "metric_rule": isinstance(item, AlertRule),
+                    },
+                )
 
         return results
 
