@@ -1743,6 +1743,8 @@ class Factories:
             project=group.project,
             release=release,
             actor=actor,
+            user_id=actor.user_id if actor else None,
+            team_id=actor.team_id if actor else None,
             status=status,
             prev_history=prev_history,
             prev_history_date=prev_history_date,
