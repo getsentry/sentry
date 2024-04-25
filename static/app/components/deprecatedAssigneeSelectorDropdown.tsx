@@ -240,6 +240,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
     this.setState({loading: true});
   }
 
+  // Renamed to handleTeamAssign
   assignToTeam(team: Team) {
     const {organization} = this.props;
 

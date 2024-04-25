@@ -7,11 +7,11 @@ import type {LocationDescriptor} from 'history';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
-import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
+import NewAssigneeSelectorDropdown from 'sentry/components/newAssigneeSelectorDropdown';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
@@ -49,6 +49,7 @@ import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
+  // getTabs,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
 
@@ -136,20 +137,21 @@ function BaseGroupRow({
     };
   }, [organization, group.id, group.owners, query]);
 
-  const trackAssign: React.ComponentProps<typeof DeprecatedAssigneeSelector>['onAssign'] =
-    useCallback(
-      (type, _assignee, suggestedAssignee) => {
-        if (query !== undefined) {
-          trackAnalytics('issues_stream.issue_assigned', {
-            ...sharedAnalytics,
-            did_assign_suggestion: !!suggestedAssignee,
-            assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-            assigned_type: type,
-          });
-        }
-      },
-      [query, sharedAnalytics]
-    );
+  const trackAssign: React.ComponentProps<
+    typeof NewAssigneeSelectorDropdown
+  >['onAssign'] = useCallback(
+    (type, _assignee, suggestedAssignee) => {
+      if (query !== undefined) {
+        trackAnalytics('issues_stream.issue_assigned', {
+          ...sharedAnalytics,
+          did_assign_suggestion: !!suggestedAssignee,
+          assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
+          assigned_type: type,
+        });
+      }
+    },
+    [query, sharedAnalytics]
+  );
 
   const wrapperToggle = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
@@ -467,8 +469,8 @@ function BaseGroupRow({
           ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
-              <DeprecatedAssigneeSelector
-                id={group.id}
+              <NewAssigneeSelectorDropdown
+                group={group}
                 memberList={memberList}
                 onAssign={trackAssign}
               />
