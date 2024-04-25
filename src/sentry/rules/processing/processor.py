@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -75,12 +76,12 @@ def split_conditions_and_filters(rule_condition_list):
     return condition_list, filter_list
 
 
-def _build_rule_status_cache_key(rule_id: int, group_id: int) -> str:
+def build_rule_status_cache_key(rule_id: int, group_id: int) -> str:
     return "grouprulestatus:1:%s" % hash_values([group_id, rule_id])
 
 
-def bulk_get_rule_status(rules: Sequence[Rule], group: GroupEvent) -> Mapping[int, GroupRuleStatus]:
-    keys = [_build_rule_status_cache_key(rule.id, group.id) for rule in rules]
+def bulk_get_rule_status(rules: Sequence[Rule], group: Group) -> Mapping[int, GroupRuleStatus]:
+    keys = [build_rule_status_cache_key(rule.id, group.id) for rule in rules]
     cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
     missing_rule_ids: set[int] = set()
     rule_statuses: MutableMapping[int, GroupRuleStatus] = {}
@@ -128,7 +129,7 @@ def bulk_get_rule_status(rules: Sequence[Rule], group: GroupEvent) -> Mapping[in
                 )
         if to_cache:
             cache.set_many(
-                {_build_rule_status_cache_key(item.rule_id, group.id): item for item in to_cache}
+                {build_rule_status_cache_key(item.rule_id, group.id): item for item in to_cache}
             )
 
     return rule_statuses
