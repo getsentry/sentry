@@ -19,7 +19,6 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction, Project} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -34,6 +33,7 @@ import {
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {
   MissingInstrumentationNode,
   NoDataNode,
@@ -179,11 +179,7 @@ function EventDetailsLink(props: EventDetailsLinkProps) {
       }
       size="xs"
       to={locationDescriptor}
-      onClick={() => {
-        trackAnalytics('performance_views.trace_details.view_event_details', {
-          organization: props.organization,
-        });
-      }}
+      onClick={() => traceAnalytics.trackViewEventDetails(props.organization)}
     >
       {t('View Event Details')}
     </LinkButton>
@@ -433,6 +429,7 @@ function NodeActions(props: {
       key: 'show-in-view',
       label: t('Show in View'),
       onAction: () => {
+        traceAnalytics.trackShowInView(props.organization);
         props.onTabScrollToNode(props.node);
       },
     };
@@ -451,15 +448,16 @@ function NodeActions(props: {
       key: 'view-event-details',
       label: t('View Event Details'),
       to: eventDetailsLink,
+      onAction: () => {
+        traceAnalytics.trackViewEventDetails(props.organization);
+      },
     };
 
     const eventSize = props.eventSize;
     const jsonDetails: MenuItemProps = {
       key: 'json-details',
       onAction: () => {
-        trackAnalytics('performance_views.trace_details.view_event_json', {
-          organization: props.organization,
-        });
+        traceAnalytics.trackViewEventJSON(props.organization);
         window.open(
           `/api/0/projects/${props.organization.slug}/${projectSlug}/events/${eventId}/json/`,
           '_blank'
@@ -498,7 +496,13 @@ function NodeActions(props: {
   return (
     <ActionsContainer>
       <Actions className="Actions">
-        <Button size="xs" onClick={_e => props.onTabScrollToNode(props.node)}>
+        <Button
+          size="xs"
+          onClick={_e => {
+            traceAnalytics.trackShowInView(props.organization);
+            props.onTabScrollToNode(props.node);
+          }}
+        >
           {t('Show in view')}
         </Button>
 
@@ -512,6 +516,7 @@ function NodeActions(props: {
           <Button
             size="xs"
             icon={<IconOpen />}
+            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
             href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
             external
           >
