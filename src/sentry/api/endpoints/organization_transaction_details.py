@@ -1,21 +1,26 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from snuba_sdk import Column
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
-from sentry.search.events.types import ParamsType
+from sentry.search.events.builder.spans_metrics import SpansMetricsQueryBuilder
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+
+VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
 
 @region_silo_endpoint
@@ -39,8 +44,13 @@ class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         # Get a list of all spans with this transaction_id
-        start = request.GET.get("start_timestamp")
-        end = request.GET.get("end_timestamp")
+        given_start_str = request.GET.get("start_timestamp")
+        given_end_str = request.GET.get("end_timestamp")
+        try:
+            start = datetime.fromtimestamp(float(given_start_str))
+            end = datetime.fromtimestamp(float(given_end_str))
+        except TypeError:
+            return Response({"detail": "missing start_timestamp or end_timestamp"}, status=400)
 
         spans_data = _query_all_spans_in_transaction(
             organization, project, transaction_id, start, end
@@ -70,127 +80,106 @@ class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
             parent_span_id = None
 
         # Assemble them into the same format as the event details endpoint
-        return Response(
-            {
-                "event_id": transaction_id,
-                "project": project.id,
-                "release": segment_sentry_tags.get("release"),
-                "dist": None,
-                "platform": segment_span.get("platform"),  # column is always null in Clickhouse
-                "message": "",
-                "datetime": datetime.fromtimestamp(
-                    segment_span.get("precise.start_ts"), tz=timezone.utc
-                ).isoformat(),
-                "tags": list(segment_tags_items) + list(segment_sentry_tags.items()),
-                "_meta": {},
-                "_metrics": {},
-                "breakdowns": {
-                    "span_ops": _span_ops_breakdown(spans_data),
-                },
-                "contexts": {
-                    "browser": {
-                        "name": segment_sentry_tags.get("browser.name"),
-                        # other props missing from indexed spans dataset
-                    },
-                    "organization": {
-                        # missing from indexed spans dataset
-                    },
-                    "os": {
-                        "name": segment_sentry_tags.get("os.name"),
-                        # other props missing from indexed spans dataset
-                    },
-                    "trace": {
-                        "trace_id": segment_span.get("trace_id"),
-                        "span_id": segment_span.get("span_id"),
-                        "parent_span_id": parent_span_id,
-                        "op": segment_span.get("op"),
-                        "status": SPAN_STATUS_CODE_TO_NAME[segment_span.get("status", 2)],
-                        "exclusive_time": segment_span.get("exclusive_time"),
-                        "hash": segment_span.get("group"),
-                        "type": "trace",
-                    },
-                },
-                "culprit": transaction_name,
-                "environment": segment_sentry_tags.get("environment"),
-                "errors": [],
-                "extra": {},
-                "ingest_path": [],
-                "level": "info",
-                "location": transaction_name,
-                "logger": "",
-                "measurements": segment_measurements,
-                "metadata": {
-                    "location": transaction_name,
-                    "title": transaction_name,
-                },
-                "nodestore_insert": segment_span.get("precise.finish_ts"),
-                "received": segment_span.get("precise.finish_ts"),
-                "request": {
-                    # missing from indexed spans dataset
-                },
-                "sdk": {
-                    "name": segment_sentry_tags.get("sdk.name"),
-                    "version": segment_sentry_tags.get("sdk.version"),
+        data = {
+            "event_id": transaction_id,
+            "project": project.id,
+            "release": segment_sentry_tags.get("release"),
+            "dist": None,
+            "platform": segment_span.get("platform"),  # column is always null in Clickhouse
+            "message": "",
+            "datetime": datetime.fromtimestamp(
+                segment_span.get("precise.start_ts"), tz=timezone.utc
+            ).isoformat(),
+            "tags": list(segment_tags_items) + list(segment_sentry_tags.items()),
+            "_meta": {},
+            "_metrics": {},
+            "breakdowns": {
+                "span_ops": _span_ops_breakdown(spans_data),
+            },
+            "contexts": {
+                "browser": {
+                    "name": segment_sentry_tags.get("browser.name"),
                     # other props missing from indexed spans dataset
                 },
-                "span_grouping_config": {
+                "organization": {
                     # missing from indexed spans dataset
                 },
-                "spans": _span_data_to_event_spans(spans_data),
-                "start_timestamp": segment_span.get("precise.start_ts"),
-                "timestamp": segment_span.get("precise.finish_ts"),
-                "title": transaction_name,
-                "transaction": transaction_name,
-                "transaction_info": {
-                    # missing from indexed spans dataset
+                "os": {
+                    "name": segment_sentry_tags.get("os.name"),
+                    # other props missing from indexed spans dataset
                 },
-                "type": "transaction",
-                "user": {
-                    # missing from indexed spans dataset
+                "trace": {
+                    "trace_id": segment_span.get("trace_id"),
+                    "span_id": segment_span.get("span_id"),
+                    "parent_span_id": parent_span_id,
+                    "op": segment_span.get("op"),
+                    "status": SPAN_STATUS_CODE_TO_NAME[segment_span.get("status", 2)],
+                    "exclusive_time": segment_span.get("exclusive_time"),
+                    "hash": segment_span.get("group"),
+                    "type": "trace",
                 },
-                "version": 5,
             },
-            status=200,
-        )
+            "culprit": transaction_name,
+            "environment": segment_sentry_tags.get("environment"),
+            "errors": [],
+            "extra": {},
+            "ingest_path": [],
+            "level": "info",
+            "location": transaction_name,
+            "logger": "",
+            "measurements": segment_measurements,
+            "metadata": {
+                "location": transaction_name,
+                "title": transaction_name,
+            },
+            "nodestore_insert": segment_span.get("precise.finish_ts"),
+            "received": segment_span.get("precise.finish_ts"),
+            "request": {
+                # missing from indexed spans dataset
+            },
+            "sdk": {
+                "name": segment_sentry_tags.get("sdk.name"),
+                "version": segment_sentry_tags.get("sdk.version"),
+                # other props missing from indexed spans dataset
+            },
+            "span_grouping_config": {
+                # missing from indexed spans dataset
+            },
+            "entries": [
+                {
+                    "type": "spans",
+                    "data": _span_data_to_event_spans(spans_data),
+                }
+            ],
+            "start_timestamp": segment_span.get("precise.start_ts"),
+            "timestamp": segment_span.get("precise.finish_ts"),
+            "title": transaction_name,
+            "transaction": transaction_name,
+            "transaction_info": {
+                # missing from indexed spans dataset
+            },
+            "type": "transaction",
+            "user": {
+                # missing from indexed spans dataset
+            },
+            "version": 5,
+            "projectSlug": project_slug,
+        }
+
+        average_columns = request.GET.getlist("averageColumn", [])
+        if (
+            all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
+            and len(average_columns) > 0
+        ):
+            _add_comparison_to_event(data, organization.id, project, average_columns)
+
+        return Response(data)
 
 
-def _query_all_spans_in_transaction(
-    organization, project, transaction_id, given_start_str, given_end_str
-):
-    # If we were given a time range by the client, use that time range.
-    try:
-        given_start = datetime.fromtimestamp(float(given_start_str))
-        given_end = datetime.fromtimestamp(float(given_end_str))
-    except TypeError:
-        given_start = None
-        given_end = None
-
-    if given_start and given_end:
-        return _query_spans_in_range(organization, project, transaction_id, given_start, given_end)
-
-    # We don't know when these spans occurred and it takes too long to
-    # search without a fairly narrow time range. Search progressively
-    # farther and farther back until we find the spans.
-    now = datetime.now()
-    all_spans_data = []
-
-    for days_back in range(0, 90):
-        start = now - timedelta(days=days_back + 1)
-        end = now - timedelta(days=days_back)
-        spans_data = _query_spans_in_range(organization, project, transaction_id, start, end)
-        if spans_data:
-            all_spans_data.extend(spans_data)
-        # Assume we've found all the spans if we get an empty result back after already finding some
-        if not spans_data and all_spans_data:
-            break
-
-    return all_spans_data
-
-
-def _query_spans_in_range(organization, project, transaction_id, start, end):
+def _query_all_spans_in_transaction(organization, project, transaction_id, start, end):
     params: ParamsType = {
-        "start": start,
-        "end": end,
+        "start": start - 1,
+        "end": end + 1,
         "project_id": [project.id],
         "project_objects": [project],
         "organization_id": organization.id,
@@ -241,6 +230,11 @@ def _query_spans_in_range(organization, project, transaction_id, start, end):
 
 
 def _span_data_to_event_spans(span_data):
+    def _normalize_group(group):
+        if group == "00":
+            return None
+        return group
+
     return [
         {
             "timestamp": span["precise.finish_ts"],
@@ -253,7 +247,7 @@ def _span_data_to_event_spans(span_data):
             "trace_id": span["trace_id"],
             "tags": dict(zip(span["tags.key"], span["tags.value"])),
             "sentry_tags": dict(zip(span["sentry_tags.key"], span["sentry_tags.value"])),
-            "hash": span["group"],
+            "hash": _normalize_group(span["group"]),
             "same_process_as_parent": span.get("same_process_as_parent"),
         }
         for span in span_data
@@ -312,3 +306,58 @@ def _duration_from_intervals(intervals):
         i += 1
 
     return duration
+
+
+def _add_comparison_to_event(data, organization_id, project, average_columns):
+    group_to_span_map = defaultdict(list)
+    end = datetime.now()
+    start = end - timedelta(hours=24)
+    spans = data["entries"][0]["data"]
+    for span in spans:
+        group = span.get("sentry_tags", {}).get("group")
+        if group is not None:
+            group_to_span_map[group].append(span)
+
+    sentry_sdk.set_measurement("query.groups", len(group_to_span_map))
+    if len(group_to_span_map) == 0:
+        return
+
+    with handle_query_errors():
+        builder = SpansMetricsQueryBuilder(
+            dataset=Dataset.PerformanceMetrics,
+            params={
+                "start": start,
+                "end": end,
+                "project_objects": [project],
+                "organization_id": organization_id,
+            },
+            selected_columns=[
+                "span.group",
+                *[f"avg({average_column})" for average_column in average_columns],
+            ],
+            config=QueryBuilderConfig(transform_alias_to_input_format=True),
+            # orderby shouldn't matter, just picking something so results are consistent
+            orderby=["span.group"],
+        )
+        builder.add_conditions(
+            [
+                Condition(
+                    Column(builder.resolve_column_name("span.group")),
+                    Op.IN,
+                    Function("tuple", list(group_to_span_map.keys())),
+                )
+            ]
+        )
+        result = builder.process_results(
+            builder.run_query(Referrer.API_PERFORMANCE_ORG_TRANSACTION_AVERAGE_SPAN.value)
+        )
+        sentry_sdk.set_measurement("query.groups_found", len(result["data"]))
+        for row in result["data"]:
+            group = row["span.group"]
+            for span in group_to_span_map[group]:
+                average_results = {}
+                for col in row:
+                    if col.startswith("avg") and row[col] > 0:
+                        average_results[col] = row[col]
+                if average_results:
+                    span["span.averageResults"] = average_results

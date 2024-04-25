@@ -80,29 +80,6 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 404, response.content
 
-    def test_returns_spans_without_being_given_timestamps(self):
-        self.login_as(user=self.owner)
-
-        start_ts = datetime.now() - timedelta(minutes=1)
-        span = self.create_span(
-            organization=self.organization,
-            project=self.project,
-            start_ts=start_ts,
-            extra_data={
-                "trace_id": self.trace_id,
-                "event_id": self.transaction_id,
-                "is_segment": True,
-            },
-        )
-        self.store_span(span)
-
-        response = self.client.get(
-            self.url,
-            format="json",
-        )
-        assert response.status_code == 200, response.content
-        assert response.data["contexts"]["trace"]["span_id"].endswith(span["span_id"])
-
     def test_imitates_the_organization_event_details_endpoint_format(self):
         self.login_as(user=self.owner)
 
@@ -151,6 +128,10 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
 
         response = self.client.get(
             self.url,
+            data={
+                "start_timestamp": str(start_ts.timestamp()),
+                "end_timestamp": str(datetime.now().timestamp()),
+            },
             format="json",
         )
         assert response.status_code == 200, response.content
@@ -206,6 +187,12 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
                 },
             },
             "culprit": transaction_name,
+            "entries": [
+                {
+                    "type": "spans",
+                    "data": [],
+                }
+            ],
             "environment": environment,
             "errors": [],
             "extra": {},
@@ -226,7 +213,6 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
                 "version": sdk_version,
             },
             "span_grouping_config": {},
-            "spans": [],
             "start_timestamp": root_span.get("start_timestamp_ms") / 1000,
             "timestamp": (root_span.get("start_timestamp_ms") + span_duration) / 1000,
             "title": transaction_name,
@@ -310,10 +296,14 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
 
         response = self.client.get(
             self.url,
+            data={
+                "start_timestamp": str(start_ts.timestamp()),
+                "end_timestamp": str(datetime.now().timestamp()),
+            },
             format="json",
         )
         assert response.status_code == 200, response.content
-        assert response.data["spans"] == [
+        assert response.data["entries"][0]["data"] == [
             {
                 "timestamp": (db_span.get("start_timestamp_ms") + db_span_duration) / 1000,
                 "start_timestamp": db_span.get("start_timestamp_ms") / 1000,
