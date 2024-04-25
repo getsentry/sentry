@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
+from django.conf import settings
 from django.db import models
 from django.db.models import SET_NULL, Q
 from django.utils import timezone
@@ -14,6 +15,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.actor import get_actor_for_user
 from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
@@ -180,7 +182,12 @@ class GroupHistory(Model):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
+
+    # Deprecated. Use user_id and team instead.
     actor = FlexibleForeignKey("sentry.Actor", null=True, on_delete=SET_NULL)
+
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     status = BoundedPositiveIntegerField(
         default=0,
