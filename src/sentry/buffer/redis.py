@@ -278,10 +278,18 @@ class RedisBuffer(Buffer):
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
 
-    def get_set(self, key: str) -> list[set[int]]:
-        return self._execute_redis_operation(
+    def get_set(self, key: str) -> list[tuple[int, datetime]]:
+        redis_set = self._execute_redis_operation(
             key, RedisOperation.SORTED_SET_GET_RANGE, start=0, end=-1, withscores=True
         )
+        decoded_set = []
+        for items in redis_set[0]:
+            item = items[0]
+            if isinstance(item, bytes):
+                item = item.decode("utf-8")
+            data_and_timestamp = (int(item), items[1])
+            decoded_set.append(data_and_timestamp)
+        return decoded_set
 
     def delete_key(self, key: str, min: int, max: int) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
@@ -307,9 +315,18 @@ class RedisBuffer(Buffer):
 
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> list[dict[str, str]]:
+    ) -> dict[str, str]:
         key = self._make_key(model, field)
-        return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+        redis_hash = self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+        decoded_hash = {}
+        for key, value in redis_hash[0].items():
+            if isinstance(key, bytes):
+                key = key.decode("utf-8")
+            if isinstance(value, bytes):
+                value = value.decode("utf-8")
+            decoded_hash[key] = value
+
+        return decoded_hash
 
     def handle_pending_partitions(self, partition: int | None) -> None:
         if partition is None and self.pending_partitions > 1:

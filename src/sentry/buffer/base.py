@@ -38,11 +38,11 @@ class Buffer(Service):
 
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> None:
-        return
+    ) -> dict[str, str]:
+        return []
 
-    def get_set(self, key: str) -> None:
-        return
+    def get_set(self, key: str) -> list[tuple[int, datetime]]:
+        return []
 
     def incr(
         self,
