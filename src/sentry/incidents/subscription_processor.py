@@ -597,7 +597,7 @@ class SubscriptionProcessor:
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
-                activation: AlertRuleActivations | None
+                activation: AlertRuleActivations | None = None
                 if self.alert_rule.monitor_type == AlertRuleMonitorType.ACTIVATED:
                     activations = list(self.subscription.alertruleactivations_set)
                     if len(activations) != 1:
