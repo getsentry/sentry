@@ -4,7 +4,7 @@ from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.mapping.mapper import (
+from sentry.sentry_metrics.querying.data.mapping.base import (
     Mapper,
     MapperConfig,
     get_or_create_mapper,
