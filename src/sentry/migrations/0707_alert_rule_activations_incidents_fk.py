@@ -31,7 +31,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "activation_reason" VARCHAR(32) NOT NULL DEFAULT 'backfill reason';
+                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "activation_reason" VARCHAR(100) NOT NULL DEFAULT 'backfill reason';
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_alertruleactivations" DROP COLUMN "activation_reason";
