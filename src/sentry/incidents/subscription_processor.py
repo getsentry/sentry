@@ -493,7 +493,7 @@ class SubscriptionProcessor:
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
-                if alert_operator(  # operator.gt/operator.lt
+                if alert_operator(
                     aggregation_value, trigger.alert_threshold
                 ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                     # If the value has breached our threshold (above/below)

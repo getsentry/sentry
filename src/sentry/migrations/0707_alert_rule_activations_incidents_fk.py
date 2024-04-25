@@ -31,10 +31,19 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "activation_reason" VARCHAR(100) NOT NULL DEFAULT 'backfill reason';
+                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "activator" VARCHAR(250) NOT NULL DEFAULT 'backfill_activator';
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_alertruleactivations" DROP COLUMN "activation_reason";
+                    ALTER TABLE "sentry_alertruleactivations" DROP COLUMN "activator";
+                    """,
+                    hints={"tables": ["sentry_alertruleactivations"]},
+                ),
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "condition_type" SMALLINT NOT NULL DEFAULT 0;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_alertruleactivations" DROP COLUMN "condition_type";
                     """,
                     hints={"tables": ["sentry_alertruleactivations"]},
                 ),
@@ -42,8 +51,13 @@ class Migration(CheckedMigration):
             state_operations=[
                 migrations.AddField(
                     model_name="alertruleactivations",
-                    name="activation_reason",
-                    field=models.CharField(max_length=100, null=True),
+                    name="activator",
+                    field=models.CharField(max_length=250),
+                ),
+                migrations.AddField(
+                    model_name="alertruleactivations",
+                    name="condition_type",
+                    field=models.SmallIntegerField(),
                 ),
             ],
         ),

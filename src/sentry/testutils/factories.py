@@ -1538,6 +1538,7 @@ class Factories:
         query_subscription: QuerySubscription,
         metric_value: int | None = None,
         finished_at: datetime | None = None,
+        activation_condition: AlertRuleActivationConditionType = AlertRuleActivationConditionType.RELEASE_CREATION,
     ):
 
         with transaction.atomic(router.db_for_write(AlertRuleActivations)):
@@ -1546,7 +1547,8 @@ class Factories:
                 finished_at=finished_at,
                 metric_value=metric_value,
                 query_subscription=query_subscription,
-                activation_reason="testing",
+                condition_type=activation_condition,
+                activator="testing",
             )
 
         return activation

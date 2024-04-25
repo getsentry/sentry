@@ -110,7 +110,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
                     activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
                     query_extra=f"release:42 AND event.timestamp:>{now.isoformat()}",
                     origin="test",
-                    activation_reason="Release 42 created",
+                    activator="42",
                 )
             ]
 

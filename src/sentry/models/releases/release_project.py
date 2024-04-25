@@ -52,13 +52,12 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         from sentry.incidents.models.alert_rule import AlertRule
 
         query_extra = f"release:{release.version} AND event.timestamp:>{timezone.now().isoformat()}"
-        activation_reason = f"Release {release.version} created"
         return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
             project=project,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
             query_extra=query_extra,
             origin=trigger,
-            activation_reason=activation_reason,
+            activator=release.version,
         )
 
     def post_save(self, instance, created, **kwargs):

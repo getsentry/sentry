@@ -147,7 +147,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         activation_condition: AlertRuleActivationConditionType,
         query_extra: str,
         origin: str,
-        activation_reason: str,
+        activator: str,
     ) -> list[QuerySubscription]:
         """
         Subscribes a project to an alert rule given activation condition
@@ -179,7 +179,8 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                             projects=[project],
                             monitor_type=AlertRuleMonitorType.ACTIVATED,
                             query_extra=query_extra,
-                            activation_reason=activation_reason,
+                            activation_condition=activation_condition,
+                            activator=activator,
                         )
                     )
             return created_subscriptions
@@ -342,9 +343,8 @@ class AlertRule(Model):
         projects: list[Project],
         monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
         query_extra: str | None = None,
-        activation_reason: (
-            str | None
-        ) = None,  # short string descriptor of the specific activation condition met to create the instance (eg. "Release xyz created")
+        activation_condition: AlertRuleActivationConditionType | None = None,
+        activator: str | None = None,
     ) -> list[QuerySubscription]:
         """
         Subscribes a list of projects to the alert rule instance
@@ -372,15 +372,18 @@ class AlertRule(Model):
             )
             if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
                 # NOTE: Activated Alert Rules are conditionally subscribed
-                # Meaning at time of subscription, the rule has been activated
-                if not activation_reason:
-                    raise Exception("Activated alert activations require an activation reason")
+                # Meaning at time of subscription, the rule must have been activated
+                if not activator or activation_condition is None:
+                    raise Exception(
+                        "Alert activations require an activation condition and activator reference"
+                    )
 
                 for subscription in created_subscriptions:
                     AlertRuleActivations.objects.create(
                         alert_rule=self,
                         query_subscription=subscription,
-                        activation_reason=activation_reason,
+                        condition_type=activation_condition.value,
+                        activator=activator,
                     )
 
         return created_subscriptions

@@ -154,7 +154,8 @@ class AlertRuleTest(TestCase):
         alert_rule.subscribe_projects(
             projects=[self.project],
             monitor_type=AlertRuleMonitorType.ACTIVATED,
-            activation_reason="testing",
+            activator="testing",
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         assert mock_bulk_create_snuba_subscriptions.call_count == 1
 
@@ -173,7 +174,7 @@ class AlertRuleTest(TestCase):
                     activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
                     query_extra=query_extra,
                     origin="test",
-                    activation_reason="testing",
+                    activator="testing",
                 )
             )
             assert len(created_subscriptions) == 1
@@ -198,7 +199,7 @@ class AlertRuleTest(TestCase):
                     activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
                     query_extra=query_extra,
                     origin="test",
-                    activation_reason="testing",
+                    activator="testing",
                 )
             )
             assert len(created_subscriptions) == 1
@@ -407,7 +408,8 @@ class UpdateAlertActivationsTest(TestCase):
             alert_rule.subscribe_projects(
                 projects=[self.project],
                 monitor_type=AlertRuleMonitorType.ACTIVATED,
-                activation_reason="testing",
+                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+                activator="testing",
             )
             subscription = alert_rule.snuba_query.subscriptions.get()
             activation = alert_rule.activations.get()
@@ -431,7 +433,8 @@ class UpdateAlertActivationsTest(TestCase):
             alert_rule.subscribe_projects(
                 projects=[self.project],
                 monitor_type=AlertRuleMonitorType.ACTIVATED,
-                activation_reason="testing",
+                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+                activator="testing",
             )
 
             subscription = alert_rule.snuba_query.subscriptions.get()

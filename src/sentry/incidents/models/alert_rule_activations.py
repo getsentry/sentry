@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.manager import BaseManager
+from sentry.models.releases.constants import DB_VERSION_LENGTH
 
 if TYPE_CHECKING:
     from sentry.incidents.models.alert_rule import AlertRule
@@ -73,8 +74,10 @@ class AlertRuleActivations(Model):
     query_subscription = FlexibleForeignKey(
         "sentry.QuerySubscription", null=True, on_delete=models.SET_NULL
     )
-    # short string descriptor of the specific activation condition met to create the instance (eg. "Release xyz created")
-    activation_reason = models.CharField(max_length=100, null=True)
+    # condition_type is AlertRuleActivationConditionType (Release creation / Deploy creation)
+    condition_type = models.SmallIntegerField()
+    # The activator is the identifier for the specific triggered instance (eg. release/deploy version)
+    activator = models.CharField(max_length=DB_VERSION_LENGTH)
 
     class Meta:
         app_label = "sentry"

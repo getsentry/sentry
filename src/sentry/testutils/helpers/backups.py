@@ -471,7 +471,8 @@ class BackupTestCase(TransactionTestCase):
             alert_rule=activated_alert,
             project=project,
             metric_value=100,
-            activation_reason="testing exhaustive",
+            activator="testing exhaustive",
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
