@@ -5,9 +5,14 @@ import styled from '@emotion/styled';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PercentChange} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
-import type {CountUnit, PercentageUnit} from 'sentry/utils/discover/fields';
+import type {
+  CountUnit,
+  PercentageUnit,
+  PercentChangeUnit,
+} from 'sentry/utils/discover/fields';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
@@ -21,7 +26,8 @@ type Unit =
   | SizeUnit.BYTE
   | RateUnit
   | CountUnit
-  | PercentageUnit;
+  | PercentageUnit
+  | PercentChangeUnit;
 
 interface Props {
   title: string;
@@ -103,6 +109,17 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
           undefined,
           {minimumValue: MINIMUM_PERCENTAGE_VALUE}
         )}
+      </NumberContainer>
+    );
+  }
+
+  if (unit === 'percent_change') {
+    renderedValue = (
+      <NumberContainer align={align}>
+        <PercentChange
+          value={typeof value === 'string' ? parseFloat(value) : value}
+          minimumValue={MINIMUM_PERCENTAGE_VALUE}
+        />
       </NumberContainer>
     );
   }
