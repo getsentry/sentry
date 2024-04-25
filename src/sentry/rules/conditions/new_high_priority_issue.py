@@ -18,11 +18,10 @@ class NewHighPriorityIssueCondition(EventCondition):
     id = "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"
     label = "Sentry marks a new issue as high priority"
 
-    def is_new_high_severity(self, state: EventState, group: Group | None) -> bool:
+    # This is legacy code that should not be used since "projects:issue-priority" is enabled.
+    # TODO(snigdha): Remove this when the flag is removed.
+    def is_new_high_severity(self, state: EventState, group: Group) -> bool:
         try:
-            if not group:
-                return False
-
             severity = float(group.get_event_metadata().get("severity", ""))
         except (KeyError, TypeError, ValueError):
             return False
@@ -44,9 +43,6 @@ class NewHighPriorityIssueCondition(EventCondition):
             return is_new
 
         if features.has("projects:issue-priority", self.project):
-            if not event.group:
-                return False
-
             return is_new and event.group.priority == PriorityLevel.HIGH
 
         is_new_high_severity = self.is_new_high_severity(state, event.group)
