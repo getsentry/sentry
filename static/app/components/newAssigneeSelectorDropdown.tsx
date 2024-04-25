@@ -4,6 +4,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
 import {AssigneeAvatar} from 'sentry/components/assigneeSelector';
+import type {SuggestedAssignee} from 'sentry/components/assigneeSelectorDropdown';
 import {Chevron} from 'sentry/components/chevron';
 import {
   CompactSelect,
@@ -14,9 +15,9 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-// import MemberListStore from 'sentry/stores/memberListStore';
+import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-// import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {
   Actor,
@@ -37,7 +38,6 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   codeowners: t('Codeowners'),
 };
 
-// Major (?) change where assignee is now User or AssignableTeam, not User or Actor
 export type OnAssignCallback = (
   type: Actor['type'],
   assignee: User | AssignableTeam,
@@ -67,12 +67,6 @@ type AssigneeDropdownState = {
   suggestedOwners?: SuggestedOwner[];
 };
 
-export type SuggestedAssignee = Actor & {
-  assignee: AssignableTeam | User;
-  suggestedReason: SuggestedOwnerReason;
-  suggestedReasonText?: React.ReactNode;
-};
-
 function NewAssigneeSelectorDropdown({
   group,
   memberList,
@@ -82,7 +76,7 @@ function NewAssigneeSelectorDropdown({
   owners,
 }: NewAssigneeSelectorDropdownProps) {
   const organization = useOrganization();
-  // const memberLists = useLegacyStore(MemberListStore);
+  const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
 
   const [state, setState] = useState<AssigneeDropdownState>(() => {
@@ -117,7 +111,7 @@ function NewAssigneeSelectorDropdown({
   });
 
   const currentMemberList = (): User[] | undefined => {
-    return memberList;
+    return memberList ?? memberLists?.members;
   };
 
   const getSuggestedAssignees = (): SuggestedAssignee[] => {
@@ -244,7 +238,7 @@ function NewAssigneeSelectorDropdown({
 
       if (onAssign) {
         const suggestion = getSuggestedAssignees().find(
-          actor => actor.type === type && actor.id === assignee?.id // wtf is going on here (uncomment the ?)
+          actor => actor.type === type && actor.id === assignee?.id
         );
         onAssign(type, assignee as User, suggestion);
       }
@@ -264,7 +258,7 @@ function NewAssigneeSelectorDropdown({
 
       if (onAssign) {
         const suggestion = getSuggestedAssignees().find(
-          actor => actor.type === type && actor.id === assignee?.id // wtf is going on here (uncomment the ?)
+          actor => actor.type === type && actor.id === assignee?.id
         );
         onAssign(type, assignee as AssignableTeam, suggestion);
       }
@@ -339,29 +333,29 @@ function NewAssigneeSelectorDropdown({
   const makeAllOptions = (): SelectOptionOrSection<string>[] => {
     const options: SelectOptionOrSection<string>[] = [];
 
-    const memList = currentMemberList();
-    const assignableTeamList = getAssignableTeams();
+    let memList = currentMemberList();
+    let assignableTeamList = getAssignableTeams();
     const suggestedAssignees = getSuggestedAssignees();
 
-    // if (state.assignedTo) {
-    //   if (state.assignedToType === 'team') {
-    //     options.unshift({
-    //       value: '_current_assignee',
-    //       label: t('Current Assignee'),
-    //       options: [makeTeamOption(state.assignedTo as AssignableTeam)],
-    //     });
-    //     assignableTeamList = assignableTeamList?.filter(
-    //       team => team.id !== state.assignedTo?.id
-    //     );
-    //   } else {
-    //     options.unshift({
-    //       value: '_current_assignee',
-    //       label: t('Current Assignee'),
-    //       options: [makeMemberOption(state.assignedTo as User)],
-    //     });
-    //     memList = memList?.filter(member => member.id !== state.assignedTo?.id);
-    //   }
-    // }
+    if (state.assignedTo) {
+      if (state.assignedToType === 'team') {
+        options.unshift({
+          value: '_current_assignee',
+          label: t('Current Assignee'),
+          options: [makeTeamOption(state.assignedTo as AssignableTeam)],
+        });
+        assignableTeamList = assignableTeamList?.filter(
+          team => team.id !== (state.assignedTo as AssignableTeam).id
+        );
+      } else {
+        options.unshift({
+          value: '_current_assignee',
+          label: t('Current Assignee'),
+          options: [makeMemberOption(state.assignedTo as User)],
+        });
+        memList = memList?.filter(member => member.id !== (state.assignedTo as User).id);
+      }
+    }
 
     const memberOptions = {
       value: '_members',
