@@ -44,7 +44,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -267,10 +267,13 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             str(project.organization.id), []
         )
 
+        existing_ids: set[str] = set()
         cardinality_limits: list[CardinalityLimit] = []
-        for namespace, option_name in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items():
+        for namespace in CARDINALITY_LIMIT_USE_CASES:
             timeout.check()
-            option = options.get(option_name)
+            option = options.get(
+                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
+            )
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
                 continue
@@ -289,17 +292,33 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "namespace": namespace.value,
             }
             if id in passive_limits:
-                limit["passive"] = True
+                # HACK inc-730: reduce pressure on memory by disabling limits for passive projects
+                continue
             cardinality_limits.append(limit)
+            existing_ids.add(id)
 
-        clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
-        for clo in clos:
+        project_limit_options: list[CardinalityLimitOption] = project.get_option(
+            "relay.cardinality-limiter.limits", []
+        )
+        organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
+            "relay.cardinality-limiter.limits", []
+        )
+        option_limit_options: list[CardinalityLimitOption] = options.get(
+            "relay.cardinality-limiter.limits", []
+        )
+
+        for clo in project_limit_options + organization_limit_options + option_limit_options:
             rollout_rate = clo.get("rollout_rate", 1.0)
             if (project.organization.id % 100000) / 100000 >= rollout_rate:
                 continue
 
             try:
-                cardinality_limits.append(clo["limit"])
+                limit = clo["limit"]
+                if clo["limit"]["id"] in existing_ids:
+                    # skip if a limit with the same id already exists
+                    continue
+                cardinality_limits.append(limit)
+                existing_ids.add(clo["limit"]["id"])
             except KeyError:
                 pass
 

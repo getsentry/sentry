@@ -533,6 +533,7 @@ def create_alert_rule(
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
+    # TODO(mark) type is documented as ActorTuple but these runtime checks are for other types.
     actor = None
     if owner and not isinstance(owner, Actor):
         actor = owner.resolve_to_actor()
@@ -560,6 +561,7 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
+            # TODO(mark) remove owner in the future
             owner=actor,
             comparison_delta=comparison_delta,
             user_id=actor.user_id if actor else None,

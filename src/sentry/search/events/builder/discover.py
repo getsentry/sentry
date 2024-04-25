@@ -72,8 +72,10 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start
+from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
+    UnqualifiedQueryError,
     is_duration_measurement,
     is_measurement,
     is_numeric_measurement,
@@ -583,13 +585,25 @@ class BaseQueryBuilder:
         if self.end:
             conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
-        conditions.append(
-            Condition(
-                self.column("project_id"),
-                Op.IN,
-                self.params.project_ids,
+        # project_ids is a required column for most datasets, however, Snuba does not
+        # complain on an empty list which results on no data being returned.
+        # This change will prevent calling Snuba when no projects are selected.
+        # Snuba will complain with UnqualifiedQueryError: validation failed for entity...
+        if not self.params.project_ids:
+            # TODO: Fix the tests and always raise the error
+            # In development, we will let Snuba complain about the lack of projects
+            # so the developer can write their tests with a non-empty project list
+            # In production, we will raise an error
+            if not in_test_environment():
+                raise UnqualifiedQueryError("You need to specify at least one project.")
+        else:
+            conditions.append(
+                Condition(
+                    self.column("project_id"),
+                    Op.IN,
+                    self.params.project_ids,
+                )
             )
-        )
 
         if len(self.params.environments) > 0:
             term = event_search.SearchFilter(

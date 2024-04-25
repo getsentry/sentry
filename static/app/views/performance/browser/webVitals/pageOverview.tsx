@@ -8,7 +8,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -179,6 +179,7 @@ export default function PageOverview() {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
+            <FeedbackWidgetButton />
             {transactionSummaryTarget && (
               <LinkButton to={transactionSummaryTarget} size="sm">
                 {t('View Transaction Summary')}
@@ -199,7 +200,6 @@ export default function PageOverview() {
           </Layout.Body>
         ) : (
           <Layout.Body>
-            <FloatingFeedbackWidget />
             <Layout.Main>
               <TopMenuContainer>
                 {transaction && (

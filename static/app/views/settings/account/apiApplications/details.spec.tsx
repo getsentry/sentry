@@ -103,13 +103,16 @@ describe('ApiApplications', function () {
       screen.getByRole('button', {name: 'Rotate client secret'})
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Rotate client secret'}));
+    // Confirm modal
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(
       screen.getByText('This will be the only time your client secret is visible!')
     ).toBeInTheDocument();
-    expect(screen.getByText('Rotated Client Secret')).toBeInTheDocument();
-    expect(screen.getByText('Your client secret is:')).toBeInTheDocument();
-    expect(screen.getByText('newSecret!')).toBeInTheDocument();
+    expect(screen.getByText('Your new Client Secret')).toBeInTheDocument();
+    expect(screen.getByLabelText<HTMLInputElement>('new-client-secret')).toHaveValue(
+      'newSecret!'
+    );
 
     expect(rotateSecretApiCall).toHaveBeenCalledTimes(1);
   });

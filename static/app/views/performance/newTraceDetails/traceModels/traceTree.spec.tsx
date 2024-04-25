@@ -1583,7 +1583,6 @@ describe('TraceTree', () => {
         expect(tree.list[1].zoomedIn).toBe(true);
       });
 
-      tree.print();
       // expand autogroup
       tree.expand(tree.list[3], true);
       const last = tree.list[tree.list.length - 1];

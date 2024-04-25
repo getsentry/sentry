@@ -549,7 +549,16 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("github-login.organization", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("github-extension", default=False, flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "github-extension.enabled",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-extension.enabled-orgs",
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -628,6 +637,7 @@ register(
 )
 
 register("snuba.snql.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("integrations.slack.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1716,6 +1726,7 @@ register(
 register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2395,9 +2406,18 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TODO: remove once removed from options
 register(
     "issue_platform.use_kafka_partition_key",
     type=Bool,
     default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+register(
+    "issue_platform.use_kafka_partition_key.rollout",
+    type=Float,
+    default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

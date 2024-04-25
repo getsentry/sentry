@@ -217,7 +217,7 @@ export const useVirtualizedList = (
           scrollContainerRef.current.style.pointerEvents = 'auto';
           pointerEventsRaf.current = null;
         }
-      }, 50);
+      }, 150);
     };
 
     props.container.addEventListener('scroll', onScroll, {passive: true});

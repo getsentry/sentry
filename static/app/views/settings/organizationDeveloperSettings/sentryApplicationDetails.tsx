@@ -17,6 +17,7 @@ import Avatar from 'sentry/components/avatar';
 import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -327,15 +328,14 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
       );
       openModal(({Body, Header}) => (
         <Fragment>
-          <Header>{t('Rotated Client Secret')}</Header>
+          <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert type="info" showIcon>
               {t('This will be the only time your client secret is visible!')}
             </Alert>
-            <p>
-              {t('Your client secret is:')}
-              <code>{rotateResponse.clientSecret}</code>
-            </p>
+            <TextCopyInput aria-label="new-client-secret">
+              {rotateResponse.clientSecret}
+            </TextCopyInput>
           </Body>
         </Fragment>
       ));
@@ -541,9 +541,14 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                       <ClientSecret>
                         <HiddenSecret>{t('hidden')}</HiddenSecret>
                         {this.hasTokenAccess ? (
-                          <Button onClick={this.rotateClientSecret} priority="danger">
-                            Rotate client secret
-                          </Button>
+                          <Confirm
+                            onConfirm={this.rotateClientSecret}
+                            message={t(
+                              'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                            )}
+                          >
+                            <Button priority="danger">Rotate client secret</Button>
+                          </Confirm>
                         ) : undefined}
                       </ClientSecret>
                     )

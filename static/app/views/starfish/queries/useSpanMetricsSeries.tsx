@@ -7,7 +7,7 @@ import {getSeriesEventView} from 'sentry/views/starfish/queries/getSeriesEventVi
 import type {MetricsProperty} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-interface SpanMetricTimeseriesRow {
+export interface MetricTimeseriesRow {
   [key: string]: number;
   interval: number;
 }
@@ -34,7 +34,7 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
     undefined
   );
 
-  const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
+  const result = useWrappedDiscoverTimeseriesQuery<MetricTimeseriesRow[]>({
     eventView,
     initialData: [],
     referrer,
