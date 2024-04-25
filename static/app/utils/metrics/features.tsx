@@ -2,7 +2,7 @@ import type {Organization} from 'sentry/types/organization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export function hasMetricsExperimentalFeature(organization: Organization) {
-  return organization.features.includes('ddm-experimental');
+  return organization.features.includes('custom-metrics-experimental');
 }
 
 export function hasMetricsUI(organization: Organization) {
