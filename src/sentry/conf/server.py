@@ -1653,8 +1653,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
     "organizations:metric-alert-ignore-archived": False,
-    # Enable load shedding for newly created metric alerts
-    "organizations:metric-alert-load-shedding": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enables the metrics metadata.
