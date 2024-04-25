@@ -638,6 +638,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "queries" in response.data, response.data
 
     def test_save_with_total_count(self):
+        # We cannot query the Discover entity without a project being defined for the org
+        self.create_project()
         data = {
             "title": "Test Query",
             "displayType": "table",

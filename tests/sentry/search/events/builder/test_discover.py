@@ -16,8 +16,9 @@ from sentry.search.events import constants
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
-from sentry.utils.snuba import QueryOutsideRetentionError
+from sentry.utils.snuba import QueryOutsideRetentionError, UnqualifiedQueryError, bulk_snuba_queries
 from sentry.utils.validators import INVALID_ID_DETAILS
 
 pytestmark = pytest.mark.sentry_metrics
@@ -66,6 +67,27 @@ class QueryBuilderTest(TestCase):
             ],
         )
         query.get_snql_query().validate()
+
+    def test_query_without_project_ids(self):
+        params: ParamsType = {
+            "start": self.params["start"],
+            "end": self.params["end"],
+            "organization_id": self.organization.id,
+        }
+        with pytest.raises(UnqualifiedQueryError):
+            query = QueryBuilder(Dataset.Discover, params, query="foo", selected_columns=["id"])
+            bulk_snuba_queries([query.get_snql_query()], referrer=Referrer.TESTING_TEST.value)
+
+    def test_query_with_empty_project_ids(self):
+        params: ParamsType = {
+            "start": self.params["start"],
+            "end": self.params["end"],
+            "project_id": [],  # We add an empty project_id list
+            "organization_id": self.organization.id,
+        }
+        with pytest.raises(UnqualifiedQueryError):
+            query = QueryBuilder(Dataset.Discover, params, query="foo", selected_columns=["id"])
+            bulk_snuba_queries([query.get_snql_query()], referrer=Referrer.TESTING_TEST.value)
 
     def test_simple_orderby(self):
         query = QueryBuilder(
