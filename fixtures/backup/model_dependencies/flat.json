@@ -400,6 +400,7 @@
   "sentry.identityprovider": [],
   "sentry.incident": [
     "sentry.alertrule",
+    "sentry.alertruleactivations",
     "sentry.organization"
   ],
   "sentry.incidentactivity": [
