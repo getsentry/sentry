@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import replace
 
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.mapping.mapper import MapperConfig
+from sentry.sentry_metrics.querying.data.mapping.base import MapperConfig
 from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery, PreparationStep
 from sentry.sentry_metrics.querying.visitors.query_expression import MapperVisitor
 

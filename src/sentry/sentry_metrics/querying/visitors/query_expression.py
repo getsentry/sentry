@@ -7,7 +7,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
-from sentry.sentry_metrics.querying.data.mapping.mapper import (
+from sentry.sentry_metrics.querying.data.mapping.base import (
     Mapper,
     MapperConfig,
     get_or_create_mapper,

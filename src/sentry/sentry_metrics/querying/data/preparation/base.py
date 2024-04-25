@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 from snuba_sdk import MetricsQuery
 
-from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper
+from sentry.sentry_metrics.querying.data.mapping.base import Mapper
 from sentry.sentry_metrics.querying.types import QueryOrder
 from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 
