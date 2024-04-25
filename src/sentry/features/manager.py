@@ -110,7 +110,7 @@ class RegisteredFeatureManager:
 
                 batch = FeatureCheckBatch(self, name, organization, remaining, actor)
                 handler_result = handler.has_for_batch(batch)
-                for (obj, flag) in handler_result.items():
+                for obj, flag in handler_result.items():
                     if flag is not None:
                         remaining.remove(obj)
                         result[obj] = flag
@@ -286,7 +286,7 @@ class FeatureManager(RegisteredFeatureManager):
             )
         else:
             # Fall back to default handler if no entity handler available.
-            project_features = filter(lambda name: name.startswith("projects:"), feature_names)
+            project_features = [name for name in feature_names if name.startswith("projects:")]
             if projects and project_features:
                 results: MutableMapping[str, Mapping[str, bool]] = {}
                 for project in projects:
