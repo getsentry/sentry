@@ -18,8 +18,8 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import type {MetricsResponse, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
+import type {MetricsResponse} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -38,6 +38,29 @@ type Row = Pick<
 type Column = GridColumnHeader<
   'transaction' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
 >;
+
+const COLUMN_ORDER: Column[] = [
+  {
+    key: 'transaction',
+    name: t('Found In'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'spm()',
+    name: getThroughputTitle('db'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+    name: DataTitles.avg,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'time_spent_percentage()',
+    name: DataTitles.timeSpent,
+    width: COL_WIDTH_UNDEFINED,
+  },
+];
 
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
@@ -149,7 +172,7 @@ export function QueryTransactionsTable({
         isLoading={isLoading}
         error={error}
         data={data}
-        columnOrder={getColumnOrder(span)}
+        columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell: col =>
@@ -169,34 +192,6 @@ export function QueryTransactionsTable({
     </Fragment>
   );
 }
-
-const getColumnOrder = (
-  span: Pick<
-    SpanIndexedFieldTypes,
-    SpanIndexedField.SPAN_GROUP | SpanIndexedField.SPAN_OP
-  >
-): Column[] => [
-  {
-    key: 'transaction',
-    name: t('Found In'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'spm()',
-    name: getThroughputTitle(span[SpanIndexedField.SPAN_OP]),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-    name: DataTitles.avg,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'time_spent_percentage()',
-    name: DataTitles.timeSpent,
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
 
 const Footer = styled('div')`
   display: flex;
