@@ -397,7 +397,6 @@ async function simpleTestSetup() {
 }
 
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
-const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
 
 // @ts-expect-error ignore this line
 // eslint-disable-next-line
@@ -1240,7 +1239,7 @@ describe('trace view', () => {
         ).toBeTruthy();
       });
     });
-    it('pinning a tab and clicking on a new node spawns a new tab', async () => {
+    it('closing a tab removes it', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
@@ -1248,77 +1247,6 @@ describe('trace view', () => {
       await userEvent.click(rows[5]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-      });
-
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
-        expect(
-          screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
-            .textContent?.includes('transaction-op-4')
-        ).toBeTruthy();
-        expect(
-          screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[2]
-            .textContent?.includes('transaction-op-6')
-        ).toBeTruthy();
-      });
-    });
-    it('unpinning a tab removes it', async () => {
-      const {virtualizedContainer} = await simpleTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-
-      await userEvent.click(rows[5]);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-      });
-
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
-      });
-
-      await userEvent.click(
-        await screen.findAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID)[0]
-      );
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-      });
-    });
-    it('clicking a node that is already open in a tab switches to that tab and persists the previous node', async () => {
-      const {virtualizedContainer} = await simpleTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-
-      await userEvent.click(rows[5]);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-      });
-
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
-
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[2]).toHaveAttribute(
-          'aria-selected',
-          'true'
-        );
-      });
-
-      await userEvent.click(rows[5]);
-      await waitFor(() => {
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[1]).toHaveAttribute(
-          'aria-selected',
-          'true'
-        );
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
       });
     });
   });

@@ -938,7 +938,9 @@ export class VirtualizedViewManager {
         this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
       } else {
         this.bringRowIntoViewAnimation = null;
-        this.horizontal_scrollbar_container!.scrollLeft = -x;
+        if (this.horizontal_scrollbar_container) {
+          this.horizontal_scrollbar_container.scrollLeft = -x;
+        }
         this.columns.list.translate[0] = x;
       }
 

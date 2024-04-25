@@ -665,7 +665,7 @@ const TabActions = styled('ul')`
   }
 `;
 
-const TabSeparator = styled('li')`
+const TabSeparator = styled('span')`
   display: inline-block;
   margin-left: ${space(0.5)};
   margin-right: ${space(0.5)};
@@ -820,7 +820,7 @@ function TabCloseButton(props: {
   return (
     <CloseButton
       size="zero"
-      data-test-id="trace-drawer-tab-pin-button"
+      data-test-id="trace-drawer-tab-close-button"
       onClick={props.onClick}
     >
       <StyledIconClose size="xs" />
