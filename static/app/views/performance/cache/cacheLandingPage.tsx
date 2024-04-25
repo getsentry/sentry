@@ -29,12 +29,14 @@ import {
   isAValidSort,
   TransactionsTable,
 } from 'sentry/views/performance/cache/tables/transactionsTable';
-import {convertHitRateToMissRate} from 'sentry/views/performance/cache/utils';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {SpanFunction} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+
+const {CACHE_MISS_RATE} = SpanFunction;
 
 export function CacheLandingPage() {
   const organization = useOrganization();
@@ -50,7 +52,7 @@ export function CacheLandingPage() {
     data: cacheHitRateData,
     error: cacheHitRateError,
   } = useSpanMetricsSeries({
-    yAxis: [`cache_hit_rate()`],
+    yAxis: [`${CACHE_MISS_RATE}()`],
     search: MutableSearch.fromQueryObject(BASE_FILTERS),
     referrer: Referrer.LANDING_CACHE_HIT_MISS_CHART,
   });
@@ -77,7 +79,7 @@ export function CacheLandingPage() {
       'project.id',
       'transaction',
       'spm()',
-      'cache_hit_rate()',
+      `${CACHE_MISS_RATE}()`,
       'sum(span.self_time)',
       'time_spent_percentage()',
     ],
@@ -128,7 +130,7 @@ export function CacheLandingPage() {
             </ModuleLayout.Full>
             <ModuleLayout.Half>
               <CacheHitMissChart
-                series={convertHitRateToMissRate(cacheHitRateData['cache_hit_rate()'])}
+                series={cacheHitRateData['cache_miss_rate()']}
                 isLoading={isCacheHitRateLoading}
                 error={cacheHitRateError}
               />
