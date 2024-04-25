@@ -55,6 +55,9 @@ const Title = styled(FlexBox)`
   gap: ${space(1)};
   flex: none;
   width: 50%;
+  > span {
+    min-width: 30px;
+  }
 `;
 
 const TitleText = styled('div')`
@@ -85,6 +88,7 @@ const Table = styled('table')`
 
 const IconTitleWrapper = styled(FlexBox)`
   gap: ${space(1)};
+  min-width: 30px;
 `;
 
 const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
