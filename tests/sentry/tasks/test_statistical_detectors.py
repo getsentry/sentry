@@ -302,6 +302,7 @@ def test_detect_transaction_trends(
     assert detect_transaction_change_points.apply_async.called
 
 
+@mock.patch("sentry.issues.status_change_message.uuid4", return_value=uuid.UUID(int=0))
 @mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
 @mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
@@ -311,6 +312,7 @@ def test_detect_transaction_trends_auto_resolution(
     produce_occurrence_to_kafka,
     detect_transaction_change_points,
     raw_snql_query,
+    mock_uuid4,
     timestamp,
     project,
 ):
@@ -1131,10 +1133,12 @@ def test_save_regressions_with_versions(
         pytest.param(GroupStatus.IGNORED, GroupSubStatus.FOREVER, False, id="forever"),
     ],
 )
+@mock.patch("sentry.issues.status_change_message.uuid4", return_value=uuid.UUID(int=0))
 @mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
 @django_db_all
 def test_redirect_escalations(
     produce_occurrence_to_kafka,
+    mock_uuid4,
     detector_cls,
     object_name,
     baseline,
