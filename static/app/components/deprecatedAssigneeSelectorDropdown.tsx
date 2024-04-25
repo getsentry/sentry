@@ -113,6 +113,10 @@ type State = {
   suggestedOwners?: SuggestedOwner[] | null;
 };
 
+/**
+ * @deprecated use AssigneeSelectorDropdown instead (Coming in future PR)
+ */
+
 export class DeprecatedAssigneeSelectorDropdown extends Component<
   DeprecatedAssigneeSelectorDropdownProps,
   State
@@ -240,6 +244,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
     this.setState({loading: true});
   }
 
+  // Renamed to handleTeamAssign
   assignToTeam(team: Team) {
     const {organization} = this.props;
 
