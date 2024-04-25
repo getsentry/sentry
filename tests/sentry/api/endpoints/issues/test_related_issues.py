@@ -52,15 +52,15 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         }
 
     def test_trace_connected_errors(self) -> None:
-        first_event, _, another_proj_event = self.load_errors(self.project, uuid4().hex[:16])
-        group = first_event.group
-        self.group_id = first_event.group_id  # type: ignore[assignment]
-        error_event = group.get_recommended_event_for_environments()  # type: ignore[union-attr]
-        assert error_event is not None  # It helps with typing
+        error_event, _, another_proj_event = self.load_errors(self.project, uuid4().hex[:16])
+        group = error_event.group
+        self.group_id = error_event.group_id  # type: ignore[assignment]
+        recommended_event = group.get_recommended_event_for_environments()  # type: ignore[union-attr]
+        assert recommended_event is not None  # It helps with typing
 
-        assert first_event.group_id != another_proj_event.group_id
-        assert first_event.project.id != another_proj_event.project.id
-        assert first_event.trace_id == another_proj_event.trace_id
+        assert error_event.group_id != another_proj_event.group_id
+        assert error_event.project.id != another_proj_event.project.id
+        assert error_event.trace_id == another_proj_event.trace_id
 
         response = self.get_success_response()
         assert response.json() == {
