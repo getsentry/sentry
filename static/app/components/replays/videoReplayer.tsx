@@ -526,6 +526,10 @@ export class VideoReplayer {
   protected async loadSegmentAtTime(
     videoOffsetMs: number = 0
   ): Promise<number | undefined> {
+    if (!this._trackList.length) {
+      return undefined;
+    }
+
     const {segment: segmentIndex, previousSegment: previousSegmentIndex} =
       this.getSegmentIndexForTime(videoOffsetMs);
 
