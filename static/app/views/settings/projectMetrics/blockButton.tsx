@@ -52,6 +52,7 @@ export function BlockButton({
   blockTarget,
   onConfirm,
   hasAccess,
+  disabled,
   ...props
 }: BlockButtonProps) {
   const button = (
@@ -61,6 +62,9 @@ export function BlockButton({
       message={
         isBlocked ? unblockConfirmText[blockTarget] : blockConfirmText[blockTarget]
       }
+      // Confirm clones the child element and adds the disabled prop to the clone
+      // this will override the disabled prop if passed to the Button itself
+      disabled={!hasAccess || disabled}
       confirmText={isBlocked ? t('Activate') : t('Disable')}
     >
       <Button
@@ -69,7 +73,6 @@ export function BlockButton({
           isBlocked ? unblockAriaLabel[blockTarget] : blockAriaLabel[blockTarget]
         }
         icon={isBlocked ? <IconPlay size="xs" /> : <IconNot size="xs" />}
-        disabled={!hasAccess || props.disabled}
       >
         {isBlocked ? t('Activate') : t('Disable')}
       </Button>

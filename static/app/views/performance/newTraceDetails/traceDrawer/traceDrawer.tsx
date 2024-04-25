@@ -5,11 +5,6 @@ import pick from 'lodash/pick';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
-import {
-  ButtonContainer,
-  ButtonGroup,
-  ValueRow,
-} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -52,6 +47,8 @@ import {
   type TraceTreeNode,
 } from '../traceModels/traceTree';
 
+import {ButtonGroup} from './details/span/sections/table/index';
+import {TraceDrawerComponents} from './details/styles';
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
@@ -358,6 +355,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 onClick={onMinimizeClick}
                 trace_state={props.trace_state}
               />
+              <TabSeparator />
             </TabLayoutControlItem>
           </TabActions>
           <TabsContainer
@@ -666,9 +664,25 @@ const TabActions = styled('ul')`
   }
 `;
 
+const TabSeparator = styled('span')`
+  display: inline-block;
+  margin-left: ${space(0.5)};
+  margin-right: ${space(0.5)};
+  height: 16px;
+  width: 1px;
+  background-color: ${p => p.theme.border};
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+`;
+
 const TabLayoutControlItem = styled('li')`
   display: inline-block;
   margin: 0;
+  position: relative;
+  z-index: 10;
+  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 const Tab = styled('li')`
@@ -681,16 +695,16 @@ const Tab = styled('li')`
   position: relative;
 
   &.Static + li:not(.Static) {
-    margin-left: ${space(2)};
+    margin-left: 10px;
 
     &:after {
       display: block;
       content: '';
       position: absolute;
-      left: -14px;
+      left: -10px;
       top: 50%;
       transform: translateY(-50%);
-      height: 72%;
+      height: 16px;
       width: 1px;
       background-color: ${p => p.theme.border};
     }
@@ -761,16 +775,15 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
           display: grid;
         }
 
-        ${ValueRow}{
+        ${TraceDrawerComponents.TableValueRow}{
           grid-template-columns: none;
           grid-template-rows: min-content min-content;
-          gap: 0;
 
           pre {
             padding-bottom: 0 !important;
           }
 
-          ${ButtonContainer} {
+          ${TraceDrawerComponents.TableRowButtonContainer} {
             padding-top: 0;
 
            ${ButtonGroup} {

@@ -49,13 +49,13 @@ from sentry.silo.base import SiloMode
 
 
 def get_existing_import_chunk(
-    model_name: NormalizedModelName, flags: ImportFlags, import_chunk_type: type[models.base.Model]
+    model_name: NormalizedModelName,
+    flags: ImportFlags,
+    import_chunk_type: type[models.base.Model],
+    min_ordinal: int,
 ) -> RpcImportOk | None:
-    # TODO(getsentry/team-ospo#190): `min_ordinal=1` assumes the entire model is being imported in a
-    # single call; we will need to change this when we implement more granular chunking in the
-    # future.
     found_chunk = import_chunk_type.objects.filter(
-        import_uuid=flags.import_uuid, model=model_name, min_ordinal=1
+        import_uuid=flags.import_uuid, model=model_name, min_ordinal=min_ordinal
     ).first()
     if found_chunk is None:
         return None
@@ -105,7 +105,15 @@ class UniversalImportExportService(ImportExportService):
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         json_data: str,
+        min_ordinal: int,
     ) -> RpcImportResult:
+        if min_ordinal < 1:
+            return RpcImportError(
+                kind=RpcImportErrorKind.InvalidMinOrdinal,
+                on=InstanceID(model_name),
+                reason=f"The model `{model_name}` was offset with an invalid `min_ordinal` of `{min_ordinal}`",
+            )
+
         batch_model_name = NormalizedModelName(model_name)
         model = get_model(batch_model_name)
         if model is None:
@@ -166,7 +174,7 @@ class UniversalImportExportService(ImportExportService):
                 # building our transaction. Thus, we'll check `get_existing_import_chunk()` again if
                 # we catch an `IntegrityError` below.
                 existing_import_chunk = get_existing_import_chunk(
-                    batch_model_name, import_flags, import_chunk_type
+                    batch_model_name, import_flags, import_chunk_type, min_ordinal
                 )
                 if existing_import_chunk is not None:
                     return existing_import_chunk
@@ -177,7 +185,7 @@ class UniversalImportExportService(ImportExportService):
                 max_old_pk = 0
                 min_inserted_pk: int | None = None
                 max_inserted_pk: int | None = None
-                counter = 0
+                last_seen_ordinal = min_ordinal - 1
                 for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
                     model_instance = deserialized_object.object
                     if model_instance._meta.app_label not in EXCLUDED_APPS or model_instance:
@@ -225,7 +233,7 @@ class UniversalImportExportService(ImportExportService):
 
                                     # For models that may have circular references to themselves
                                     # (unlikely), keep track of the new pk in the input map as well.
-                                    counter += 1
+                                    last_seen_ordinal += 1
                                     new_pk, import_kind = written
                                     slug = getattr(model_instance, "slug", None)
                                     in_pk_map.insert(
@@ -250,7 +258,7 @@ class UniversalImportExportService(ImportExportService):
                                     errs = {field: error for field, error in e.message_dict.items()}
                                     return RpcImportError(
                                         kind=RpcImportErrorKind.ValidationError,
-                                        on=InstanceID(model_name, ordinal=counter),
+                                        on=InstanceID(model_name, ordinal=last_seen_ordinal),
                                         left_pk=model_instance.pk,
                                         reason=f"Django validation error encountered: {errs}",
                                     )
@@ -258,14 +266,14 @@ class UniversalImportExportService(ImportExportService):
                                 except DjangoRestFrameworkValidationError as e:
                                     return RpcImportError(
                                         kind=RpcImportErrorKind.ValidationError,
-                                        on=InstanceID(model_name, ordinal=counter),
+                                        on=InstanceID(model_name, ordinal=last_seen_ordinal),
                                         left_pk=model_instance.pk,
                                         reason=str(e),
                                     )
 
                 # If the `counter` is at 0, no model instances were actually imported, so we can
                 # return early.
-                if counter == 0:
+                if last_seen_ordinal == min_ordinal - 1:
                     return RpcImportOk(
                         mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
                         min_ordinal=None,
@@ -295,10 +303,8 @@ class UniversalImportExportService(ImportExportService):
                 import_chunk_args = {
                     "import_uuid": flags.import_uuid,
                     "model": model_name,
-                    # TODO(getsentry/team-ospo#190): The next two fields assume the entire model is
-                    # being imported in a single call; we may change this in the future.
-                    "min_ordinal": 1,
-                    "max_ordinal": counter,
+                    "min_ordinal": min_ordinal,
+                    "max_ordinal": last_seen_ordinal,
                     "min_source_pk": min_old_pk,
                     "max_source_pk": max_old_pk,
                     "min_inserted_pk": min_inserted_pk,
@@ -317,8 +323,8 @@ class UniversalImportExportService(ImportExportService):
 
                 return RpcImportOk(
                     mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
-                    min_ordinal=1,
-                    max_ordinal=counter,
+                    min_ordinal=min_ordinal,
+                    max_ordinal=last_seen_ordinal,
                     min_source_pk=min_old_pk,
                     max_source_pk=max_old_pk,
                     min_inserted_pk=min_inserted_pk,
@@ -343,11 +349,11 @@ class UniversalImportExportService(ImportExportService):
                 if desc.startswith("UniqueViolation") and import_chunk_type._meta.db_table in desc:
                     try:
                         existing_import_chunk = get_existing_import_chunk(
-                            batch_model_name, import_flags, import_chunk_type
+                            batch_model_name, import_flags, import_chunk_type, min_ordinal
                         )
                         if existing_import_chunk is None:
                             raise RuntimeError(
-                                f"Erroneous import chunk unique collision for identifier: {(import_flags.import_uuid, batch_model_name, 1)}"
+                                f"Erroneous import chunk unique collision for identifier: {(import_flags.import_uuid, batch_model_name, min_ordinal)}"
                             )
                         return existing_import_chunk
                     except Exception:

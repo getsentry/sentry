@@ -1,9 +1,21 @@
 ---
-created: '2024-04-24T09:41:31.898387+00:00'
+created: '2024-04-24T14:41:12.052529+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 cardinalityLimits:
+- id: test3
+  limit: 90
+  scope: name
+  window:
+    granularitySeconds: 900
+    windowSeconds: 9000
+- id: test4
+  limit: 100
+  scope: name
+  window:
+    granularitySeconds: 1000
+    windowSeconds: 10000
 - id: test2
   limit: 80
   report: true
