@@ -287,7 +287,6 @@ class RuleProcessor:
         notification_uuid: str | None = None,
         rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
-        state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_inst = instantiate_action(rule, action, rule_fire_history)
             if not action_inst:
@@ -296,7 +295,6 @@ class RuleProcessor:
             results = safe_execute(
                 action_inst.after,
                 event=self.event,
-                state=state,
                 _with_transaction=False,
                 notification_uuid=notification_uuid,
             )

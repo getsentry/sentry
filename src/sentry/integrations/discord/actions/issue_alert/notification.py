@@ -6,7 +6,7 @@ from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifySe
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.rules.actions import IntegrationEventAction
-from sentry.rules.base import CallbackFuture, EventState
+from sentry.rules.base import CallbackFuture
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
@@ -31,7 +31,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
         }
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         channel_id = self.get_option("channel_id")
         tags = set(self.get_tags_list())

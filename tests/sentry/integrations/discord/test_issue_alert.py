@@ -67,9 +67,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     @mock.patch("sentry.analytics.record")
     def test_basic(self, mock_record):
         notification_uuid = str(uuid4())
-        results = list(
-            self.rule.after(self.event, self.get_state(), notification_uuid=notification_uuid)
-        )
+        results = list(self.rule.after(self.event, notification_uuid=notification_uuid))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
@@ -134,7 +132,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
         release.add_project(self.project)
 
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
@@ -161,7 +159,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         return_value=GroupStatus.RESOLVED,
     )
     def test_resolved(self, mock_get_status):
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
@@ -188,7 +186,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         return_value=GroupStatus.IGNORED,
     )
     def test_ignored(self, mock_get_status):
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
@@ -211,7 +209,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
     @responses.activate
     def test_feature_flag_disabled(self):
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 1
         results[0].callback(self.event, futures=[])
 
@@ -220,7 +218,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     @responses.activate
     def test_integration_removed(self):
         integration_service.delete_integration(integration_id=self.discord_integration.id)
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 0
 
     @responses.activate

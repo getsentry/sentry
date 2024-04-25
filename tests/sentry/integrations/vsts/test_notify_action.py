@@ -67,7 +67,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
             content_type="application/json",
         )
 
-        after_res = azuredevops_rule.after(event=event, state=self.get_state())
+        after_res = azuredevops_rule.after(event=event)
         results = list(after_res)
         assert len(results) == 1
 
@@ -120,7 +120,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         )
         azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
 
-        results = list(azuredevops_rule.after(event=event, state=self.get_state()))
+        results = list(azuredevops_rule.after(event=event))
         assert len(results) == 1
         results[0].callback(event, futures=[])
         assert len(responses.calls) == 0

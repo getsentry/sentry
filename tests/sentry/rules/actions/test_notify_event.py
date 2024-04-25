@@ -18,7 +18,7 @@ class NotifyEventActionTest(RuleTestCase):
         rule = self.get_rule()
         rule.get_plugins = lambda: (LegacyPluginService(plugin),)
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
 
         assert len(results) == 1
         assert plugin.should_notify.call_count == 1

@@ -49,7 +49,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -360,7 +360,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 0
 
     @responses.activate
@@ -381,9 +381,7 @@ class SlackNotifyActionTest(RuleTestCase):
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
-            results = list(
-                rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
-            )
+            results = list(rule.after(event=event, notification_uuid=notification_uuid))
             assert len(results) == 1
 
             responses.add(
@@ -433,5 +431,5 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1

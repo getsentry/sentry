@@ -7,7 +7,6 @@ from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageB
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.rules.actions import IntegrationEventAction
-from sentry.rules.base import EventState
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.utils import metrics
 
@@ -41,7 +40,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             a for a in super().get_integrations() if a.metadata.get("installation_type") != "tenant"
         ]
 
-    def after(self, event: GroupEvent, state: EventState, notification_uuid: str | None = None):
+    def after(self, event: GroupEvent, notification_uuid: str | None = None):
         channel = self.get_option("channel_id")
 
         integration = self.get_integration()

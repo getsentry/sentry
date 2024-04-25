@@ -27,7 +27,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
         with patch("sentry.plugins.base.plugins.get") as get_plugin:
             get_plugin.return_value = plugin
 
-            results = list(rule.after(event=event, state=self.get_state()))
+            results = list(rule.after(event=event))
 
         assert len(results) == 1
         assert plugin.should_notify.call_count == 1
@@ -42,7 +42,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"service": "test-application"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
 
         assert len(results) == 1
         assert results[0].callback is notify_sentry_app
@@ -61,7 +61,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
         with patch("sentry.plugins.base.plugins.get") as get_plugin:
             get_plugin.return_value = plugin
 
-            results = list(rule.after(event=event, state=self.get_state()))
+            results = list(rule.after(event=event))
 
         assert len(results) == 2
         assert plugin.should_notify.call_count == 1
