@@ -111,12 +111,6 @@ const SectionSubtext = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const PercentileHeaderBodyWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(4, max-content);
-  gap: ${space(3)};
-`;
-
 export const SpanLabelContainer = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;

@@ -45,6 +45,8 @@ export const SORTABLE_FIELDS = new Set([
   `${HTTP_RESPONSE_RATE}(4)`,
   `${HTTP_RESPONSE_RATE}(5)`,
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+  SpanIndexedField.TIMESTAMP,
+  SpanIndexedField.SPAN_DURATION,
 ]);
 
 const NUMERIC_FIELDS = new Set([`${RESPONSE_CODE}`]);
@@ -52,6 +54,9 @@ const NUMERIC_FIELDS = new Set([`${RESPONSE_CODE}`]);
 export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {
   const {key, name} = column;
   const alignment = getAlignment(key);
+
+  console.dir(sort);
+  console.dir(column);
 
   let newSortDirection: Sort['kind'] = 'desc';
   if (sort?.field === column.key) {
