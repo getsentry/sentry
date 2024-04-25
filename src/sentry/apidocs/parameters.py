@@ -32,9 +32,9 @@ class GlobalParams:
         type=str,
         location="path",
     )
-    TEAM_SLUG = OpenApiParameter(
-        name="team_slug",
-        description="The slug of the team the resource belongs to.",
+    TEAM_ID_OR_SLUG = OpenApiParameter(
+        name="team_id_or_slug",
+        description="The id or slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",

@@ -39,7 +39,7 @@ cssutils==2.9.0
 datadog==0.49.1
 distlib==0.3.8
 distro==1.8.0
-django==5.0.3
+django==5.0.4
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.13
@@ -149,7 +149,7 @@ pytest-fail-slow==0.3.0
 pytest-json-report==1.5.0
 pytest-metadata==3.1.1
 pytest-rerunfailures==11.0
-pytest-sentry==0.3.0rc1
+pytest-sentry==0.3.0
 pytest-xdist==3.0.2
 python-dateutil==2.8.2
 python-rapidjson==1.8
@@ -184,7 +184,7 @@ sentry-kafka-schemas==0.1.68
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.57
-sentry-sdk==2.0.0rc6
+sentry-sdk==2.0.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0

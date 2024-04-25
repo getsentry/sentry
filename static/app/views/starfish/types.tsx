@@ -38,6 +38,7 @@ export enum SpanMetricsField {
   APP_START_TYPE = 'app_start_type',
   DEVICE_CLASS = 'device.class',
   CACHE_HIT = 'cache.hit',
+  CACHE_ITEM_SIZE = 'cahce.item_size',
 }
 
 export type SpanNumberFields =
@@ -66,6 +67,12 @@ export type SpanMetricsQueryFilters = {
 } & {
   [SpanMetricsField.PROJECT_ID]?: string;
   [SpanMetricsField.SPAN_DOMAIN]?: string;
+};
+
+export type SpanIndexedQueryFilters = {
+  [Field in SpanStringFields]?: string;
+} & {
+  [SpanIndexedField.PROJECT_ID]?: string;
 };
 
 export type SpanStringArrayFields = 'span.domain';
@@ -168,6 +175,7 @@ export enum SpanIndexedField {
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
+  CACHE_ITEM_SIZE = 'measurements.cache.item_size',
   MESSAGE_ID = 'message.id',
   MESSAGE_SIZE = 'message.size',
   MESSAGE_STATUS = 'message.status',
@@ -205,6 +213,7 @@ export type IndexedResponse = {
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
+  [SpanIndexedField.CACHE_ITEM_SIZE]: number;
   [SpanIndexedField.MESSAGE_ID]: string;
   [SpanIndexedField.MESSAGE_SIZE]: number;
   [SpanIndexedField.MESSAGE_STATUS]: string;
