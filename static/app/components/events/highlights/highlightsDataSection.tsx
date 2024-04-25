@@ -46,11 +46,7 @@ export default function HighlightsDataSection({
   const organization = useOrganization();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
-  const {
-    isLoading,
-    data: detailedProject,
-    refetch,
-  } = useDetailedProject({
+  const {isLoading, data: detailedProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -133,7 +129,7 @@ export default function HighlightsDataSection({
           {...deps}
         />
       ),
-      {modalCss: highlightModalCss, onClose: refetch}
+      {modalCss: highlightModalCss}
     );
   }
 

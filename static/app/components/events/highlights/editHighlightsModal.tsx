@@ -21,9 +21,10 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
-import {useMutation} from 'sentry/utils/queryClient';
+import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface EditHighlightsModalProps extends ModalRenderProps {
@@ -268,6 +269,7 @@ export default function EditHighlightsModal({
 
   const organization = useOrganization();
   const api = useApi();
+  const queryClient = useQueryClient();
 
   const {mutate: saveHighlights, isLoading} = useMutation<Project, RequestError>({
     mutationFn: () => {
@@ -284,6 +286,14 @@ export default function EditHighlightsModal({
         tct(`Successfully updated highlights for '[projectName]' project`, {
           projectName: project.name,
         })
+      );
+      setApiQueryData<Project>(
+        queryClient,
+        makeDetailedProjectQueryKey({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+        }),
+        data => (data ? {...data, highlightTags, highlightContext} : data)
       );
       closeModal();
     },
