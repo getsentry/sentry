@@ -108,7 +108,6 @@ export interface DeprecatedAssigneeSelectorDropdownProps {
 }
 
 type State = {
-  // How to handle state?
   loading: boolean;
   memberList?: User[];
   suggestedOwners?: SuggestedOwner[] | null;
@@ -469,7 +468,6 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
     );
   }
 
-  // DONE
   getSuggestedAssignees(): SuggestedAssignee[] {
     const assignableTeams = this.assignableTeams();
     const memberList = this.memberList() ?? [];
