@@ -67,7 +67,7 @@ function TransactionNodeDetailHeader({
         </Tooltip>
         <TraceDrawerComponents.TitleText>
           <div>{t('transaction')}</div>
-          <TraceDrawerComponents.TitleOp>
+          <TraceDrawerComponents.TitleOp onClick={_e => onTabScrollToNode(node)}>
             {' '}
             {node.value['transaction.op'] + ' - ' + node.value.transaction}
           </TraceDrawerComponents.TitleOp>
@@ -75,9 +75,6 @@ function TransactionNodeDetailHeader({
       </TraceDrawerComponents.Title>
 
       <TraceDrawerComponents.Actions>
-        <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-          {t('Show in view')}
-        </Button>
         <TraceDrawerComponents.EventDetailsLink node={node} organization={organization} />
         <Button
           size="xs"

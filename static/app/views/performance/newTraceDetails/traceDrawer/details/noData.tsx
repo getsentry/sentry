@@ -1,7 +1,6 @@
 import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -27,12 +26,6 @@ export function NoDataDetails(props: TraceTreeNodeDetailsProps<NoDataNode>) {
           </TraceDrawerComponents.IconBorder>
           <div style={{fontWeight: 'bold'}}>{t('Empty')}</div>
         </TraceDrawerComponents.IconTitleWrapper>
-
-        <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => props.onTabScrollToNode(props.node)}>
-            {t('Show in view')}
-          </Button>
-        </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
       <TraceDrawerComponents.Table className="table key-value">

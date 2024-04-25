@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -39,14 +38,11 @@ export function ParentAutogroupNodeDetails({
             >
               <IconGroup size="md" />
             </TraceDrawerComponents.IconBorder>
-            <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
+            <div style={{fontWeight: 'bold'}} onClick={_e => onTabScrollToNode(node)}>
+              {t('Autogroup')}
+            </div>
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
-        <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-            {t('Show in view')}
-          </Button>
-        </TraceDrawerComponents.Actions>
       </TraceDrawerComponents.HeaderContainer>
 
       <IssueList issues={issues} node={node} organization={organization} />

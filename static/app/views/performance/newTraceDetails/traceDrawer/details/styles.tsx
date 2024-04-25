@@ -72,6 +72,7 @@ const Type = styled('div')`
 const TitleOp = styled('div')`
   font-size: 15px;
   font-weight: bold;
+  cursor: pointer;
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -172,7 +173,7 @@ function EventDetailsLink(props: EventDetailsLinkProps) {
         });
       }}
     >
-      {t('View Event Details')}
+      {t('Event Details')}
     </LinkButton>
   );
 }
