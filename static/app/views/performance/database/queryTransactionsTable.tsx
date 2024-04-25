@@ -13,14 +13,11 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
@@ -95,9 +92,7 @@ export function QueryTransactionsTable({
   span,
 }: Props) {
   const location = useLocation();
-  const routingContext = useRoutingContext();
   const organization = useOrganization();
-  const router = useRouter();
 
   const renderBodyCell = (column: Column, row: Row) => {
     if (column.key === 'transaction') {
@@ -108,34 +103,17 @@ export function QueryTransactionsTable({
           : row.transaction;
 
       const pathname = normalizeUrl(
-        `/organizations/${organization.slug}${routingContext.baseURL}/${
-          extractRoute(location) ?? 'spans'
-        }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
+        `/organizations/${organization.slug}$/performance/database/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
       );
       const query: {[key: string]: string | undefined} = {
         ...location.query,
-        endpoint: row.transaction,
-        endpointMethod: row['transaction.method'],
         transaction: row.transaction,
+        transactionMethod: row['transaction.method'],
       };
-
-      if (row['transaction.method']) {
-        query.transactionMethod = row['transaction.method'];
-      }
 
       return (
         <OverflowEllipsisTextContainer>
-          <Link
-            to={`${pathname}?${qs.stringify(query)}`}
-            onClick={() => {
-              router.replace({
-                pathname,
-                query,
-              });
-            }}
-          >
-            {label}
-          </Link>
+          <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
         </OverflowEllipsisTextContainer>
       );
     }
