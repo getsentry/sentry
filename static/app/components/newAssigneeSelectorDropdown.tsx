@@ -335,7 +335,7 @@ function NewAssigneeSelectorDropdown({
           team => team.id === group.assignedTo?.id
         );
         if (assignedTeam) {
-          options.unshift({
+          options.push({
             value: '_current_assignee',
             label: t('Current Assignee'),
             options: [makeTeamOption(assignedTeam)],
@@ -347,7 +347,7 @@ function NewAssigneeSelectorDropdown({
       } else {
         const assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
         if (assignedUser) {
-          options.unshift({
+          options.push({
             value: '_current_assignee',
             label: t('Current Assignee'),
             options: [makeMemberOption(assignedUser)],
