@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, tsdb
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -97,8 +97,6 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self) -> bool:
-        from sentry import tsdb
-
         metrics.incr("groupsnooze.test_frequency_rates")
 
         end = timezone.now()
@@ -148,8 +146,6 @@ class GroupSnooze(Model):
             return True
 
     def test_user_rates_no_cache(self) -> bool:
-        from sentry import tsdb
-
         metrics.incr("groupsnooze.test_user_rates", tags={"cached": "false"})
         metrics.incr("groupsnooze.test_user_rates.snuba_call")
 
@@ -171,13 +167,12 @@ class GroupSnooze(Model):
         return True
 
     def test_user_rates_w_cache(self) -> bool:
-        from sentry import tsdb
-
         cache_key = f"groupsnooze:v1:{self.id}:test_user_rate:events_seen_counter"
 
         cache_ttl = self.user_window * 60  # Redis TTL in seconds (window is in minutes)
 
         value: int | float = float("inf")  # using +inf as a sentinel value
+
         try:
             value = cache.incr(cache_key)
             cache.touch(cache_key, cache_ttl)
@@ -225,7 +220,12 @@ class GroupSnooze(Model):
 
     def test_user_counts_w_cache(self, group: Group) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
-        threshold = self.user_count + self.state["users_seen"]
+        try:
+            users_seen = self.state["users_seen"]
+        except (KeyError, TypeError):
+            users_seen = 0
+
+        threshold = self.user_count + users_seen
 
         CACHE_TTL = 300  # Redis TTL in seconds
 
