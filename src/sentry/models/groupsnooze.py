@@ -99,7 +99,7 @@ class GroupSnooze(Model):
     def test_frequency_rates(self) -> bool:
         from sentry import tsdb
 
-        metrics.incr("groupsnooze.test_frequency_rates", tags={"cached": "none"})
+        metrics.incr("groupsnooze.test_frequency_rates")
 
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
