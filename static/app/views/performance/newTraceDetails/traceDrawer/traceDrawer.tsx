@@ -5,11 +5,6 @@ import pick from 'lodash/pick';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
-import {
-  ButtonContainer,
-  ButtonGroup,
-  ValueRow,
-} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -52,6 +47,8 @@ import {
   type TraceTreeNode,
 } from '../traceModels/traceTree';
 
+import {ButtonGroup} from './details/span/sections/table/index';
+import {TraceDrawerComponents} from './details/styles';
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
@@ -761,16 +758,15 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
           display: grid;
         }
 
-        ${ValueRow}{
+        ${TraceDrawerComponents.TableValueRow}{
           grid-template-columns: none;
           grid-template-rows: min-content min-content;
-          gap: 0;
 
           pre {
             padding-bottom: 0 !important;
           }
 
-          ${ButtonContainer} {
+          ${TraceDrawerComponents.TableRowButtonContainer} {
             padding-top: 0;
 
            ${ButtonGroup} {
