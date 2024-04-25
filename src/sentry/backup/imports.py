@@ -247,6 +247,11 @@ def _import(
 
     # The input JSON blob should already be ordered by model kind. We simply break it up into
     # smaller chunks, while guaranteeing that each chunk contains at most 1 model kind.
+    #
+    # This generator returns a three-tuple of values: 1. the name of the model being generated, 2. a
+    # serialized JSON string containing some number of such model instances, and 3. an offset
+    # representing how many instances of this model have already been produced by this generator,
+    # NOT including the current instance.
     def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = json.loads(content)
