@@ -597,15 +597,13 @@ class IssueListOverview extends Component<Props, State> {
         });
       }
     } else {
-      if (!isForReviewQuery(query)) {
-        GroupStore.loadInitialData([]);
+      GroupStore.loadInitialData([]);
 
-        this.setState({
-          issuesLoading: true,
-          queryCount: 0,
-          error: null,
-        });
-      }
+      this.setState({
+        issuesLoading: true,
+        queryCount: 0,
+        error: null,
+      });
     }
 
     const transaction = getCurrentSentryReactTransaction();
