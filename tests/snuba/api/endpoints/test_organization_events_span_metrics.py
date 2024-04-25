@@ -1442,19 +1442,22 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for index, release in enumerate(["foo", "bar"]):
             self.store_span_metric(
                 1 + 10 * index,
-                internal_metric=constants.SPAN_METRICS_MAP["mobile.slow_frames"],
+                entity="metrics_gauges",
+                metric="mobile.slow_frames",
                 timestamp=self.six_min_ago,
                 tags={"release": release},
             )
             self.store_span_metric(
                 2 + 10 * index,
-                internal_metric=constants.SPAN_METRICS_MAP["mobile.frozen_frames"],
+                entity="metrics_gauges",
+                metric="mobile.frozen_frames",
                 timestamp=self.six_min_ago,
                 tags={"release": release},
             )
             self.store_span_metric(
                 3 + 10 * index,
-                internal_metric=constants.SPAN_METRICS_MAP["mobile.frames_delay"],
+                entity="metrics_gauges",
+                metric="mobile.frames_delay",
                 timestamp=self.six_min_ago,
                 tags={"release": release},
             )
