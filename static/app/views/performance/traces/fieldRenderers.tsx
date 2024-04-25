@@ -62,7 +62,8 @@ export const TraceBreakdownContainer = styled('div')`
   height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
   background-color: ${p => p.theme.gray100};
 
-  perspective-origin: -50px -50px;
+  transform-style: preserve-3d;
+  perspective-origin: center -100px;
   transition-duration: 0.2s;
   transition-property: perspective;
   transition-timing-function: ease-in-out;
@@ -78,17 +79,23 @@ export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
   const theme = useTheme();
   const [hovered, setHover] = useState(false);
   const [basis, setBasis] = useState(0);
+  const [currentSliceName, setSliceName] = useState('');
 
   const zBasis = 0;
+
+  const seenSliceNames = [];
 
   return (
     <TraceBreakdownContainer
       data-test-id="relative-ops-breakdown"
-      style={{perspective: hovered ? 50 : 5000}}
+      style={{perspective: hovered ? 100 : 5000}}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
       {trace.breakdowns.map((breakdown, index) => {
+        if (!seenSliceNames.includes(breakdown.project || '') && breakdown.project) {
+          seenSliceNames.push(breakdown.project);
+        }
         return (
           <SpanBreakdownSliceRenderer
             key={breakdown.start + (breakdown.project ?? t('missing instrumentation'))}
@@ -97,8 +104,17 @@ export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
             sliceEnd={breakdown.end}
             trace={trace}
             theme={theme}
-            zTransform={index - basis}
-            onMouseEnter={() => setBasis(index)}
+            zTransform={4 * seenSliceNames.indexOf(breakdown.project) ?? 0}
+            cssFilter={
+              !currentSliceName || breakdown.project === currentSliceName
+                ? ''
+                : 'grayscale(50%)'
+            }
+            onMouseEnter={() => {
+              setBasis(index);
+              setSliceName(breakdown.project);
+            }}
+            onMouseLeave={() => setSliceName('')}
           />
         );
       })}
@@ -113,14 +129,18 @@ export function SpanBreakdownSliceRenderer({
   sliceStart,
   sliceEnd,
   zTransform,
+  cssFilter,
   onMouseEnter,
+  onMouseLeave,
 }: {
+  cssFilter: string;
   sliceEnd: number;
   sliceName: string | null;
   sliceStart: number;
   theme: Theme;
   trace: TraceResult<Field>;
   onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   zTransform?: number;
 }) {
   const traceDuration = trace.end - trace.start;
@@ -134,14 +154,19 @@ export function SpanBreakdownSliceRenderer({
   const slicePercent = toPercent(sliceDuration / traceDuration);
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset = toPercent(relativeSliceStart / traceDuration);
+
+  const sliceOffsetQuantized =
+    Math.floor((100 * relativeSliceStart) / traceDuration) / 10;
   return (
     <div
       onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       style={{
         width: slicePercent,
         left: sliceOffset,
         position: 'absolute',
-        transform: `translateZ(${zTransform}px)`,
+        transform: `translateZ(${zTransform ?? sliceOffsetQuantized}px)`,
+        filter: cssFilter,
       }}
     >
       <Tooltip
