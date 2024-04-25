@@ -623,12 +623,10 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
 @patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
 class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self, get_importer_for_model):
-        importer_mock_fn = (
-            lambda model_name, scope, flags, filter_by, pk_map, json_data: RpcImportError(
-                kind=RpcImportErrorKind.IntegrityError,
-                on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
-                reason="Test integrity error",
-            )
+        importer_mock_fn = lambda model_name, scope, flags, filter_by, pk_map, json_data, min_ordinal: RpcImportError(
+            kind=RpcImportErrorKind.IntegrityError,
+            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            reason="Test integrity error",
         )
         get_importer_for_model.return_value = importer_mock_fn
         # Global imports assume an empty DB, so this should fail with an `IntegrityError`.

@@ -129,6 +129,7 @@ class RpcImportErrorKind(str, Enum):
     DeserializationFailed = "DeserializationFailed"
     IncorrectSiloModeForModel = "IncorrectSiloModeForModel"
     IntegrityError = "IntegrityError"
+    InvalidMinOrdinal = "InvalidMinOrdinal"
     MissingImportUUID = "MissingImportUUID"
     UnknownModel = "UnknownModel"
     UnexpectedModel = "UnexpectedModel"

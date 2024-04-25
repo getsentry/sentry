@@ -60,6 +60,7 @@ class ImportExportService(RpcService):
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         json_data: str = "",
+        min_ordinal: int,
     ) -> RpcImportResult:
         """
         Import models of a certain kind from JSON source. Do not call this method directly - use

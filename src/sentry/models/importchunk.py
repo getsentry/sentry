@@ -53,7 +53,8 @@ class BaseImportChunk(DefaultFieldsModel):
     # existing database data that was kept in their stead).
     existing_map = models.JSONField(default=dict)
 
-    # A JSON object map from original pks in the source blob to the pks they "overwrote" (ie, the data from the model was imported into an existing model, and that model's pk was retained).
+    # A JSON object map from original pks in the source blob to the pks they "overwrote" (ie, the
+    # data from the model was imported into an existing model, and that model's pk was retained).
     overwrite_map = models.JSONField(default=dict)
 
     # If the inserted model has a "slug" field, or some other similar globally unique string

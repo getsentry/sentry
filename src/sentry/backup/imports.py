@@ -65,6 +65,9 @@ DELETED_FIELDS: dict[
     "sentry.team": {"org_role"}
 }
 
+# The maximum number of models that may be sent at a time.
+MAX_BATCH_SIZE = 20
+
 
 class ImportingError(Exception):
     def __init__(self, context: RpcImportError) -> None:
@@ -143,7 +146,10 @@ def _import(
     #
     # Needless to say, there is probably a better way to do this, but we'll use this hacky
     # workaround for now to enable forward progress.
-    deferred_org_auth_tokens = None
+    #
+    # Note: this is a list serialized JSON lists of `OrgAuthToken` models, batched into
+    # `MAX_BATCH_SIZE` length batches.
+    deferred_org_auth_tokens: list[str] = []
 
     # TODO(getsentry#team-ospo/190): Reading the entire export into memory as a string is quite
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
@@ -239,26 +245,41 @@ def _import(
 
         filters.append(email_filter)
 
-    # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
-    # with N model kinds into N json blobs with 1 model kind each.
-    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str]]:
+    # The input JSON blob should already be ordered by model kind. We simply break it up into
+    # smaller chunks, while guaranteeing that each chunk contains at most 1 model kind.
+    #
+    # This generator returns a three-tuple of values: 1. the name of the model being generated, 2. a
+    # serialized JSON string containing some number of such model instances, and 3. an offset
+    # representing how many instances of this model have already been produced by this generator,
+    # NOT including the current instance.
+    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = json.loads(content)
         last_seen_model_name: NormalizedModelName | None = None
         batch: list[type[Model]] = []
+        num_current_model_instances_yielded = 0
         for model in models:
             model_name = NormalizedModelName(model["model"])
             if last_seen_model_name != model_name:
                 if last_seen_model_name is not None and len(batch) > 0:
-                    yield (last_seen_model_name, json.dumps(batch))
+                    yield (
+                        last_seen_model_name,
+                        json.dumps(batch),
+                        num_current_model_instances_yielded,
+                    )
 
+                num_current_model_instances_yielded = 0
                 batch = []
                 last_seen_model_name = model_name
+            if len(batch) >= MAX_BATCH_SIZE:
+                yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
+                num_current_model_instances_yielded += len(batch)
+                batch = []
 
             batch.append(model)
 
         if last_seen_model_name is not None and batch:
-            yield (last_seen_model_name, json.dumps(batch))
+            yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
 
     # A wrapper for some immutable state we need when performing a single `do_write().
     @dataclass(frozen=True)
@@ -274,6 +295,7 @@ def _import(
         pk_map: PrimaryKeyMap,
         model_name: NormalizedModelName,
         json_data: json.JSONData,
+        offset: int,
     ) -> None:
         model_relations = import_write_context.dependencies.get(model_name)
         if not model_relations:
@@ -289,6 +311,7 @@ def _import(
             filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
+            min_ordinal=offset + 1,
         )
 
         if isinstance(result, RpcImportError):
@@ -323,8 +346,6 @@ def _import(
             control_import_chunk_replica = ControlImportChunkReplica(
                 import_uuid=flags.import_uuid,
                 model=model_name_str,
-                # TODO(getsentry/team-ospo#190): The next two fields assume the entire model is
-                # being imported in a single call; we may change this in the future.
                 min_ordinal=result.min_ordinal,
                 max_ordinal=result.max_ordinal,
                 min_source_pk=result.min_source_pk,
@@ -351,12 +372,12 @@ def _import(
     def do_writes(pk_map: PrimaryKeyMap) -> None:
         nonlocal deferred_org_auth_tokens, import_write_context
 
-        for model_name, json_data in yield_json_models(content):
+        for model_name, json_data, offset in yield_json_models(content):
             if model_name == org_auth_token_model_name:
-                deferred_org_auth_tokens = json_data
+                deferred_org_auth_tokens.append(json_data)
                 continue
 
-            do_write(import_write_context, pk_map, model_name, json_data)
+            do_write(import_write_context, pk_map, model_name, json_data, offset)
 
     # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
     # their slug globally via control silo by issuing a slug update.
@@ -393,7 +414,14 @@ def _import(
     resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
-        do_write(import_write_context, pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
+        for i, deferred_org_auth_token_batch in enumerate(deferred_org_auth_tokens):
+            do_write(
+                import_write_context,
+                pk_map,
+                org_auth_token_model_name,
+                deferred_org_auth_token_batch,
+                i * MAX_BATCH_SIZE,
+            )
 
 
 def import_in_user_scope(
