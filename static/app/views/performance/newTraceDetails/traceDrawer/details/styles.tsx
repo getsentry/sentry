@@ -52,7 +52,7 @@ const Actions = styled(FlexBox)`
 `;
 
 const Title = styled(FlexBox)`
-  gap: ${space(1)};
+  gap: ${space(1.5)};
   flex: none;
   width: 50%;
 `;
