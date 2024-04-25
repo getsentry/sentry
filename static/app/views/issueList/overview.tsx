@@ -586,17 +586,7 @@ class IssueListOverview extends Component<Props, State> {
     const {organization} = this.props;
     const query = this.getQuery();
 
-    if (!this.state.realtimeActive) {
-      if (!this.actionTaken && !this.undo) {
-        GroupStore.loadInitialData([]);
-
-        this.setState({
-          issuesLoading: true,
-          queryCount: 0,
-          error: null,
-        });
-      }
-    } else {
+    if (this.state.realtimeActive || (!this.actionTaken && !this.undo)) {
       GroupStore.loadInitialData([]);
 
       this.setState({
