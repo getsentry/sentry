@@ -43,7 +43,7 @@ class Migration(CheckedMigration):
                 migrations.AddField(
                     model_name="alertruleactivations",
                     name="activation_reason",
-                    field=models.CharField(default="backfill reason", max_length=100),
+                    field=models.CharField(max_length=100),
                 ),
             ],
         ),
