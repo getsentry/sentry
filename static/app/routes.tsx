@@ -1597,23 +1597,23 @@ function buildRoutes() {
       <Route path="mobile/">
         <Route path="screens/">
           <IndexRoute
-            component={make(() => import('sentry/views/performance/screenload'))}
+            component={make(() => import('sentry/views/performance/mobile/screenload'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/performance/screenload/screenLoadSpans')
+              () => import('sentry/views/performance/mobile/screenload/screenLoadSpans')
             )}
           />
         </Route>
         <Route path="app-startup/">
           <IndexRoute
-            component={make(() => import('sentry/views/performance/appStarts'))}
+            component={make(() => import('sentry/views/performance/mobile/appStarts'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/performance/appStarts/screenSummary')
+              () => import('sentry/views/performance/mobile/appStarts/screenSummary')
             )}
           />
         </Route>
@@ -1714,12 +1714,12 @@ function buildRoutes() {
       <Redirect from="database/" to="/performance/database" />
       <Route path="appStartup/">
         <IndexRoute
-          component={make(() => import('sentry/views/performance/appStarts'))}
+          component={make(() => import('sentry/views/performance/mobile/appStarts'))}
         />
         <Route
           path="spans/"
           component={make(
-            () => import('sentry/views/performance/appStarts/screenSummary')
+            () => import('sentry/views/performance/mobile/appStarts/screenSummary')
           )}
         />
       </Route>
