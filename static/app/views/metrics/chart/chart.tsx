@@ -191,6 +191,7 @@ export const MetricChart = memo(
             left: 0,
             right: 0,
           },
+          additionalSeries,
           tooltip: {
             formatter: (params, asyncTicket) => {
               // Only show the tooltip if the current chart is hovered
@@ -338,13 +339,14 @@ export const MetricChart = memo(
         focusArea,
         releases,
         firstUnit,
+        additionalSeries,
       ]);
 
       if (!enableZoom) {
         return (
           <ChartWrapper>
             {focusArea?.overlay}
-            <CombinedChart {...chartProps} additionalSeries={additionalSeries} />
+            <CombinedChart {...chartProps} />
           </ChartWrapper>
         );
       }
