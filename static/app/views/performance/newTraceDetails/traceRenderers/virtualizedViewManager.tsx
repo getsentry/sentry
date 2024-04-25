@@ -1201,10 +1201,29 @@ export class VirtualizedViewManager {
       span_list_width,
     });
 
+    // 60px error margin. ~52px is roughly the width of 500.00ms, we add a bit more, to be safe.
+    const error_margin = 60 * this.span_to_px[0];
+
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      const span = this.span_bars[i];
+
+      if (!span) {
+        continue;
+      }
+
+      const outside_left =
+        span.space[0] - this.to_origin + span.space[1] < this.trace_view.x - error_margin;
+      const outside_right = span.space[0] - this.to_origin > this.trace_view.right;
+
+      if (outside_left || outside_right) {
+        this.hideSpanBar(this.span_bars[i], this.span_text[i]);
+        this.drawSpanArrow(this.span_arrows[i], true, outside_left ? 0 : 1);
+        continue;
+      }
+
       this.drawSpanBar(this.span_bars[i]);
       this.drawSpanText(this.span_text[i], this.columns.list.column_nodes[i]);
-      this.drawSpanArrow(this.span_bars[i], this.span_arrows[i]);
+      this.drawSpanArrow(this.span_arrows[i], false, 0);
     }
 
     this.drawInvisibleBars();
@@ -1303,6 +1322,18 @@ export class VirtualizedViewManager {
 
   // DRAW METHODS
 
+  hideSpanBar(span_bar: this['span_bars'][0], span_text: this['span_text'][0]) {
+    span_bar && (span_bar.ref.style.transform = 'translate(-10000px, -10000px)');
+    span_text && (span_text.ref.style.transform = 'translate(-10000px, -10000px)');
+  }
+
+  hideSpanArrow(span_arrow: this['span_arrows'][0]) {
+    if (!span_arrow) return;
+    span_arrow.ref.className = 'TraceArrow';
+    span_arrow.visible = false;
+    span_arrow.ref.style.opacity = '0';
+  }
+
   drawSpanBar(span_bar: this['span_bars'][0]) {
     if (!span_bar) return;
 
@@ -1333,17 +1364,12 @@ export class VirtualizedViewManager {
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 
-  drawSpanArrow(span_bar: this['span_bars'][0], span_arrow: this['span_arrows'][0]) {
-    if (!span_arrow || !span_bar) return;
-
-    const outside_left =
-      span_bar.space[0] - this.to_origin + span_bar.space[1] < this.trace_view.x;
-    const outside_right = span_bar.space[0] - this.to_origin > this.trace_view.right;
-    const visible = outside_left || outside_right;
+  drawSpanArrow(span_arrow: this['span_arrows'][0], visible: boolean, position: 0 | 1) {
+    if (!span_arrow) return;
 
     if (visible !== span_arrow.visible) {
       span_arrow.visible = visible;
-      span_arrow.position = outside_left ? 0 : 1;
+      span_arrow.position = position;
 
       if (visible) {
         span_arrow.ref.className = `TraceArrow Visible ${span_arrow.position === 0 ? 'Left' : 'Right'}`;

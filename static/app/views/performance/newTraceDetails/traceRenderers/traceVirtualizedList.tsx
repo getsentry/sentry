@@ -321,7 +321,7 @@ function findRenderedItems({
     if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
       let style = styleCache.get(indexPointer);
       if (!style) {
-        style = {position: 'absolute', top: elementTop};
+        style = {position: 'absolute', transform: `translate(0px, ${elementTop}px)`};
         styleCache.set(indexPointer, style);
       }
 
