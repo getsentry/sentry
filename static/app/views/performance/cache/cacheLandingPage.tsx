@@ -130,7 +130,7 @@ export function CacheLandingPage() {
             </ModuleLayout.Full>
             <ModuleLayout.Half>
               <CacheHitMissChart
-                series={cacheHitRateData['cache_miss_rate()']}
+                series={cacheHitRateData[`${CACHE_MISS_RATE}()`]}
                 isLoading={isCacheHitRateLoading}
                 error={cacheHitRateError}
               />
