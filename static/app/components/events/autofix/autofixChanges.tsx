@@ -82,7 +82,14 @@ function AutofixRepoChange({
         </div>
         {!change.pull_request ? (
           <Actions>
-            <Button size="xs" onClick={() => createPr()} busy={isLoading}>
+            <Button
+              size="xs"
+              onClick={() => createPr()}
+              busy={isLoading}
+              analyticsEventName="Autofix: Create PR Clicked"
+              analyticsEventKey="autofix.create_pr_clicked"
+              analyticsParams={{group_id: groupId}}
+            >
               {t('Create a Pull Request')}
             </Button>
           </Actions>
@@ -92,6 +99,9 @@ function AutofixRepoChange({
             icon={<IconOpen size="xs" />}
             href={change.pull_request.pr_url}
             external
+            analyticsEventName="Autofix: View PR Clicked"
+            analyticsEventKey="autofix.view_pr_clicked"
+            analyticsParams={{group_id: groupId}}
           >
             {t('View Pull Request')}
           </LinkButton>

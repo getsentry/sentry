@@ -39,7 +39,6 @@ FUN_PROMPT_CHOICES = [
     "[hip hop rhyme about the error]",
     "[4 line rhyme about the error]",
     "[2 stanza rhyme about the error]",
-    "[anti joke about the error]",
 ]
 
 PROMPT = """\

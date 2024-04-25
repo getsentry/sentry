@@ -47,12 +47,101 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    # Remove this method once we don't need to support both approaches
-    def _generate_span_ids(self) -> list[str]:
+    def load_trace(self):
+        self.root_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="root",
+            spans=[
+                {
+                    "same_process_as_parent": True,
+                    "op": "http",
+                    "description": f"GET gen1-{i}",
+                    "span_id": root_span_id,
+                    "trace_id": self.trace_id,
+                }
+                for i, root_span_id in enumerate(self.root_span_ids)
+            ],
+            measurements={
+                "lcp": 1000,
+                "fcp": 750,
+                "fid": 3.5,
+            },
+            parent_span_id=None,
+            file_io_performance_issue=True,
+            slow_db_performance_issue=True,
+            project_id=self.project.id,
+            milliseconds=3000,
+        )
+
+        # First Generation
+        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
         if isinstance(self, OrganizationEventsTraceEndpointTestUsingSpans):
-            return ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
+            self.gen1_span_ids = ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
         else:
-            return super()._generate_span_ids()
+            self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen1_project = self.create_project(organization=self.organization)
+        self.gen1_events = [
+            self.create_event(
+                trace_id=self.trace_id,
+                transaction=f"/transaction/gen1-{i}",
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": f"GET gen2-{i}",
+                        "span_id": gen1_span_id,
+                        "trace_id": self.trace_id,
+                    }
+                ],
+                parent_span_id=root_span_id,
+                project_id=self.gen1_project.id,
+                milliseconds=2000,
+            )
+            for i, (root_span_id, gen1_span_id) in enumerate(
+                zip(self.root_span_ids, self.gen1_span_ids)
+            )
+        ]
+
+        # Second Generation
+        self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen2_project = self.create_project(organization=self.organization)
+
+        # Intentially pick a span id that starts with 0s
+        self.gen2_span_id = "0011" * 4
+
+        self.gen2_events = [
+            self.create_event(
+                trace_id=self.trace_id,
+                transaction=f"/transaction/gen2-{i}",
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
+                        "span_id": gen2_span_id,
+                        "trace_id": self.trace_id,
+                    }
+                ],
+                parent_span_id=gen1_span_id,
+                span_id=self.gen2_span_id if i == 0 else None,
+                project_id=self.gen2_project.id,
+                milliseconds=1000,
+            )
+            for i, (gen1_span_id, gen2_span_id) in enumerate(
+                zip(self.gen1_span_ids, self.gen2_span_ids)
+            )
+        ]
+
+        # Third generation
+        self.gen3_project = self.create_project(organization=self.organization)
+        self.gen3_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="/transaction/gen3-0",
+            spans=[],
+            project_id=self.gen3_project.id,
+            parent_span_id=self.gen2_span_id,
+            milliseconds=500,
+        )
 
 
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
@@ -1002,7 +1091,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_errors(self):
         self.load_trace()
-        error, error1, _ = self.load_errors()
+        error, error1, _ = self.load_errors(self.gen1_project, self.gen1_span_ids[0])
 
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -1528,7 +1617,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
 
     def test_with_errors(self):
         self.load_trace()
-        self.load_errors()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,

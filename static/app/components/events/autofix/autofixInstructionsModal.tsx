@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface AutofixContextModalProps extends ModalRenderProps {
+  groupId: string;
   triggerAutofix: (value: string) => void;
 }
 
@@ -17,6 +18,7 @@ export function AutofixInstructionsModal({
   Footer,
   closeModal,
   triggerAutofix,
+  groupId,
 }: AutofixContextModalProps) {
   return (
     <Form
@@ -54,7 +56,13 @@ export function AutofixInstructionsModal({
       <Footer>
         <FooterButtons>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" type="submit">
+          <Button
+            priority="primary"
+            type="submit"
+            analyticsEventKey="autofix.start_fix_with_instructions_clicked"
+            analyticsEventName="Autofix: Start Fix With Instructions Clicked"
+            analyticsParams={{group_id: groupId}}
+          >
             {t("Let's go!")}
           </Button>
         </FooterButtons>

@@ -91,10 +91,6 @@ def validate(
         need_ordering: dict[NormalizedModelName, dict[tuple, JSONData]] = defaultdict(dict)
         pks_to_usernames: dict[int, str] = dict()
 
-        # TODO(azaslavsky): This is a temporary fix. Remove it once we have a more
-        # sustainable export-side solution.
-        user_options_seen_ids: dict[tuple[int, str], InstanceID] = dict()
-
         for model in models:
             pk = model["pk"]
             model_name = NormalizedModelName(model["model"])
@@ -105,25 +101,11 @@ def validate(
             if model_type == User:
                 pks_to_usernames[pk] = model["fields"]["username"]
 
-            custom_ordinal_fields = model_type.get_relocation_ordinal_fields()
+            custom_ordinal_fields = model_type.get_relocation_ordinal_fields(model)
             if custom_ordinal_fields is None:
                 id, found = ordinal_counters[model_name].assign(model, pk, side)
                 findings.extend(found)
                 model_map[model_name][id] = model
-
-                # TODO(azaslavsky): This is a temporary fix. Remove it once we have a more
-                # sustainable export-side solution.
-                if (
-                    str(model_name) == "sentry.useroption"
-                    and not model["fields"].get("project_id", None)
-                    and not model["fields"].get("organization_id", None)
-                ):
-                    duplicate_id = user_options_seen_ids.pop(
-                        (model["fields"]["user"], model["fields"]["key"]), None
-                    )
-                    user_options_seen_ids[(model["fields"]["user"], model["fields"]["key"])] = id
-                    if duplicate_id is not None:
-                        del model_map[model_name][duplicate_id]
                 continue
 
             custom_ordinal_parts = []
@@ -136,15 +118,18 @@ def validate(
 
             ordinal = tuple(custom_ordinal_parts)
             if need_ordering[model_name].get(ordinal) is not None:
-                findings.append(
-                    ComparatorFinding(
-                        kind=ComparatorFindingKind.DuplicateCustomOrdinal,
-                        on=InstanceID(str(model_name), None),
-                        left_pk=pk if side == Side.left else None,
-                        right_pk=pk if side == Side.right else None,
-                        reason=f"""custom ordinal value `{ordinal}` appears multiple times""",
+                # Special case: overwrites of custom ordinals for `useroption`, since it is okay to
+                # just use the latest one when there is a collision.
+                if str(model_name) != "sentry.useroption":
+                    findings.append(
+                        ComparatorFinding(
+                            kind=ComparatorFindingKind.DuplicateCustomOrdinal,
+                            on=InstanceID(str(model_name), None),
+                            left_pk=pk if side == Side.left else None,
+                            right_pk=pk if side == Side.right else None,
+                            reason=f"""custom ordinal value `{ordinal}` appears multiple times""",
+                        )
                     )
-                )
 
             need_ordering[model_name][ordinal] = model
 
