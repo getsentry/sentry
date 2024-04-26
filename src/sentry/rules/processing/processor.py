@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -75,6 +76,104 @@ def split_conditions_and_filters(rule_condition_list):
     return condition_list, filter_list
 
 
+def build_rule_status_cache_key(rule_id: int, group_id: int) -> str:
+    return "grouprulestatus:1:%s" % hash_values([group_id, rule_id])
+
+
+def bulk_get_rule_status(rules: Sequence[Rule], group: Group) -> Mapping[int, GroupRuleStatus]:
+    keys = [build_rule_status_cache_key(rule.id, group.id) for rule in rules]
+    cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
+    missing_rule_ids: set[int] = set()
+    rule_statuses: MutableMapping[int, GroupRuleStatus] = {}
+    for key, rule in zip(keys, rules):
+        rule_status = cache_results.get(key)
+        if not rule_status:
+            missing_rule_ids.add(rule.id)
+        else:
+            rule_statuses[rule.id] = rule_status
+
+    if missing_rule_ids:
+        # If not cached, attempt to fetch status from the database
+        statuses = GroupRuleStatus.objects.filter(group=group, rule_id__in=missing_rule_ids)
+        to_cache: list[GroupRuleStatus] = list()
+        for status in statuses:
+            rule_statuses[status.rule_id] = status
+            missing_rule_ids.remove(status.rule_id)
+            to_cache.append(status)
+
+        # We might need to create some statuses if they don't already exist
+        if missing_rule_ids:
+            # We use `ignore_conflicts=True` here to avoid race conditions where the statuses
+            # might be created between when we queried above and attempt to create the rows now.
+            GroupRuleStatus.objects.bulk_create(
+                [
+                    GroupRuleStatus(rule_id=rule_id, group=group, project=group.project)
+                    for rule_id in missing_rule_ids
+                ],
+                ignore_conflicts=True,
+            )
+            # Using `ignore_conflicts=True` prevents the pk from being set on the model
+            # instances. Re-query the database to fetch the rows, they should all exist at this
+            # point.
+            statuses = GroupRuleStatus.objects.filter(group=group, rule_id__in=missing_rule_ids)
+            for status in statuses:
+                rule_statuses[status.rule_id] = status
+                missing_rule_ids.remove(status.rule_id)
+                to_cache.append(status)
+
+            if missing_rule_ids:
+                # Shouldn't happen, but log just in case
+                logger.error(
+                    "Failed to fetch some GroupRuleStatuses in RuleProcessor",
+                    extra={"missing_rule_ids": missing_rule_ids, "group_id": group.id},
+                )
+        if to_cache:
+            cache.set_many(
+                {build_rule_status_cache_key(item.rule_id, group.id): item for item in to_cache}
+            )
+
+    return rule_statuses
+
+
+def activate_downstream_actions(
+    rule: Rule,
+    event: GroupEvent,
+    notification_uuid: str | None = None,
+    rule_fire_history: RuleFireHistory | None = None,
+) -> MutableMapping[
+    str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+]:
+    grouped_futures: MutableMapping[
+        str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+    ] = {}
+
+    for action in rule.data.get("actions", ()):
+        action_inst = instantiate_action(rule, action, rule_fire_history)
+        if not action_inst:
+            continue
+
+        results = safe_execute(
+            action_inst.after,
+            event=event,
+            _with_transaction=False,
+            notification_uuid=notification_uuid,
+        )
+        if results is None:
+            logger.warning("Action %s did not return any futures", action["id"])
+            continue
+
+        for future in results:
+            key = future.key if future.key is not None else future.callback
+            rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
+
+            if key not in grouped_futures:
+                grouped_futures[key] = (future.callback, [rule_future])
+            else:
+                grouped_futures[key][1].append(rule_future)
+
+    return grouped_futures
+
+
 class RuleProcessor:
     def __init__(
         self,
@@ -103,67 +202,6 @@ class RuleProcessor:
         """Get all of the rules for this project from the DB (or cache)."""
         rules_: Sequence[Rule] = Rule.get_for_project(self.project.id)
         return rules_
-
-    def _build_rule_status_cache_key(self, rule_id: int) -> str:
-        return "grouprulestatus:1:%s" % hash_values([self.group.id, rule_id])
-
-    def bulk_get_rule_status(self, rules: Sequence[Rule]) -> Mapping[int, GroupRuleStatus]:
-        keys = [self._build_rule_status_cache_key(rule.id) for rule in rules]
-        cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
-        missing_rule_ids: set[int] = set()
-        rule_statuses: MutableMapping[int, GroupRuleStatus] = {}
-        for key, rule in zip(keys, rules):
-            rule_status = cache_results.get(key)
-            if not rule_status:
-                missing_rule_ids.add(rule.id)
-            else:
-                rule_statuses[rule.id] = rule_status
-
-        if missing_rule_ids:
-            # If not cached, attempt to fetch status from the database
-            statuses = GroupRuleStatus.objects.filter(
-                group=self.group, rule_id__in=missing_rule_ids
-            )
-            to_cache: list[GroupRuleStatus] = list()
-            for status in statuses:
-                rule_statuses[status.rule_id] = status
-                missing_rule_ids.remove(status.rule_id)
-                to_cache.append(status)
-
-            # We might need to create some statuses if they don't already exist
-            if missing_rule_ids:
-                # We use `ignore_conflicts=True` here to avoid race conditions where the statuses
-                # might be created between when we queried above and attempt to create the rows now.
-                GroupRuleStatus.objects.bulk_create(
-                    [
-                        GroupRuleStatus(rule_id=rule_id, group=self.group, project=self.project)
-                        for rule_id in missing_rule_ids
-                    ],
-                    ignore_conflicts=True,
-                )
-                # Using `ignore_conflicts=True` prevents the pk from being set on the model
-                # instances. Re-query the database to fetch the rows, they should all exist at this
-                # point.
-                statuses = GroupRuleStatus.objects.filter(
-                    group=self.group, rule_id__in=missing_rule_ids
-                )
-                for status in statuses:
-                    rule_statuses[status.rule_id] = status
-                    missing_rule_ids.remove(status.rule_id)
-                    to_cache.append(status)
-
-                if missing_rule_ids:
-                    # Shouldn't happen, but log just in case
-                    logger.error(
-                        "Failed to fetch some GroupRuleStatuses in RuleProcessor",
-                        extra={"missing_rule_ids": missing_rule_ids, "group_id": self.group.id},
-                    )
-            if to_cache:
-                cache.set_many(
-                    {self._build_rule_status_cache_key(item.rule_id): item for item in to_cache}
-                )
-
-        return rule_statuses
 
     def condition_matches(
         self,
@@ -279,37 +317,14 @@ class RuleProcessor:
 
         notification_uuid = str(uuid.uuid4())
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
-        self.activate_downstream_actions(rule, notification_uuid, rule_fire_history)
+        grouped_futures = activate_downstream_actions(
+            rule, self.event, notification_uuid, rule_fire_history
+        )
 
-    def activate_downstream_actions(
-        self,
-        rule: Rule,
-        notification_uuid: str | None = None,
-        rule_fire_history: RuleFireHistory | None = None,
-    ) -> None:
-        for action in rule.data.get("actions", ()):
-            action_inst = instantiate_action(rule, action, rule_fire_history)
-            if not action_inst:
-                continue
-
-            results = safe_execute(
-                action_inst.after,
-                event=self.event,
-                _with_transaction=False,
-                notification_uuid=notification_uuid,
-            )
-            if results is None:
-                logger.warning("Action %s did not return any futures", action["id"])
-                continue
-
-            for future in results:
-                key = future.key if future.key is not None else future.callback
-                rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
-
-                if key not in self.grouped_futures:
-                    self.grouped_futures[key] = (future.callback, [rule_future])
-                else:
-                    self.grouped_futures[key][1].append(rule_future)
+        if not self.grouped_futures:
+            self.grouped_futures = grouped_futures
+        else:
+            self.grouped_futures.update(grouped_futures)
 
     def apply(
         self,
@@ -323,7 +338,7 @@ class RuleProcessor:
         snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
             "rule", flat=True
         )
-        rule_statuses = self.bulk_get_rule_status(rules)
+        rule_statuses = bulk_get_rule_status(rules, self.group)
         for rule in rules:
             if rule.id not in snoozed_rules:
                 self.apply_rule(rule, rule_statuses[rule.id])
