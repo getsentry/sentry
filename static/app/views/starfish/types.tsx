@@ -94,6 +94,7 @@ export const SPAN_FUNCTIONS = [
   'http_response_rate',
   'http_error_count',
   'cache_hit_rate',
+  'cache_miss_rate',
   'ai_total_tokens_used',
 ] as const;
 
@@ -233,6 +234,7 @@ export enum SpanFunction {
   HTTP_ERROR_COUNT = 'http_error_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
   CACHE_HIT_RATE = 'cache_hit_rate',
+  CACHE_MISS_RATE = 'cache_miss_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -276,6 +278,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   },
   [SpanFunction.CACHE_HIT_RATE]: {
     desc: t('Percentage of cache hits'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.CACHE_MISS_RATE]: {
+    desc: t('Percentage of cache misses'),
     defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,

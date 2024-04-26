@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -8,13 +7,11 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction, Organization, Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -43,7 +40,7 @@ export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 type TransactionNodeDetailHeaderProps = {
   event: EventTransaction;
   node: TraceTreeNode<TraceTree.Transaction>;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.Transaction>) => void;
+  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   project: Project | undefined;
 };
@@ -73,21 +70,12 @@ function TransactionNodeDetailHeader({
           </TraceDrawerComponents.TitleOp>
         </TraceDrawerComponents.TitleText>
       </TraceDrawerComponents.Title>
-
-      <TraceDrawerComponents.Actions>
-        <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-          {t('Show in view')}
-        </Button>
-        <TraceDrawerComponents.EventDetailsLink node={node} organization={organization} />
-        <Button
-          size="xs"
-          icon={<IconOpen />}
-          href={`/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`}
-          external
-        >
-          {t('JSON')} (<FileSize bytes={event?.size} />)
-        </Button>
-      </TraceDrawerComponents.Actions>
+      <TraceDrawerComponents.NodeActions
+        node={node}
+        organization={organization}
+        onTabScrollToNode={onTabScrollToNode}
+        eventSize={event?.size}
+      />
     </TraceDrawerComponents.HeaderContainer>
   );
 }

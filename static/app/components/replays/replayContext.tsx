@@ -289,9 +289,11 @@ function ProviderNonMemo({
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
   };
-  const onFastForwardStart = (e: {speed: number}) => {
-    setFFSpeed(e.speed);
-  };
+  const onFastForwardStart = useCallback((e: {speed: number}) => {
+    if (savedReplayConfigRef.current.isSkippingInactive) {
+      setFFSpeed(e.speed);
+    }
+  }, []);
   const onFastForwardEnd = () => {
     setFFSpeed(0);
   };
@@ -318,10 +320,12 @@ function ProviderNonMemo({
         return;
       }
 
-      const skipInactive = replayer.config;
+      const skipInactive = replayer.config.skipInactive;
+
       if (skipInactive) {
         // If the replayer is set to skip inactive, we should turn it off before
-        // manually scrubbing, so when the player resumes playing its not stuck
+        // manually scrubbing, so when the player resumes playing it's not stuck
+        // fast-forwarding even through sections with activity
         replayer.setConfig({skipInactive: false});
       }
 
@@ -336,9 +340,9 @@ function ProviderNonMemo({
       if (playTimer.current) {
         window.clearTimeout(playTimer.current);
       }
-      if (skipInactive) {
-        replayer.setConfig({skipInactive: true});
-      }
+
+      replayer.setConfig({skipInactive});
+
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
@@ -460,6 +464,7 @@ function ProviderNonMemo({
       theme.purple200,
       startTimeOffsetMs,
       autoStart,
+      onFastForwardStart,
     ]
   );
 

@@ -56,7 +56,7 @@ import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
 import {useReleaseSeries} from 'sentry/views/metrics/chart/useMetricReleases';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
+import {FormulaFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
@@ -107,7 +107,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     if (isMetricFormula(firstQuery)) {
       return (
         <Fragment>
-          <FormularFormatter formula={unescapeMetricsFormula(firstQuery.formula)} />
+          <FormulaFormatter formula={unescapeMetricsFormula(firstQuery.formula)} />
         </Fragment>
       );
     }

@@ -787,9 +787,11 @@ export class VirtualizedViewManager {
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
     }
-    this.horizontal_scrollbar_container!.scrollLeft = -Math.round(
-      this.columns.list.translate[0]
-    );
+    if (this.horizontal_scrollbar_container) {
+      this.horizontal_scrollbar_container.scrollLeft = -Math.round(
+        this.columns.list.translate[0]
+      );
+    }
   }
 
   clampRowTransform(transform: number): number {
@@ -938,7 +940,9 @@ export class VirtualizedViewManager {
         this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
       } else {
         this.bringRowIntoViewAnimation = null;
-        this.horizontal_scrollbar_container!.scrollLeft = -x;
+        if (this.horizontal_scrollbar_container) {
+          this.horizontal_scrollbar_container.scrollLeft = -x;
+        }
         this.columns.list.translate[0] = x;
       }
 
@@ -1201,10 +1205,29 @@ export class VirtualizedViewManager {
       span_list_width,
     });
 
+    // 60px error margin. ~52px is roughly the width of 500.00ms, we add a bit more, to be safe.
+    const error_margin = 60 * this.span_to_px[0];
+
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      const span = this.span_bars[i];
+
+      if (!span) {
+        continue;
+      }
+
+      const outside_left =
+        span.space[0] - this.to_origin + span.space[1] < this.trace_view.x - error_margin;
+      const outside_right = span.space[0] - this.to_origin > this.trace_view.right;
+
+      if (outside_left || outside_right) {
+        this.hideSpanBar(this.span_bars[i], this.span_text[i]);
+        this.drawSpanArrow(this.span_arrows[i], true, outside_left ? 0 : 1);
+        continue;
+      }
+
       this.drawSpanBar(this.span_bars[i]);
       this.drawSpanText(this.span_text[i], this.columns.list.column_nodes[i]);
-      this.drawSpanArrow(this.span_bars[i], this.span_arrows[i]);
+      this.drawSpanArrow(this.span_arrows[i], false, 0);
     }
 
     this.drawInvisibleBars();
@@ -1303,6 +1326,18 @@ export class VirtualizedViewManager {
 
   // DRAW METHODS
 
+  hideSpanBar(span_bar: this['span_bars'][0], span_text: this['span_text'][0]) {
+    span_bar && (span_bar.ref.style.transform = 'translate(-10000px, -10000px)');
+    span_text && (span_text.ref.style.transform = 'translate(-10000px, -10000px)');
+  }
+
+  hideSpanArrow(span_arrow: this['span_arrows'][0]) {
+    if (!span_arrow) return;
+    span_arrow.ref.className = 'TraceArrow';
+    span_arrow.visible = false;
+    span_arrow.ref.style.opacity = '0';
+  }
+
   drawSpanBar(span_bar: this['span_bars'][0]) {
     if (!span_bar) return;
 
@@ -1333,17 +1368,12 @@ export class VirtualizedViewManager {
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 
-  drawSpanArrow(span_bar: this['span_bars'][0], span_arrow: this['span_arrows'][0]) {
-    if (!span_arrow || !span_bar) return;
-
-    const outside_left =
-      span_bar.space[0] - this.to_origin + span_bar.space[1] < this.trace_view.x;
-    const outside_right = span_bar.space[0] - this.to_origin > this.trace_view.right;
-    const visible = outside_left || outside_right;
+  drawSpanArrow(span_arrow: this['span_arrows'][0], visible: boolean, position: 0 | 1) {
+    if (!span_arrow) return;
 
     if (visible !== span_arrow.visible) {
       span_arrow.visible = visible;
-      span_arrow.position = outside_left ? 0 : 1;
+      span_arrow.position = position;
 
       if (visible) {
         span_arrow.ref.className = `TraceArrow Visible ${span_arrow.position === 0 ? 'Left' : 'Right'}`;
@@ -1484,6 +1514,8 @@ export class VirtualizedViewManager {
   drawInvisibleBars() {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];
+      const text = this.span_text[i];
+
       if (invisible_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
         invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
@@ -1493,6 +1525,21 @@ export class VirtualizedViewManager {
           // @ts-expect-error we set number value type on purpose
           isNaN(inverseScale) ? 1 : inverseScale
         );
+      }
+
+      if (text) {
+        const [inside, text_transform] = this.computeSpanTextPlacement(
+          this.columns.list.column_nodes[i],
+          text.space,
+          text.text
+        );
+
+        if (text_transform === null) {
+          return;
+        }
+
+        text.ref.style.color = inside ? 'white' : '';
+        text.ref.style.transform = `translateX(${text_transform}px)`;
       }
     }
   }
