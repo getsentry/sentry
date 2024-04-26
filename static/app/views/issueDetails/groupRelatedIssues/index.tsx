@@ -44,22 +44,28 @@ function GroupRelatedIssues({params}: Props) {
     staleTime: 0,
   });
 
-  const sameRootCauseIssues = relatedIssues?.data
-    .filter(item => item.type === 'same_root_cause')
-    .map(item => item.data);
-  // If the group we're looking related issues for shows up in the table,
-  // it will trigger a bug in getGroupReprocessingStatus because activites would be empty,
-  // thus, we excude it from the list of related issues
-  const groups = sameRootCauseIssues?.filter(id => id.toString() !== groupId)?.join(',');
+  const {
+    same_root_cause: sameRootCauseIssues = [],
+    trace_connected: traceConnectedIssues = [],
+  } = (relatedIssues?.data ?? []).reduce(
+    (mapping, item) => {
+      // If the group we're looking related issues for shows up in the table,
+      // it will trigger a bug in getGroupReprocessingStatus because activites would be empty,
+      // thus, we excude it from the list of related issues
+      const issuesList = item.data.filter(id => id.toString() !== groupId);
+      mapping[item.type] = issuesList;
+      return mapping;
+    },
+    {same_root_cause: [], trace_connected: []}
+  );
 
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
         <HeaderWrapper>
-          <Title>{t('Related Issues')}</Title>
           <small>
             {t(
-              'Related Issues are issues that may have the same root cause and can be acted on together.'
+              'Related Issues are issues that are related in some way and can be acted on together.'
             )}
           </small>
         </HeaderWrapper>
@@ -70,18 +76,48 @@ function GroupRelatedIssues({params}: Props) {
             message={t('Unable to load related issues, please try again later')}
             onRetry={refetch}
           />
-        ) : groups ? (
-          <GroupList
-            endpointPath={`/organizations/${orgSlug}/issues/`}
-            orgSlug={orgSlug}
-            queryParams={{query: `issue.id:[${groups}]`}}
-            query=""
-            source="related-issues-tab"
-            renderEmptyMessage={() => <Title>No related issues</Title>}
-            renderErrorMessage={() => <Title>Error loading related issues</Title>}
-          />
         ) : (
-          <b>No related issues found!</b>
+          <div>
+            <div>
+              <HeaderWrapper>
+                <Title>{t('Issues caused by the same root cause')}</Title>
+                {sameRootCauseIssues.length > 0 ? (
+                  <GroupList
+                    endpointPath={`/organizations/${orgSlug}/issues/`}
+                    orgSlug={orgSlug}
+                    queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
+                    query=""
+                    source="related-issues-tab"
+                  />
+                ) : (
+                  <small>{t('No same-root-cause related issues were found.')}</small>
+                )}
+              </HeaderWrapper>
+            </div>
+            <div>
+              <HeaderWrapper>
+                <Title>{t('Trace connected issues')}</Title>
+                {traceConnectedIssues.length > 0 ? (
+                  <div>
+                    <small>
+                      {t(
+                        'These are the issues belonging to the same trace (TODO: add link to trace).'
+                      )}
+                    </small>
+                    <GroupList
+                      endpointPath={`/organizations/${orgSlug}/issues/`}
+                      orgSlug={orgSlug}
+                      queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
+                      query=""
+                      source="related-issues-tab"
+                    />
+                  </div>
+                ) : (
+                  <small>{t('No trace-connected related issues were found.')}</small>
+                )}
+              </HeaderWrapper>
+            </div>
+          </div>
         )}
       </Layout.Main>
     </Layout.Body>
