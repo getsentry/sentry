@@ -50,6 +50,7 @@ import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
+import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
 import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEvents';
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
@@ -77,6 +78,7 @@ interface EventParameters
     IntegrationEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
+    TracingEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
@@ -89,6 +91,7 @@ const allEventMap: Record<string, string | null> = {
   ...issueEventMap,
   ...monitorsEventMap,
   ...performanceEventMap,
+  ...tracingEventMap,
   ...profilingEventMap,
   ...releasesEventMap,
   ...replayEventMap,
