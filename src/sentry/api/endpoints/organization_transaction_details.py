@@ -44,8 +44,8 @@ class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         # Get a list of all spans with this transaction_id
-        given_start_str = request.GET.get("start_timestamp")
-        given_end_str = request.GET.get("end_timestamp")
+        given_start_str = request.GET.get("start_timestamp", "")
+        given_end_str = request.GET.get("end_timestamp", "")
         try:
             start = datetime.fromtimestamp(float(given_start_str))
             end = datetime.fromtimestamp(float(given_end_str))

@@ -143,7 +143,7 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
             "platform": "",
             "message": "",
             "datetime": datetime.fromtimestamp(
-                root_span.get("start_timestamp_ms") / 1000.0, tz=timezone.utc
+                root_span.get("start_timestamp_ms", 0.0) / 1000.0, tz=timezone.utc
             ).isoformat(),
             "tags": [
                 ("tag", "value"),
@@ -205,16 +205,16 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
                 "location": transaction_name,
                 "title": transaction_name,
             },
-            "nodestore_insert": (root_span.get("start_timestamp_ms") + span_duration) / 1000,
-            "received": (root_span.get("start_timestamp_ms") + span_duration) / 1000,
+            "nodestore_insert": (root_span.get("start_timestamp_ms", 0.0) + span_duration) / 1000,
+            "received": (root_span.get("start_timestamp_ms", 0.0) + span_duration) / 1000,
             "request": {},
             "sdk": {
                 "name": sdk_name,
                 "version": sdk_version,
             },
             "span_grouping_config": {},
-            "start_timestamp": root_span.get("start_timestamp_ms") / 1000,
-            "timestamp": (root_span.get("start_timestamp_ms") + span_duration) / 1000,
+            "start_timestamp": root_span.get("start_timestamp_ms", 0.0) / 1000,
+            "timestamp": (root_span.get("start_timestamp_ms", 0.0) + span_duration) / 1000,
             "title": transaction_name,
             "transaction": transaction_name,
             "transaction_info": {},
@@ -305,8 +305,8 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         assert response.data["entries"][0]["data"] == [
             {
-                "timestamp": (db_span.get("start_timestamp_ms") + db_span_duration) / 1000,
-                "start_timestamp": db_span.get("start_timestamp_ms") / 1000,
+                "timestamp": (db_span.get("start_timestamp_ms", 0.0) + db_span_duration) / 1000,
+                "start_timestamp": db_span.get("start_timestamp_ms", 0.0) / 1000,
                 "exclusive_time": float(db_span_duration),
                 "description": db_span.get("description"),
                 "op": "db",
