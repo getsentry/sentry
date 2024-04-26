@@ -1,5 +1,5 @@
 ---
-created: '2024-04-25T23:45:42.529718+00:00'
+created: '2024-04-26T16:45:07.079484+00:00'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -127,7 +127,7 @@ steps:
   - --overwrite-configs
   id: import-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 600s
   waitFor:
   - copy-inputs-being-validated
   - create-working-dirs
@@ -157,7 +157,7 @@ steps:
   - /in/filter-usernames.txt
   id: import-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 900s
   waitFor:
   - copy-inputs-being-validated
   - create-working-dirs
@@ -221,7 +221,7 @@ steps:
   - /findings/export-baseline-config.json
   id: export-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 600s
   waitFor:
   - import-baseline-config
   - import-raw-relocation-data
@@ -254,7 +254,7 @@ steps:
   - /in/filter-usernames.txt
   id: export-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 300s
+  timeout: 600s
   waitFor:
   - import-colliding-users
   - export-baseline-config
@@ -296,7 +296,7 @@ steps:
   - /findings/compare-baseline-config.json
   id: compare-baseline-config
   name: gcr.io/cloud-builders/docker
-  timeout: 120s
+  timeout: 150s
   waitFor:
   - export-baseline-config
   - copy-out-dir
@@ -328,7 +328,7 @@ steps:
   - /findings/compare-colliding-users.json
   id: compare-colliding-users
   name: gcr.io/cloud-builders/docker
-  timeout: 120s
+  timeout: 150s
   waitFor:
   - export-colliding-users
   - compare-baseline-config
