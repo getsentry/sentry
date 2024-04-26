@@ -569,40 +569,6 @@ const ActionsContainer = styled('div')`
   }
 `;
 
-function ProfileLink({
-  event,
-  project,
-  query,
-}: {
-  event: EventTransaction;
-  project: Project | undefined;
-  query?: Location['query'];
-}) {
-  const profileId = event.contexts.profile?.profile_id || '';
-
-  if (!profileId) {
-    return null;
-  }
-
-  return profileId && project?.slug ? (
-    <TraceDrawerComponents.TableRow
-      title="Profile ID"
-      extra={
-        <TransactionToProfileButton
-          size="xs"
-          projectSlug={project.slug}
-          event={event}
-          query={query}
-        >
-          {t('View Profile')}
-        </TransactionToProfileButton>
-      }
-    >
-      {profileId}
-    </TraceDrawerComponents.TableRow>
-  ) : null;
-}
-
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
