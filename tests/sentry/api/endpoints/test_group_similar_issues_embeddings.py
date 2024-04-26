@@ -391,7 +391,13 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_group = self.create_group(project=self.project)
 
-    def create_frames(self, num_frames, contributes=True, start_index=1):
+    def create_frames(
+        self,
+        num_frames,
+        contributes=True,
+        start_index=1,
+        context_line_factory=lambda i: f"test = {i}!",
+    ):
         frames = []
         for i in range(start_index, start_index + num_frames):
             frames.append(
@@ -420,7 +426,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                             "name": None,
                             "contributes": contributes,
                             "hint": None,
-                            "values": ["test = " + str(i) + "!"],
+                            "values": [context_line_factory(i)],
                         },
                     ],
                 }
