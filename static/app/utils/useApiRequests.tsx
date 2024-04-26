@@ -134,6 +134,9 @@ function renderLoading() {
   return <LoadingIndicator />;
 }
 
+/**
+ * @deprecated Prefer using useApiQuery
+ */
 function useApiRequests<T extends Record<string, any>>({
   endpoints,
   reloadOnVisible = false,
