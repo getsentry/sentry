@@ -1900,67 +1900,7 @@ register(
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_envelope_forwarding",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_envelope_serialization",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_capture_envelope",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_common_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_incr",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_timing",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_gauge",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.emit_gauges",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_code_locations",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.metrics_summary_sample_rate",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

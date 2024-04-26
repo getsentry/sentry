@@ -445,11 +445,11 @@ def configure_sdk():
     # turn on minimetrics
     sdk_options.setdefault("_experiments", {}).update(
         enable_metrics=True,
-        metric_code_locations=options.get("delightful_metrics.enable_code_locations"),
+        metric_code_locations=True,
         before_emit_metric=minimetrics.before_emit_metric,
         # turn summaries on, but filter them dynamically in the callback
         metrics_summary_sample_rate=1.0,
-        should_summarize_metric=minimetrics.should_summarize_metric,
+        should_summarize_metric=True,
     )
 
     enable_cache_spans = os.getenv("SENTRY_URL_PREFIX") == "sentry.my.sentry.io"

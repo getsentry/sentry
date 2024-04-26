@@ -7,7 +7,6 @@ from sentry_sdk import Client, Hub, Transport
 
 from sentry.metrics.composite_experimental import CompositeExperimentalMetricsBackend
 from sentry.metrics.minimetrics import MiniMetricsMetricsBackend, before_emit_metric
-from sentry.testutils.helpers import override_options
 
 
 def full_flush(hub):
@@ -94,13 +93,6 @@ def backend():
         yield rv
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
 def test_incr_called_with_no_tags(backend, hub):
     backend.incr(key="foo", tags={"x": "y"})
     full_flush(hub)
@@ -118,13 +110,6 @@ def test_incr_called_with_no_tags(backend, hub):
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": False,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
 def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
     backend.incr(key="foo", tags={"x": "y"})
     full_flush(hub)
@@ -142,13 +127,6 @@ def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
 def test_incr_called_with_tag_value_as_list(backend, hub):
     # The minimetrics backend supports the list type.
     backend.incr(key="foo", tags={"x": ["bar", "baz"]})
@@ -163,37 +141,6 @@ def test_incr_called_with_tag_value_as_list(backend, hub):
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.emit_gauges": False,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
-def test_gauge_as_count(backend, hub):
-    # The minimetrics backend supports the list type.
-    backend.gauge(key="foo", value=42.0)
-    full_flush(hub)
-
-    metrics = hub.client.transport.get_metrics()
-
-    assert len(metrics) == 1
-    assert metrics[0][1] == "sentrytest.foo@none"
-    assert metrics[0][2] == "c"
-    assert metrics[0][3] == ["42.0"]
-
-    assert len(hub.client.metrics_aggregator.buckets) == 0
-
-
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.emit_gauges": True,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
 def test_gauge(backend, hub):
     # The minimetrics backend supports the list type.
     backend.gauge(key="foo", value=42.0)
@@ -209,17 +156,6 @@ def test_gauge(backend, hub):
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.allow_all_incr": True,
-        "delightful_metrics.allow_all_timing": True,
-        "delightful_metrics.allow_all_gauge": True,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
 def test_composite_backend_does_not_recurse(hub):
     composite_backend = CompositeExperimentalMetricsBackend(
         primary_backend="sentry.metrics.dummy.DummyMetricsBackend"
@@ -251,11 +187,6 @@ def test_composite_backend_does_not_recurse(hub):
     assert len(hub.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.minimetrics_sample_rate": 1.0,
-    }
-)
 @patch("sentry.metrics.minimetrics.sentry_sdk")
 @pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
 def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
@@ -275,11 +206,6 @@ def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
     }
 
 
-@override_options(
-    {
-        "delightful_metrics.minimetrics_sample_rate": 1.0,
-    }
-)
 @patch("sentry.metrics.minimetrics.sentry_sdk")
 @pytest.mark.parametrize("unit,expected_unit", [(None, "second"), ("second", "second")])
 def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit):
@@ -295,9 +221,6 @@ def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit
     }
 
 
-@override_options(
-    {"delightful_metrics.minimetrics_sample_rate": 1.0, "delightful_metrics.emit_gauges": True}
-)
 @patch("sentry.metrics.minimetrics.sentry_sdk")
 @pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
 def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit):
@@ -313,11 +236,6 @@ def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit)
     }
 
 
-@override_options(
-    {
-        "delightful_metrics.minimetrics_sample_rate": 1.0,
-    }
-)
 @patch("sentry.metrics.minimetrics.sentry_sdk")
 @pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
 def test_unit_is_correctly_propagated_for_distribution(sentry_sdk, unit, expected_unit):

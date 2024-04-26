@@ -6,8 +6,6 @@ from typing import Any
 import sentry_sdk
 from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
 
-from sentry import options
-from sentry.features.rollout import in_random_rollout
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
 
@@ -37,7 +35,6 @@ def patch_sentry_sdk():
         local_aggregator=None,
         stacklevel=0,
     ):
-        self._enable_code_locations = options.get("delightful_metrics.enable_code_locations")
         real_add(self, ty, key, value, unit, tags, timestamp, local_aggregator, stacklevel + 1)
         report_tracked_add(ty)
 
@@ -86,30 +83,21 @@ def patch_sentry_sdk():
                 sample_rate=1.0,
             )
 
-        if options.get("delightful_metrics.enable_capture_envelope"):
-            envelope = real_emit(self, flushable_buckets, code_locations)
-            if envelope is not None:
-                metrics.distribution(
-                    key="minimetrics.encoded_metrics_size",
-                    value=len(envelope.items[0].payload.get_bytes()),
-                    sample_rate=1.0,
-                    unit="byte",
-                )
+        envelope = real_emit(self, flushable_buckets, code_locations)
+        if envelope is not None:
+            metrics.distribution(
+                key="minimetrics.encoded_metrics_size",
+                value=len(envelope.items[0].payload.get_bytes()),
+                sample_rate=1.0,
+                unit="byte",
+            )
 
     MetricsAggregator.add = tracked_add  # type: ignore[method-assign]
     MetricsAggregator._emit = patched_emit  # type: ignore[method-assign]
 
 
 def before_emit_metric(key: str, value: int | float | str, unit: str, tags: dict[str, Any]) -> bool:
-    if not options.get("delightful_metrics.enable_common_tags"):
-        tags.pop("transaction", None)
-        tags.pop("release", None)
-        tags.pop("environment", None)
     return True
-
-
-def should_summarize_metric(key: str, tags: dict[str, Any]) -> bool:
-    return in_random_rollout("delightful_metrics.metrics_summary_sample_rate")
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
@@ -176,22 +164,13 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
-            if options.get("delightful_metrics.emit_gauges"):
-                sentry_sdk.metrics.gauge(
-                    key=self._get_key(key),
-                    value=value,
-                    tags=tags,
-                    unit=self._to_minimetrics_unit(unit=unit),
-                    stacklevel=stacklevel + 1,
-                )
-            else:
-                sentry_sdk.metrics.incr(
-                    key=self._get_key(key),
-                    value=value,
-                    tags=tags,
-                    unit=self._to_minimetrics_unit(unit=unit),
-                    stacklevel=stacklevel + 1,
-                )
+            sentry_sdk.metrics.gauge(
+                key=self._get_key(key),
+                value=value,
+                tags=tags,
+                unit=self._to_minimetrics_unit(unit=unit),
+                stacklevel=stacklevel + 1,
+            )
 
     def distribution(
         self,
