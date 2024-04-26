@@ -70,7 +70,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         self.event_frequency_condition3 = self.create_event_frequency_condition(
             interval="1h", value=1
         )
-        user_frequency_condition = self.create_event_frequency_condition(
+        self.user_frequency_condition = self.create_event_frequency_condition(
             interval="1m",
             id="EventUniqueUserFrequencyCondition",
         )
@@ -91,7 +91,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         assert self.group1
 
         self.rule2 = self.create_project_rule(
-            project=self.project, condition_match=[user_frequency_condition]
+            project=self.project, condition_match=[self.user_frequency_condition]
         )
         self.event2 = self.create_event(self.project, self.now, "group-2", self.environment.name)
         self.create_event(self.project, self.now, "group-2", self.environment.name)
@@ -266,3 +266,27 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             rules = apply_delayed(self.project.id)
             assert self.rule1 in rules
             assert no_fire_rule not in rules
+
+    def test_apply_delayed_action_match_all(self):
+        """
+        Test that a rule with multiple conditions and an action match of 'all' is scheduled to fire
+        """
+        two_conditions_match_all_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[self.event_frequency_condition, self.user_frequency_condition],
+            environment_id=self.environment.id,
+        )
+        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        group5 = event5.group
+        assert group5
+        assert self.group1
+        self.push_to_hash(
+            self.project.id, two_conditions_match_all_rule.id, group5.id, event5.event_id
+        )
+
+        with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
+            rules = apply_delayed(self.project.id)
+            assert self.rule1 in rules
+            assert self.rule2 in rules
+            assert two_conditions_match_all_rule in rules

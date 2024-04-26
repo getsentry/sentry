@@ -146,6 +146,8 @@ def get_rules_to_fire(
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rule_to_slow_conditions.items():
+        action_match = alert_rule.data.get("action_match", "any")
+        num_conditions_passed = 0
         for slow_condition in slow_conditions:
             if slow_condition:
                 condition_id = slow_condition.get("id")
@@ -159,7 +161,17 @@ def get_rules_to_fire(
                     ):
                         for group_id in rules_to_groups[alert_rule.id]:
                             if results[group_id] > target_value:
+                                if action_match == "all":
+                                    num_conditions_passed += 1
                                 rules_to_fire[alert_rule].add(group_id)
+
+        if (
+            action_match == "all"
+            and len(slow_conditions) > 1
+            and len(slow_conditions) != num_conditions_passed
+            and rules_to_fire[alert_rule]
+        ):
+            del rules_to_fire[alert_rule]
     return rules_to_fire
 
 
