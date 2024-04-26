@@ -252,7 +252,7 @@ function NewAssigneeSelectorDropdown({
 
       if (onAssign) {
         const suggestion = getSuggestedAssignees().find(
-          actor => actor.type === type && actor.id === assignee?.id
+          actor => actor.type === type && actor.id === assignee?.team.id
         );
         await onAssign(type, assignee, suggestion);
       }
@@ -296,7 +296,7 @@ function NewAssigneeSelectorDropdown({
 
   const makeTeamOption = (assignableTeam: AssignableTeam): SelectOption<string> => ({
     label: <IdBadge team={assignableTeam.team} />,
-    value: `TEAM_${assignableTeam.id}`,
+    value: `TEAM_${assignableTeam.team.id}`,
     textValue: assignableTeam.team.slug,
   });
 
@@ -337,12 +337,12 @@ function NewAssigneeSelectorDropdown({
 
     let memList = currentMemberList();
     let assignableTeamList = getAssignableTeams();
-    const suggestedAssignees = getSuggestedAssignees();
+    let suggestedAssignees = getSuggestedAssignees();
 
     if (group.assignedTo) {
       if (group.assignedTo.type === 'team') {
         const assignedTeam = assignableTeamList.find(
-          team => team.id === group.assignedTo?.id
+          assignableTeam => assignableTeam.team.id === group.assignedTo?.id
         );
         if (assignedTeam) {
           options.push({
@@ -353,6 +353,9 @@ function NewAssigneeSelectorDropdown({
           assignableTeamList = assignableTeamList?.filter(
             team => team.id !== group.assignedTo?.id
           );
+          suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
+            return suggestedAssignee.id !== group.assignedTo?.id;
+          });
         }
       } else {
         const assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
@@ -365,6 +368,9 @@ function NewAssigneeSelectorDropdown({
             ],
           });
           memList = memList?.filter(member => member.id !== group.assignedTo?.id);
+          suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
+            return suggestedAssignee.id !== group.assignedTo?.id;
+          });
         }
       }
     }
