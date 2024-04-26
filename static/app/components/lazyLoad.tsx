@@ -15,7 +15,7 @@ type ComponentType = React.ComponentType<any>;
 
 type Props<C extends ComponentType> = React.ComponentProps<C> & {
   /**
-   * Optionally wrap the component with lazy() before passing it to LazyLoad.
+   * Wrap the component with lazy() before passing it to LazyLoad.
    */
   LazyComponent?: React.LazyExoticComponent<C>;
 
@@ -38,7 +38,7 @@ type Props<C extends ComponentType> = React.ComponentProps<C> & {
  * call. This is primarily used in our routing tree.
  *
  * Outside the render path
- * Const LazyComponent = lazy(() => import('./myComponent'))
+ * const LazyComponent = lazy(() => import('./myComponent'))
  *
  * <LazyLoad LazyComponent={LazyComponent} someComponentProps={...} />
  */
