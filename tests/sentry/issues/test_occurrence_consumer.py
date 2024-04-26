@@ -22,6 +22,7 @@ from sentry.issues.occurrence_consumer import (
     _process_message,
     process_occurrence_group,
 )
+from sentry.issues.producer import _prepare_status_change_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -566,10 +567,11 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         initial_status = group.status
         initial_substatus = group.substatus
 
-        status_change_resolve = StatusChangeMessage(
+        status_change = StatusChangeMessage(
             fingerprint=[group_hash.hash],
             project_id=group.project_id,
             new_status=initial_status,
             new_substatus=initial_substatus,
         )
-        process_occurrence_group([status_change_resolve.to_dict()])
+        message = _prepare_status_change_message(status_change)
+        process_occurrence_group([message])
