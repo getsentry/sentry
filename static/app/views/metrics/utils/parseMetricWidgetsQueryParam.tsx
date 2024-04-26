@@ -156,7 +156,9 @@ function parseFormulaWidget(
   baseWidgetParams: BaseWidgetParams
 ): MetricsEquationWidget | null {
   const equation =
-    parseStringParam(widget, 'equation') || parseStringParam(widget, 'formula');
+    parseStringParam(widget, 'equation') ||
+    // TODO: remove fallback to legacy param
+    parseStringParam(widget, 'formula');
   // If we cannot retrieve a formula, there is nothing to display
   if (equation === undefined) {
     return null;
