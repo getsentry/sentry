@@ -16,7 +16,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
-EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
 BASE_APP_DATA: dict[str, Any] = {
     "app": {
         "type": "component",
@@ -493,7 +493,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     def test_get_stacktrace_string_simple(self):
         stacktrace_str = get_stacktrace_string(BASE_APP_DATA)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_no_values(self):
@@ -526,7 +526,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "values"
         ] += self.create_frames(1, False)
         stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_no_stacktrace(self):
@@ -537,18 +537,18 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     def test_get_stacktrace_string_chained(self):
         stacktrace_str = get_stacktrace_string(CHAINED_APP_DATA)
-        expected_stacktrace_str = 'Exception: Catch divide by zero error\n  File "python_onboarding.py", line <module>\n    divide_by_zero()\n  File "python_onboarding.py", line divide_by_zero\n    raise Exception("Catch divide by zero error")\nZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'Exception: Catch divide by zero error\n  File "python_onboarding.py", function <module>\n    divide_by_zero()\n  File "python_onboarding.py", function divide_by_zero\n    raise Exception("Catch divide by zero error")\nZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_thread(self):
         stacktrace_str = get_stacktrace_string(MOBILE_THREAD_DATA)
-        assert stacktrace_str == 'File "", line TestHandler'
+        assert stacktrace_str == 'File "", function TestHandler'
 
     def test_get_stacktrace_string_system(self):
         data_system = copy.deepcopy(BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
         stacktrace_str = get_stacktrace_string(data_system)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_app_and_system(self):
@@ -559,7 +559,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         data.update({"system": data_system})
 
         stacktrace_str = get_stacktrace_string(data)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_no_app_no_system(self):
