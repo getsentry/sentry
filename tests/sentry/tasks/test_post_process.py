@@ -2720,6 +2720,7 @@ class PostProcessGroupFeedbackTest(
         group_event.occurrence = occurrence
         return group_event
 
+    @override_options({"feedback.spam-detection-actions": True})
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
@@ -2735,6 +2736,7 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_option_disabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
@@ -2760,6 +2762,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_spam(self):
         event = self.create_event(
             data={},
@@ -2785,6 +2788,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_project_option_enabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", True)
 
@@ -2811,6 +2815,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_setting_option_epoch_0(self):
         self.project.update_option("sentry:option-epoch", 1)
         event = self.create_event(
@@ -2836,6 +2841,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_default_on_new_projects(self):
         event = self.create_event(
             data={},
@@ -2860,6 +2866,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
             data={},
