@@ -3,6 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+import logging
 import traceback
 
 import sentry_sdk
@@ -46,6 +47,8 @@ from sentry.services.hybrid_cloud.import_export.model import (
 )
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
 from sentry.silo.base import SiloMode
+
+logger = logging.getLogger(__name__)
 
 
 def get_existing_import_chunk(
@@ -160,6 +163,12 @@ class UniversalImportExportService(ImportExportService):
             else RegionImportChunk
         )
 
+        extra = {
+            "model_name": batch_model_name,
+            "import_uuid": import_flags.import_uuid,
+            "min_ordinal": min_ordinal,
+        }
+
         try:
             using = router.db_for_write(model)
             with transaction.atomic(using=using):
@@ -177,6 +186,7 @@ class UniversalImportExportService(ImportExportService):
                     batch_model_name, import_flags, import_chunk_type, min_ordinal
                 )
                 if existing_import_chunk is not None:
+                    logger.info("import_by_model.already_imported", extra=extra)
                     return existing_import_chunk
 
                 ok_relocation_scopes = import_scope.value
@@ -321,6 +331,7 @@ class UniversalImportExportService(ImportExportService):
                 else:
                     RegionImportChunk(**import_chunk_args).save()
 
+                logger.info("import_by_model.successfully_imported", extra=extra)
                 return RpcImportOk(
                     mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
                     min_ordinal=min_ordinal,
@@ -344,16 +355,18 @@ class UniversalImportExportService(ImportExportService):
             # description from postgres but... ¯\_(ツ)_/¯.
             if len(e.args) > 0:
                 desc = str(e.args[0])
-                if desc.startswith("UniqueViolation") and import_chunk_type._meta.db_table in desc:
+
+                # Any `UniqueViolation` indicates the possibility that we've lost a race. Check for
+                # this explicitly by seeing if an `ImportChunk` with a matching unique signature has
+                # been written to the database already.
+                if desc.startswith("UniqueViolation"):
                     try:
                         existing_import_chunk = get_existing_import_chunk(
                             batch_model_name, import_flags, import_chunk_type, min_ordinal
                         )
-                        if existing_import_chunk is None:
-                            raise RuntimeError(
-                                f"Erroneous import chunk unique collision for identifier: {(import_flags.import_uuid, batch_model_name, min_ordinal)}"
-                            )
-                        return existing_import_chunk
+                        if existing_import_chunk is not None:
+                            logger.warning("import_by_model.lost_import_race", extra=extra)
+                            return existing_import_chunk
                     except Exception:
                         sentry_sdk.capture_exception()
                         return RpcImportError(

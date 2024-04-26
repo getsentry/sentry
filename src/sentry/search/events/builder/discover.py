@@ -91,6 +91,7 @@ class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
     free_text_key = "message"
+    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
     entity: Entity | None = None
@@ -1589,7 +1590,7 @@ class QueryBuilder(BaseQueryBuilder):
                 raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
 
         # Validate event ids, trace ids, and profile ids are uuids
-        if name in {"id", "trace", "profile.id", "replay.id"}:
+        if name in self.uuid_fields:
             if search_filter.value.is_wildcard():
                 raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():

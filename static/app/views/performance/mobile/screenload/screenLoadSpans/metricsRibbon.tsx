@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
@@ -12,6 +13,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {
   DEFAULT_PLATFORM,
   PLATFORM_LOCAL_STORAGE_KEY,
@@ -19,20 +21,13 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
-import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
-
-const UNDEFINED_TEXT = '--';
-type BlockType = 'duration' | 'count' | 'change';
 
 interface BlockProps {
   dataKey: string | ((data?: TableDataRow[]) => number | undefined);
   title: string;
-  type: BlockType;
+  unit: ComponentProps<typeof MetricReadout>['unit'];
   allowZero?: boolean;
 }
 
@@ -101,11 +96,11 @@ export function MetricsRibbon({
 
   return (
     <BlockContainer>
-      {blocks.map(({title, dataKey, type}) => (
+      {blocks.map(({title, dataKey, unit}) => (
         <MetricsBlock
           key={title}
           title={title}
-          type={type}
+          unit={unit}
           dataKey={dataKey}
           data={data}
           isLoading={isLoading}
@@ -117,7 +112,7 @@ export function MetricsRibbon({
 
 function MetricsBlock({
   title,
-  type,
+  unit,
   data,
   dataKey,
   isLoading,
@@ -133,26 +128,16 @@ function MetricsBlock({
       ? dataKey(data?.data)
       : (data?.data?.[0]?.[dataKey] as number);
 
-  const hasData = (!isLoading && value && value !== 0) || (value === 0 && allowZero);
-
-  if (type === 'duration') {
-    return (
-      <Block title={title}>
-        {hasData ? <DurationCell milliseconds={value} /> : UNDEFINED_TEXT}
-      </Block>
-    );
-  }
-
-  if (type === 'change') {
-    return (
-      <Block title={title}>
-        {hasData ? <PercentChangeCell colorize deltaValue={value} /> : UNDEFINED_TEXT}
-      </Block>
-    );
-  }
+  const hasData = (value && value !== 0) || (value === 0 && allowZero);
 
   return (
-    <Block title={title}>{hasData ? <CountCell count={value} /> : UNDEFINED_TEXT}</Block>
+    <MetricReadout
+      title={title}
+      align="left"
+      value={hasData ? value : undefined}
+      isLoading={isLoading}
+      unit={unit}
+    />
   );
 }
 
