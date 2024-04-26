@@ -555,7 +555,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         with mock.patch(
-            "sentry.rules.processing.processor.RuleProcessor.bulk_get_rule_status",
+            "sentry.rules.processing.processor.bulk_get_rule_status",
             return_value={self.rule.id: grs},
         ):
             results = list(rp.apply())

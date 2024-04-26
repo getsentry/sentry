@@ -29,7 +29,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.monitors.clock_dispatch import try_monitor_tasks_trigger
+from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
@@ -905,7 +905,7 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
     # Attempt to trigger monitor tasks across processed partitions
     for partition, ts in latest_partition_ts.items():
         try:
-            try_monitor_tasks_trigger(ts, partition)
+            try_monitor_clock_tick(ts, partition)
         except Exception:
             logger.exception("Failed to trigger monitor tasks")
 
@@ -923,7 +923,7 @@ def process_single(message: Message[KafkaPayload]):
         partition = message.value.partition.index
 
         try:
-            try_monitor_tasks_trigger(ts, partition)
+            try_monitor_clock_tick(ts, partition)
         except Exception:
             logger.exception("Failed to trigger monitor tasks")
 

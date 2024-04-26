@@ -257,15 +257,10 @@ class TestRedisBuffer:
 
     def group_rule_data_by_project_id(self, buffer, project_ids):
         project_ids_to_rule_data = defaultdict(list)
-        for proj_id in project_ids[0]:
+        for proj_id in project_ids:
             rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id[0]})
-            for pair in rule_group_pairs:
-                for k, v in pair.items():
-                    if isinstance(k, bytes):
-                        k = k.decode("utf-8")
-                    if isinstance(v, bytes):
-                        v = v.decode("utf-8")
-                    project_ids_to_rule_data[int(proj_id[0])].append({k: v})
+            for k, v in rule_group_pairs.items():
+                project_ids_to_rule_data[int(proj_id[0])].append({k: v})
         return project_ids_to_rule_data
 
     def test_enqueue(self):
@@ -308,7 +303,6 @@ class TestRedisBuffer:
 
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert project_ids
-
         project_ids_to_rule_data = self.group_rule_data_by_project_id(self.buf, project_ids)
         assert project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}") == str(event_id)
         assert project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}") == str(
@@ -385,7 +379,7 @@ class TestRedisBuffer:
 
         # retrieve them
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-        assert len(project_ids[0]) == 2
+        assert len(project_ids) == 2
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
         assert len(rule_group_pairs)
 
@@ -394,12 +388,7 @@ class TestRedisBuffer:
 
         # retrieve again to make sure only project_id was removed
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-        if isinstance(project_ids[0][0][0], bytes):
-            assert project_ids == [
-                [(bytes(str(project2_id), "utf-8"), one_minute_from_now.timestamp())]
-            ]
-        else:
-            assert project_ids == [[(str(project2_id), one_minute_from_now.timestamp())]]
+        assert project_ids == [(project2_id, one_minute_from_now.timestamp())]
 
         # delete the project_id hash
         self.buf.delete_hash(
@@ -409,7 +398,7 @@ class TestRedisBuffer:
         )
 
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
-        assert rule_group_pairs == [{}]
+        assert rule_group_pairs == {}
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")

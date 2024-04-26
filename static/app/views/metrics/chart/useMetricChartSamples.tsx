@@ -11,7 +11,7 @@ import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   getSummaryValueForOp,
   type MetricsSamplesResults,
@@ -126,7 +126,7 @@ export function useMetricChartSamples({
         // We need to access the sample as the charts datapoints are fit to the charts viewport
         const sample = samplesById[label ?? ''];
         const yValue = getSummaryValueForOp(sample.summary, operation);
-        return formatMetricsUsingUnitAndOp(yValue, unit, operation);
+        return formatMetricUsingUnit(yValue, unit);
       },
     };
   }, [operation, samplesById, unit]);

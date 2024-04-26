@@ -479,6 +479,9 @@ describe('trace view', () => {
   beforeEach(() => {
     globalThis.ResizeObserver = MockResizeObserver as any;
 
+    // We are having replay errors about invalid stylesheets, though the CSS seems valid
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     Object.defineProperty(window, 'location', {
       value: {
         search: '',

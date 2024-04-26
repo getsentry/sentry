@@ -8,6 +8,8 @@ import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -31,6 +33,7 @@ interface TraceSearchInputProps {
 const MIN_LOADING_TIME = 300;
 
 export function TraceSearchInput(props: TraceSearchInputProps) {
+  const organization = useOrganization();
   const [status, setStatus] = useState<TraceSearchState['status']>();
 
   const timeoutRef = useRef<number | undefined>(undefined);
@@ -73,10 +76,11 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   }, [props.trace_state.search.status]);
 
   const onSearchFocus = useCallback(() => {
+    traceAnalytics.trackSearchFocus(organization);
     if (traceStateRef.current.rovingTabIndex.node) {
       trace_dispatch({type: 'clear roving index'});
     }
-  }, [trace_dispatch]);
+  }, [trace_dispatch, organization]);
 
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -250,7 +250,6 @@ function Sidebar() {
         // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
         if (
           organization.features.includes('spans-first-ui') ||
-          organization.features.includes('performance-http-view') ||
           organization.features.includes('performance-cache-view') ||
           organization.features.includes('performance-queues-view')
         ) {
@@ -278,7 +277,7 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="performance-http-view" organization={organization}>
+              <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={
@@ -474,11 +473,7 @@ function Sidebar() {
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
   const metrics = hasOrganization && hasMetricsSidebarItem(organization) && (
-    <Feature
-      features={['ddm-ui', 'custom-metrics']}
-      organization={organization}
-      requireAll
-    >
+    <Feature features={['custom-metrics']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
