@@ -294,4 +294,6 @@ def apply_delayed(project_id: int) -> None:
             event = group_id_to_event[group.id]
             notification_uuid = str(uuid.uuid4())
             rule_fire_history = history.record(rule, group, event.event_id, notification_uuid)
-            activate_downstream_actions(rule, event, notification_uuid, rule_fire_history)
+            activate_downstream_actions(
+                rule, event.for_group(group), notification_uuid, rule_fire_history
+            )
