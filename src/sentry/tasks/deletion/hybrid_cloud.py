@@ -373,12 +373,9 @@ def get_ids_for_tombstone_cascade_cross_db(
     oldest_seen = timezone.now()
     if row_after_tombstone:
         affected_rows = []
-        field_high = f"{field.name}__lte"
-        field_low = f"{field.name}__gt"
-        query_kwargs = {field_high: watermark_batch.up, field_low: watermark_batch.low}
-        model_object_id_pairs = model.objects.filter(**query_kwargs).values_list(
-            "id", f"{field.name}"
-        )
+        model_object_id_pairs = model.objects.filter(
+            id__lte=watermark_batch.up, id__gt=watermark_batch.low
+        ).values_list("id", f"{field.name}")
 
         # Construct a map of foreign key IDs to model IDs, which gives us the
         # minimal set of foreign key values to lookup in the tombstones table.

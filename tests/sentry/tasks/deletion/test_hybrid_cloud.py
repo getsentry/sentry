@@ -311,6 +311,8 @@ def setup_cross_db_deletion_data(
             owner_user_id=user.id,
         )
 
+        assert monitor.owner_user_id == user.id
+
     return dict(
         user=user,
         organization=organization,
@@ -545,23 +547,23 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         bounds_with_expected_results = [
             # Check rows with foreign keys > 0 and <= 30
             (
-                {"low": 0, "up": cascade_data[1]["user"].id},
+                {"low": 0, "up": cascade_data[1]["monitor"].id},
                 [cascade_data[0]["monitor"].id, cascade_data[1]["monitor"].id],
             ),
             (
-                {"low": cascade_data[1]["user"].id, "up": cascade_data[2]["user"].id},
+                {"low": cascade_data[1]["monitor"].id, "up": cascade_data[2]["monitor"].id},
                 [cascade_data[2]["monitor"].id],
             ),
             (
-                {"low": 0, "up": cascade_data[0]["user"].id - 1},
+                {"low": 0, "up": cascade_data[0]["monitor"].id - 1},
                 [],
             ),
             (
-                {"low": cascade_data[2]["user"].id + 1, "up": cascade_data[2]["user"].id + 2},
+                {"low": cascade_data[2]["monitor"].id + 1, "up": cascade_data[2]["monitor"].id + 2},
                 [],
             ),
             (
-                {"low": -1, "up": cascade_data[2]["user"].id + 1},
+                {"low": -1, "up": cascade_data[2]["monitor"].id + 1},
                 [
                     cascade_data[0]["monitor"].id,
                     cascade_data[1]["monitor"].id,
@@ -569,7 +571,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 ],
             ),
             (
-                {"low": cascade_data[1]["user"].id, "up": cascade_data[2]["user"].id - 1},
+                {"low": cascade_data[1]["monitor"].id, "up": cascade_data[2]["monitor"].id - 1},
                 [],
             ),
         ]
