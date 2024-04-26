@@ -196,7 +196,7 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def verify_user_emails(
-        self, *, user_id_emails: list[UserIdEmailArgs]
+        self, *, user_id_emails: list[UserIdEmailArgs], only_verified: bool
     ) -> dict[int, RpcVerifyUserEmail]:
         pass
 

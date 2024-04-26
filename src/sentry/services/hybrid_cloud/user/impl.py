@@ -277,14 +277,17 @@ class DatabaseBackedUserService(UserService):
         user.send_confirm_emails(is_new_user=True)
 
     def verify_user_emails(
-        self, *, user_id_emails: list[UserIdEmailArgs]
+        self, *, user_id_emails: list[UserIdEmailArgs], only_verified: bool
     ) -> dict[int, RpcVerifyUserEmail]:
         results = {}
         for user_id_email in user_id_emails:
             user_id = user_id_email["user_id"]
             email = user_id_email["email"]
-            exists = UserEmail.objects.filter(user_id=user_id, email__iexact=email).exists()
-            results[user_id] = RpcVerifyUserEmail(email=email, exists=exists)
+            user_email_qs = UserEmail.objects.filter(user_id=user_id, email__iexact=email)
+            if only_verified:
+                user_email_qs = user_email_qs.filter(is_verified=True)
+
+            results[user_id] = RpcVerifyUserEmail(email=email, exists=user_email_qs.exists())
         return results
 
     def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
