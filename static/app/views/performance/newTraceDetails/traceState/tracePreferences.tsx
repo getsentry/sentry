@@ -43,7 +43,7 @@ const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer bottom': 0.5,
     },
   },
-  layout: 'drawer bottom',
+  layout: 'drawer right',
   list: {
     width: 0.5,
   },
