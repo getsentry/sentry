@@ -114,16 +114,16 @@ class SudoModal extends Component<Props, State> {
     const {closeModal, isSuperuser, location, needsReload, router, retryRequest} =
       this.props;
 
-    if (!retryRequest) {
-      closeModal();
-      return;
-    }
-
     if (isSuperuser) {
       router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
       if (needsReload) {
         window.location.reload();
       }
+      return;
+    }
+
+    if (!retryRequest) {
+      closeModal();
       return;
     }
 
