@@ -37,7 +37,7 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(
         operation_id="Update a Monitor Environment",
         parameters=[
             GlobalParams.ORG_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
         responses={
@@ -60,7 +60,7 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(
         operation_id="Delete a Monitor Environments",
         parameters=[
             GlobalParams.ORG_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
         responses={

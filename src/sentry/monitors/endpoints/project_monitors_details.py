@@ -37,7 +37,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
         ],
         responses={
             200: MonitorSerializer,
@@ -57,7 +57,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -79,7 +79,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
         ],
         request=MonitorValidator,

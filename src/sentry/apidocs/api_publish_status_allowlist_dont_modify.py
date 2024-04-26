@@ -357,7 +357,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/organizations/{organization_slug}/notifications/available-actions/": {"GET"},
     "/api/0/organizations/{organization_slug}/monitors-stats/": {"GET"},
-    "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/stats/": {"GET"},
+    "/api/0/organizations/{organization_slug}/monitors/{monitor_id_or_slug}/stats/": {"GET"},
     "/api/0/organizations/{organization_slug}/pinned-searches/": {"DELETE", "PUT"},
     "/api/0/organizations/{organization_slug}/recent-searches/": {"GET", "POST"},
     "/api/0/organizations/{organization_slug}/searches/{search_id}/": {"DELETE", "PUT"},
