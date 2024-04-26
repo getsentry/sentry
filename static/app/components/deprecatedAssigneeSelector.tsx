@@ -21,9 +21,6 @@ import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 
-/**
- * @deprecated use AssigneeSelectorDropdown instead (Coming in future PR)
- */
 interface DeprecatedAssigneeSelectorProps
   extends Omit<
     DeprecatedAssigneeSelectorDropdownProps,
