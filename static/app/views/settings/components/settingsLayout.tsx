@@ -1,4 +1,4 @@
-import {isValidElement, useEffect, useRef, useState} from 'react';
+import {isValidElement, useCallback, useEffect, useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
@@ -32,18 +32,27 @@ function SettingsLayout(props: Props) {
 
   const headerRef = useRef<HTMLDivElement>(null);
 
-  function toggleNav(visible: boolean) {
-    const bodyElement = document.getElementsByTagName('body')[0];
+  const toggleNav = useCallback(
+    (visible: boolean) => {
+      const bodyElement = document.getElementsByTagName('body')[0];
 
-    window.scrollTo?.(0, 0);
-    bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');
+      window.scrollTo?.(0, 0);
+      bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');
 
-    setMobileNavVisible(visible);
-    setNavOffsetTop(headerRef.current?.getBoundingClientRect().bottom ?? 0);
-  }
+      setMobileNavVisible(visible);
+      setNavOffsetTop(headerRef.current?.getBoundingClientRect().bottom ?? 0);
+    },
+    [headerRef, setMobileNavVisible, setNavOffsetTop]
+  );
 
   // Close menu when navigating away
-  useEffect(() => browserHistory.listen(() => toggleNav(false)), []);
+  useEffect(() => {
+    if (!isMobileNavVisible) {
+      return () => {};
+    }
+
+    return browserHistory.listen(() => toggleNav(false));
+  }, [toggleNav, isMobileNavVisible]);
 
   const {renderNavigation, children, params, routes, route} = props;
 
