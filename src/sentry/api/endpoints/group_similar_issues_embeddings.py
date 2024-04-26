@@ -81,7 +81,7 @@ def get_stacktrace_string(data):
                         if frame_values.get("id") in frame_dict:
                             frame_dict[frame_values["id"]] = get_value_if_exists(frame_values)
 
-                    frame_str += f'  File "{frame_dict["filename"]}", line {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+                    frame_str += f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
 
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
