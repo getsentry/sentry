@@ -4,17 +4,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-// import type AssigneeSelector from 'sentry/components/assigneeSelector';
->>>>>>> 88837d4c59 (Compact select dropdown rendering with members)
-=======
->>>>>>> 296456b3cc (clean up some comments and imports)
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
-import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
@@ -57,7 +49,6 @@ import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
-  // getTabs,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
 
@@ -145,48 +136,11 @@ function BaseGroupRow({
     };
   }, [organization, group.id, group.owners, query]);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  const trackAssign: React.ComponentProps<typeof DeprecatedAssigneeSelector>['onAssign'] =
-    useCallback(
-      (type, _assignee, suggestedAssignee) => {
-        if (query !== undefined) {
-          trackAnalytics('issues_stream.issue_assigned', {
-            ...sharedAnalytics,
-            did_assign_suggestion: !!suggestedAssignee,
-            assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-            assigned_type: type,
-          });
-        }
-      },
-      [query, sharedAnalytics]
-    );
-=======
-  // const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
-  //   useCallback(
-  //     (type, _assignee, suggestedAssignee) => {
-  //       if (query !== undefined) {
-  //         trackAnalytics('issues_stream.issue_assigned', {
-  //           ...sharedAnalytics,
-  //           did_assign_suggestion: !!suggestedAssignee,
-  //           assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-  //           assigned_type: type,
-  //         });
-  //       }
-  //     },
-  //     [query, sharedAnalytics]
-  //   );
->>>>>>> 88837d4c59 (Compact select dropdown rendering with members)
-=======
   const trackAssign: React.ComponentProps<
     typeof NewAssigneeSelectorDropdown
   >['onAssign'] = useCallback(
     async (type, assignee, suggestedAssignee) => {
-      await GroupStore.onAssignToSuccess(
-        group.id,
-        `${type}:${assignee.id}`,
-        suggestedAssignee
-      );
+      await GroupStore.onAssignToSuccess(group.id, assignee.id, suggestedAssignee);
       if (query !== undefined) {
         trackAnalytics('issues_stream.issue_assigned', {
           ...sharedAnalytics,
@@ -196,9 +150,8 @@ function BaseGroupRow({
         });
       }
     },
-    [query, sharedAnalytics, group.id] // TODO(msun): double check this one
+    [query, sharedAnalytics, group.id]
   );
->>>>>>> dec06fc907 (Functionality and design are done. QA and cleanup after this)
 
   const wrapperToggle = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
@@ -516,17 +469,8 @@ function BaseGroupRow({
           ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
-<<<<<<< HEAD
-<<<<<<< HEAD
-              <DeprecatedAssigneeSelector
-=======
-              {/* <AssigneeSelector
->>>>>>> 88837d4c59 (Compact select dropdown rendering with members)
-                id={group.id}
-=======
               <NewAssigneeSelectorDropdown
                 group={group}
->>>>>>> dec06fc907 (Functionality and design are done. QA and cleanup after this)
                 memberList={memberList}
                 onAssign={trackAssign}
               />
