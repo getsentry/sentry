@@ -1,33 +1,7 @@
 import {
-  formatMetricsUsingUnitAndOp,
   formatMetricUsingFixedUnit,
   formattingSupportedMetricUnits,
 } from 'sentry/utils/metrics/formatters';
-
-describe('formatMetricsUsingUnitAndOp', () => {
-  it('should format the value according to the unit', () => {
-    // Test cases for different units
-    expect(formatMetricsUsingUnitAndOp(123456, 'millisecond')).toEqual('2.06min');
-    expect(formatMetricsUsingUnitAndOp(5000, 'second')).toEqual('1.39hr');
-    expect(formatMetricsUsingUnitAndOp(600, 'byte')).toEqual('600 B');
-    expect(formatMetricsUsingUnitAndOp(4096, 'kibibyte')).toEqual('4.0 MiB');
-    expect(formatMetricsUsingUnitAndOp(3145728, 'megabyte')).toEqual('3.15 TB');
-    expect(formatMetricsUsingUnitAndOp(3145728, 'megabytes')).toEqual('3.15 TB');
-    expect(formatMetricsUsingUnitAndOp(0.99, 'ratio')).toEqual('99%');
-    expect(formatMetricsUsingUnitAndOp(99, 'percent')).toEqual('99%');
-  });
-
-  it('should handle value as null', () => {
-    expect(formatMetricsUsingUnitAndOp(null, 'millisecond')).toEqual('—');
-    expect(formatMetricsUsingUnitAndOp(null, 'byte')).toEqual('—');
-    expect(formatMetricsUsingUnitAndOp(null, 'megabyte')).toEqual('—');
-  });
-
-  it('should format count operation as a number', () => {
-    expect(formatMetricsUsingUnitAndOp(99, 'none', 'count')).toEqual('99');
-    expect(formatMetricsUsingUnitAndOp(null, 'none', 'count')).toEqual('');
-  });
-});
 
 describe('formatMetricUsingFixedUnit', () => {
   it('should return the formatted value with the short form of the given unit', () => {
