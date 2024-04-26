@@ -476,6 +476,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }
                     inline={false}
                     flexibleControlStateSize
+                    size="xs"
                   />
                   {` ${t('for')} `}
                   <SelectControl
@@ -486,6 +487,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     onChange={({value}) => onTimeWindowChange(value)}
                     inline={false}
                     flexibleControlStateSize
+                    size="xs"
                   />
                 </ActivatedAlertFields>
               ) : (
@@ -782,7 +784,7 @@ const MonitorSelect = styled('div')`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  height: 6rem;
+  height: 5rem;
 `;
 
 type MonitorCardProps = {
