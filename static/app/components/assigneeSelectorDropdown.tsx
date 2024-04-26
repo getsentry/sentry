@@ -64,7 +64,7 @@ type AssignableEntity = {
   type: Actor['type'];
 };
 
-export interface NewAssigneeSelectorDropdownProps {
+export interface AssigneeSelectorDropdownProps {
   group: Group;
   memberList?: User[];
   noDropdown?: boolean;
@@ -167,14 +167,14 @@ export function AssigneeAvatar({
   );
 }
 
-function NewAssigneeSelectorDropdown({
+function AssigneeSelectorDropdown({
   group,
   memberList,
   noDropdown = false,
   onAssign,
   onClear,
   owners,
-}: NewAssigneeSelectorDropdownProps) {
+}: AssigneeSelectorDropdownProps) {
   const organization = useOrganization();
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
@@ -417,7 +417,7 @@ function NewAssigneeSelectorDropdown({
             options: [makeTeamOption(assignedTeam)],
           });
           assignableTeamList = assignableTeamList?.filter(
-            team => team.id !== group.assignedTo?.id
+            assignableTeam => assignableTeam.team.id !== group.assignedTo?.id
           );
           suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
             return suggestedAssignee.id !== group.assignedTo?.id;
@@ -571,4 +571,4 @@ const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-export default NewAssigneeSelectorDropdown;
+export default AssigneeSelectorDropdown;
