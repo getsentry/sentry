@@ -492,14 +492,20 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         else:
             retention_window_start = None
 
-        group_queryset = self._build_group_queryset(
-            projects=projects,
-            environments=environments,
-            search_filters=search_filters,
-            retention_window_start=retention_window_start,
-            date_from=date_from,
-            date_to=date_to,
-        )
+        if use_group_snuba_dataset:
+            # just use the basic group initialization query
+            group_queryset = self._initialize_group_queryset(
+                projects, environments, retention_window_start, search_filters
+            )
+        else:
+            group_queryset = self._build_group_queryset(
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                retention_window_start=retention_window_start,
+                date_from=date_from,
+                date_to=date_to,
+            )
 
         query_executor = self._get_query_executor(
             group_queryset=group_queryset,
