@@ -391,6 +391,40 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_group = self.create_group(project=self.project)
 
+    def create_exception(
+        self, exception_type_str="Exception", exception_value="it broke", frames=None
+    ):
+        frames = frames or []
+        return {
+            "id": "exception",
+            "name": "exception",
+            "contributes": True,
+            "hint": None,
+            "values": [
+                {
+                    "id": "stacktrace",
+                    "name": "stack-trace",
+                    "contributes": True,
+                    "hint": None,
+                    "values": frames,
+                },
+                {
+                    "id": "type",
+                    "name": None,
+                    "contributes": True,
+                    "hint": None,
+                    "values": [exception_type_str],
+                },
+                {
+                    "id": "value",
+                    "name": None,
+                    "contributes": False,
+                    "hint": None,
+                    "values": [exception_value],
+                },
+            ],
+        }
+
     def create_frames(
         self,
         num_frames,
