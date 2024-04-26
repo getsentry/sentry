@@ -848,6 +848,7 @@ CELERY_QUEUES_REGION = [
     Queue("commits", routing_key="commits"),
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
+    Queue("delayed_rules", routing_key="delayed_rules"),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
