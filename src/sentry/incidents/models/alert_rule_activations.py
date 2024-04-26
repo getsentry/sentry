@@ -75,9 +75,9 @@ class AlertRuleActivations(Model):
         "sentry.QuerySubscription", null=True, on_delete=models.SET_NULL
     )
     # condition_type is AlertRuleActivationConditionType (Release creation / Deploy creation)
-    condition_type = models.SmallIntegerField()
+    condition_type = models.SmallIntegerField(default=0)
     # The activator is the identifier for the specific triggered instance (eg. release/deploy version)
-    activator = models.CharField(max_length=DB_VERSION_LENGTH)
+    activator = models.CharField(max_length=DB_VERSION_LENGTH, default="default_activator")
 
     class Meta:
         app_label = "sentry"

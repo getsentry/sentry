@@ -31,7 +31,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "activator" VARCHAR(250) NOT NULL DEFAULT 'backfill_activator';
+                    ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "activator" VARCHAR(250) NOT NULL DEFAULT 'default_activator';
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_alertruleactivations" DROP COLUMN "activator";
@@ -52,12 +52,12 @@ class Migration(CheckedMigration):
                 migrations.AddField(
                     model_name="alertruleactivations",
                     name="activator",
-                    field=models.CharField(max_length=250),
+                    field=models.CharField(max_length=250, default="default_activator"),
                 ),
                 migrations.AddField(
                     model_name="alertruleactivations",
                     name="condition_type",
-                    field=models.SmallIntegerField(),
+                    field=models.SmallIntegerField(default=0),
                 ),
             ],
         ),
