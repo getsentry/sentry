@@ -382,6 +382,15 @@ def preprocessing_transfer(uuid: str) -> None:
         relocation_storage.save(f"runs/{uuid}/conf/cloudbuild.yaml", cloudbuild_yaml)
         relocation_storage.save(f"runs/{uuid}/conf/cloudbuild.zip", cloudbuild_zip)
 
+        # Only test existing users for collision and mutation.
+        existing_usernames = user_service.get_existing_usernames(
+            usernames=relocation.want_usernames
+        )
+        relocation_storage.save(
+            f"runs/{uuid}/conf/filter-usernames.txt",
+            BytesIO(",".join(existing_usernames or []).encode("utf-8")),
+        )
+
         # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
         # during validation.
         log_gcp_credentials_details(logger)
@@ -559,6 +568,8 @@ def preprocessing_complete(uuid: str) -> None:
             raise FileNotFoundError("Could not locate `cloudbuild.yaml` in relocation bucket.")
         if not relocation_storage.exists(f"runs/{uuid}/conf/cloudbuild.zip"):
             raise FileNotFoundError("Could not locate `cloudbuild.zip` in relocation bucket.")
+        if not relocation_storage.exists(f"runs/{uuid}/conf/filter-usernames.txt"):
+            raise FileNotFoundError("Could not locate `filter-usernames.txt` in relocation bucket.")
         if not relocation_storage.exists(f"runs/{uuid}/in/kms-config.json"):
             raise FileNotFoundError("Could not locate `kms-config.json` in relocation bucket.")
         for kind in RELOCATION_FILES_TO_BE_VALIDATED:

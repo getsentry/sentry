@@ -179,6 +179,20 @@ def get_printer(silent: bool, no_prompt: bool) -> Printer:
     return InputOutputPrinter()
 
 
+def get_filter_arg(name: str, from_cmd_line: str, from_file: IO[str] | None) -> str:
+    """
+    Helper function to load `--filter-...`-style arguments from a file or the command line.
+    """
+
+    if from_cmd_line and from_file is not None:
+        raise click.UsageError(
+            f"""`--{name}` and `--{name}--file` are mutually exclusive options - you
+            may use one or the other, but not both."""
+        )
+
+    return from_file.read() if from_file is not None else from_cmd_line
+
+
 def parse_filter_arg(filter_arg: str) -> set[str] | None:
     filter_by = None
     if filter_arg:
@@ -542,6 +556,11 @@ def import_() -> None:
     help=FINDINGS_FILE_HELP,
 )
 @click.option(
+    "--filter-usernames-file",
+    type=click.File("r"),
+    help="Like `--filter-usernames`, except it pulls from a comma-separated file.",
+)
+@click.option(
     "--merge-users",
     default=False,
     is_flag=True,
@@ -565,6 +584,7 @@ def import_users(
     decrypt_with: IO[bytes],
     decrypt_with_gcp_kms: IO[bytes],
     filter_usernames: str,
+    filter_usernames_file: IO[str],
     findings_file: IO[str],
     merge_users: bool,
     no_prompt: bool,
@@ -582,7 +602,9 @@ def import_users(
             src,
             decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
             flags=ImportFlags(merge_users=merge_users),
-            user_filter=parse_filter_arg(filter_usernames),
+            user_filter=parse_filter_arg(
+                get_filter_arg("filter-usernames", filter_usernames, filter_usernames_file)
+            ),
             printer=printer,
         )
 
@@ -817,6 +839,11 @@ def export() -> None:
     "If this option is not set, all encountered users are imported.",
 )
 @click.option(
+    "--filter-usernames-file",
+    type=click.File("r"),
+    help="Like `--filter-usernames`, except it pulls from a comma-separated file.",
+)
+@click.option(
     "--findings-file",
     type=click.File("w"),
     required=False,
@@ -846,6 +873,7 @@ def export_users(
     encrypt_with: IO[bytes],
     encrypt_with_gcp_kms: IO[bytes],
     filter_usernames: str,
+    filter_usernames_file: IO[str],
     findings_file: IO[str],
     indent: int,
     no_prompt: bool,
@@ -863,7 +891,9 @@ def export_users(
             dest,
             encryptor=get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms),
             indent=indent,
-            user_filter=parse_filter_arg(filter_usernames),
+            user_filter=parse_filter_arg(
+                get_filter_arg("filter-usernames", filter_usernames, filter_usernames_file)
+            ),
             printer=printer,
         )
 

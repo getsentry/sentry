@@ -452,6 +452,22 @@ class GoodImportExportCommandTests(TransactionTestCase):
             export_args=["--filter-usernames", "testing@example.com"],
         )
 
+        with TemporaryDirectory() as tmp_dir:
+            tmp_findings_file_path = Path(tmp_dir).joinpath(
+                f"{''.join(choice(ascii_letters)for _ in range(6))}.txt"
+            )
+            with open(tmp_findings_file_path, "w") as f:
+                f.write(
+                    """
+                    testing@example.com, other@example.com
+                    """
+                )
+            cli_import_then_export(
+                "users",
+                import_args=["--filter-usernames-file", str(tmp_findings_file_path)],
+                export_args=["--filter-usernames-file", str(tmp_findings_file_path)],
+            )
+
 
 class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     """
