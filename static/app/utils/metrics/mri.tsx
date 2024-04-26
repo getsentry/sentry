@@ -49,7 +49,10 @@ function parseName(name: string, useCase: UseCase): string {
     return name;
   }
   if (useCase === 'spans') {
-    return `span.${name}`;
+    if (['duration', 'self_time', 'exclusive_time'].includes(name)) {
+      return `span.${name}`;
+    }
+    return name;
   }
 
   return `${useCase}.${name}`;
