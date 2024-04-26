@@ -61,7 +61,7 @@ export function MobileView(props: BasePerformanceViewProps) {
     );
   }
 
-  if (props.organization.features.includes('performance-http-view')) {
+  if (props.organization.features.includes('spans-first-ui')) {
     doubleRowAllowedCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
   }
   return (
