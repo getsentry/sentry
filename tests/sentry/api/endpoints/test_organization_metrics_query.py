@@ -44,7 +44,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
             },
         )
         assert len(response.data["intervals"]) == 3
-        assert response.data["data"] == [[{"by": {}, "series": [3.0, 5.0, 10.0], "totals": 18.0}]]
+        assert response.data["data"] == [
+            [{"by": {}, "series": [3000000.0, 5000000.0, 10000000.0], "totals": 18000000.0}]
+        ]
         assert response.data["meta"] == [
             [
                 {"name": "aggregate_value", "type": "Float64"},
@@ -53,9 +55,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                     "limit": 3334,
                     "has_more": False,
                     "order": "DESC",
-                    "scaling_factor": None,
-                    "unit": None,
-                    "unit_family": None,
+                    "scaling_factor": 1000000.0,
+                    "unit": "nanosecond",
+                    "unit_family": "duration",
                 },
             ]
         ]
