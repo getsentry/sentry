@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
@@ -184,7 +185,6 @@ function NewAssigneeSelectorDropdown({
     AssignableEntity
   >({
     mutationFn: (newAssignee: AssignableEntity): Promise<AssignableEntity> => {
-      // TODO(msun): this functino is only used here, make it better to avoid the jank
       assignToActor({
         id: group.id,
         orgSlug: organization.slug,
@@ -201,7 +201,9 @@ function NewAssigneeSelectorDropdown({
         onAssign(newAssignee.type, newAssignee.assignee, suggestedAssignee);
       }
     },
-    onError: () => {},
+    onError: () => {
+      addErrorMessage('Failed to updated assignee');
+    },
   });
 
   const currentMemberList = (): User[] | undefined => {
@@ -298,7 +300,7 @@ function NewAssigneeSelectorDropdown({
   };
 
   const handleSelect = async (selectedOption: SelectOption<string> | null) => {
-    // selectedOption is falsey when the option selected is currently selected
+    // selectedOption is falsey when the option selected is already selected
     if (!selectedOption) {
       await handleClear();
       return;
