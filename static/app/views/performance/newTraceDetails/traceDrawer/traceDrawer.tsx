@@ -24,6 +24,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
@@ -243,6 +244,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   );
 
   const onMinimizeClick = useCallback(() => {
+    traceAnalytics.trackDrawerMinimize(organization);
     trace_dispatch({
       type: 'minimize drawer',
       payload: !props.trace_state.preferences.drawer.minimized,
@@ -259,6 +261,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
     onResize,
     trace_dispatch,
     props.trace_state.preferences.drawer.minimized,
+    organization,
     drawerOptions,
   ]);
 
@@ -450,6 +453,7 @@ interface TraceDrawerTabProps {
   trace_state: TraceReducerState;
 }
 function TraceDrawerTab(props: TraceDrawerTabProps) {
+  const organization = useOrganization();
   const node = props.tab.node;
 
   if (typeof node === 'string') {
@@ -463,6 +467,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         }
         onClick={() => {
           if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
+            traceAnalytics.trackTabView(node, organization);
             props.onTabScrollToNode(root);
           }
           props.trace_dispatch({type: 'activate tab', payload: props.index});
@@ -486,6 +491,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
       data-test-id="trace-drawer-tab"
       aria-selected={props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'}
       onClick={() => {
+        traceAnalytics.trackTabView('event', organization);
         props.onTabScrollToNode(node);
         props.trace_dispatch({type: 'activate tab', payload: props.index});
       }}
@@ -496,6 +502,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         pinned={props.pinned}
         onClick={e => {
           e.stopPropagation();
+          traceAnalytics.trackTabPin(organization);
           props.pinned
             ? props.trace_dispatch({type: 'unpin tab', payload: props.index})
             : props.trace_dispatch({type: 'pin tab'});
@@ -509,14 +516,17 @@ function TraceLayoutButtons(props: {
   trace_dispatch: React.Dispatch<TraceReducerAction>;
   trace_state: TraceReducerState;
 }) {
+  const organization = useOrganization();
+
   return (
     <TabActions>
       <TabLayoutControlItem>
         <TabIconButton
           active={props.trace_state.preferences.layout === 'drawer left'}
-          onClick={() =>
-            props.trace_dispatch({type: 'set layout', payload: 'drawer left'})
-          }
+          onClick={() => {
+            traceAnalytics.trackLayoutChange('drawer left', organization);
+            props.trace_dispatch({type: 'set layout', payload: 'drawer left'});
+          }}
           size="xs"
           aria-label={t('Drawer left')}
           icon={<IconPanel size="xs" direction="left" />}
@@ -525,9 +535,10 @@ function TraceLayoutButtons(props: {
       <TabLayoutControlItem>
         <TabIconButton
           active={props.trace_state.preferences.layout === 'drawer bottom'}
-          onClick={() =>
-            props.trace_dispatch({type: 'set layout', payload: 'drawer bottom'})
-          }
+          onClick={() => {
+            traceAnalytics.trackLayoutChange('drawer bottom', organization);
+            props.trace_dispatch({type: 'set layout', payload: 'drawer bottom'});
+          }}
           size="xs"
           aria-label={t('Drawer bottom')}
           icon={<IconPanel size="xs" direction="down" />}
@@ -536,9 +547,10 @@ function TraceLayoutButtons(props: {
       <TabLayoutControlItem>
         <TabIconButton
           active={props.trace_state.preferences.layout === 'drawer right'}
-          onClick={() =>
-            props.trace_dispatch({type: 'set layout', payload: 'drawer right'})
-          }
+          onClick={() => {
+            traceAnalytics.trackLayoutChange('drawer right', organization);
+            props.trace_dispatch({type: 'set layout', payload: 'drawer right'});
+          }}
           size="xs"
           aria-label={t('Drawer right')}
           icon={<IconPanel size="xs" direction="right" />}
