@@ -49,14 +49,9 @@ function parseName(name: string, useCase: UseCase): string {
     return name;
   }
   if (useCase === 'spans') {
-    if (name === 'exclusive_time' || name === 'self_time') {
-      return 'span.self_time';
-    }
-    if (name === 'duration') {
-      return 'span.duration';
-    }
-    return name;
+    return `span.${name}`;
   }
+
   return `${useCase}.${name}`;
 }
 
