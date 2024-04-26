@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, lazy} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
@@ -36,6 +36,10 @@ export const REPLAY_CLIP_OFFSETS = {
   durationBeforeMs: 5_000,
 };
 
+const ReplayOnboardingPanel = lazy(() => import('./replayInlineOnboardingPanel'));
+const ReplayPreview = lazy(() => import('./replayPreview'));
+const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
+
 function EventReplayContent({
   event,
   group,
@@ -45,13 +49,6 @@ function EventReplayContent({
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
   const router = useRouter();
   const {getReplayCountForIssue} = useReplayCountForIssues();
-
-  const replayOnboardingPanel = useCallback(
-    () => import('./replayInlineOnboardingPanel'),
-    []
-  );
-  const replayPreview = useCallback(() => import('./replayPreview'), []);
-  const replayClipPreview = useCallback(() => import('./replayClipPreview'), []);
 
   const hasReplayClipFeature = organization.features.includes(
     'issue-details-inline-replay-viewer'
@@ -69,7 +66,7 @@ function EventReplayContent({
     return (
       <ErrorBoundary mini>
         <LazyLoad
-          component={replayOnboardingPanel}
+          component={ReplayOnboardingPanel}
           platform={platform}
           projectId={projectId}
         />
@@ -148,12 +145,12 @@ function EventReplayContent({
             {hasReplayClipFeature ? (
               <LazyLoad
                 {...commonProps}
-                component={replayClipPreview}
+                LazyComponent={ReplayClipPreview}
                 clipOffsets={REPLAY_CLIP_OFFSETS}
                 overlayContent={overlayContent}
               />
             ) : (
-              <LazyLoad {...commonProps} component={replayPreview} />
+              <LazyLoad {...commonProps} LazyComponent={ReplayPreview} />
             )}
           </ReactLazyLoad>
         </ReplayGroupContextProvider>

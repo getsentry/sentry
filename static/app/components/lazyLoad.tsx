@@ -9,21 +9,13 @@ import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
 import retryableImport from 'sentry/utils/retryableImport';
 
-type PromisedImport<C> = Promise<{default: C}>;
-
 type ComponentType = React.ComponentType<any>;
 
 type Props<C extends ComponentType> = React.ComponentProps<C> & {
   /**
    * Wrap the component with lazy() before passing it to LazyLoad.
    */
-  LazyComponent?: React.LazyExoticComponent<C>;
-
-  /**
-   * Accepts a function to trigger the import resolution of the component.
-   * @deprecated Use `LazyComponent` instead and keep lazy() calls out of the render path.
-   */
-  component?: () => PromisedImport<C>;
+  LazyComponent: React.LazyExoticComponent<C>;
 
   /**
    * Override the default fallback component.
