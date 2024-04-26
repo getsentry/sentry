@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import type {
-  AssigneeSelectorDropdownProps,
-  SuggestedAssignee,
-} from 'sentry/components/assigneeSelectorDropdown';
-import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Chevron} from 'sentry/components/chevron';
+import type {
+  DeprecatedAssigneeSelectorDropdownProps,
+  SuggestedAssignee,
+} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
+import {DeprecatedAssigneeSelectorDropdown} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -21,9 +21,9 @@ import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface AssigneeSelectorProps
+interface DeprecatedAssigneeSelectorProps
   extends Omit<
-    AssigneeSelectorDropdownProps,
+    DeprecatedAssigneeSelectorDropdownProps,
     'children' | 'organization' | 'assignedTo'
   > {
   noDropdown?: boolean;
@@ -123,14 +123,20 @@ function AssigneeAvatar({
   );
 }
 
-function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
+/**
+ * @deprecated use AssigneeSelectorDropdown instead (Coming in future PR)
+ */
+function DeprecatedAssigneeSelector({
+  noDropdown,
+  ...props
+}: DeprecatedAssigneeSelectorProps) {
   const organization = useOrganization();
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === props.id);
 
   return (
     <AssigneeWrapper>
-      <AssigneeSelectorDropdown
+      <DeprecatedAssigneeSelectorDropdown
         organization={organization}
         assignedTo={group?.assignedTo}
         {...props}
@@ -161,12 +167,12 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
             </Fragment>
           );
         }}
-      </AssigneeSelectorDropdown>
+      </DeprecatedAssigneeSelectorDropdown>
     </AssigneeWrapper>
   );
 }
 
-export default AssigneeSelector;
+export default DeprecatedAssigneeSelector;
 
 const AssigneeWrapper = styled('div')`
   display: flex;

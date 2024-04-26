@@ -474,6 +474,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Let spam detection run but don't take action on it.
+register(
+    "feedback.spam-detection-actions",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 # Extract spans only from a random fraction of transactions.
 #
 # NOTE: Any value below 1.0 will break the product. Do not override in production.
@@ -1686,6 +1694,12 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
+register(
+    "performance.traces.span_query_minimum_spans",
+    type=Int,
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
