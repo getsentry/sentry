@@ -233,6 +233,14 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
+
+  // TODO: Remove once we've finished rolling out the new renderer
+  Sentry.setTag(
+    'concurrent-renderer',
+    (window.__initialData.features as unknown as string[]).includes(
+      'organizations:react-concurrent-renderer-enabled'
+    )
+  );
 }
 
 export function isFilteredRequestErrorEvent(event: Event): boolean {
