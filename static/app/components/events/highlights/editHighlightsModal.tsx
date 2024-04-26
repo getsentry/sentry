@@ -79,6 +79,7 @@ function EditPreviewHighlightSection({
             item={item}
             alias={alias}
             config={{includeAliasInSubject: true, disableErrors: true}}
+            data-test-id="highlights-preview-ctx"
           />
         </Fragment>
       ));
@@ -103,6 +104,7 @@ function EditPreviewHighlightSection({
         tagKey={content.originalTag.key}
         projectSlug={project.slug}
         config={{disableActions: true, disableRichValue: true}}
+        data-test-id="highlights-preview-tag"
       />
     </Fragment>
   ));

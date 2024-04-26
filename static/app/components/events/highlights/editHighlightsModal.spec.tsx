@@ -198,7 +198,7 @@ describe('EditHighlightsModal', function () {
         selector: 'div',
       });
       const removeButton = previewTagItem?.closest(
-        "div[data-test-id='highlight-tag-row']"
+        "div[data-test-id='highlights-preview-tag']"
       )?.previousSibling;
       expect(removeButton).toBeEnabled();
     });
@@ -274,7 +274,9 @@ describe('EditHighlightsModal', function () {
     ]);
     allHighlightCtxTitles.forEach(title => {
       const previewCtxItem = within(previewSection).getByText(title) as HTMLElement;
-      const removeButton = previewCtxItem?.parentNode?.previousSibling;
+      const removeButton = previewCtxItem?.closest(
+        "div[data-test-id='highlights-preview-ctx']"
+      )?.previousSibling;
       expect(removeButton).toBeEnabled();
     });
 
