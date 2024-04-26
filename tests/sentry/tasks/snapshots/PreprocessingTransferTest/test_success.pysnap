@@ -154,7 +154,7 @@ steps:
   - --findings-file
   - /findings/import-colliding-users.json
   - --filter-usernames-file
-  - /conf/filter-usernames.txt
+  - /in/filter-usernames.txt
   id: import-colliding-users
   name: gcr.io/cloud-builders/docker
   timeout: 300s
@@ -251,7 +251,7 @@ steps:
   - --findings-file
   - /findings/export-colliding-users.json
   - --filter-usernames-file
-  - /conf/filter-usernames.txt
+  - /in/filter-usernames.txt
   id: export-colliding-users
   name: gcr.io/cloud-builders/docker
   timeout: 300s
