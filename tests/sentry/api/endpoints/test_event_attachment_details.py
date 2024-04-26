@@ -145,7 +145,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_delete_activity_no_group(self):
         self.login_as(user=self.user)
 
-        self.create_attachment()
+        self.create_attachment(group_id=None)
         path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
         response = self.client.delete(path)
         assert response.status_code == 204
@@ -153,6 +153,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         delete_activity = Activity.objects.get(type=ActivityType.DELETED_ATTACHMENT.value)
         assert delete_activity.project == self.project
         assert delete_activity.group_id is None
+        assert delete_activity.group is None
 
     @with_feature("organizations:event-attachments")
     def test_delete_activity_with_group(self):
