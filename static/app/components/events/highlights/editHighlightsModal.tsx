@@ -27,7 +27,7 @@ import useApi from 'sentry/utils/useApi';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface EditHighlightsModalProps extends ModalRenderProps {
+export interface EditHighlightsModalProps extends ModalRenderProps {
   event: Event;
   highlightContext: HighlightContext;
   highlightTags: HighlightTags;
@@ -51,6 +51,7 @@ function EditPreviewHighlightSection({
   highlightTags,
   onRemoveContextKey,
   onRemoveTag,
+  ...props
 }: EditPreviewHighlightSectionProps) {
   const organization = useOrganization();
   const previewColumnCount = 2;
@@ -71,6 +72,7 @@ function EditPreviewHighlightSection({
             icon={<IconSubtract />}
             size="xs"
             onClick={() => onRemoveContextKey(alias, item.key)}
+            data-test-id="highlights-remove-ctx"
           />
           <EditPreviewContextItem
             meta={meta}
@@ -93,6 +95,7 @@ function EditPreviewHighlightSection({
         icon={<IconSubtract />}
         size="xs"
         onClick={() => onRemoveTag(content.originalTag.key)}
+        data-test-id="highlights-remove-tag"
       />
       <EditPreviewTagItem
         content={content}
@@ -115,11 +118,14 @@ function EditPreviewHighlightSection({
     );
   }
   return (
-    <EditHighlightPreview columnCount={previewColumnCount}>
+    <EditHighlightPreview columnCount={previewColumnCount} {...props}>
       {columns.length > 0 ? (
         columns
       ) : (
-        <EmptyHighlightMessage columnCount={previewColumnCount}>
+        <EmptyHighlightMessage
+          columnCount={previewColumnCount}
+          data-test-id="highlights-empty-message"
+        >
           {t('Promote tags or context keys to highlights for quicker debugging!')}
         </EmptyHighlightMessage>
       )}
@@ -139,6 +145,7 @@ function EditTagHighlightSection({
   event,
   highlightTags,
   onAddTag,
+  ...props
 }: EditTagHighlightSectionProps) {
   const tagData = event.tags.map(tag => tag.key);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
@@ -170,7 +177,7 @@ function EditTagHighlightSection({
     );
   }
   return (
-    <EditHighlightSection>
+    <EditHighlightSection {...props}>
       <Subtitle>{t('Tags')}</Subtitle>
       <EditHighlightSectionContent columnCount={columnCount}>
         {tagColumns}
@@ -191,6 +198,7 @@ function EditContextHighlightSection({
   event,
   highlightContext,
   onAddContextKey,
+  ...props
 }: EditContextHighlightSectionProps) {
   const ctxDisableMap: Record<string, Set<string>> = Object.entries(
     highlightContext
@@ -243,7 +251,7 @@ function EditContextHighlightSection({
   }
 
   return (
-    <EditHighlightSection>
+    <EditHighlightSection {...props}>
       <Subtitle>{t('Context')}</Subtitle>
       <EditHighlightSectionContent columnCount={columnCount}>
         {contextColumns}
@@ -336,12 +344,14 @@ export default function EditHighlightsModal({
             })
           }
           project={project}
+          data-test-id="highlights-preview-section"
         />
         <EditTagHighlightSection
           event={event}
           columnCount={columnCount}
           highlightTags={highlightTags}
           onAddTag={tagKey => setHighlightTags([...highlightTags, tagKey])}
+          data-test-id="highlights-tag-section"
         />
         <EditContextHighlightSection
           event={event}
@@ -353,6 +363,7 @@ export default function EditHighlightsModal({
               [contextType]: [...(highlightContext[contextType] ?? []), contextKey],
             })
           }
+          data-test-id="highlights-context-section"
         />
       </Body>
       <Footer>

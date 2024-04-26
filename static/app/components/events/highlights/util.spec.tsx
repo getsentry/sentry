@@ -8,7 +8,7 @@ import {
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
 
-const TEST_EVENT_CONTEXTS = {
+export const TEST_EVENT_CONTEXTS = {
   keyboard: {
     type: 'default',
     brand: 'keychron',
@@ -30,7 +30,7 @@ const TEST_EVENT_CONTEXTS = {
   },
 };
 
-const TEST_EVENT_TAGS = [
+export const TEST_EVENT_TAGS = [
   {
     key: 'browser',
     value: 'Chrome 1.2.3',
