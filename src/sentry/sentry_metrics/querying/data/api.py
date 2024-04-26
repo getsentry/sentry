@@ -3,7 +3,6 @@ from datetime import datetime
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
-from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -71,10 +70,7 @@ def run_queries(
 
     preparation_steps: list[PreparationStep] = []
 
-    if features.has(
-        "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
-    ):
-        preparation_steps.append(UnitsNormalizationStep())
+    preparation_steps.append(UnitsNormalizationStep())
 
     preparation_steps.append(QueryMappingStep(projects, DEFAULT_MAPPINGS))
 

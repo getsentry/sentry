@@ -59,7 +59,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:ddm-dashboard-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:ddm-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:ddm-metrics-api-unit-normalization", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:ddm-sidebar-item-hidden", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:metrics-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:ddm-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

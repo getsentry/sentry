@@ -1529,8 +1529,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-ui": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enable the unit normalization in the metrics API
-    "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enables category "metrics" in stats_v2 endpoint
