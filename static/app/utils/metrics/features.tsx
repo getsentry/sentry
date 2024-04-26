@@ -5,10 +5,6 @@ export function hasMetricsExperimentalFeature(organization: Organization) {
   return organization.features.includes('ddm-experimental');
 }
 
-export function hasMetricsUI(organization: Organization) {
-  return organization.features.includes('ddm-ui');
-}
-
 export function hasDashboardImportFeature(organization: Organization) {
   return organization.features.includes('ddm-dashboard-import');
 }
@@ -18,7 +14,10 @@ export function hasMetricsSidebarItem(organization: Organization) {
 }
 
 export function hasCustomMetrics(organization: Organization) {
-  return hasMetricsUI(organization) && hasMetricsSidebarItem(organization);
+  return (
+    organization.features.includes('custom-metrics') &&
+    hasMetricsSidebarItem(organization)
+  );
 }
 
 export function hasMetricStats(organization: Organization) {
