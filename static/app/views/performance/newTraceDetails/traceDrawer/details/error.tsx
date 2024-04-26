@@ -79,12 +79,10 @@ export function ErrorNodeDetails({
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-            {t('Show in view')}
-          </Button>
-          <TraceDrawerComponents.EventDetailsLink
+          <TraceDrawerComponents.NodeActions
             node={node}
             organization={organization}
+            onTabScrollToNode={onTabScrollToNode}
           />
           <Button size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}
