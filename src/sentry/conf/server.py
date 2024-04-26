@@ -1659,8 +1659,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-meta": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
-    # Enables the usage of the new metrics layer in the metrics API.
-    "organizations:metrics-api-new-metrics-layer": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
     # Enables the search bar for metrics samples list
