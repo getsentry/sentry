@@ -74,7 +74,6 @@ def get_stacktrace_string(data):
                 if frame_count + num_frames > MAX_FRAME_COUNT:
                     remaining_frame_count = MAX_FRAME_COUNT - frame_count
                     contributing_frames = contributing_frames[-remaining_frame_count:]
-                    frame_count += remaining_frame_count
                     num_frames = remaining_frame_count
                 frame_count += num_frames
 
