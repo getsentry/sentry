@@ -74,9 +74,6 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   const {mutate: markAsViewed} = useMarkReplayViewed();
   useEffect(() => {
-    if (!organization.features.includes('session-replay-viewed-by-ui')) {
-      return;
-    }
     if (
       !fetchError &&
       replayRecord &&

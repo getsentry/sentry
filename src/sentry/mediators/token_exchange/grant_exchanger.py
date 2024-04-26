@@ -16,7 +16,7 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 
 
 class GrantExchanger(Mediator):

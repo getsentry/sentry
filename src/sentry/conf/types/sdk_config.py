@@ -3,8 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Literal, NotRequired, TypedDict
 
-Event = Any
-Hint = Any
+from sentry_sdk.types import Event, Hint
 
 
 class SdkConfig(TypedDict):

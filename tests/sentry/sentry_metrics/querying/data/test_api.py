@@ -29,7 +29,6 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
@@ -134,7 +133,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             query_type,
         ).apply_transformer(self.query_transformer)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_no_formulas(self) -> None:
         results = self.run_query(
             mql_queries=[],
@@ -151,7 +149,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert results["start"] is None
         assert results["end"] is None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_empty_results(self) -> None:
         # TODO: the identities returned here to not make much sense, we need to figure out the right semantics.
         for aggregate, expected_identity_series, expected_identity_totals in (
@@ -182,7 +179,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             ]
             assert data[0][0]["totals"] == expected_identity_totals
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_infinite_value(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
 
@@ -206,7 +202,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert data[0][0]["totals"] is None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -235,7 +230,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is not None
         assert meta[0][1]["scaling_factor"] is not None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_only_totals(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -262,7 +256,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is not None
         assert meta[0][1]["scaling_factor"] is not None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_unitless_aggregate(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
 
@@ -291,7 +284,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_environment(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -315,7 +307,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert data[0][0]["totals"] == self.to_reference_unit(10.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_latest_release(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "release:latest")
 
@@ -339,7 +330,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert data[0][0]["totals"] == self.to_reference_unit(13.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_percentile(self) -> None:
         query_1 = self.mql("p90", TransactionMRI.DURATION.value)
 
@@ -366,7 +356,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(meta) == 1
         assert meta[0][0] == {"name": "aggregate_value", "type": "Float64"}
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_valid_percentiles(self) -> None:
         # We only want to check if these percentiles return results.
         for percentile in ("p50", "p75", "p90", "p95", "p99"):
@@ -385,7 +374,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             data = results["data"]
             assert len(data) == 1
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_invalid_percentiles(self) -> None:
         # We only want to check if these percentiles result in a error.
         for percentile in ("p30", "p45"):
@@ -403,7 +391,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                     referrer="metrics.data.api",
                 )
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_group_by(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction, platform")
 
@@ -447,7 +434,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
         assert first_meta[0]["group_bys"] == ["platform", "transaction"]
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_group_by_and_order_by(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
 
@@ -479,7 +465,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert data[0][1]["totals"] == self.to_reference_unit(9.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_group_by_and_order_by_and_only_totals(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
 
@@ -503,7 +488,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["by"] == {"transaction": "/hello"}
         assert data[0][1]["totals"] == self.to_reference_unit(12.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_group_by_on_null_tag(self) -> None:
         for value, transaction, time in (
             (1, "/hello", self.now()),
@@ -547,7 +531,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[1]["series"] == [self.to_reference_unit(1.0)]
         assert first_query[1]["totals"] == self.to_reference_unit(1.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_parenthesized_filter(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "(transaction:/hello)", "platform")
 
@@ -580,7 +563,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_and_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:ios AND transaction:/hello", "platform"
@@ -608,7 +590,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert first_query[0]["totals"] == self.to_reference_unit(9.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_or_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:ios OR platform:android", "platform"
@@ -643,7 +624,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_one_negated_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "!platform:ios transaction:/hello", "platform"
@@ -671,7 +651,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert first_query[0]["totals"] == self.to_reference_unit(3.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_one_in_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, "platform:[android, ios]", "platform"
@@ -706,7 +685,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_one_not_in_filter(self) -> None:
         query_1 = self.mql(
             "sum", TransactionMRI.DURATION.value, '!platform:["android", "ios"]', "platform"
@@ -734,7 +712,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert first_query[0]["totals"] == self.to_reference_unit(9.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_multiple_aggregations(self) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value)
         query_2 = self.mql("max", TransactionMRI.DURATION.value)
@@ -766,7 +743,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert data[1][0]["totals"] == self.to_reference_unit(6.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_multiple_aggregations_and_single_group_by(self) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
         query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
@@ -830,7 +806,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert second_query[2]["totals"] == self.to_reference_unit(5.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
         self,
     ) -> None:
@@ -893,7 +868,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_meta[0]["limit"] == 2
         assert second_meta[0]["order"] == "DESC"
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_limit_above_snuba_limit(
         self,
     ) -> None:
@@ -923,7 +897,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
         assert first_meta[0]["limit"] == SNUBA_QUERY_LIMIT
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 3)
     def test_query_with_multiple_aggregations_and_single_group_by_and_dynamic_limit(
         self,
@@ -980,7 +953,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_meta[0]["has_more"]
         assert second_meta[0]["order"] == "DESC"
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_custom_set(self):
         mri = "s:custom/User.Click.2@none"
         for user in ("marco", "marco", "john"):
@@ -1013,7 +985,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 2, None]
         assert data[0][0]["totals"] == 2
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_metric_blocked_for_one_project(self):
         mri = "d:custom/page_size@byte"
 
@@ -1052,7 +1023,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, self.to_reference_unit(15.0, "byte"), None]
         assert data[0][0]["totals"] == self.to_reference_unit(15.0, "byte")
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_metric_blocked_for_all_projects(self):
         mri = "d:custom/page_load@millisecond"
 
@@ -1087,9 +1057,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 1
-        assert len(data[0]) == 0
+        assert data[0][0]["series"] == [None, None, None]
+        assert data[0][0]["totals"] is None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_two_metrics_and_one_blocked_for_a_project(self):
         mri_1 = "d:custom/page_load@millisecond"
         mri_2 = "d:custom/app_load@millisecond"
@@ -1126,12 +1096,13 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 2
-        assert len(data[0]) == 0
+        assert len(data[0][0]["series"]) == 3
+        assert data[0][0]["series"] == [None, None, None]
+        assert data[0][0]["totals"] is None
         assert data[1][0]["by"] == {}
         assert data[1][0]["series"] == [None, self.to_reference_unit(10.0), None]
         assert data[1][0]["totals"] == self.to_reference_unit(10.0)
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_tag_blocked_for_one_project(self):
         mri = "d:custom/page_size@byte"
 
@@ -1171,7 +1142,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, self.to_reference_unit(25.0, "byte"), None]
         assert data[0][0]["totals"] == self.to_reference_unit(25.0, "byte")
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_invalid_syntax(
         self,
     ) -> None:
@@ -1193,7 +1163,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_different_namespaces(self):
         query_1 = self.mql(
             "min",
@@ -1217,7 +1186,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_different_metric_types(self):
         query_1 = self.mql("count", "c:custom/page_click@none")
         query_2 = self.mql("max", "d:custom/app_load@millisecond")
@@ -1238,7 +1206,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_different_group_bys(self):
         query_1 = self.mql("min", "d:custom/page_click@none", group_by="transaction, environment")
         query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
@@ -1261,7 +1228,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_complex_group_by(self):
         query_1 = self.mql("min", "d:custom/page_click@none", group_by="environment")
         query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
@@ -1284,7 +1250,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
@@ -1309,7 +1274,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 4.0, 3.0]
         assert data[0][0]["totals"] == 3.5
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_complex_formula(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
@@ -1339,7 +1303,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 136.0, 127.0]
         assert data[0][0]["totals"] == 226.0
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_formula_and_group_by(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
@@ -1374,7 +1337,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[2]["series"] == [None, 5.0, 4.0]
         assert first_query[2]["totals"] == 18.0
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_formula_and_filter(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value, filters="platform:android")
         query_2 = self.mql("sum", TransactionMRI.DURATION.value, filters="platform:ios")
@@ -1406,7 +1368,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["series"] == [None, 1.0, 1.0]
         assert data[0][1]["totals"] == 2.0
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_coercible_units(self):
         mri_1 = "d:custom/page_load@nanosecond"
         mri_2 = "d:custom/image_load@microsecond"
@@ -1466,7 +1427,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert meta[0][1]["unit"] == "nanosecond"
             assert meta[0][1]["scaling_factor"] is None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_non_coercible_units(self):
         mri_1 = "d:custom/page_load@nanosecond"
         mri_2 = "d:custom/page_size@byte"
@@ -1510,7 +1470,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_unitless_aggregates(self):
         mri_1 = "d:custom/page_load@nanosecond"
         mri_2 = "d:custom/load_time@microsecond"
@@ -1554,7 +1513,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_unknown_units(self):
         mri_1 = "d:custom/cost@bananas"
         mri_2 = "d:custom/speed@mangos"
@@ -1598,7 +1556,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_coefficient_operators(self):
         mri_1 = "d:custom/page_load@nanosecond"
         mri_2 = "d:custom/load_time@microsecond"
@@ -1649,3 +1606,326 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert meta[0][1]["unit_family"] == expected_unit_family
             assert meta[0][1]["unit"] == expected_unit
             assert meta[0][1]["scaling_factor"] is None
+
+    def test_filter_project_mapping(self) -> None:
+        mql = self.mql("sum", TransactionMRI.DURATION.value, "project:bar")
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(12.0),
+            self.to_reference_unit(9.0),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(21.0)
+
+    def setup_second_project(self):
+        self.new_project_1 = self.create_project(name="Bar Again")
+        for value, transaction, platform, env, time in (
+            (1, "/hello", "android", "prod", self.now()),
+            (3, "/hello", "android", "prod", self.now()),
+            (5, "/hello", "android", "prod", self.now()),
+            (2, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (5, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (8, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+        ):
+            self.store_metric(
+                self.new_project_1.organization.id,
+                self.new_project_1.id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                },
+                self.ts(time),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+    def setup_third_project(self):
+        self.new_project_2 = self.create_project(name="Bar Yet Again")
+
+        for value, transaction, platform, env, time in (
+            (1, "/hello", "android", "prod", self.now()),
+            (3, "/hello", "android", "prod", self.now()),
+            (5, "/hello", "android", "prod", self.now()),
+            (2, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (5, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+            (8, "/hello", "android", "prod", self.now() + timedelta(hours=1, minutes=30)),
+        ):
+            self.store_metric(
+                self.new_project_2.organization.id,
+                self.new_project_2.id,
+                "distribution",
+                TransactionMRI.DURATION.value,
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                },
+                self.ts(time),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+    def test_groupby_project_mapping(self) -> None:
+        self.setup_second_project()
+        mql = self.mql("avg", TransactionMRI.DURATION.value, group_by="project")
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        data = sorted(data, key=lambda x: x["by"]["project"])
+        assert len(data) == 2
+        assert data[1]["by"] == {"project": self.new_project_1.slug}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    def test_groupby_and_filter_project_mapping(self) -> None:
+        self.setup_second_project()
+        self.setup_third_project()
+
+        mqls = [
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="project:[bar,bar-again]",
+            ),
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="!project:bar-yet-again",
+            ),
+            self.mql(
+                "avg",
+                TransactionMRI.DURATION.value,
+                group_by="project",
+                filters="project:bar or project:bar-again",
+            ),
+        ]
+        for mql in mqls:
+            query = MQLQuery(mql)
+
+            results = self.run_query(
+                mql_queries=[query],
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project, self.new_project_1, self.new_project_2],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            data = results["data"][0]
+            assert len(data) == 2
+            data = sorted(data, key=lambda x: x["by"]["project"])
+            assert data[1]["by"] == {"project": self.new_project_1.slug}
+            assert data[1]["series"] == [
+                None,
+                self.to_reference_unit(3.0),
+                self.to_reference_unit(5.0),
+            ]
+            assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    def test_groupby_project_id_is_not_unmapped(self) -> None:
+        self.setup_second_project()
+
+        mql = self.mql("avg", TransactionMRI.DURATION.value, group_by="project_id")
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 2
+        data = sorted(data, key=lambda x: x["by"]["project_id"])
+        assert data[0]["by"] == {"project_id": self.project.id}
+        assert data[1]["by"] == {"project_id": self.new_project_1.id}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    def test_only_specific_queries_project_mapping(self) -> None:
+        self.setup_second_project()
+
+        mql_1 = self.mql("avg", TransactionMRI.DURATION.value, group_by="project_id")
+        mql_2 = self.mql("avg", TransactionMRI.DURATION.value, group_by="project")
+        query_1 = MQLQuery(mql_1)
+        query_2 = MQLQuery(mql_2)
+
+        results = self.run_query(
+            mql_queries=[query_1, query_2],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data_1 = results["data"][0]
+        data_1 = sorted(data_1, key=lambda x: x["by"]["project_id"])
+        data_2 = results["data"][1]
+        data_2 = sorted(data_2, key=lambda x: x["by"]["project"])
+
+        assert data_1[0]["by"] == {"project_id": self.project.id}
+        assert data_1[1]["by"] == {"project_id": self.new_project_1.id}
+        assert data_2[0]["by"] == {"project": self.project.slug}
+        assert data_2[1]["by"] == {"project": self.new_project_1.slug}
+
+    def test_groupby_project_id_and_filter_by_project(self) -> None:
+        self.setup_second_project()
+        self.setup_third_project()
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            group_by="project_id",
+            filters="project:[bar,bar-again]",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1, self.new_project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 2
+        data = sorted(data, key=lambda x: x["by"]["project_id"])
+        assert data[0]["by"] == {"project_id": self.project.id}
+        assert data[1]["by"] == {"project_id": self.new_project_1.id}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    def test_groupby_project_and_filter_by_project_id(self) -> None:
+        self.setup_second_project()
+        self.setup_third_project()
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            group_by="project",
+            filters=f"project_id:[{self.project.id},{self.new_project_1.id}]",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project, self.new_project_1, self.new_project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 2
+        data = sorted(data, key=lambda x: x["by"]["project"])
+        assert data[0]["by"] == {"project": self.project.slug}
+        assert data[1]["by"] == {"project": self.new_project_1.slug}
+        assert data[1]["series"] == [
+            None,
+            self.to_reference_unit(3.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[1]["totals"] == self.to_reference_unit(4.0)
+
+    def test_groupby_project_and_filter_by_unknown_project_id(self) -> None:
+        self.empty_project = self.create_project(name="empty project")
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            group_by="project",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.empty_project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 1
+        assert data[0]["series"] == [None, None, None]
+        assert data[0]["totals"] is None
+
+    def test_filter_by_unknown_project_slug(self) -> None:
+        self.empty_project = self.create_project(name="empty project")
+
+        mql = self.mql(
+            "avg",
+            TransactionMRI.DURATION.value,
+            filters="project:unknown-project",
+        )
+        query = MQLQuery(mql)
+
+        results = self.run_query(
+            mql_queries=[query],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.empty_project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"][0]
+        assert len(data) == 1
+        assert data[0]["series"] == [None, None, None]
+        assert data[0]["totals"] is None

@@ -159,7 +159,7 @@ function mockSpansResponse(
   body: Partial<EventTransaction> = {}
 ) {
   return MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/project_slug:${id}/?averageColumn=span.self_time`,
+    url: `/organizations/org-slug/events/project_slug:${id}/?averageColumn=span.self_time&averageColumn=span.duration`,
     method: 'GET',
     asyncDelay: 1,
     body,
@@ -212,7 +212,7 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     timestamp: 10,
     data: {},
     trace_id: '',
-    childTransaction: undefined,
+    childTransactions: [],
     event: makeEvent() as EventTransaction,
     ...overrides,
   };
@@ -478,6 +478,9 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
 describe('trace view', () => {
   beforeEach(() => {
     globalThis.ResizeObserver = MockResizeObserver as any;
+
+    // We are having replay errors about invalid stylesheets, though the CSS seems valid
+    jest.spyOn(console, 'error').mockImplementation(() => {});
 
     Object.defineProperty(window, 'location', {
       value: {

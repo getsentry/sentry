@@ -17,6 +17,7 @@ import {
 } from 'sentry/components/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
 import Input from 'sentry/components/input';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
@@ -34,7 +35,10 @@ import type {
 } from './types';
 
 interface ComboBoxProps<Value extends string>
-  extends ComboBoxStateOptions<ComboBoxOptionOrSection<Value>> {
+  extends Omit<
+    ComboBoxStateOptions<ComboBoxOptionOrSection<Value>>,
+    'allowsCustomValue'
+  > {
   'aria-label': string;
   className?: string;
   disabled?: boolean;
@@ -59,6 +63,7 @@ function ComboBox<Value extends string>({
   sizeLimitMessage,
   menuTrigger = 'focus',
   growingInput = false,
+  onOpenChange,
   menuWidth,
   ...props
 }: ComboBoxProps<Value>) {
@@ -70,10 +75,25 @@ function ComboBox<Value extends string>({
   const state = useComboBoxState({
     // Mapping our disabled prop to react-aria's isDisabled
     isDisabled: disabled,
+    onOpenChange: (isOpen, ...otherArgs) => {
+      onOpenChange?.(isOpen, ...otherArgs);
+      if (isOpen) {
+        // Ensure the selected element is being focused
+        state.selectionManager.setFocusedKey(state.selectedKey);
+      }
+    },
     ...props,
   });
+
   const {inputProps, listBoxProps} = useComboBox(
-    {listBoxRef, inputRef, popoverRef, isDisabled: disabled, ...props},
+    {
+      listBoxRef,
+      inputRef,
+      popoverRef,
+      shouldFocusWrap: true,
+      isDisabled: disabled,
+      ...props,
+    },
     state
   );
 
@@ -89,6 +109,14 @@ function ComboBox<Value extends string>({
     return () => {};
   }, [menuWidth, state.isOpen]);
 
+  useEffect(() => {
+    const popoverElement = popoverRef.current;
+    // Reset scroll state on opening the popover
+    if (popoverElement) {
+      popoverElement.scrollTop = 0;
+    }
+  }, [state.isOpen]);
+
   const selectContext = useContext(SelectContext);
 
   const {overlayProps, triggerProps} = useOverlay({
@@ -97,7 +125,6 @@ function ComboBox<Value extends string>({
     position: 'bottom-start',
     offset: [0, 8],
     isDismissable: true,
-    isKeyboardDismissDisabled: true,
     onInteractOutside: () => {
       state.close();
       inputRef.current?.blur();
@@ -105,13 +132,33 @@ function ComboBox<Value extends string>({
     shouldCloseOnBlur: true,
   });
 
-  // The menu opens after selecting an item but the input stais focused
+  // The menu opens after selecting an item but the input stays focused
   // This ensures the user can open the menu again by clicking on the input
   const handleInputClick = useCallback(() => {
     if (!state.isOpen && menuTrigger === 'focus') {
       state.open();
     }
   }, [state, menuTrigger]);
+
+  const handleInputMouseUp = useCallback((event: React.MouseEvent<HTMLInputElement>) => {
+    // Prevents the input from being selected when clicking on the trigger
+    event.preventDefault();
+  }, []);
+
+  const handleInputFocus = useCallback(
+    (event: React.FocusEvent<HTMLInputElement>) => {
+      const onFocusProp = inputProps.onFocus;
+      onFocusProp?.(event);
+      if (menuTrigger === 'focus') {
+        state.open();
+      }
+      // Need to setTimeout otherwise Chrome might reset the selection on padding click
+      setTimeout(() => {
+        event.target.select();
+      }, 0);
+    },
+    [inputProps.onFocus, menuTrigger, state]
+  );
 
   const InputComponent = growingInput ? StyledGrowingInput : StyledInput;
 
@@ -123,10 +170,13 @@ function ComboBox<Value extends string>({
       }}
     >
       <ControlWrapper className={className}>
+        {!state.isFocused && <InteractionStateLayer />}
         <InputComponent
           {...inputProps}
           onClick={handleInputClick}
           placeholder={placeholder}
+          onMouseUp={handleInputMouseUp}
+          onFocus={handleInputFocus}
           ref={mergeRefs([inputRef, triggerProps.ref])}
           size={size}
         />
@@ -217,8 +267,16 @@ function ControlledComboBox<Value extends string>({
     [hiddenOptions, items]
   );
 
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   const handleChange = useCallback(
     (key: string | number) => {
+      // Prevent calling onChange on closing the menu without selecting a different value
+      if (getEscapedKey(valueRef.current) === key) {
+        return;
+      }
+
       if (props.onSelectionChange) {
         props.onSelectionChange(key);
       }
@@ -307,15 +365,22 @@ const ControlWrapper = styled('div')`
   width: max-content;
   min-width: 150px;
   max-width: 100%;
+  cursor: pointer;
 `;
 
 const StyledInput = styled(Input)`
   max-width: inherit;
   min-width: inherit;
+  &:not(:focus) {
+    pointer-events: none;
+  }
 `;
 const StyledGrowingInput = styled(GrowingInput)`
   max-width: inherit;
   min-width: inherit;
+  &:not(:focus) {
+    cursor: pointer;
+  }
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {

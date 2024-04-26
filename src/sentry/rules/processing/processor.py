@@ -53,6 +53,28 @@ def is_condition_slow(
     return False
 
 
+def get_rule_type(condition: Mapping[str, Any]) -> str | None:
+    rule_cls = rules.get(condition["id"])
+    if rule_cls is None:
+        logger.warning("Unregistered condition or filter %r", condition["id"])
+        return None
+
+    rule_type: str = rule_cls.rule_type
+    return rule_type
+
+
+def split_conditions_and_filters(rule_condition_list):
+    condition_list = []
+    filter_list = []
+    for rule_cond in rule_condition_list:
+        if get_rule_type(rule_cond) == "condition/event":
+            condition_list.append(rule_cond)
+        else:
+            filter_list.append(rule_cond)
+
+    return condition_list, filter_list
+
+
 class RuleProcessor:
     def __init__(
         self,
@@ -166,15 +188,6 @@ class RuleProcessor:
         )
         return passes
 
-    def get_rule_type(self, condition: Mapping[str, Any]) -> str | None:
-        rule_cls = rules.get(condition["id"])
-        if rule_cls is None:
-            logger.warning("Unregistered condition or filter %r", condition["id"])
-            return None
-
-        rule_type: str = rule_cls.rule_type
-        return rule_type
-
     def get_state(self) -> EventState:
         return EventState(
             is_new=self.is_new,
@@ -205,7 +218,6 @@ class RuleProcessor:
 
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
-        rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         try:
             environment = self.event.get_environment()
@@ -221,14 +233,7 @@ class RuleProcessor:
             return
 
         state = self.get_state()
-
-        condition_list = []
-        filter_list = []
-        for rule_cond in rule_condition_list:
-            if self.get_rule_type(rule_cond) == "condition/event":
-                condition_list.append(rule_cond)
-            else:
-                filter_list.append(rule_cond)
+        condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
 
         # Sort `condition_list` so that most expensive conditions run last.
         condition_list.sort(key=lambda condition: is_condition_slow(condition))
@@ -282,7 +287,6 @@ class RuleProcessor:
         notification_uuid: str | None = None,
         rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
-        state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_inst = instantiate_action(rule, action, rule_fire_history)
             if not action_inst:
@@ -291,7 +295,6 @@ class RuleProcessor:
             results = safe_execute(
                 action_inst.after,
                 event=self.event,
-                state=state,
                 _with_transaction=False,
                 notification_uuid=notification_uuid,
             )

@@ -24,7 +24,7 @@ from sentry.services.hybrid_cloud.auth import (
 from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.signals import sso_enabled
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 
 
 class DatabaseBackedAuthService(AuthService):

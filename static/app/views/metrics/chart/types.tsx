@@ -1,5 +1,7 @@
+import type {MarkLineComponentOption, SeriesOption} from 'echarts';
+
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 
 export type Series = {
@@ -12,6 +14,7 @@ export type Series = {
   groupBy?: Record<string, string>;
   hidden?: boolean;
   isEquationSeries?: boolean;
+  markLine?: MarkLineComponentOption;
   paddingIndices?: Set<number>;
   queryIndex?: number;
   release?: string;
@@ -30,9 +33,11 @@ export interface ScatterSeries extends Series {
   z: number;
 }
 
-export interface CombinedMetricChartProps extends BaseChartProps {
+export interface CombinedMetricChartProps
+  extends Omit<BaseChartProps, 'series' | 'additionalSeries'> {
   displayType: MetricDisplayType;
   series: Series[];
+  additionalSeries?: SeriesOption[];
   enableZoom?: boolean;
   scatterSeries?: ScatterSeries[];
 }

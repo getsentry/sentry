@@ -57,7 +57,7 @@ from sentry.services.hybrid_cloud.tombstone import (
     control_tombstone_service,
     region_tombstone_service,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 T = TypeVar("T", bound=Model)
 

@@ -6,7 +6,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';

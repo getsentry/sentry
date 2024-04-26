@@ -13,7 +13,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.auth.access import from_user
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
-    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
@@ -40,7 +40,7 @@ from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
@@ -689,7 +689,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 150
         assert triggers["warning"].alert_threshold == 140
-        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
     def test_comparison_delta_below(self):
         params = self.valid_params.copy()
@@ -706,7 +708,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 50
         assert triggers["warning"].alert_threshold == 60
-        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
         params["comparison_delta"] = None
         params["resolveThreshold"] = 100

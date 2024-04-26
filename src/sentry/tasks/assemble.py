@@ -37,7 +37,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction

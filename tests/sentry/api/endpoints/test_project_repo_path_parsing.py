@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 

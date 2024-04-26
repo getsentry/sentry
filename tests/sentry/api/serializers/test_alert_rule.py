@@ -9,6 +9,7 @@ from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleMonitorType,
+    AlertRuleProjects,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -16,6 +17,7 @@ from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.utils.actor import ActorTuple
 
 NOT_SET = object()
 
@@ -63,8 +65,10 @@ class BaseAlertRuleSerializerTest:
         else:
             assert result["environment"] is None
 
-        if alert_rule.owner:
-            assert result["owner"] == alert_rule.owner.get_actor_identifier()
+        if alert_rule.user_id or alert_rule.team_id:
+            owner = ActorTuple.from_id(user_id=alert_rule.user_id, team_id=alert_rule.team_id)
+            assert owner
+            assert result["owner"] == owner.identifier
         else:
             assert result["owner"] is None
 
@@ -103,7 +107,12 @@ class BaseAlertRuleSerializerTest:
         if data.get("date_added"):
             rule.date_added = data["date_added"]
         if data.get("owner"):
-            rule.owner = data["owner"]
+            # TODO(mark) This will need to change when Actor is removed.
+            actor = ActorTuple.from_actor_identifier(data["owner"]).resolve_to_actor()
+            assert actor, "Should not be None"
+            rule.owner_id = actor.id
+            rule.owner_user_id = actor.user_id
+            rule.owner_team_id = actor.team_id
 
         rule.save()
         return rule
@@ -155,6 +164,28 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert len(result[0]["activations"]) == 10
         assert len(result[1]["activations"]) == 6
 
+    def test_projects(self):
+        regular_alert_rule = self.create_alert_rule()
+        activated_alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        alert_rule_no_projects = self.create_alert_rule()
+
+        AlertRuleProjects.objects.filter(alert_rule_id=alert_rule_no_projects.id).delete()
+
+        assert activated_alert_rule.projects
+        assert regular_alert_rule.projects
+        assert not alert_rule_no_projects.projects.exists()
+        result = serialize([regular_alert_rule, activated_alert_rule, alert_rule_no_projects])
+
+        assert result[0]["projects"] == [
+            project.slug for project in regular_alert_rule.projects.all()
+        ]
+        assert result[1]["projects"] == [
+            project.slug for project in activated_alert_rule.projects.all()
+        ]
+        assert result[2]["projects"] == [
+            project.slug for project in activated_alert_rule.projects.all()
+        ]
+
     def test_environment(self):
         alert_rule = self.create_alert_rule(environment=self.environment)
         result = serialize(alert_rule)
@@ -174,6 +205,8 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
+        assert alert_rule.team_id == self.team.id
+        assert alert_rule.user_id is None
         assert alert_rule.owner == self.team.actor
 
     def test_comparison_delta_above(self):

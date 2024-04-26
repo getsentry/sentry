@@ -249,6 +249,7 @@ class AlertRule(Model):
         "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
     )
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
+    # Deprecated use user_id or team_id instead.
     owner = FlexibleForeignKey(
         "sentry.Actor",
         null=True,
@@ -256,6 +257,7 @@ class AlertRule(Model):
     )
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
+
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )  # NOTE: This feature is not currently utilized.
@@ -286,7 +288,7 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     def _validate_actor(self):
-        # TODO: Remove once owner is fully removed.
+        # TODO(mark): Remove once owner is fully removed.
         if self.owner_id is not None and self.team_id is None and self.user_id is None:
             raise ValueError("AlertRule with owner requires either team_id or user_id")
 

@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -56,11 +55,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                 self.fcp_value = fcp_value
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return features.has(
-            "organizations:performance-issues-render-blocking-assets-detector",
-            organization,
-            actor=None,
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
@@ -129,7 +124,9 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         return (end - start) * 1000
 
-    def _is_blocking_render(self, span):
+    def _is_blocking_render(self, span: Span) -> bool:
+        assert self.fcp is not None
+
         data = span.get("data", None)
         render_blocking_status = data and data.get("resource.render_blocking_status")
         if render_blocking_status == "non-blocking":
@@ -155,6 +152,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
 
-    def _fingerprint(self, span: Span):
+    def _fingerprint(self, span: Span) -> str:
         resource_url_hash = fingerprint_resource_span(span)
         return f"1-{PerformanceRenderBlockingAssetSpanGroupType.type_id}-{resource_url_hash}"

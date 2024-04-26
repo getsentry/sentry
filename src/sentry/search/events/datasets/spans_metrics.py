@@ -333,6 +333,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
+                    "ai_total_tokens_used",
+                    optional_args=[
+                        fields.with_default(
+                            "c:spans/ai.total_tokens.used@none",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["c:spans/ai.total_tokens.used@none"],
+                                allow_custom_measurements=False,
+                                allow_mri=True,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_counter=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
                     "http_response_rate",
                     required_args=[
                         SnQLStringArg("code"),
@@ -352,6 +375,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                                 ),
                             ],
                         ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "cache_hit_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_hit_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "cache_miss_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_miss_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
                         alias,
                     ),
                     default_result_type="percentage",
@@ -682,6 +723,80 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             total_time,
+            alias,
+        )
+
+    def _resolve_cache_hit_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("true"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("false"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_hit_and_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        statuses = [self.builder.resolve_tag_value(status) for status in constants.CACHE_HIT_STATUS]
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "in",
+                [
+                    self.builder.column("cache.hit"),
+                    list(status for status in statuses if status is not None),
+                ],
+            ),
             alias,
         )
 

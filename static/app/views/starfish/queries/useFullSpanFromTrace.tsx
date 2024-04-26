@@ -1,4 +1,4 @@
-import type {Entry, EntrySpans} from 'sentry/types';
+import type {Entry, EntrySpans} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
