@@ -60,7 +60,7 @@ class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
 
         segment_span = next((span for span in spans_data if span["is_segment"] != 0), None)
         if segment_span is None:
-            return Response({"detail": "No segment span found"}, status=500)
+            return Response({"detail": "No transaction span found"}, status=500)
 
         spans_data = list(
             filter(lambda span: span["span_id"] != segment_span["span_id"], spans_data)
