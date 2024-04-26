@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {
@@ -219,7 +220,7 @@ function ProfileLink({
     <TraceDrawerComponents.TableRow
       title="Profile ID"
       extra={
-        <TraceDrawerComponents.Button
+        <Button
           size="xs"
           to={generateProfileFlamechartRoute({
             orgSlug: organization.slug,
@@ -234,7 +235,7 @@ function ProfileLink({
           }}
         >
           {t('View Profile')}
-        </TraceDrawerComponents.Button>
+        </Button>
       }
     >
       {node.value.profile_id}
