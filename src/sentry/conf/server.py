@@ -1525,6 +1525,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
     # Delightful Developer Metrics (DDM):
+    # Enable UI (requires custom-metrics flag as well)
+    "organizations:ddm-ui": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
     # Enable the unit normalization in the metrics API
