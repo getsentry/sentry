@@ -43,7 +43,6 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
 
         alert_rule.refresh_from_db()
         rule.refresh_from_db()
-        assert rule.owner_id is None, "Should be blank when team is deleted."
         assert rule.owner_team_id is None, "Should be blank when team is deleted."
         assert alert_rule.owner_id is None, "Should be blank when team is deleted."
         assert alert_rule.team_id is None, "Should be blank when team is deleted."

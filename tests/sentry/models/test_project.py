@@ -386,10 +386,11 @@ class ProjectTest(APITestCase, TestCase):
 
         rule.refresh_from_db()
         assert rule.owner_team_id is None
-        assert rule.owner_id is None
+        assert rule.owner_user_id is None
 
         alert_rule.refresh_from_db()
         assert alert_rule.team_id is None
+        assert alert_rule.user_id is None
         assert alert_rule.owner_id is None
 
 

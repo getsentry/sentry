@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.rule import Rule
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillRuleUserTeamTest(TestMigrations):
     migrate_from = "0703_add_team_user_to_rule"
     migrate_to = "0704_backfill_rule_user_team"
