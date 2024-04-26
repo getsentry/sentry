@@ -1,8 +1,8 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
+import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {AssigneeAvatar} from 'sentry/components/assigneeSelector';
 import type {SuggestedAssignee} from 'sentry/components/assigneeSelectorDropdown';
@@ -24,6 +24,8 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Actor, Group, SuggestedOwnerReason, Team, User} from 'sentry/types';
 import {buildTeamId} from 'sentry/utils';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
@@ -47,6 +49,12 @@ type AssignableTeam = {
   team: Team;
 };
 
+type AssignableEntity = {
+  assignee: User | AssignableTeam;
+  id: string;
+  type: Actor['type'];
+};
+
 export interface NewAssigneeSelectorDropdownProps {
   group: Group;
   memberList?: User[];
@@ -55,11 +63,6 @@ export interface NewAssigneeSelectorDropdownProps {
   onClear?: () => void;
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
-
-type AssigneeDropdownState = {
-  /** Loading state for assignee dropdown */
-  loading: boolean;
-};
 
 function NewAssigneeSelectorDropdown({
   group,
@@ -73,35 +76,30 @@ function NewAssigneeSelectorDropdown({
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
 
-  const [state, setState] = useState<AssigneeDropdownState>(() => {
-    let assignee: User | AssignableTeam | undefined;
-
-    if (group.assignedTo?.type === 'team') {
-      const teams = ProjectsStore.getBySlug(group?.project.slug)?.teams ?? [];
-      if (teams) {
-        const assignedTeam = teams.find(team => team.id === group.assignedTo?.id);
-        assignee = assignedTeam
-          ? {
-              id: buildTeamId(assignedTeam.id),
-              display: `#${assignedTeam.slug}`,
-              email: assignedTeam.id,
-              team: assignedTeam,
-            }
-          : undefined;
+  const {mutate, isLoading} = useMutation<
+    AssignableEntity,
+    RequestError,
+    AssignableEntity
+  >({
+    mutationFn: (newAssignee: AssignableEntity): Promise<AssignableEntity> => {
+      // TODO(msun): this functino is only used here, make it better to avoid the jank
+      assignToActor({
+        id: group.id,
+        orgSlug: organization.slug,
+        actor: {id: newAssignee.id, type: newAssignee.type},
+        assignedBy: 'assignee_selector',
+      });
+      return Promise.resolve(newAssignee);
+    },
+    onSuccess: (newAssignee: AssignableEntity) => {
+      if (onAssign) {
+        const suggestedAssignee = getSuggestedAssignees().find(
+          actor => actor.type === newAssignee.type && actor.id === newAssignee.id
+        );
+        onAssign(newAssignee.type, newAssignee.assignee, suggestedAssignee);
       }
-    } else if (group.assignedTo?.type === 'user') {
-      assignee = memberList?.find(user => user.id === group.assignedTo?.id);
-    }
-
-    const stateSuggestedOwners = group?.owners;
-
-    return {
-      loading: false,
-      assignedTo: assignee ?? '',
-      assignedToType:
-        (group.assignedTo && group.assignedTo.type === 'team' ? 'team' : 'user') ?? '',
-      suggestedOwners: stateSuggestedOwners ?? [],
-    };
+    },
+    onError: () => {},
   });
 
   const currentMemberList = (): User[] | undefined => {
@@ -200,9 +198,7 @@ function NewAssigneeSelectorDropdown({
   const handleSelect = async (selectedOption: SelectOption<string> | null) => {
     // selectedOption is falsey when the option selected is currently selected
     if (!selectedOption) {
-      setState({...state, loading: true});
       await handleClear();
-      setState({loading: false});
       return;
     }
     // See makeMemberOption and makeTeamOption for how the value is formatted
@@ -213,59 +209,25 @@ function NewAssigneeSelectorDropdown({
         : selectedOption.value.split('TEAM_')[1];
 
     if (group.assignedTo && assigneeId === group.assignedTo?.id) {
-      setState({...state, loading: true});
       await handleClear();
-      setState({loading: false});
       return;
     }
 
+    let assignee: User | AssignableTeam;
+
     if (type === 'user') {
-      const assignee = currentMemberList()?.find(
-        member => member.id === assigneeId
-      ) as User;
-      setState({loading: true});
-      await assignToUser({
-        id: group.id,
-        orgSlug: organization.slug,
-        user: assignee,
-        assignedBy: 'assignee_selector',
-      });
-
-      if (onAssign) {
-        const suggestion = getSuggestedAssignees().find(
-          actor => actor.type === type && actor.id === assignee?.id
-        );
-        await onAssign(type, assignee, suggestion);
-      }
-      setState({loading: false});
-    } else if (type === 'team') {
-      const assignee = getAssignableTeams().find(
-        team => team.id === assigneeId
+      assignee = currentMemberList()?.find(member => member.id === assigneeId) as User;
+    } else {
+      assignee = getAssignableTeams().find(
+        assignableTeam => assignableTeam.team.id === assigneeId
       ) as AssignableTeam;
-      setState({loading: true});
-      await assignToActor({
-        id: group.id,
-        orgSlug: organization.slug,
-        actor: {id: assignee.team.id, type: 'team'},
-        assignedBy: 'assignee_selector',
-      });
-
-      if (onAssign) {
-        const suggestion = getSuggestedAssignees().find(
-          actor => actor.type === type && actor.id === assignee?.team.id
-        );
-        await onAssign(type, assignee, suggestion);
-      }
-      setState({
-        loading: false,
-      });
     }
+
+    mutate({assignee: assignee, id: assigneeId, type: type});
   };
 
   const handleClear = async () => {
-    setState({...state, loading: true});
     await clearAssignment(group.id, organization.slug, 'assignee_selector');
-    setState({loading: false});
 
     if (onClear) {
       onClear();
@@ -410,16 +372,16 @@ function NewAssigneeSelectorDropdown({
     );
     return (
       <Fragment>
-        {state.loading && (
+        {isLoading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
-        {!state.loading && !noDropdown && (
+        {!isLoading && !noDropdown && (
           <DropdownButton data-test-id="assignee-selector" {...props}>
             {avatarElement}
             <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
           </DropdownButton>
         )}
-        {!state.loading && noDropdown && avatarElement}
+        {!isLoading && noDropdown && avatarElement}
       </Fragment>
     );
   };
@@ -429,7 +391,7 @@ function NewAssigneeSelectorDropdown({
       <Button
         size="xs"
         aria-label={t('Invite Member')}
-        disabled={state.loading}
+        disabled={isLoading}
         onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
