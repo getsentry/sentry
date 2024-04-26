@@ -34,10 +34,6 @@ class Migration(CheckedMigration):
             ],
             database_operations=[],
         ),
-        migrations.RemoveIndex(
-            model_name="rule",
-            name="sentry_rule_project_676d0d_idx",
-        ),
         migrations.AddIndex(
             model_name="rule",
             index=models.Index(
@@ -49,5 +45,9 @@ class Migration(CheckedMigration):
             index=models.Index(
                 fields=["project", "status", "owner_user_id"], name="sentry_rule_project_6e9491_idx"
             ),
+        ),
+        migrations.RemoveIndex(
+            model_name="rule",
+            name="sentry_rule_project_676d0d_idx",
         ),
     ]
