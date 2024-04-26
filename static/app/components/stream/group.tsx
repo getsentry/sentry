@@ -181,8 +181,12 @@ function BaseGroupRow({
   const trackAssign: React.ComponentProps<
     typeof NewAssigneeSelectorDropdown
   >['onAssign'] = useCallback(
-    (type, _assignee, suggestedAssignee) => {
-      GroupStore.onAssignToSuccess(group.id, type, suggestedAssignee);
+    async (type, assignee, suggestedAssignee) => {
+      await GroupStore.onAssignToSuccess(
+        group.id,
+        `${type}:${assignee.id}`,
+        suggestedAssignee
+      );
       if (query !== undefined) {
         trackAnalytics('issues_stream.issue_assigned', {
           ...sharedAnalytics,
