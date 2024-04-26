@@ -203,7 +203,7 @@ def get_group_id_to_event(
                 "project_id": project.id,
             },
         )
-        group_id_to_event[group_id] = event
+        group_id_to_event[int(group_id)] = event
 
     eventstore.backend.bind_nodes(list(group_id_to_event.values()))
     return group_id_to_event
