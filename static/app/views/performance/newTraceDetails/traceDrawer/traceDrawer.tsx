@@ -26,6 +26,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
@@ -55,6 +56,7 @@ import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
+  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   trace: TraceTree;
@@ -421,6 +423,8 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 />
               ) : props.trace_state.tabs.current_tab.node === 'vitals' ? (
                 <TraceVitals trace={props.trace} />
+              ) : props.trace_state.tabs.current_tab.node === 'profiles' ? (
+                <TraceProfiles tree={props.trace} onScrollToNode={props.onScrollToNode} />
               ) : (
                 <TraceTreeNodeDetails
                   manager={props.manager}
@@ -462,15 +466,17 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
           props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'
         }
         onClick={() => {
-          traceAnalytics.trackTabView(node, organization);
-          if (props.tab.node !== 'vitals') {
+          if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
+            traceAnalytics.trackTabView(node, organization);
             props.onTabScrollToNode(root);
           }
           props.trace_dispatch({type: 'activate tab', payload: props.index});
         }}
       >
         {/* A trace is technically an entry in the list, so it has a color */}
-        {props.tab.node === 'trace' || props.tab.node === 'vitals' ? null : (
+        {props.tab.node === 'trace' ||
+        props.tab.node === 'vitals' ||
+        props.tab.node === 'profiles' ? null : (
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />

@@ -54,7 +54,7 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 type Tab = {
-  node: TraceTreeNode<TraceTree.NodeValue> | 'trace' | 'vitals';
+  node: TraceTreeNode<TraceTree.NodeValue> | 'trace' | 'profiles' | 'vitals';
   label?: string;
 };
 

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {
   TraceTree,
@@ -27,8 +26,6 @@ type SpanDetailProps = {
 
 function SpanNodeDetailTable(props: SpanDetailProps) {
   const location = useLocation();
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === props.node.value.event.projectID);
   const {organization} = props;
   const span = props.node.value;
 
@@ -36,11 +33,6 @@ function SpanNodeDetailTable(props: SpanDetailProps) {
     <Fragment>
       <TraceDrawerComponents.Table className="table key-value">
         <tbody>
-          <TraceDrawerComponents.ProfileLink
-            event={span.event}
-            project={project}
-            query={{spanId: span.span_id}}
-          />
           <SpanDescription
             node={props.node}
             organization={organization}
