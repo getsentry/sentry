@@ -1,5 +1,5 @@
 ---
-created: '2024-04-16T17:28:56.859402+00:00'
+created: '2024-04-25T18:22:28.906727+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -525,12 +525,6 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.notificationactionproject
   ordinal: 2
   sanitized_fields: []
-- model_name: sentry.incident
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_detected
-  - date_started
 - model_name: sentry.dashboardwidgetquery
   ordinal: 1
   sanitized_fields:
@@ -577,12 +571,6 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
-- model_name: sentry.timeseriessnapshot
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - end
-  - start
 - model_name: sentry.servicehook
   ordinal: 1
   sanitized_fields:
@@ -591,6 +579,35 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 2
   sanitized_fields:
   - date_added
+- model_name: sentry.incident
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_detected
+  - date_started
+- model_name: sentry.dashboardwidgetqueryondemand
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_modified
+- model_name: sentry.alertruletriggerexclusion
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+- model_name: sentry.alertruletriggeraction
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+- model_name: sentry.alertruletriggeraction
+  ordinal: 2
+  sanitized_fields:
+  - date_added
+- model_name: sentry.timeseriessnapshot
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - end
+  - start
 - model_name: sentry.pendingincidentsnapshot
   ordinal: 1
   sanitized_fields:
@@ -611,22 +628,5 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
 - model_name: sentry.incidentactivity
   ordinal: 1
-  sanitized_fields:
-  - date_added
-- model_name: sentry.dashboardwidgetqueryondemand
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_modified
-- model_name: sentry.alertruletriggerexclusion
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-- model_name: sentry.alertruletriggeraction
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-- model_name: sentry.alertruletriggeraction
-  ordinal: 2
   sanitized_fields:
   - date_added

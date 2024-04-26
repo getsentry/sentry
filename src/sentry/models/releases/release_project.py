@@ -46,8 +46,8 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     ) -> list[QuerySubscription]:
         """
         TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
+
         NOTE: import AlertRule model here to avoid circular dependency
-        TODO: move once AlertRule has been split into separate subdirectory files
         """
         from sentry.incidents.models.alert_rule import AlertRule
 
@@ -56,7 +56,8 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             project=project,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
             query_extra=query_extra,
-            trigger=trigger,
+            origin=trigger,
+            activator=release.version,
         )
 
     def post_save(self, instance, created, **kwargs):

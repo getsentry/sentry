@@ -31,10 +31,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
-from sentry.incidents.models.alert_rule_activations import (
-    AlertRuleActivationCondition,
-    AlertRuleActivations,
-)
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivationCondition
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -88,7 +85,6 @@ from sentry.utils.snuba import is_measurement
 
 if TYPE_CHECKING:
     from sentry.incidents.utils.types import AlertRuleActivationConditionType
-    from sentry.snuba.models import QuerySubscription
 
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -126,6 +122,7 @@ def create_incident(
     projects=None,
     user=None,
     alert_rule=None,
+    activation=None,
 ):
     if date_detected is None:
         date_detected = date_started
@@ -140,6 +137,7 @@ def create_incident(
             date_started=date_started,
             date_detected=date_detected,
             alert_rule=alert_rule,
+            activation=activation,
         )
         if projects:
             incident_projects = [
@@ -991,23 +989,6 @@ class AlertRuleActivationConditionLabelAlreadyUsedError(Exception):
 class ProjectsNotAssociatedWithAlertRuleError(Exception):
     def __init__(self, project_slugs):
         self.project_slugs = project_slugs
-
-
-def create_alert_rule_activation(
-    alert_rule: AlertRule,
-    query_subscription: QuerySubscription,
-    metric_value: int | None = None,
-    finished_at: datetime | None = None,
-):
-    with transaction.atomic(router.db_for_write(AlertRuleActivations)):
-        activation = AlertRuleActivations.objects.create(
-            alert_rule=alert_rule,
-            finished_at=finished_at,
-            metric_value=metric_value,
-            query_subscription=query_subscription,
-        )
-
-    return activation
 
 
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):
