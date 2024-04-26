@@ -8,26 +8,25 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {
   DEFAULT_PLATFORM,
   PLATFORM_LOCAL_STORAGE_KEY,
   PLATFORM_QUERY_PARAM,
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 
@@ -127,28 +126,22 @@ export function ScreenLoadSampleContainer({
           </SectionTitle>
         )}
       </PaddedTitle>
+
       <Container>
-        <Block title={DataTitles.avg} alignment="left">
-          <DurationCell
-            containerProps={{
-              style: {
-                textAlign: 'left',
-              },
-            }}
-            milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
-          />
-        </Block>
-        <Block title={DataTitles.count} alignment="left">
-          <CountCell
-            containerProps={{
-              style: {
-                textAlign: 'left',
-              },
-            }}
-            count={spanMetrics?.['count()'] ?? 0}
-          />
-        </Block>
+        <MetricReadout
+          title={DataTitles.avg}
+          align="left"
+          value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
+          unit={DurationUnit.MILLISECOND}
+        />
+        <MetricReadout
+          title={DataTitles.count}
+          align="left"
+          value={spanMetrics?.['count()'] ?? 0}
+          unit="count"
+        />
       </Container>
+
       <DurationChart
         query={
           additionalFilters

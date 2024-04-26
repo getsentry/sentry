@@ -1,24 +1,22 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
-import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {MetricReadout} from 'sentry/views/performance/metricReadout';
+import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 type Props = {
   avgContentLength: number;
   avgDecodedContentLength: number;
   avgDuration: number;
   avgTransferSize: number;
-  spanOp: string;
   throughput: number;
   timeSpentPercentage: number;
   timeSpentTotal: number;
@@ -33,7 +31,6 @@ function ResourceInfo(props: Props) {
     throughput,
     timeSpentPercentage,
     timeSpentTotal,
-    spanOp,
   } = props;
 
   const tooltips = {
@@ -68,51 +65,54 @@ function ResourceInfo(props: Props) {
 
   return (
     <Fragment>
-      <BlockContainer>
-        <Block title={getThroughputTitle('http')}>
-          <ThroughputCell rate={throughput} unit={RESOURCE_THROUGHPUT_UNIT} />
-        </Block>
-        <Block title={DataTitles['avg(http.response_content_length)']}>
-          <Tooltip
-            isHoverable
-            title={tooltips.avgContentLength}
-            showUnderline
-            disabled={!avgContentLength}
-          >
-            <ResourceSize bytes={avgContentLength} />
-          </Tooltip>
-        </Block>
-        <Block title={DataTitles['avg(http.decoded_response_content_length)']}>
-          <Tooltip
-            isHoverable
-            title={tooltips.avgDecodedContentLength}
-            showUnderline
-            disabled={!avgDecodedContentLength}
-          >
-            <ResourceSize bytes={avgDecodedContentLength} />
-          </Tooltip>
-        </Block>
-        <Block title={DataTitles['avg(http.response_transfer_size)']}>
-          <Tooltip
-            isHoverable
-            title={tooltips.avgTransferSize}
-            showUnderline
-            disabled={!avgTransferSize}
-          >
-            <ResourceSize bytes={avgTransferSize} />
-          </Tooltip>
-        </Block>
-        <Block title={DataTitles.avg}>
-          <DurationCell milliseconds={avgDuration} />
-        </Block>
-        <Block title={DataTitles.timeSpent}>
-          <TimeSpentCell
-            percentage={timeSpentPercentage}
-            total={timeSpentTotal}
-            op={spanOp}
-          />
-        </Block>
-      </BlockContainer>
+      <MetricsRibbon>
+        <MetricReadout
+          align="left"
+          title={getThroughputTitle('resource')}
+          value={throughput}
+          unit={RESOURCE_THROUGHPUT_UNIT}
+        />
+
+        <MetricReadout
+          align="left"
+          title={DataTitles['avg(http.response_content_length)']}
+          tooltip={tooltips.avgContentLength}
+          value={avgContentLength}
+          unit={SizeUnit.BYTE}
+        />
+
+        <MetricReadout
+          align="left"
+          title={DataTitles['avg(http.decoded_response_content_length)']}
+          value={avgDecodedContentLength}
+          tooltip={tooltips.avgDecodedContentLength}
+          unit={SizeUnit.BYTE}
+        />
+
+        <MetricReadout
+          align="left"
+          title={DataTitles['avg(http.response_transfer_size)']}
+          value={avgTransferSize}
+          tooltip={tooltips.avgTransferSize}
+          unit={SizeUnit.BYTE}
+        />
+
+        <MetricReadout
+          align="left"
+          title={DataTitles.avg}
+          value={avgDuration}
+          unit={DurationUnit.MILLISECOND}
+        />
+
+        <MetricReadout
+          align="left"
+          title={DataTitles.timeSpent}
+          value={timeSpentTotal}
+          unit={DurationUnit.MILLISECOND}
+          tooltip={getTimeSpentExplanation(timeSpentPercentage, 'resource')}
+        />
+      </MetricsRibbon>
+
       {hasNoData && (
         <Alert style={{width: '100%'}} type="warning" showIcon>
           {t(
@@ -123,5 +123,11 @@ function ResourceInfo(props: Props) {
     </Fragment>
   );
 }
+
+const MetricsRibbon = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(4)};
+`;
 
 export default ResourceInfo;

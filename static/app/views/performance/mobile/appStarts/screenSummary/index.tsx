@@ -14,6 +14,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -150,7 +151,7 @@ function ScreenSummary() {
                   ]}
                   blocks={[
                     {
-                      type: 'duration',
+                      unit: DurationUnit.MILLISECOND,
                       allowZero: false,
                       title:
                         appStartType === COLD_START_TYPE
@@ -159,7 +160,7 @@ function ScreenSummary() {
                       dataKey: `avg_if(span.duration,release,${primaryRelease})`,
                     },
                     {
-                      type: 'duration',
+                      unit: DurationUnit.MILLISECOND,
                       allowZero: false,
                       title:
                         appStartType === COLD_START_TYPE
@@ -168,12 +169,12 @@ function ScreenSummary() {
                       dataKey: `avg_if(span.duration,release,${secondaryRelease})`,
                     },
                     {
-                      type: 'change',
+                      unit: 'percent_change',
                       title: t('Change'),
                       dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
                     },
                     {
-                      type: 'count',
+                      unit: 'count',
                       title: t('Count'),
                       dataKey: 'count()',
                     },

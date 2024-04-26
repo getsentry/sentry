@@ -14,6 +14,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -147,27 +148,27 @@ function ScreenLoadSpans() {
                     ]}
                     blocks={[
                       {
-                        type: 'duration',
+                        unit: DurationUnit.MILLISECOND,
                         dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
                         title: t('TTID (%s)', PRIMARY_RELEASE_ALIAS),
                       },
                       {
-                        type: 'duration',
+                        unit: DurationUnit.MILLISECOND,
                         dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
                         title: t('TTID (%s)', SECONDARY_RELEASE_ALIAS),
                       },
                       {
-                        type: 'duration',
+                        unit: DurationUnit.MILLISECOND,
                         dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
                         title: t('TTFD (%s)', PRIMARY_RELEASE_ALIAS),
                       },
                       {
-                        type: 'duration',
+                        unit: DurationUnit.MILLISECOND,
                         dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
                         title: t('TTFD (%s)', SECONDARY_RELEASE_ALIAS),
                       },
                       {
-                        type: 'count',
+                        unit: 'count',
                         dataKey: 'count()',
                         title: t('Count'),
                       },
