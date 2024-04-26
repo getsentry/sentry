@@ -1,17 +1,28 @@
 import logging
+import uuid
 from collections import defaultdict
 from typing import DefaultDict, NamedTuple
+from collections.abc import MutableMapping
+from datetime import timedelta
+from random import randrange
 
+from django.utils import timezone
+
+from sentry import analytics, eventstore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
+from sentry.eventstore.models import Event
+from sentry.models.group import Group
+from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.rules import rules
-from sentry.rules.conditions.event_frequency import (
-    BaseEventFrequencyCondition,
-    ComparisonType,
-    EventFrequencyConditionData,
+from sentry.rules import history, rules
+from sentry.rules.conditions.event_frequency import BaseEventFrequencyCondition, ComparisonType, EventFrequencyConditionData
+from sentry.rules.processing.processor import (
+    activate_downstream_actions,
+    bulk_get_rule_status,
+    is_condition_slow,
+    split_conditions_and_filters,
 )
-from sentry.rules.processing.processor import is_condition_slow, split_conditions_and_filters
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -177,6 +188,26 @@ def get_rules_to_fire(
     return rules_to_fire
 
 
+def get_group_id_to_event(
+    rulegroup_to_events: dict[str, str], project: Project
+) -> dict[int, Event]:
+    group_id_to_event: dict[int, Event] = {}
+    for rule_group, event_id in rulegroup_to_events.items():
+        _, group_id = rule_group.split(":")
+        event = Event(
+            event_id=event_id,
+            project_id=project.id,
+            snuba_data={
+                "event_id": event_id,
+                "group_id": group_id,
+                "project_id": project.id,
+            },
+        )
+        eventstore.backend.bind_nodes([event])
+        group_id_to_event[int(group_id)] = event
+    return group_id_to_event
+
+
 @redis_buffer_registry.add_handler(BufferHookEvent.FLUSH)
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
@@ -195,8 +226,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int) -> DefaultDict[Rule, set[int]] | None:
-    # XXX(CEO) this is a temporary return value!
+def apply_delayed(project_id: int) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
@@ -226,5 +256,42 @@ def apply_delayed(project_id: int) -> DefaultDict[Rule, set[int]] | None:
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
-        return rules_to_fire
-    return None
+    # Step 7: Ready, aim, fire!!
+
+    # XXX: would be nice to bulk get the rules somehow but they need to be paired with the group
+    group_id_to_event = get_group_id_to_event(rulegroup_to_events, project)
+
+    now = timezone.now()
+    for rule, group_ids in rules_to_fire.items():
+        frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
+        freq_offset = now - timedelta(minutes=frequency)
+        groups = Group.objects.filter(id__in=group_ids)
+        for group in groups:
+            # XXX: could we get this to take groups in bulk?
+            rule_statuses = bulk_get_rule_status(alert_rules, group, project)
+            status = rule_statuses[rule.id]
+            if status.last_active and status.last_active > freq_offset:
+                return
+
+            updated = (
+                GroupRuleStatus.objects.filter(id=status.id)
+                .exclude(last_active__gt=freq_offset)
+                .update(last_active=now)
+            )
+
+            if not updated:
+                return
+
+            if randrange(10) == 0:
+                # TODO: make a new analytic? does anyone look at this?
+                analytics.record(
+                    "issue_alert.fired",
+                    issue_id=group.id,
+                    project_id=project.id,
+                    organization_id=project.organization.id,
+                    rule_id=rule.id,
+                )
+            event = group_id_to_event[group.id]
+            notification_uuid = str(uuid.uuid4())
+            rule_fire_history = history.record(rule, group, event.event_id, notification_uuid)
+            activate_downstream_actions(rule, event, notification_uuid, rule_fire_history)
