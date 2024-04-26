@@ -63,7 +63,7 @@ def get_stacktrace_string(data):
                 exc_type = get_value_if_exists(exception_value)
             elif exception_value.get("id") == "value":
                 exc_value = get_value_if_exists(exception_value)
-            elif exception_value.get("id") == "stacktrace":
+            elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                 # Take the last 50 in-app and contributing frames
                 contributing_frames = [
                     frame
