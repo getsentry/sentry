@@ -370,7 +370,6 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 limitby=("trace", int(10_000 / len(trace_ids))),
                 limit=10_000,
                 config=QueryBuilderConfig(
-                    functions_acl=["first_seen", "last_seen"],
                     transform_alias_to_input_format=True,
                 ),
             )
