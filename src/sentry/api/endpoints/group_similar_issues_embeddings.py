@@ -51,7 +51,7 @@ def get_stacktrace_string(data):
 
     frame_count = 0
     stacktrace_str = ""
-    for exception in exceptions:
+    for exception in reversed(exceptions):
         if exception.get("id") not in ["exception", "threads"]:
             continue
 
