@@ -72,7 +72,8 @@ class SentryAppsTest(APITestCase):
         sentry_app: SentryApp,
         organization: Organization,
         has_features: bool = False,
-        mask_secret: bool = False,
+        mask_secret: bool = True,
+        scopes: list[str] | None = None,
     ) -> None:
         assert sentry_app.application is not None
         data = {
@@ -90,7 +91,7 @@ class SentryAppsTest(APITestCase):
             "popularity": self.default_popularity,
             "redirectUrl": sentry_app.redirect_url,
             "schema": {},
-            "scopes": [],
+            "scopes": scopes if scopes else [],
             "slug": sentry_app.slug,
             "status": sentry_app.get_status_display(),
             "uuid": sentry_app.uuid,
@@ -100,7 +101,6 @@ class SentryAppsTest(APITestCase):
         }
 
         if mask_secret:
-            data["scopes"] = ["project:write"]
             data["clientSecret"] = MASKED_VALUE
 
         if has_features:
@@ -285,21 +285,43 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_client_secret_is_masked(self):
-        user = self.create_user(email="bloop@example.com")
-        self.create_member(organization=self.organization, user=user)
-        # Create an app with higher permissions that what the member role has.
+    def test_client_secret_is_not_masked(self):
+        manager_user = self.create_user(email="bleep@example.com")
+        self.create_member(organization=self.organization, user=manager_user, role="manager")
+
+        # Create an app with the same permission that what the manager role has.
         sentry_app = self.create_sentry_app(
-            name="Boo Far", organization=self.organization, scopes=("project:write",)
+            name="Boo Far", organization=self.organization, scopes=("org:write",)
         )
 
+        self.login_as(manager_user)
         response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
             sentry_app=sentry_app,
             organization=self.organization,
             has_features=True,
-            mask_secret=True,
+            mask_secret=False,
+            scopes=["org:write"],
+        )
+
+    def test_client_secret_is_masked(self):
+        manager_user = self.create_user(email="bloop@example.com")
+        self.create_member(organization=self.organization, user=manager_user, role="manager")
+
+        # Create an app with higher permissions that what the manager role has.
+        sentry_app = self.create_sentry_app(
+            name="Boo Far", organization=self.organization, scopes=("org:admin",)
+        )
+
+        self.login_as(manager_user)
+        response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
+        self.assert_response_has_serialized_sentry_app(
+            response=response,
+            sentry_app=sentry_app,
+            organization=self.organization,
+            has_features=True,
+            scopes=["org:admin"],
         )
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
