@@ -198,7 +198,7 @@ describe('EditHighlightsModal', function () {
         selector: 'div',
       });
       const removeButton = previewTagItem?.closest(
-        "div[data-test-id='tag-tree-row']"
+        "div[data-test-id='highlight-tag-row']"
       )?.previousSibling;
       expect(removeButton).toBeEnabled();
     });

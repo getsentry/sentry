@@ -88,6 +88,7 @@ export default function HighlightsDataSection({
           item={item}
           alias={alias}
           config={{includeAliasInSubject: true}}
+          data-test-id="highlight-context-row"
         />
       ));
       return [...rowList, ...newRows];
@@ -103,6 +104,7 @@ export default function HighlightsDataSection({
       event={event}
       tagKey={content.originalTag.key}
       projectSlug={project.slug}
+      data-test-id="highlight-tag-row"
     />
   ));
 

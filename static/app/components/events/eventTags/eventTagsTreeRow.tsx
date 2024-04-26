@@ -51,7 +51,7 @@ export default function EventTagsTreeRow({
 
   if (!originalTag) {
     return (
-      <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors}>
+      <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors} {...props}>
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
