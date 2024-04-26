@@ -537,7 +537,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     def test_get_stacktrace_string_chained(self):
         stacktrace_str = get_stacktrace_string(CHAINED_APP_DATA)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0\nException: Catch divide by zero error\n  File "python_onboarding.py", line <module>\n    divide_by_zero()\n  File "python_onboarding.py", line divide_by_zero\n    raise Exception("Catch divide by zero error")'
+        expected_stacktrace_str = 'Exception: Catch divide by zero error\n  File "python_onboarding.py", line <module>\n    divide_by_zero()\n  File "python_onboarding.py", line divide_by_zero\n    raise Exception("Catch divide by zero error")\nZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_thread(self):
