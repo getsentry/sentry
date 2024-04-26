@@ -232,6 +232,43 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["origin.transaction"] == "/pageloads/"
         assert meta["dataset"] == "spansIndexed"
 
+    def test_id_filtering(self):
+        span = self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)
+        self.store_span(span)
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": f"id:{span['span_id']}",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["description"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": f"transaction.id:{span['event_id']}",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["description"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
     def test_span_op_casing(self):
         self.store_spans(
             [
