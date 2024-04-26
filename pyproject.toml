@@ -471,8 +471,6 @@ module = [
     "sentry.testutils.helpers.notifications",
     "sentry.testutils.helpers.slack",
     "sentry.testutils.helpers.task_runner",
-    "sentry.testutils.performance_issues.span_builder",
-    "sentry.testutils.performance_issues.store_transaction",
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
     "sentry.types.integrations",

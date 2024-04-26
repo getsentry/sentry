@@ -20,6 +20,14 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 DEPRECATED_INGEST_API_MESSAGE = "We have removed this deprecated API. Please migrate to using DSN instead: https://docs.sentry.io/product/crons/legacy-endpoint-migration/#am-i-using-legacy-endpoints"
 
 
+def is_uuid(monitor_id_or_slug: str | int) -> bool:
+    try:
+        uuid_obj = UUID(str(monitor_id_or_slug), version=4)
+        return str(uuid_obj) == str(monitor_id_or_slug)
+    except ValueError:
+        return False
+
+
 class OrganizationMonitorPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -126,9 +134,11 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
     ):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
-            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
+            if id_or_slug_path_params_enabled(self.convert_args.__qualname__) and is_uuid(
+                monitor_slug
+            ):
                 kwargs["monitor"] = Monitor.objects.get(
-                    project_id=kwargs["project"].id, slug__id_or_slug=monitor_id_or_slug
+                    project_id=kwargs["project"].id, guid=monitor_slug
                 )
             else:
                 kwargs["monitor"] = Monitor.objects.get(
@@ -204,12 +214,8 @@ def get_monitor_by_org_id_or_slug(
     # This is a temporary measure until we remove these org level endpoints
     if id_or_slug_path_params_enabled(
         ProjectMonitorEnvironmentEndpoint.convert_args.__qualname__, str(organization.slug)
-    ):
-        monitors = list(
-            Monitor.objects.filter(
-                organization_id=organization.id, slug__id_or_slug=monitor_id_or_slug
-            )
-        )
+    ) and is_uuid(monitor_slug):
+        monitors = list(Monitor.objects.filter(organization_id=organization.id, guid=monitor_slug))
     else:
         monitors = list(
             Monitor.objects.filter(organization_id=organization.id, slug=monitor_id_or_slug)
