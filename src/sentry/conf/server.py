@@ -1500,8 +1500,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
-    # Enables ownership features for cron monitors
-    "organizations:crons-ownership": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1524,8 +1522,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enables experimental WIP ddm related features
-    "organizations:ddm-experimental": False,
+    # Enables experimental WIP custom metrics related features
+    "organizations:custom-metrics-experimental": False,
     # Delightful Developer Metrics (DDM):
     # Enable UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
@@ -1584,6 +1582,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
+    # Enable caching group counts in GroupSnooze
+    "organizations:groupsnooze-cached-counts": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -1655,6 +1655,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
     "organizations:metric-alert-ignore-archived": False,
+    # Enable load shedding for newly created metric alerts
+    "organizations:metric-alert-load-shedding": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enables the metrics metadata.
@@ -1784,6 +1786,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-streamed-spans-exp-visible": False,
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
+    # Enables the new UI for span summary and the spans tab
+    "organizations:performance-spans-new-ui": False,
     # Enable processing slow issue alerts
     "organizations:process-slow-alerts": False,
     # Enable profiling

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from collections.abc import MutableMapping
 from typing import Any, cast
 
@@ -67,7 +68,7 @@ def produce_occurrence_to_kafka(
 
     partition_key = None
     if (
-        options.get("issue_platform.use_kafka_partition_key")
+        options.get("issue_platform.use_kafka_partition_key.rollout") >= random.random()
         and occurrence
         and occurrence.fingerprint
     ):

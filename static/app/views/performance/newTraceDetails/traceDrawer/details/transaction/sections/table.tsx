@@ -74,7 +74,7 @@ function CustomPerformanceMetrics({event, location, organization}) {
   return (
     <tr>
       <td className="key">{t('Measurements')}</td>
-      <td className="value">
+      <MeasurementsTd className="value">
         <Measurements>
           {measurementNames.map(name => {
             return (
@@ -92,7 +92,7 @@ function CustomPerformanceMetrics({event, location, organization}) {
             );
           })}
         </Measurements>
-      </td>
+      </MeasurementsTd>
     </tr>
   );
 }
@@ -279,4 +279,8 @@ const Measurements = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   padding-top: 10px;
+`;
+
+const MeasurementsTd = styled('td')`
+  overflow: visible !important;
 `;

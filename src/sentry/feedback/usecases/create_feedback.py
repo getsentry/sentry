@@ -16,6 +16,8 @@ from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.utils import metrics
@@ -180,7 +182,9 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     project = Project.objects.get_from_cache(id=project_id)
 
     is_message_spam = None
-    if features.has("organizations:user-feedback-spam-filter-ingest", project.organization):
+    if features.has(
+        "organizations:user-feedback-spam-filter-ingest", project.organization
+    ) and project.get_option("sentry:feedback_ai_spam_detection"):
         try:
             is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
         except Exception:
@@ -194,13 +198,12 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     evidence_data, evidence_display = make_evidence(
         event["contexts"]["feedback"], source, is_message_spam
     )
+    issue_fingerprint = [uuid4().hex]
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
         project_id=project_id,
-        fingerprint=[
-            uuid4().hex
-        ],  # random UUID for fingerprint so feedbacks are grouped individually
+        fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title="User Feedback",
         subtitle=event["contexts"]["feedback"]["message"],
         resource_id=None,
@@ -240,6 +243,16 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
+    if is_message_spam:
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=StatusChangeMessage(
+                fingerprint=issue_fingerprint,
+                project_id=project_id,
+                new_status=GroupStatus.RESOLVED,
+                new_substatus=None,
+            ),
+        )
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={"referrer": source.value},

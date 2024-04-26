@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -22,7 +23,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import commonTheme from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {formatUsageWithUnits} from '../utils';
 
@@ -85,6 +88,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 100,
   },
+  {
+    label: DATA_CATEGORY_INFO.metrics.titleName,
+    value: DATA_CATEGORY_INFO.metrics.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {
@@ -105,10 +114,11 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
   },
 ];
 
-export enum SeriesTypes {
+const enum SeriesTypes {
   ACCEPTED = 'Accepted',
   DROPPED = 'Dropped',
   PROJECTED = 'Projected',
+  RESERVED = 'Reserved',
   FILTERED = 'Filtered',
 }
 
@@ -166,6 +176,7 @@ export type UsageChartProps = {
    * Display datetime in UTC
    */
   usageDateShowUtc?: boolean;
+  yAxisFormatter?: (val: number) => string;
 };
 
 /**
@@ -181,6 +192,8 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
     dropped: [],
     projected: [],
     filtered: [],
+    reserved: [],
+    onDemand: [],
   };
   const isCumulative = transform === ChartDataTransform.CUMULATIVE;
 
@@ -201,11 +214,20 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
   return chartData;
 };
 
+const getUnitYaxisFormatter =
+  (dataCategory: UsageChartProps['dataCategory']) => (val: number) =>
+    formatUsageWithUnits(val, dataCategory, {
+      isAbbreviated: true,
+      useUnitScaling: true,
+    });
+
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
   dropped: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
+  onDemand?: NonNullable<BarSeriesOption['data']>;
+  reserved?: NonNullable<BarSeriesOption['data']>;
 };
 
 function chartMetadata({
@@ -238,7 +260,6 @@ function chartMetadata({
   xAxisData: string[];
   xAxisLabelInterval: number;
   xAxisTickInterval: number;
-  yAxisFormatter: (val: number) => string;
   yAxisMinInterval: number;
 } {
   const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
@@ -299,11 +320,6 @@ function chartMetadata({
     xAxisTickInterval,
     xAxisLabelInterval,
     yAxisMinInterval,
-    yAxisFormatter: (val: number) =>
-      formatUsageWithUnits(val, dataCategory, {
-        isAbbreviated: true,
-        useUnitScaling: true,
-      }),
     tooltipValueFormatter: getTooltipFormatter(dataCategory),
   };
 }
@@ -337,9 +353,22 @@ function UsageChartBody({
   categoryOptions = CHART_OPTIONS_DATACATEGORY,
   usageDateInterval = '1d',
   usageDateShowUtc = true,
+  yAxisFormatter,
   handleDataTransformation = cumulativeTotalDataTransformation,
 }: UsageChartProps) {
   const theme = useTheme();
+  const organization = useOrganization();
+
+  const filteredOptions = useMemo(() => {
+    return categoryOptions.filter(option => {
+      if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
+        return true;
+      }
+      return (
+        hasCustomMetrics(organization) && organization.features.includes('metrics-stats')
+      );
+    });
+  }, [organization, categoryOptions]);
 
   if (isLoading) {
     return (
@@ -361,6 +390,8 @@ function UsageChartBody({
     );
   }
 
+  const yAxisLabelFormatter = yAxisFormatter ?? getUnitYaxisFormatter(dataCategory);
+
   const {
     chartData,
     tooltipValueFormatter,
@@ -368,9 +399,8 @@ function UsageChartBody({
     xAxisTickInterval,
     xAxisLabelInterval,
     yAxisMinInterval,
-    yAxisFormatter,
   } = chartMetadata({
-    categoryOptions,
+    categoryOptions: filteredOptions,
     dataCategory,
     handleDataTransformation: handleDataTransformation!,
     usageStats,
@@ -383,9 +413,13 @@ function UsageChartBody({
 
   function chartLegendData() {
     const legend: LegendComponentOption['data'] = [
-      {
-        name: SeriesTypes.ACCEPTED,
-      },
+      chartData.reserved && chartData.reserved.length > 0
+        ? {
+            name: SeriesTypes.RESERVED,
+          }
+        : {
+            name: SeriesTypes.ACCEPTED,
+          },
     ];
 
     if (chartData.filtered && chartData.filtered.length > 0) {
@@ -454,7 +488,7 @@ function UsageChartBody({
   return (
     <BaseChart
       colors={colors}
-      grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
+      grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
       xAxis={xAxis({
         show: true,
         type: 'category',
@@ -474,7 +508,7 @@ function UsageChartBody({
         min: 0,
         minInterval: yAxisMinInterval,
         axisLabel: {
-          formatter: yAxisFormatter,
+          formatter: yAxisLabelFormatter,
           color: theme.chartLabel,
         },
       }}

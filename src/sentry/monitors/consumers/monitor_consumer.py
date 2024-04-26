@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Literal
 
 import msgpack
@@ -17,6 +18,9 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import ValidationError
+from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import quotas, ratelimits
@@ -39,7 +43,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.types import CheckinItem, CheckinMessage, ClockPulseMessage
+from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
@@ -54,6 +58,8 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
+
+MONITOR_CODEC = get_codec("ingest-monitors")
 
 CHECKIN_QUOTA_LIMIT = 6
 CHECKIN_QUOTA_WINDOW = 60
@@ -817,9 +823,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         logger.exception("Failed to process check-in")
 
 
-_checkin_worker = ThreadPoolExecutor()
-
-
 def process_checkin(item: CheckinItem):
     """
     Process an individual check-in
@@ -843,7 +846,7 @@ def process_checkin_group(items: list[CheckinItem]):
         process_checkin(item)
 
 
-def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
+def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
     """
     Receives batches of check-in messages. This function will take the batch
     and group them together by monitor ID (ensuring order is preserved) and
@@ -861,7 +864,11 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
         assert isinstance(item, BrokerValue)
 
         try:
-            wrapper: CheckinMessage | ClockPulseMessage = msgpack.unpackb(item.payload.value)
+            try:
+                wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(item.payload.value)
+            except ValidationError:
+                wrapper = msgpack.unpackb(item.payload.value)
+                logger.exception("Failed to unpack message payload via sentry_kafka_schemas")
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue
@@ -891,8 +898,7 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
-            _checkin_worker.submit(process_checkin_group, group)
-            for group in checkin_mapping.values()
+            executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]
         wait(futures)
 
@@ -907,7 +913,12 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
 def process_single(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
     try:
-        wrapper = msgpack.unpackb(message.payload.value)
+        try:
+            wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(message.payload.value)
+        except ValidationError:
+            logger.exception("Failed to unpack message payload via sentry_kafka_schemas")
+            wrapper = msgpack.unpackb(message.payload.value)
+
         ts = message.value.timestamp
         partition = message.value.partition.index
 
@@ -932,6 +943,8 @@ def process_single(message: Message[KafkaPayload]):
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    parallel_executor: ThreadPoolExecutor | None = None
+
     parallel = False
     """
     Does the consumer process unrelated check-ins in parallel?
@@ -961,9 +974,15 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         if max_batch_time is not None:
             self.max_batch_time = max_batch_time
 
+    def shutdown(self) -> None:
+        if self.parallel_executor:
+            self.parallel_executor.shutdown()
+
     def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        self.parallel_executor = ThreadPoolExecutor()
+
         batch_processor = RunTask(
-            function=process_batch,
+            function=partial(process_batch, self.parallel_executor),
             next_step=CommitOffsets(commit),
         )
         return BatchStep(

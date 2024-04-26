@@ -39,8 +39,8 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/tags/`,
-          title: t('Tags'),
-          description: t("View and manage a  project's tags"),
+          title: t('Tags & Context'),
+          description: t("View and manage a project's tags and context"),
         },
         {
           path: `${pathPrefix}/environments/`,
@@ -113,11 +113,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/metrics/`,
           title: t('Metrics'),
-          show: () =>
-            !!(
-              organization?.features?.includes('custom-metrics') &&
-              organization?.features?.includes('ddm-ui')
-            ),
+          show: () => !!organization?.features?.includes('custom-metrics'),
         },
         {
           path: `${pathPrefix}/replays/`,

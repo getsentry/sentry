@@ -24,6 +24,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
+import {TraceDrawerComponents} from './traceDrawer/details/styles';
 import type {TraceTree} from './traceModels/traceTree';
 import {isTraceNode} from './guards';
 
@@ -221,8 +222,10 @@ export function TraceHeader({
             >
               {metaResults.isLoading ? (
                 <LoadingIndicator size={20} mini />
-              ) : errorsAndIssuesCount >= 0 ? (
-                errorsAndIssuesCount
+              ) : errorsAndIssuesCount > 0 ? (
+                <TraceDrawerComponents.IssuesLink>
+                  {errorsAndIssuesCount}
+                </TraceDrawerComponents.IssuesLink>
               ) : (
                 '\u2014'
               )}

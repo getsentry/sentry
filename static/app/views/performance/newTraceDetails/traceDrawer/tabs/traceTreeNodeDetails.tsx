@@ -16,7 +16,7 @@ import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentati
 import {NoDataDetails} from '../details/noData';
 import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
 import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
-import {SpanNodeDetails} from '../details/span';
+import {SpanNodeDetails} from '../details/span/index';
 import {TransactionNodeDetails} from '../details/transaction/index';
 
 export interface TraceTreeNodeDetailsProps<T> {

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 import logging
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
@@ -14,7 +15,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, quotas
+from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
@@ -459,7 +460,16 @@ class AlertRuleNameAlreadyUsedError(Exception):
 
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
-DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
+DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER = 2
+DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION = {
+    30: 2,
+    60: 3,
+    90: 3,
+    120: 3,
+    240: 5,
+    720: 5,
+    1440: 15,
+}
 
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
@@ -469,6 +479,21 @@ query_datasets_to_type = {
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
 }
+
+
+def get_alert_resolution(time_window: int, organization) -> int:
+    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+
+    if features.has("organizations:metric-alert-load-shedding", organization=organization):
+        windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
+        index = bisect.bisect_right(windows, time_window)
+
+        if index == 0:
+            return DEFAULT_ALERT_RULE_RESOLUTION
+
+        resolution = DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
+
+    return resolution
 
 
 def create_alert_rule(
@@ -527,12 +552,14 @@ def create_alert_rule(
     if monitor_type == AlertRuleMonitorType.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
-    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    resolution = get_alert_resolution(time_window, organization)
+
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
-        resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+        resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
+    # TODO(mark) type is documented as ActorTuple but these runtime checks are for other types.
     actor = None
     if owner and not isinstance(owner, Actor):
         actor = owner.resolve_to_actor()
@@ -560,6 +587,7 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
+            # TODO(mark) remove owner in the future
             owner=actor,
             comparison_delta=comparison_delta,
             user_id=actor.user_id if actor else None,
@@ -741,14 +769,32 @@ def update_alert_rule(
         updated_fields["team_id"] = owner.team_id if owner else None
         updated_fields["user_id"] = owner.user_id if owner else None
     if comparison_delta is not NOT_SET:
-        resolution = DEFAULT_ALERT_RULE_RESOLUTION
         if comparison_delta is not None:
             # Since comparison alerts make twice as many queries, run the queries less frequently.
-            resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
             comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
-        updated_query_fields["resolution"] = timedelta(minutes=resolution)
         updated_fields["comparison_delta"] = comparison_delta
+
+    # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
+    if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
+        window = int(
+            updated_query_fields.get(
+                "time_window", timedelta(seconds=alert_rule.snuba_query.time_window)
+            ).total_seconds()
+            / 60
+        )
+
+        resolution = get_alert_resolution(window, organization=alert_rule.organization)
+        resolution_comparison_delta = updated_fields.get(
+            "comparison_delta", alert_rule.comparison_delta
+        )
+
+        if resolution_comparison_delta is not None:
+            updated_query_fields["resolution"] = timedelta(
+                minutes=(resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER)
+            )
+        else:
+            updated_query_fields["resolution"] = timedelta(minutes=resolution)
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()

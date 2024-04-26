@@ -288,6 +288,31 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
   return false;
 }
 
+function startTimestamp(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (node.space) return node.space[0];
+
+  if (isTraceNode(node)) {
+    return 0;
+  }
+  if (isSpanNode(node)) {
+    return node.value.start_timestamp;
+  }
+  if (isTransactionNode(node)) {
+    return node.value.start_timestamp;
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return node.previous.value.timestamp;
+  }
+  return 0;
+}
+
+function chronologicalSort(
+  a: TraceTreeNode<TraceTree.NodeValue>,
+  b: TraceTreeNode<TraceTree.NodeValue>
+) {
+  return startTimestamp(a) - startTimestamp(b);
+}
+
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = [
   WebVital.TTFB,
@@ -630,6 +655,8 @@ export class TraceTree {
       }
     }
 
+    const remappedTransactionParents = new Set<TraceTreeNode<TraceTree.NodeValue>>();
+
     for (const span of spans) {
       const childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
       const spanNodeValue: TraceTree.Span = {
@@ -661,6 +688,7 @@ export class TraceTree {
           const clonedChildTxn = childTransaction.cloneDeep();
           node.spanChildren.push(clonedChildTxn);
           clonedChildTxn.parent = node;
+          remappedTransactionParents.add(node);
           // Delete the transaction from the lookup table so that we don't
           // duplicate the transaction in the tree.
         }
@@ -704,6 +732,10 @@ export class TraceTree {
         parent.spanChildren.push(cloned);
         cloned.parent = parent;
       }
+    }
+
+    for (const c of remappedTransactionParents) {
+      c.spanChildren.sort(chronologicalSort);
     }
 
     parent.zoomedIn = true;
@@ -1224,6 +1256,11 @@ export class TraceTree {
 
     if (!zoomedIn) {
       const index = this._list.indexOf(node);
+
+      if (index === -1) {
+        return Promise.resolve(null);
+      }
+
       const childrenCount = node.getVisibleChildrenCount();
       this._list.splice(index + 1, childrenCount);
 
@@ -1267,6 +1304,11 @@ export class TraceTree {
 
         // Remove existing entries from the list
         const index = this._list.indexOf(node);
+
+        if (index === -1) {
+          return data;
+        }
+
         if (node.expanded) {
           const childrenCount = node.getVisibleChildrenCount();
           if (childrenCount > 0) {
@@ -1356,7 +1398,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
 
   profiles: TraceTree.Profile[] = [];
 
-  private unit: 'milliseconds' = 'milliseconds';
+  private unit = 'milliseconds' as const;
   private _depth: number | undefined;
   private _children: TraceTreeNode[] = [];
   private _spanChildren: TraceTreeNode[] = [];
@@ -1416,8 +1458,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     | TraceTreeNode<T>
     | ParentAutogroupNode
     | SiblingAutogroupNode
-    | NoDataNode {
-    let clone: TraceTreeNode<T> | ParentAutogroupNode | SiblingAutogroupNode | NoDataNode;
+    | NoDataNode
+    | MissingInstrumentationNode {
+    let clone:
+      | TraceTreeNode<T>
+      | ParentAutogroupNode
+      | SiblingAutogroupNode
+      | NoDataNode
+      | MissingInstrumentationNode;
 
     if (isParentAutogroupedNode(this)) {
       clone = new ParentAutogroupNode(
@@ -1433,6 +1481,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       clone.groupCount = this.groupCount;
     } else if (isNoDataNode(this)) {
       clone = new NoDataNode(this.parent);
+    } else if (isMissingInstrumentationNode(this)) {
+      clone = new MissingInstrumentationNode(
+        this.parent!,
+        this.value,
+        this.metadata,
+        this.previous,
+        this.next
+      );
     } else {
       clone = new TraceTreeNode(this.parent, this.value, this.metadata);
     }

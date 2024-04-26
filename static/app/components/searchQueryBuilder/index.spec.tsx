@@ -88,5 +88,100 @@ describe('SearchQueryBuilder', function () {
         )
       ).toBeInTheDocument();
     });
+
+    it('can modify the value by clicking into it', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Should display as "firefox" to start
+      expect(
+        within(screen.getByRole('gridcell', {name: 'Edit token value'})).getByText(
+          'firefox'
+        )
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Edit token value'}));
+      // Should have placeholder text of previous value
+      expect(screen.getByRole('combobox')).toHaveAttribute('placeholder', 'firefox');
+      await userEvent.click(screen.getByRole('combobox'));
+
+      // Clicking the "Chrome option should update the value"
+      await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
+      expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('gridcell', {name: 'Edit token value'})).getByText(
+          'Chrome'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('escapes values with spaces and reserved characters', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Edit token value'}));
+      await userEvent.keyboard('some" value{enter}');
+      // Value should be surrounded by quotes and escaped
+      expect(
+        screen.getByRole('row', {name: 'browser.name:"some\\" value"'})
+      ).toBeInTheDocument();
+      // Display text should be display the original value
+      expect(
+        within(screen.getByRole('gridcell', {name: 'Edit token value'})).getByText(
+          'some" value'
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('new search tokens', function () {
+    it('can add a new token by clicking a key suggestion', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(
+        screen.getByRole('row', {name: 'Click to add a search term'})
+      );
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Browser Name'}));
+
+      // New token should be added with the correct key
+      expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(screen.getByRole('option', {name: 'Firefox'}));
+
+      // New token should have a value
+      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+    });
+
+    it('can add free text by typing', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.type(screen.getByRole('combobox'), 'some free text{enter}');
+      expect(screen.getByRole('combobox')).toHaveValue('some free text');
+    });
+
+    it('can add a filter after some free text', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.type(
+        screen.getByRole('combobox'),
+        'some free text brow{ArrowDown}'
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Browser Name'}));
+
+      // Should have a free text token "some free text"
+      expect(screen.getByRole('row', {name: 'some free text'})).toBeInTheDocument();
+
+      // Should have a filter token with key "browser.name"
+      expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
+
+      // Filter value should have focus
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+    });
   });
 });

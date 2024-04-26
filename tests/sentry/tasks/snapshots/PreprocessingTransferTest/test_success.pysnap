@@ -1,5 +1,5 @@
 ---
-created: '2024-04-18T19:31:46.747206+00:00'
+created: '2024-04-25T23:45:42.529718+00:00'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -153,8 +153,8 @@ steps:
   - /in/kms-config.json
   - --findings-file
   - /findings/import-colliding-users.json
-  - --filter-usernames
-  - importing
+  - --filter-usernames-file
+  - /conf/filter-usernames.txt
   id: import-colliding-users
   name: gcr.io/cloud-builders/docker
   timeout: 300s
@@ -250,8 +250,8 @@ steps:
   - /in/kms-config.json
   - --findings-file
   - /findings/export-colliding-users.json
-  - --filter-usernames
-  - importing
+  - --filter-usernames-file
+  - /conf/filter-usernames.txt
   id: export-colliding-users
   name: gcr.io/cloud-builders/docker
   timeout: 300s

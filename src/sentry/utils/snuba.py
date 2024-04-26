@@ -855,17 +855,6 @@ def raw_snql_query(
     return bulk_snuba_queries([request], referrer, use_cache)[0]
 
 
-def bulk_snql_query(
-    requests: list[Request],
-    referrer: str | None = None,
-    use_cache: bool = False,
-) -> ResultSet:
-    """
-    Alias for `bulk_snuba_queries`, kept for backwards compatibility.
-    """
-    return bulk_snuba_queries(requests, referrer, use_cache)
-
-
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,
@@ -1033,6 +1022,8 @@ def _bulk_snuba_query(
                     raise RateLimitExceeded(error["message"])
                 elif error["type"] == "schema":
                     raise SchemaValidationError(error["message"])
+                elif error["type"] == "invalid_query":
+                    raise UnqualifiedQueryError(error["message"])
                 elif error["type"] == "clickhouse":
                     raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
                         error["message"]

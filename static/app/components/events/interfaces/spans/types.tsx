@@ -208,9 +208,9 @@ export type ParsedTraceType = {
 };
 
 export enum TickAlignment {
-  LEFT,
-  RIGHT,
-  CENTER,
+  LEFT = 0,
+  RIGHT = 1,
+  CENTER = 2,
 }
 
 export type TraceContextType = {
@@ -263,15 +263,15 @@ export type DescendantGroup = {
 };
 
 export enum GroupType {
-  DESCENDANTS,
-  SIBLINGS,
+  DESCENDANTS = 0,
+  SIBLINGS = 1,
 }
 
 export enum SpanTreeNodeType {
-  SPAN,
-  DESCENDANT_GROUP,
-  SIBLING_GROUP,
-  MESSAGE,
+  SPAN = 0,
+  DESCENDANT_GROUP = 1,
+  SIBLING_GROUP = 2,
+  MESSAGE = 3,
 }
 
 type SpanBarNode = {

@@ -1,20 +1,32 @@
 import {Fragment, type PropsWithChildren, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import {Button as CommonButton, LinkButton} from 'sentry/components/button';
 import {DataSection} from 'sentry/components/events/styles';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
+import Link from 'sentry/components/links/link';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction, Project} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {
   isAutogroupedNode,
+  isMissingInstrumentationNode,
   isSpanNode,
+  isTraceErrorNode,
+  isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import type {
   TraceTree,
@@ -47,6 +59,9 @@ const Title = styled(FlexBox)`
   gap: ${space(1)};
   flex: none;
   width: 50%;
+  > span {
+    min-width: 30px;
+  }
 `;
 
 const TitleText = styled('div')`
@@ -77,6 +92,7 @@ const Table = styled('table')`
 
 const IconTitleWrapper = styled(FlexBox)`
   gap: ${space(1)};
+  min-width: 30px;
 `;
 
 const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
@@ -254,12 +270,14 @@ function TableRow({
   children,
   prefix,
   extra = null,
+  toolTipText,
 }: {
   children: React.ReactNode;
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
   prefix?: JSX.Element;
+  toolTipText?: string;
 }) {
   if (!keep && !children) {
     return null;
@@ -271,17 +289,79 @@ function TableRow({
         <Flex>
           {prefix}
           {title}
+          {toolTipText ? <StyledQuestionTooltip size="xs" title={toolTipText} /> : null}
         </Flex>
       </td>
       <ValueTd className="value">
-        <ValueRow>
+        <TableValueRow>
           <StyledPre>
             <span className="val-string">{children}</span>
           </StyledPre>
-          <ButtonContainer>{extra}</ButtonContainer>
-        </ValueRow>
+          <TableRowButtonContainer>{extra}</TableRowButtonContainer>
+        </TableValueRow>
       </ValueTd>
     </tr>
+  );
+}
+
+function getSearchParamFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isTransactionNode(node) || isTraceErrorNode(node)) {
+    return `id:${node.value.event_id}`;
+  }
+
+  // Issues associated to a span or autogrouped node are not queryable, so we query by
+  // the parent transaction's id
+  const parentTransaction = node.parent_transaction;
+  if ((isSpanNode(node) || isAutogroupedNode(node)) && parentTransaction) {
+    return `id:${parentTransaction.value.event_id}`;
+  }
+
+  if (isMissingInstrumentationNode(node)) {
+    throw new Error('Missing instrumentation nodes do not have associated issues');
+  }
+
+  return '';
+}
+
+function IssuesLink({
+  node,
+  children,
+}: {
+  children: React.ReactNode;
+  node?: TraceTreeNode<TraceTree.NodeValue>;
+}) {
+  const organization = useOrganization();
+  const params = useParams<{traceSlug?: string}>();
+  const traceSlug = params.traceSlug?.trim() ?? '';
+
+  const dateSelection = useMemo(() => {
+    const normalizedParams = normalizeDateTimeParams(qs.parse(window.location.search), {
+      allowAbsolutePageDatetime: true,
+    });
+    const start = decodeScalar(normalizedParams.start);
+    const end = decodeScalar(normalizedParams.end);
+    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
+
+    return {start, end, statsPeriod};
+  }, []);
+
+  return (
+    <Link
+      to={{
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {
+          query: `trace:${traceSlug} ${node ? getSearchParamFromNode(node) : ''}`,
+          start: dateSelection.start,
+          end: dateSelection.end,
+          statsPeriod: dateSelection.statsPeriod,
+          // If we don't pass the project param, the issues page will filter by the last selected project.
+          // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
+          project: -1,
+        },
+      }}
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -303,7 +383,7 @@ const Flex = styled('div')`
   align-items: center;
 `;
 
-const ValueRow = styled('div')`
+const TableValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
   gap: ${space(1)};
@@ -313,18 +393,56 @@ const ValueRow = styled('div')`
   margin: 2px;
 `;
 
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
+`;
+
 const StyledPre = styled('pre')`
   margin: 0 !important;
   background-color: transparent !important;
 `;
 
-const ButtonContainer = styled('div')`
+const TableRowButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 
 const ValueTd = styled('td')`
   position: relative;
 `;
+
+function ProfileLink({
+  event,
+  project,
+  query,
+}: {
+  event: EventTransaction;
+  project: Project | undefined;
+  query?: Location['query'];
+}) {
+  const profileId = event.contexts.profile?.profile_id || '';
+
+  if (!profileId) {
+    return null;
+  }
+
+  return profileId && project?.slug ? (
+    <TraceDrawerComponents.TableRow
+      title="Profile ID"
+      extra={
+        <TransactionToProfileButton
+          size="xs"
+          projectSlug={project.slug}
+          event={event}
+          query={query}
+        >
+          {t('View Profile')}
+        </TransactionToProfileButton>
+      }
+    >
+      {profileId}
+    </TraceDrawerComponents.TableRow>
+  ) : null;
+}
 
 const TraceDrawerComponents = {
   DetailContainer,
@@ -343,6 +461,10 @@ const TraceDrawerComponents = {
   Duration,
   TableRow,
   LAZY_RENDER_PROPS,
+  TableRowButtonContainer,
+  TableValueRow,
+  ProfileLink,
+  IssuesLink,
 };
 
 export {TraceDrawerComponents};

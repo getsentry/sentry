@@ -66,7 +66,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
             label={countLabel}
             name="count"
             value={count}
-            onChange={val => this.handleChange('count' as 'count', Number(val))}
+            onChange={val => this.handleChange('count' as const, Number(val))}
             required
             placeholder={t('e.g. 100')}
           />
