@@ -111,6 +111,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   justify-content: center;
   width: 30px;
   height: 30px;
+  min-width: 30px;
 
   svg {
     fill: ${p => p.theme.white};
