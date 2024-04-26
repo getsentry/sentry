@@ -1422,7 +1422,7 @@ function BackgroundPatterns(props: BackgroundPatternsProps) {
         </div>
       ) : performance_issues.length > 0 ? (
         <Fragment>
-          {performance_issues.map((issue, _i) => {
+          {performance_issues.map((issue, i) => {
             const timestamp = issue.start * 1e3;
             // Clamp the issue timestamp to the span's timestamp
             const left = props.manager.computeRelativeLeftPositionFromOrigin(
@@ -1435,7 +1435,7 @@ function BackgroundPatterns(props: BackgroundPatternsProps) {
             );
 
             return (
-              <Fragment key={issue.event_id}>
+              <Fragment key={i}>
                 <div
                   className="TracePatternContainer"
                   style={{
@@ -1471,7 +1471,7 @@ function ErrorIcons(props: ErrorIconsProps) {
 
   return (
     <Fragment>
-      {errors.map((error, _i) => {
+      {errors.map((error, i) => {
         const timestamp = error.timestamp ? error.timestamp * 1e3 : props.node_space![0];
         // Clamp the error timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
@@ -1485,7 +1485,7 @@ function ErrorIcons(props: ErrorIconsProps) {
 
         return (
           <div
-            key={error.event_id}
+            key={i}
             className={`TraceIcon ${error.level}`}
             style={{left: left * 100 + '%'}}
           >
@@ -1514,7 +1514,7 @@ function PerformanceIssueIcons(props: PerformanceIssueIconsProps) {
 
   return (
     <Fragment>
-      {performance_issues.map((issue, _i) => {
+      {performance_issues.map((issue, i) => {
         const timestamp = issue.timestamp
           ? issue.timestamp * 1e3
           : issue.start
@@ -1532,7 +1532,7 @@ function PerformanceIssueIcons(props: PerformanceIssueIconsProps) {
 
         return (
           <div
-            key={issue.event_id}
+            key={i}
             className={`TraceIcon performance_issue`}
             style={{left: left * 100 + '%'}}
           >
@@ -1569,7 +1569,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
     [props.manager, props.entire_space, props.virtualized_index]
   );
 
-  const registerSpanBarTextRef = useCallback(
+  const registerAutogroupedSpanBarTextRef = useCallback(
     (ref: HTMLDivElement | null) => {
       props.manager.registerSpanBarTextRef(
         ref,
@@ -1637,7 +1637,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
           />
         ) : null}
       </div>
-      <div ref={registerSpanBarTextRef} className="TraceBarDuration">
+      <div ref={registerAutogroupedSpanBarTextRef} className="TraceBarDuration">
         {duration}
       </div>
     </Fragment>

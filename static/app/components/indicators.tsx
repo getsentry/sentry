@@ -22,13 +22,18 @@ function Indicators(props: Props) {
 
   return (
     <Toasts {...props}>
-      <AnimatePresence>
-        {items.map((indicator, i) => (
-          // We purposefully use `i` as key here because of transitions
-          // Toasts can now queue up, so when we change from [firstToast] -> [secondToast],
-          // we don't want to  animate `firstToast` out and `secondToast` in, rather we want
-          // to replace `firstToast` with `secondToast`
-          <ToastIndicator onDismiss={removeIndicator} indicator={indicator} key={i} />
+      {/*
+       * "wait": The entering child will wait until the exiting child has animated out.
+       * Currently only renders a single child at a time.
+       * @link https://www.framer.com/motion/animate-presence/###mode
+       */}
+      <AnimatePresence mode="wait">
+        {items.map(indicator => (
+          <ToastIndicator
+            onDismiss={removeIndicator}
+            indicator={indicator}
+            key={indicator.id}
+          />
         ))}
       </AnimatePresence>
     </Toasts>

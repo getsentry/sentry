@@ -57,7 +57,7 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
-            owner_team_id=team.actor.id,
+            owner_team_id=team.id,
         )
         self.ScheduledDeletion.schedule(team, days=0)
 
@@ -68,3 +68,4 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
 
         monitor.refresh_from_db()
         assert monitor.owner_team_id is None, "Should be blank when team is deleted."
+        assert monitor.owner_user_id is None, "Should be blank when team is deleted."
