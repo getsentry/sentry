@@ -82,6 +82,8 @@ class RelocationSerializer(Serializer):
             "scheduledCancelAtStep": scheduled_at_cancel_step,
             "wantOrgSlugs": obj.want_org_slugs,
             "wantUsernames": obj.want_usernames,
+            "latestTask": obj.latest_task,
+            "latestTaskAttempts": obj.latest_task_attempts,
             "latestNotified": latest_notified,
             "latestUnclaimedEmailsSentAt": obj.latest_unclaimed_emails_sent_at,
             "importedUserIds": attrs.imported_user_ids,

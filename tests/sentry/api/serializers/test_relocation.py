@@ -88,8 +88,8 @@ class RelocationSerializerTest(TestCase):
         assert result["wantUsernames"] == ["alice", "bob"]
         assert not result["latestNotified"]
         assert not result["latestUnclaimedEmailsSentAt"]
-        assert "latestTask" not in result
-        assert "latestTaskAttempts" not in result
+        assert result["latestTask"] == OrderedTask.UPLOADING_COMPLETE.name
+        assert result["latestTaskAttempts"] == 1
         assert result["importedUserIds"] == []
         assert result["importedOrgIds"] == []
 
@@ -127,8 +127,8 @@ class RelocationSerializerTest(TestCase):
         assert result["wantUsernames"] == ["charlie", "denise"]
         assert result["latestNotified"] == Relocation.EmailKind.STARTED.name
         assert not result["latestUnclaimedEmailsSentAt"]
-        assert "latestTask" not in result
-        assert "latestTaskAttempts" not in result
+        assert result["latestTask"] == OrderedTask.IMPORTING.name
+        assert result["latestTaskAttempts"] == 1
         assert sorted(result["importedUserIds"]) == [
             self.first_imported_user.id,
             self.second_imported_user.id,
@@ -170,8 +170,8 @@ class RelocationSerializerTest(TestCase):
         assert result["wantUsernames"] == ["emily", "fred"]
         assert result["latestNotified"] == Relocation.EmailKind.SUCCEEDED.name
         assert result["latestUnclaimedEmailsSentAt"] == TEST_DATE_UPDATED
-        assert "latestTask" not in result
-        assert "latestTaskAttempts" not in result
+        assert result["latestTask"] == OrderedTask.COMPLETED.name
+        assert result["latestTaskAttempts"] == 1
         assert sorted(result["importedUserIds"]) == [
             self.first_imported_user.id,
             self.second_imported_user.id,
@@ -213,7 +213,7 @@ class RelocationSerializerTest(TestCase):
         assert result["wantUsernames"] == ["alice", "bob"]
         assert result["latestNotified"] == Relocation.EmailKind.FAILED.name
         assert not result["latestUnclaimedEmailsSentAt"]
-        assert "latestTask" not in result
-        assert "latestTaskAttempts" not in result
+        assert result["latestTask"] == OrderedTask.VALIDATING_COMPLETE.name
+        assert result["latestTaskAttempts"] == 1
         assert result["importedUserIds"] == []
         assert result["importedOrgIds"] == []
