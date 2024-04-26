@@ -540,6 +540,52 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         expected_stacktrace_str = 'Exception: Catch divide by zero error\n  File "python_onboarding.py", function <module>\n    divide_by_zero()\n  File "python_onboarding.py", function divide_by_zero\n    raise Exception("Catch divide by zero error")\nZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
+    def test_get_stacktrace_string_chained_too_many_frames(self):
+        data_chained_exception = copy.deepcopy(CHAINED_APP_DATA)
+        data_chained_exception["app"]["component"]["values"][0]["values"] = [
+            self.create_exception(
+                exception_type_str="InnerException",
+                exception_value="nope",
+                frames=self.create_frames(
+                    num_frames=30, context_line_factory=lambda i: f"inner line {i}"
+                ),
+            ),
+            self.create_exception(
+                exception_type_str="MiddleException",
+                exception_value="un-uh",
+                frames=self.create_frames(
+                    num_frames=30, context_line_factory=lambda i: f"middle line {i}"
+                ),
+            ),
+            self.create_exception(
+                exception_type_str="OuterException",
+                exception_value="no way",
+                frames=self.create_frames(
+                    num_frames=30, context_line_factory=lambda i: f"outer line {i}"
+                ),
+            ),
+        ]
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
+
+        # The stacktrace string should be:
+        #    30 frames from OuterExcepton (with lines counting up from 1 to 30), followed by
+        #    20 frames from MiddleExcepton (with lines counting up from 11 to 30), followed by
+        #    no frames from InnerExcepton (though the type and value are in there)
+        expected = "".join(
+            ["OuterException: no way"]
+            + [
+                f'\n  File "hello.py", function hello_there\n    outer line {i}'
+                for i in range(1, 31)  #
+            ]
+            + ["\nMiddleException: un-uh"]
+            + [
+                f'\n  File "hello.py", function hello_there\n    middle line {i}'
+                for i in range(11, 31)
+            ]
+            + ["\nInnerException: nope"]
+        )
+        assert stacktrace_str == expected
+
     def test_get_stacktrace_string_thread(self):
         stacktrace_str = get_stacktrace_string(MOBILE_THREAD_DATA)
         assert stacktrace_str == 'File "", function TestHandler'
