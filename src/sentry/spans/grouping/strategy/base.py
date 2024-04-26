@@ -1,7 +1,7 @@
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Optional, TypedDict
+from typing import Any, NotRequired, Optional, TypedDict
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
 from sentry.utils import urls
@@ -19,6 +19,7 @@ class Span(TypedDict):
     fingerprint: Sequence[str] | None
     tags: Any | None
     data: Any | None
+    hash: NotRequired[str]
 
 
 # A callable strategy is a callable that when given a span, it tries to

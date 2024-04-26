@@ -69,7 +69,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -2356,7 +2356,6 @@ class PostProcessGroupErrorTest(
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     CorePostProcessGroupTestMixin,
     InboxTestMixin,
     RuleProcessorTestMixin,
@@ -2399,7 +2398,8 @@ class PostProcessGroupPerformanceTest(
         generic_metrics_backend_mock,
     ):
         min_ago = before_now(minutes=1)
-        event = self.store_transaction(
+        event = store_transaction(
+            test_case=self,
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
             fingerprint=[],
@@ -2475,7 +2475,6 @@ class PostProcessGroupPerformanceTest(
 class PostProcessGroupAggregateEventTest(
     TestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     CorePostProcessGroupTestMixin,
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
