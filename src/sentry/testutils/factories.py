@@ -1547,7 +1547,7 @@ class Factories:
                 finished_at=finished_at,
                 metric_value=metric_value,
                 query_subscription=query_subscription,
-                condition_type=activation_condition,
+                condition_type=activation_condition.value,
                 activator="testing",
             )
 
