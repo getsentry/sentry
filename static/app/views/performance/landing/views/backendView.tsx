@@ -69,11 +69,8 @@ export function BackendView(props: BasePerformanceViewProps) {
       doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
     }
 
-    if (props.organization.features.includes('performance-http-view')) {
-      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-    }
-
     if (props.organization.features.includes('spans-first-ui')) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
     }
   } else {
