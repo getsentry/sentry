@@ -67,7 +67,7 @@ export function CacheSamplePanel() {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
         `${SpanFunction.SPM}()`,
-        `${SpanFunction.CACHE_HIT_RATE}()`,
+        `${SpanFunction.CACHE_MISS_RATE}()`,
         `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
       ],
@@ -184,10 +184,7 @@ export function CacheSamplePanel() {
                 align="left"
                 title={DataTitles.cacheMissRate}
                 value={
-                  cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_HIT_RATE}()`]
-                    ? 1 -
-                      cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_HIT_RATE}()`]
-                    : 0
+                  cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
                 }
                 unit="percentage"
                 isLoading={areCacheTransactionMetricsFetching}

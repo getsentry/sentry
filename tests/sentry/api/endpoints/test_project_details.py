@@ -745,6 +745,77 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("filters:react-hydration-errors", "1")
         assert project.get_option("filters:chunk-load-error", "1")
 
+    def test_custom_metrics_cardinality_limit(self):
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=1000,
+        )
+        assert self.project.get_option("relay.cardinality-limiter.limits") == [
+            {
+                "limit": {
+                    "id": "project-override-custom",
+                    "window": {"windowSeconds": 3600, "granularitySeconds": 600},
+                    "limit": 1000,
+                    "namespace": "custom",
+                    "scope": "name",
+                }
+            }
+        ]
+        assert resp.data["relayCustomMetricCardinalityLimit"] == 1000
+
+    def test_custom_metrics_cardinality_limit_invalid_text(self):
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit="text",
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] == ["A valid integer is required."]
+
+    def test_custom_metrics_cardinality_limit_invalid_negative_number(self):
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=-1000,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] == [
+            "Cardinality limit must be a non-negative integer."
+        ]
+
+    def test_custom_metrics_cardinality_limit_accepts_none(self):
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=None,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] is None
+
+    def test_custom_metrics_cardinality_limit_gets_deleted_when_receiving_none(self):
+        self.project.update_option(
+            "relay.cardinality-limiter.limits",
+            [
+                {
+                    "limit": {
+                        "id": "project-override-custom",
+                        "window": {"windowSeconds": 3600, "granularitySeconds": 600},
+                        "limit": 1000,
+                        "namespace": "custom",
+                        "scope": "name",
+                    }
+                }
+            ],
+        )
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=None,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limits", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] is None
+
     def test_bookmarks(self):
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(

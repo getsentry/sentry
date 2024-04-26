@@ -288,7 +288,7 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     def _validate_actor(self):
-        # TODO: Remove once owner is fully removed.
+        # TODO(mark): Remove once owner is fully removed.
         if self.owner_id is not None and self.team_id is None and self.user_id is None:
             raise ValueError("AlertRule with owner requires either team_id or user_id")
 

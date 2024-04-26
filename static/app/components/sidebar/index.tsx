@@ -325,6 +325,7 @@ function Sidebar() {
                   label={
                     <GuideAnchor target="performance-queues">{t('Queues')}</GuideAnchor>
                   }
+                  isAlpha
                   to={`/organizations/${organization.slug}/performance/queues/`}
                   id="performance-queues"
                   icon={<SubitemDot collapsed />}
@@ -473,11 +474,7 @@ function Sidebar() {
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
   const metrics = hasOrganization && hasMetricsSidebarItem(organization) && (
-    <Feature
-      features={['ddm-ui', 'custom-metrics']}
-      organization={organization}
-      requireAll
-    >
+    <Feature features={['custom-metrics']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}

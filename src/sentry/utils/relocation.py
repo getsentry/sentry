@@ -566,14 +566,8 @@ def get_relocations_bucket_name():
 
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
-    # Only test existing users for collision and mutation.
-    existing_usernames = user_service.get_existing_usernames(usernames=relocation.want_usernames)
-    filter_usernames_args = [
-        "--filter-usernames",
-        ",".join(existing_usernames) if existing_usernames else ",",
-    ]
-    filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]
     bucket_root = f"gs://{get_relocations_bucket_name()}"
+    filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]
 
     validation_steps = [
         create_cloudbuild_validation_step(
@@ -592,7 +586,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             timeout=300,
             wait_for=["import-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
-            args=filter_usernames_args,
+            args=["--filter-usernames-file", "/in/filter-usernames.txt"],
         ),
         create_cloudbuild_validation_step(
             id="import-raw-relocation-data",
@@ -619,7 +613,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             timeout=300,
             wait_for=["export-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
-            args=filter_usernames_args,
+            args=["--filter-usernames-file", "/in/filter-usernames.txt"],
         ),
         COPY_OUT_DIR_TEMPLATE.substitute(
             bucket_root=bucket_root,

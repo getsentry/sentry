@@ -29,7 +29,7 @@ class TeamStatsTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-team-stats",
-            kwargs={"organization_slug": team.organization.slug, "team_slug": team.slug},
+            kwargs={"organization_slug": team.organization.slug, "team_id_or_slug": team.slug},
         )
         response = self.client.get(url)
         assert response.status_code == 200, response.content

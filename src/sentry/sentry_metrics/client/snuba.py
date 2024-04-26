@@ -9,6 +9,7 @@ from sentry import quotas
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import BaseMetricsTestCase  # NOQA:S007
+from sentry.utils.env import in_test_environment
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: str | None) -> str:
@@ -55,7 +56,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         """
         Emit a counter metric for internal use cases only.
         """
-
+        assert in_test_environment(), "This backend should only be used in testing environments"
         BaseMetricsTestCase.store_metric(
             name=build_mri(metric_name, "c", use_case_id, unit),
             tags=tags,
@@ -82,7 +83,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         Emit a set metric for internal use cases only. Can support
         a sequence of values.
         """
-
+        assert in_test_environment(), "This backend should only be used in testing environments"
         for val in value:
             BaseMetricsTestCase.store_metric(
                 name=build_mri(metric_name, "s", use_case_id, unit),
@@ -110,6 +111,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         Emit a distribution metric for internal use cases only. Can
         support a sequence of values.
         """
+        assert in_test_environment(), "This backend should only be used in testing environments"
         for val in value:
             BaseMetricsTestCase.store_metric(
                 name=build_mri(metric_name, "d", use_case_id, unit),
