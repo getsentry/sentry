@@ -14,7 +14,7 @@ function MetricsContainer({children}: Props) {
 
   return (
     <Feature
-      features={['ddm-ui', 'custom-metrics']}
+      features={['custom-metrics']}
       requireAll
       organization={organization}
       renderDisabled={() => (

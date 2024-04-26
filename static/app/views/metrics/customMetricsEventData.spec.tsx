@@ -10,7 +10,7 @@ import type {
 } from 'sentry/types/metrics';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 
-const organization = OrganizationFixture({features: ['ddm-ui']});
+const organization = OrganizationFixture({features: ['custom-metrics']});
 
 describe('CustomMetricsEventData', () => {
   beforeEach(() => {
