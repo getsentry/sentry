@@ -26,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import {getPrismLanguage} from 'sentry/utils/prism';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
 type AutofixRootCauseProps = {
@@ -39,7 +40,7 @@ const animationProps: AnimationProps = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
-  transition: {duration: 0.3},
+  transition: testableTransition({duration: 0.3}),
 };
 
 function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
@@ -177,6 +178,9 @@ function CauseSuggestedFix({
           size="xs"
           onClick={() => handleSelectFix({causeId, fixId: suggestedFix.id})}
           busy={isLoading}
+          analyticsEventName="Autofix: Root Cause Fix Selected"
+          analyticsEventKey="autofix.root_cause_fix_selected"
+          analyticsParams={{group_id: groupId}}
         >
           {t('Continue With This Fix')}
         </Button>
@@ -255,11 +259,16 @@ function SelectedRootCauseOption({
 function ProvideYourOwn({
   selected,
   setSelectedId,
+  groupId,
+  runId,
 }: {
+  groupId: string;
+  runId: string;
   selected: boolean;
   setSelectedId: (id: string) => void;
 }) {
   const [text, setText] = useState('');
+  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   return (
     <RootCauseOption selected={selected} onClick={() => setSelectedId('custom')}>
@@ -285,7 +294,15 @@ function ProvideYourOwn({
           )}
         />
         <OptionFooter>
-          <Button size="xs" disabled={!text}>
+          <Button
+            size="xs"
+            onClick={() => handleSelectFix({customRootCause: text})}
+            disabled={!text}
+            busy={isLoading}
+            analyticsEventName="Autofix: Root Cause Custom Cause Provided"
+            analyticsEventKey="autofix.root_cause_custom_cause_provided"
+            analyticsParams={{group_id: groupId}}
+          >
             {t('Continue With This Fix')}
           </Button>
         </OptionFooter>
@@ -306,11 +323,10 @@ export function AutofixRootCause({
     if ('custom_root_cause' in rootCauseSelection) {
       return (
         <CausesContainer>
-          <CausesHeader>
-            <TruncatedContent>
-              {t('Custom response given: %s', rootCauseSelection.custom_root_cause)}
-            </TruncatedContent>
-          </CausesHeader>
+          <CustomRootCausePadding>
+            <Title>{t('Custom Response Provided')}</Title>
+            <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
+          </CustomRootCausePadding>
         </CausesContainer>
       );
     }
@@ -379,6 +395,8 @@ export function AutofixRootCause({
           <ProvideYourOwn
             selected={selectedId === 'custom'}
             setSelectedId={setSelectedId}
+            groupId={groupId}
+            runId={runId}
           />
         </OptionsWrapper>
       </OptionsPadding>
@@ -477,6 +495,6 @@ const OptionFooter = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const TruncatedContent = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+const CustomRootCausePadding = styled('div')`
+  padding: 0 ${space(2)} ${space(2)} ${space(2)};
 `;

@@ -6,7 +6,7 @@ import {
 } from 'sentry/components/badge/groupPriority';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
-import {PriorityLevel} from 'sentry/types';
+import {PriorityLevel} from 'sentry/types/group';
 
 const PRIORITIES = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 

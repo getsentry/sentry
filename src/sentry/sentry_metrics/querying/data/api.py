@@ -3,18 +3,17 @@ from datetime import datetime
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
-from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor
-from sentry.sentry_metrics.querying.data.mapping.mapper import MapperConfig, Project2ProjectIDMapper
+from sentry.sentry_metrics.querying.data.mapping.base import MapperConfig
+from sentry.sentry_metrics.querying.data.mapping.project_mapper import Project2ProjectIDMapper
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
 from sentry.sentry_metrics.querying.data.postprocessing.base import run_post_processing_steps
 from sentry.sentry_metrics.querying.data.postprocessing.remapping import QueryRemappingStep
 from sentry.sentry_metrics.querying.data.preparation.base import (
     IntermediateQuery,
-    PreparationStep,
     run_preparation_steps,
 )
 from sentry.sentry_metrics.querying.data.preparation.mapping import QueryMappingStep
@@ -68,17 +67,10 @@ def run_queries(
             )
         )
 
-    preparation_steps: list[PreparationStep] = []
-
-    if features.has(
-        "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
-    ):
-        preparation_steps.append(UnitsNormalizationStep())
-
-    preparation_steps.append(QueryMappingStep(projects, DEFAULT_MAPPINGS))
-
     # We run a series of preparation steps which operate on the entire list of queries.
-    intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
+    intermediate_queries = run_preparation_steps(
+        intermediate_queries, UnitsNormalizationStep(), QueryMappingStep(projects, DEFAULT_MAPPINGS)
+    )
 
     # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
     executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)

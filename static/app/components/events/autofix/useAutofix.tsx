@@ -5,7 +5,7 @@ import {
   AutofixStepType,
   type GroupWithAutofix,
 } from 'sentry/components/events/autofix/types';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {
   type ApiQueryKey,
   setApiQueryData,

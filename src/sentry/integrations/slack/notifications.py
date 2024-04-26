@@ -18,7 +18,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.slack import post_message, post_message_control
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
@@ -94,7 +94,7 @@ def _notify_recipient(
             "unfurl_links": False,
             "unfurl_media": False,
             "text": text if text else "",
-            "blocks": json.dumps(blocks),
+            "blocks": json.dumps_experimental("integrations.slack.enable-orjson", blocks),
         }
         callback_id = local_attachments.get("callback_id")
         if callback_id:
@@ -102,7 +102,9 @@ def _notify_recipient(
             if isinstance(callback_id, str):
                 payload["callback_id"] = callback_id
             else:
-                payload["callback_id"] = json.dumps(local_attachments.get("callback_id"))
+                payload["callback_id"] = json.dumps_experimental(
+                    "integrations.slack.enable-orjson", local_attachments.get("callback_id")
+                )
 
         post_message_task = post_message
         if SiloMode.get_current_mode() == SiloMode.CONTROL:

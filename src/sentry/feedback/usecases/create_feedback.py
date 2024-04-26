@@ -8,12 +8,16 @@ from uuid import uuid4
 
 import jsonschema
 
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event
+from sentry.feedback.usecases.spam_detection import is_spam
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.utils import metrics
@@ -54,7 +58,7 @@ class FeedbackCreationSource(Enum):
         }
 
 
-def make_evidence(feedback, source: FeedbackCreationSource):
+def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
     if feedback.get("contact_email"):
@@ -73,6 +77,12 @@ def make_evidence(feedback, source: FeedbackCreationSource):
 
     evidence_data["source"] = source.value
     evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
+
+    if is_message_spam is True:
+        evidence_data["is_spam"] = str(is_message_spam)
+        evidence_display.append(
+            IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
+        )
 
     return evidence_data, evidence_display
 
@@ -169,18 +179,31 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     if should_filter_feedback(event, project_id, source):
         return
 
+    project = Project.objects.get_from_cache(id=project_id)
+
+    is_message_spam = None
+    if features.has(
+        "organizations:user-feedback-spam-filter-ingest", project.organization
+    ) and project.get_option("sentry:feedback_ai_spam_detection"):
+        try:
+            is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
+        except Exception:
+            # until we have LLM error types ironed out, just catch all exceptions
+            logger.exception("Error checking if message is spam")
+
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
     detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
-    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
+    evidence_data, evidence_display = make_evidence(
+        event["contexts"]["feedback"], source, is_message_spam
+    )
+    issue_fingerprint = [uuid4().hex]
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
         project_id=project_id,
-        fingerprint=[
-            uuid4().hex
-        ],  # random UUID for fingerprint so feedbacks are grouped individually
+        fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title="User Feedback",
         subtitle=event["contexts"]["feedback"]["message"],
         resource_id=None,
@@ -204,8 +227,6 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 
-    project = Project.objects.get_from_cache(id=project_id)
-
     if not project.flags.has_feedbacks:
         first_feedback_received.send_robust(project=project, sender=Project)
 
@@ -222,6 +243,8 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
+    if is_message_spam:
+        auto_ignore_spam_feedbacks(project_id, issue_fingerprint)
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={"referrer": source.value},
@@ -316,4 +339,18 @@ def shim_to_feedback(
     except Exception:
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"
+        )
+
+
+def auto_ignore_spam_feedbacks(project_id, issue_fingerprint):
+    if options.get("feedback.spam-detection-actions"):
+        metrics.incr("feedback.spam-detection-actions.set-ignored")
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=StatusChangeMessage(
+                fingerprint=issue_fingerprint,
+                project_id=project_id,
+                new_status=GroupStatus.RESOLVED,
+                new_substatus=None,
+            ),
         )

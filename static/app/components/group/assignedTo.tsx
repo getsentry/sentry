@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import type {
-  OnAssignCallback,
-  SuggestedAssignee,
-} from 'sentry/components/assigneeSelectorDropdown';
-import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
+import type {
+  OnAssignCallback,
+  SuggestedAssignee,
+} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
+import {DeprecatedAssigneeSelectorDropdown} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -239,7 +239,7 @@ function AssignedTo({
         </Access>
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>
-        <AssigneeSelectorDropdown
+        <DeprecatedAssigneeSelectorDropdown
           organization={organization}
           owners={owners}
           disabled={disableDropdown}
@@ -274,7 +274,7 @@ function AssignedTo({
               )}
             </DropdownButton>
           )}
-        </AssigneeSelectorDropdown>
+        </DeprecatedAssigneeSelectorDropdown>
       </StyledSidebarSectionContent>
     </SidebarSection.Wrap>
   );

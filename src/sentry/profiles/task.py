@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -33,7 +34,7 @@ from sentry.profiles.java import (
 )
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -160,8 +161,12 @@ def process_profile_task(
     if (
         profile.get("version") != "2"
         and options.get("profiling.generic_metrics.functions_ingestion.enabled")
-        and organization.id
-        in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+        and (
+            organization.id
+            in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+            or random.random()
+            < options.get("profiling.generic_metrics.functions_ingestion.rollout_rate")
+        )
         and project.id
         not in options.get("profiling.generic_metrics.functions_ingestion.denied_proj_ids")
     ):
@@ -652,7 +657,7 @@ def _process_symbolicator_results_for_sample(
 
         new_frames_count = (
             len(raw_frames)
-            + sum([len(frames) for frames in symbolicated_frames_dict.values()])
+            + sum(len(frames) for frames in symbolicated_frames_dict.values())
             - len(symbolicated_frames_dict)
         )
 
@@ -1057,9 +1062,12 @@ def clean_android_js_profile(profile: Profile):
 
 @lru_cache(maxsize=100)
 def get_metrics_dsn(project_id: int) -> str:
-    project_key, _ = ProjectKey.objects.get_or_create(
-        project_id=project_id, use_case=UseCase.PROFILING.value
-    )
+    kwargs = dict(project_id=project_id, use_case=UseCase.PROFILING.value)
+    try:
+        project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
+    except ProjectKey.MultipleObjectsReturned:
+        # See https://docs.djangoproject.com/en/5.0/ref/models/querysets/#get-or-create
+        project_key = ProjectKey.objects.filter(**kwargs).order_by("pk").first()
     return project_key.get_dsn(public=True)
 
 

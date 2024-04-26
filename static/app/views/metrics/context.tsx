@@ -206,7 +206,7 @@ const useDefaultQuery = () => {
   );
 };
 
-export function DDMContextProvider({children}: {children: React.ReactNode}) {
+export function MetricsContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});

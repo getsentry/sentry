@@ -108,10 +108,15 @@ setup.py                                                 @getsentry/release-appr
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
 pyproject.toml                                           @getsentry/owners-python-build
+.vercel.json                                             @getsentry/owners-js-build
+/.githib/worksflows/frontend.yml                         @getsentry/owners-js-build
+/.github/file-filters.yml                                @getsentry/owners-js-build
+babel.config.*                                           @getsentry/owners-js-build
+biome.json                                               @getsentry/owners-js-build
+build-utils/                                             @getsentry/owners-js-build
+jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 webpack.config.*                                         @getsentry/owners-js-build
-babel.config.*                                           @getsentry/owners-js-build
-build-utils/                                             @getsentry/owners-js-build
 .volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 yarn.lock                                                @getsentry/owners-js-deps
@@ -416,6 +421,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
 /src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
+/src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-web-sdk-frontend
+/src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-web-sdk-frontend
 ## End of SDK
 
 
@@ -457,6 +464,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
+/static/app/views/settings/projectMetrics/*                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 
 /static/app/components/metrics/                                                  @getsentry/telemetry-experience

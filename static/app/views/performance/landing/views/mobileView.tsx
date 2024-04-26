@@ -60,6 +60,10 @@ export function MobileView(props: BasePerformanceViewProps) {
       ...[PerformanceWidgetSetting.MOST_IMPROVED, PerformanceWidgetSetting.MOST_REGRESSED]
     );
   }
+
+  if (props.organization.features.includes('spans-first-ui')) {
+    doubleRowAllowedCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
+  }
   return (
     <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div>

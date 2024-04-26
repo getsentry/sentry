@@ -56,14 +56,14 @@ import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
 import {useReleaseSeries} from 'sentry/views/metrics/chart/useMetricReleases';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
+import {FormulaFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useMetricsIntervalParam} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 
-import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
+import {METRIC_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
   displayType: MetricDisplayType;
@@ -107,7 +107,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     if (isMetricFormula(firstQuery)) {
       return (
         <Fragment>
-          <FormularFormatter formula={unescapeMetricsFormula(firstQuery.formula)} />
+          <FormulaFormatter formula={unescapeMetricsFormula(firstQuery.formula)} />
         </Fragment>
       );
     }
@@ -259,7 +259,7 @@ export const MetricWidget = memo(
                   focusAreaProps={focusAreaProps}
                   samples={isSelected ? samples : undefined}
                   chartHeight={chartHeight}
-                  chartGroup={DDM_CHART_GROUP}
+                  chartGroup={METRIC_CHART_GROUP}
                   queries={queries}
                   filters={filters}
                   displayType={displayType}
@@ -420,7 +420,7 @@ const MetricWidgetBody = memo(
         }
 
         if (isMetricFormula(queryToUpdate)) {
-          // TODO(ddm): filtering on an equation series should extend all conditions of all queries in the equation
+          // TODO(metrics): filtering on an equation series should extend all conditions of all queries in the equation
           return;
         }
 
@@ -571,11 +571,11 @@ export function getChartTimeseries(
   data: MetricsQueryApiResponse,
   queries: MetricsQueryApiQueryParams[],
   {
-    getChartPalette,
+    getChartPalette = createChartPalette,
     focusedSeries,
   }: {
-    getChartPalette: (seriesNames: string[]) => Record<string, string>;
     focusedSeries?: Set<string>;
+    getChartPalette?: (seriesNames: string[]) => Record<string, string>;
     showQuerySymbol?: boolean;
   }
 ) {

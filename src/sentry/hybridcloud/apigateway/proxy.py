@@ -87,13 +87,13 @@ class _body_with_length:
         return self.request.read(size)
 
 
-def proxy_request(request: HttpRequest, org_slug: str, url_name: str) -> HttpResponseBase:
-    """Take a django request object and proxy it to a remote location given an org_slug"""
+def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> HttpResponseBase:
+    """Take a django request object and proxy it to a remote location given an org_id_or_slug"""
 
     try:
-        region = get_region_for_organization(org_slug)
+        region = get_region_for_organization(org_id_or_slug)
     except RegionResolutionError as e:
-        logger.info("region_resolution_error", extra={"org_slug": org_slug, "error": str(e)})
+        logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
     return proxy_region_request(request, region, url_name)
@@ -126,19 +126,24 @@ def proxy_sentryappinstallation_request(
     return proxy_region_request(request, region, url_name)
 
 
-def proxy_sentryapp_request(request: HttpRequest, app_slug: str, url_name: str) -> HttpResponseBase:
+def proxy_sentryapp_request(
+    request: HttpRequest, app_id_or_slug: str, url_name: str
+) -> HttpResponseBase:
     """Take a django request object and proxy it to the region of the organization that owns a sentryapp"""
     try:
-        sentry_app = SentryApp.objects.get(slug=app_slug)
+        if app_id_or_slug.isnumeric():
+            sentry_app = SentryApp.objects.get(id=app_id_or_slug)
+        else:
+            sentry_app = SentryApp.objects.get(slug=app_id_or_slug)
     except SentryApp.DoesNotExist as e:
-        logger.info("region_resolution_error", extra={"app_slug": app_slug, "error": str(e)})
+        logger.info("region_resolution_error", extra={"app_slug": app_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
     try:
         organization_mapping = OrganizationMapping.objects.get(organization_id=sentry_app.owner_id)
         region = get_region_by_name(organization_mapping.region_name)
     except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
-        logger.info("region_resolution_error", extra={"app_slug": app_slug, "error": str(e)})
+        logger.info("region_resolution_error", extra={"app_slug": app_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
     return proxy_region_request(request, region, url_name)

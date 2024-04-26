@@ -12,7 +12,7 @@ from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.utils import json
 
 

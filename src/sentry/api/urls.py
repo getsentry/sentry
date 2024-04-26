@@ -41,11 +41,14 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
     ReleaseThresholdStatusIndexEndpoint,
 )
 from sentry.api.endpoints.relocations.abort import RelocationAbortEndpoint
+from sentry.api.endpoints.relocations.artifacts.details import RelocationArtifactDetailsEndpoint
+from sentry.api.endpoints.relocations.artifacts.index import RelocationArtifactIndexEndpoint
 from sentry.api.endpoints.relocations.cancel import RelocationCancelEndpoint
 from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
 from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
 from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
 from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
+from sentry.api.endpoints.relocations.recover import RelocationRecoverEndpoint
 from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
 from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
 from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
@@ -855,6 +858,11 @@ RELOCATION_URLS = [
         name="sentry-api-0-relocations-pause",
     ),
     re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/recover/$",
+        RelocationRecoverEndpoint.as_view(),
+        name="sentry-api-0-relocations-recover",
+    ),
+    re_path(
         r"^(?P<relocation_uuid>[^\/]+)/retry/$",
         RelocationRetryEndpoint.as_view(),
         name="sentry-api-0-relocations-retry",
@@ -863,6 +871,16 @@ RELOCATION_URLS = [
         r"^(?P<relocation_uuid>[^\/]+)/unpause/$",
         RelocationUnpauseEndpoint.as_view(),
         name="sentry-api-0-relocations-unpause",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/artifacts/$",
+        RelocationArtifactIndexEndpoint.as_view(),
+        name="sentry-api-0-relocations-artifacts-index",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/artifacts/(?P<artifact_kind>[^\/]+)/(?P<file_name>[^\/]+)$",
+        RelocationArtifactDetailsEndpoint.as_view(),
+        name="sentry-api-0-relocations-artifacts-details",
     ),
 ]
 
@@ -1688,7 +1706,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-member-unreleased-commits",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
         OrganizationMemberTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-member-team-details",
     ),
@@ -1955,7 +1973,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sentry-functions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_slug>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_id_or_slug>[^\/]+)/$",
         OrganizationSentryFunctionDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-function-details",
     ),
@@ -2530,7 +2548,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-teams",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
         ProjectTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-project-team-details",
     ),
@@ -2740,72 +2758,72 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
 
 TEAM_URLS = [
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/$",
         TeamDetailsEndpoint.as_view(),
         name="sentry-api-0-team-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issues/old/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issues/old/$",
         TeamGroupsOldEndpoint.as_view(),
         name="sentry-api-0-team-oldest-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/release-count/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/release-count/$",
         TeamReleaseCountEndpoint.as_view(),
         name="sentry-api-0-team-release-count",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/time-to-resolution/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/time-to-resolution/$",
         TeamTimeToResolutionEndpoint.as_view(),
         name="sentry-api-0-team-time-to-resolution",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/unresolved-issue-age/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/unresolved-issue-age/$",
         TeamUnresolvedIssueAgeEndpoint.as_view(),
         name="sentry-api-0-team-unresolved-issue-age",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered/$",
         TeamAlertsTriggeredTotalsEndpoint.as_view(),
         name="sentry-api-0-team-alerts-triggered",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/alerts-triggered-index/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered-index/$",
         TeamAlertsTriggeredIndexEndpoint.as_view(),
         name="sentry-api-0-team-alerts-triggered-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issue-breakdown/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issue-breakdown/$",
         TeamIssueBreakdownEndpoint.as_view(),
         name="sentry-api-0-team-issue-breakdown",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/all-unresolved-issues/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/all-unresolved-issues/$",
         TeamAllUnresolvedIssuesEndpoint.as_view(),
         name="sentry-api-0-team-all-unresolved-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/members/$",
         TeamMembersEndpoint.as_view(),
         name="sentry-api-0-team-members",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/projects/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/projects/$",
         TeamProjectsEndpoint.as_view(),
         name="sentry-api-0-team-project-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/stats/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/stats/$",
         TeamStatsEndpoint.as_view(),
         name="sentry-api-0-team-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/external-teams/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/$",
         ExternalTeamEndpoint.as_view(),
         name="sentry-api-0-external-team",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/external-teams/(?P<external_team_id>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/(?P<external_team_id>[^\/]+)/$",
         ExternalTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-external-team-details",
     ),
@@ -2818,59 +2836,59 @@ SENTRY_APP_URLS = [
         name="sentry-api-0-sentry-apps",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/$",
         SentryAppDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-details",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/features/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/features/$",
         SentryAppFeaturesEndpoint.as_view(),
         name="sentry-api-0-sentry-app-features",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/components/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/components/$",
         SentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-components",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/avatar/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/avatar/$",
         SentryAppAvatarEndpoint.as_view(),
         name="sentry-api-0-sentry-app-avatar",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/api-tokens/$",
         SentryInternalAppTokensEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-tokens",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/rotate-secret/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/rotate-secret/$",
         SentryAppRotateSecretEndpoint.as_view(),
         name="sentry-api-0-sentry-app-rotate-secret",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/stats/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/stats/$",
         SentryAppStatsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-stats",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/publish-request/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/publish-request/$",
         SentryAppPublishRequestEndpoint.as_view(),
         name="sentry-api-0-sentry-app-publish-request",
     ),
     # The following a region endpoints as interactions and request logs
     # are per-region.
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/requests/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/requests/$",
         SentryAppRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-requests",
     ),
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/interaction/$",
+        r"^(?P<sentry_app_id_or_slug>[^\/]+)/interaction/$",
         SentryAppInteractionEndpoint.as_view(),
         name="sentry-api-0-sentry-app-interaction",
     ),
@@ -3149,12 +3167,12 @@ urlpatterns = [
         name="sentry-api-0-doc-integrations",
     ),
     re_path(
-        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/$",
+        r"^doc-integrations/(?P<doc_integration_id_or_slug>[^\/]+)/$",
         DocIntegrationDetailsEndpoint.as_view(),
         name="sentry-api-0-doc-integration-details",
     ),
     re_path(
-        r"^doc-integrations/(?P<doc_integration_slug>[^\/]+)/avatar/$",
+        r"^doc-integrations/(?P<doc_integration_id_or_slug>[^\/]+)/avatar/$",
         DocIntegrationAvatarEndpoint.as_view(),
         name="sentry-api-0-doc-integration-avatar",
     ),
