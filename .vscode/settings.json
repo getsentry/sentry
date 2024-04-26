@@ -93,7 +93,8 @@
   "typescript.preferences.autoImportFileExcludePatterns": [
     "**/config/chartcuterie/*",
     "**/node_modules/@testing-library/*",
-    "**/node_modules/@tanstack/react-query"
+    "**/node_modules/@tanstack/react-query",
+    "**/react-dom/test-utils/*"
   ],
   // Avoid relative imports
   "typescript.preferences.importModuleSpecifier": "non-relative",
