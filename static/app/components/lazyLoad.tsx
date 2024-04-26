@@ -15,9 +15,15 @@ type ComponentType = React.ComponentType<any>;
 
 type Props<C extends ComponentType> = React.ComponentProps<C> & {
   /**
-   * Accepts a function to trigger the import resolution of the component.
+   * Wrap the component with lazy() before passing it to LazyLoad.
    */
-  component: () => PromisedImport<C>;
+  LazyComponent?: React.LazyExoticComponent<C>;
+
+  /**
+   * Accepts a function to trigger the import resolution of the component.
+   * @deprecated Use `LazyComponent` instead and keep lazy() calls out of the render path.
+   */
+  component?: () => PromisedImport<C>;
 
   /**
    * Override the default fallback component.
@@ -31,17 +37,24 @@ type Props<C extends ComponentType> = React.ComponentProps<C> & {
  * LazyLoad is used to dynamically load codesplit components via a `import`
  * call. This is primarily used in our routing tree.
  *
- * <LazyLoad component={() => import('./myComponent')} someComponentProps={...} />
+ * Outside the render path
+ * const LazyComponent = lazy(() => import('./myComponent'))
+ *
+ * <LazyLoad LazyComponent={LazyComponent} someComponentProps={...} />
  */
 function LazyLoad<C extends ComponentType>({
   component,
   loadingFallback,
+  LazyComponent,
   ...props
 }: Props<C>) {
-  const LazyComponent = useMemo(
-    () => lazy<C>(() => retryableImport(component)),
-    [component]
-  );
+  const LazyLoadedComponent = useMemo(() => {
+    if (LazyComponent) {
+      return LazyComponent;
+    }
+
+    return lazy<C>(() => retryableImport(component));
+  }, [component, LazyComponent]);
 
   return (
     <ErrorBoundary>
@@ -54,7 +67,7 @@ function LazyLoad<C extends ComponentType>({
           )
         }
       >
-        <LazyComponent {...(props as React.ComponentProps<C>)} />
+        <LazyLoadedComponent {...(props as React.ComponentProps<C>)} />
       </Suspense>
     </ErrorBoundary>
   );
