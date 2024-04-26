@@ -29,9 +29,7 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
     def test_alert_blanking(self):
         team = self.create_team(name="test")
         project = self.create_project(teams=[team], name="test1")
-        rule = Rule.objects.create(
-            label="test rule", project=project, owner=team.actor, owner_team_id=team.id
-        )
+        rule = Rule.objects.create(label="test rule", project=project, owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
             name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
         )

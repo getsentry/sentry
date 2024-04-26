@@ -17,22 +17,18 @@ class BackfillRuleUserTeamTest(TestMigrations):
         self.team_rule = Rule.objects.create(
             project=self.project,
             label="team rule",
-            owner=self.team_actor,
             owner_team=self.team,
         )
         self.user_rule = Rule.objects.create(
             project=self.project,
             label="user rule",
-            owner=self.user_actor,
             owner_user_id=self.user.id,
         )
 
         other_user = self.create_user()
-        other_actor = Actor.objects.create(type=ACTOR_TYPES["user"], user_id=other_user.id)
         self.valid = Rule.objects.create(
             project=self.project,
             label="valid",
-            owner=other_actor,
             owner_user_id=other_user.id,
         )
 
