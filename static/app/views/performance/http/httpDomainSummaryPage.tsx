@@ -1,15 +1,18 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -23,20 +26,21 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DomainStatusLink} from 'sentry/views/performance/http/domainStatusLink';
-import {
-  DomainTransactionsTable,
-  isAValidSort,
-} from 'sentry/views/performance/http/domainTransactionsTable';
-import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
+import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
+import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
+import {DomainStatusLink} from 'sentry/views/performance/http/components/domainStatusLink';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
-import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
-import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
+import {
+  DomainTransactionsTable,
+  isAValidSort,
+} from 'sentry/views/performance/http/tables/domainTransactionsTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -91,7 +95,7 @@ export function HTTPDomainSummaryPage() {
       'http_response_rate(5)',
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
-    referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
+    referrer: Referrer.DOMAIN_SUMMARY_METRICS_RIBBON,
   });
 
   const {
@@ -101,7 +105,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
-    referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
+    referrer: Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART,
   });
 
   const {
@@ -111,7 +115,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-    referrer: 'api.starfish.http-module-domain-summary-duration-chart',
+    referrer: Referrer.DOMAIN_SUMMARY_DURATION_CHART,
   });
 
   const {
@@ -121,7 +125,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
+    referrer: Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART,
   });
 
   const {
@@ -147,7 +151,7 @@ export function HTTPDomainSummaryPage() {
     sorts: [sort],
     limit: TRANSACTIONS_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+    referrer: Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST,
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
@@ -180,11 +184,29 @@ export function HTTPDomainSummaryPage() {
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
+          {domain === '' && (
+            <Alert type="info">
+              {tct(
+                '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
+                      documentation
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            </Alert>
+          )}
 
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
@@ -238,7 +260,7 @@ export function HTTPDomainSummaryPage() {
                     unit={DurationUnit.MILLISECOND}
                     tooltip={getTimeSpentExplanation(
                       domainMetrics?.[0]?.['time_spent_percentage()'],
-                      'db'
+                      'http'
                     )}
                     isLoading={areDomainMetricsLoading}
                   />

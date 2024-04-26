@@ -330,7 +330,9 @@
     "sentry.group",
     "sentry.organization",
     "sentry.project",
-    "sentry.release"
+    "sentry.release",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.groupinbox": [
     "sentry.group",
@@ -734,7 +736,9 @@
   "sentry.rule": [
     "sentry.actor",
     "sentry.environment",
-    "sentry.project"
+    "sentry.project",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.ruleactivity": [
     "sentry.rule",

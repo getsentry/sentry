@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from functools import wraps
 from typing import Any
 
@@ -32,6 +33,8 @@ from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
+
+logger = logging.getLogger(__name__)
 
 
 def catch_raised_errors(func):
@@ -250,12 +253,14 @@ class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
 
-    def convert_args(self, request: Request, sentry_app_slug: str | int, *args: Any, **kwargs: Any):
+    def convert_args(
+        self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
+    ):
         try:
             if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
-                sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_slug)
+                sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_id_or_slug)
             else:
-                sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
+                sentry_app = SentryApp.objects.get(slug=sentry_app_id_or_slug)
         except SentryApp.DoesNotExist:
             raise Http404
 
@@ -269,14 +274,16 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
 
 class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
-    def convert_args(self, request: Request, sentry_app_slug: str | int, *args: Any, **kwargs: Any):
+    def convert_args(
+        self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
+    ):
         if (
             id_or_slug_path_params_enabled(self.convert_args.__qualname__)
-            and str(sentry_app_slug).isnumeric()
+            and str(sentry_app_id_or_slug).isnumeric()
         ):
-            sentry_app = app_service.get_sentry_app_by_id(id=int(sentry_app_slug))
+            sentry_app = app_service.get_sentry_app_by_id(id=int(sentry_app_id_or_slug))
         else:
-            sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+            sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_id_or_slug)
         if sentry_app is None:
             raise Http404
 
@@ -487,6 +494,16 @@ class SentryAppStatsPermission(SentryPermission):
         owner_app = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=request.user.id
         )
+        if owner_app is None:
+            logger.error(
+                "sentry_app_stats.permission_org_not_found",
+                extra={
+                    "sentry_app_id": sentry_app.id,
+                    "owner_org_id": sentry_app.owner_id,
+                    "user_id": request.user.id,
+                },
+            )
+            return False
         self.determine_access(request, owner_app)
 
         if is_active_superuser(request):

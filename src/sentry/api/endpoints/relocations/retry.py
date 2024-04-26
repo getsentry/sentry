@@ -23,6 +23,7 @@ from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.signals import relocation_retry_link_promo_code
 from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
 
@@ -112,6 +113,12 @@ class RelocationRetryEndpoint(Endpoint):
                 want_org_slugs=relocation.want_org_slugs,
                 step=Relocation.Step.UPLOADING.value,
                 scheduled_pause_at_step=get_autopause_value(),
+            )
+
+            relocation_retry_link_promo_code.send_robust(
+                old_relocation_uuid=relocation_uuid,
+                new_relocation_uuid=new_relocation.uuid,
+                sender=self.__class__,
             )
             RelocationFile.objects.create(
                 relocation=new_relocation,

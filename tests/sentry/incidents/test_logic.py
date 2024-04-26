@@ -19,7 +19,8 @@ from sentry.incidents.events import (
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     DEFAULT_ALERT_RULE_RESOLUTION,
-    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
+    DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
     AlertRuleTriggerLabelAlreadyUsedError,
@@ -38,6 +39,7 @@ from sentry.incidents.logic import (
     disable_alert_rule,
     enable_alert_rule,
     get_actions_for_trigger,
+    get_alert_resolution,
     get_available_action_integrations_for_org,
     get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
@@ -80,7 +82,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
@@ -492,6 +494,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             )
             assert alert_rule.name == name
             assert alert_rule.owner is None
+            assert alert_rule.user_id is None
+            assert alert_rule.team_id is None
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             if alert_rule.snuba_query.subscriptions.exists():
                 assert alert_rule.snuba_query.subscriptions.get().project == self.project
@@ -560,6 +564,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.owner is None
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
@@ -597,6 +603,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.owner is None
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
@@ -670,6 +678,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
         assert alert_rule_1.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule_1.user_id == self.user.id
+        assert alert_rule_1.team_id is None
         alert_rule_2 = create_alert_rule(
             self.organization,
             [self.project],
@@ -682,6 +692,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
         )
         assert alert_rule_2.owner.id == self.team.actor.id
+        assert alert_rule_2.user_id is None
+        assert alert_rule_2.team_id == self.team.id
 
     def test_comparison_delta(self):
         comparison_delta = 60
@@ -698,7 +710,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.comparison_delta == comparison_delta * 60
-        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
     def test_performance_metric_alert(self):
         alert_rule = create_alert_rule(
@@ -732,6 +746,71 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
+
+    def test_create_alert_default_resolution(self):
+        time_window = 1440
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_create_alert_resolution_load_shedding(self):
+        time_window = 1440
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        assert (
+            alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
+        )
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_create_alert_load_shedding_comparison(self):
+        time_window = 1440
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+            comparison_delta=60,
+        )
+
+        assert (
+            alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
+            * 60
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+        )
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -801,11 +880,21 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.query == ""
 
     def test_delete_projects(self):
+        # Testing delete projects from update
         alert_rule = self.create_alert_rule(
             projects=[self.project, self.create_project(fire_project_created=True)]
         )
-        update_alert_rule(alert_rule, projects=[self.project])
-        assert self.alert_rule.snuba_query.subscriptions.get().project == self.project
+        unaffected_alert_rule = self.create_alert_rule(
+            projects=[self.project, self.create_project(fire_project_created=True)]
+        )
+        with self.tasks():
+            update_alert_rule(alert_rule, projects=[self.project])
+        # NOTE: subscribing alert rule to projects creates a new subscription per project
+        subscriptions = alert_rule.snuba_query.subscriptions.all()
+        assert subscriptions.count() == 1
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
+        assert alert_rule.projects.all().count() == 1
+        assert unaffected_alert_rule.projects.all().count() == 2
 
     def test_new_updated_deleted_projects(self):
         alert_rule = self.create_alert_rule(
@@ -813,11 +902,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         query_update = "level:warning"
         new_project = self.create_project(fire_project_created=True)
-        updated_projects = [self.project, new_project]
+        project_updates = [self.project, new_project]
         with self.tasks():
-            update_alert_rule(alert_rule, projects=updated_projects, query=query_update)
+            update_alert_rule(alert_rule, projects=project_updates, query=query_update)
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
-        assert {sub.project for sub in updated_subscriptions} == set(updated_projects)
+        updated_projects = alert_rule.projects.all()
+        assert {sub.project for sub in updated_subscriptions} == set(project_updates)
+        assert set(updated_projects) == set(project_updates)
         for sub in updated_subscriptions:
             assert sub.snuba_query.query == query_update
 
@@ -962,44 +1053,66 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
         assert alert_rule.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
+
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
         )
         assert alert_rule.owner.id == self.team.actor.id
+        assert alert_rule.team_id == self.team.id
+        assert alert_rule.user_id is None
+
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
         )
         assert alert_rule.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
+
         update_alert_rule(
             alert_rule=alert_rule,
             owner=ActorTuple.from_actor_identifier(self.user.id),
         )
         assert alert_rule.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
+
         update_alert_rule(
             alert_rule=alert_rule,
             name="not updating owner",
         )
         assert alert_rule.owner.id == get_actor_for_user(self.user).id
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
 
         update_alert_rule(
             alert_rule=alert_rule,
             owner=None,
         )
         assert alert_rule.owner is None
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
 
     def test_comparison_delta(self):
         comparison_delta = 60
 
         update_alert_rule(self.alert_rule, comparison_delta=comparison_delta)
         assert self.alert_rule.comparison_delta == comparison_delta * 60
-        assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            self.alert_rule.snuba_query.resolution
+            == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
         # Should be no change if we don't specify `comparison_delta` for update at all.
         update_alert_rule(self.alert_rule)
         assert self.alert_rule.comparison_delta == comparison_delta * 60
-        assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            self.alert_rule.snuba_query.resolution
+            == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
         # Should change if we explicitly set it to None.
         update_alert_rule(self.alert_rule, comparison_delta=None)
@@ -1049,6 +1162,126 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_update_alert_load_shedding_on_window(self):
+        time_window = 1440
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        assert (
+            alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
+        )
+
+        time_window = 90
+        updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
+        assert (
+            updated_alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
+        )
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_update_alert_load_shedding_on_window_with_comparison(self):
+        time_window = 1440
+        comparison_delta = 60
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+            comparison_delta=comparison_delta,
+        )
+
+        assert (
+            alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            * 60
+        )
+
+        time_window = 90
+        updated_alert_rule = update_alert_rule(alert_rule, time_window=time_window)
+
+        assert (
+            updated_alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            * 60
+        )
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_update_alert_load_shedding_on_comparison(self):
+        time_window = 1440
+        comparison_delta = 60
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+            comparison_delta=comparison_delta,
+        )
+
+        assert alert_rule.snuba_query.resolution == 1800
+        updated_alert_rule = update_alert_rule(alert_rule, comparison_delta=90)
+        assert (
+            updated_alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            * 60
+        )
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_update_alert_load_shedding_on_comparison_and_window(self):
+        time_window = 1440
+        comparison_delta = 60
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            time_window,
+            AlertRuleThresholdType.ABOVE,
+            1440,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+            comparison_delta=comparison_delta,
+        )
+
+        assert alert_rule.snuba_query.resolution == 1800
+        time_window = 30
+        updated_alert_rule = update_alert_rule(
+            alert_rule, time_window=time_window, comparison_delta=90
+        )
+        assert (
+            updated_alert_rule.snuba_query.resolution
+            == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
+            * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
+            * 60
+        )
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -2607,3 +2840,44 @@ class TestCustomMetricAlertRule(TestCase):
         )
 
         mocked_schedule_invalidate_project_config.assert_not_called()
+
+
+class TestGetAlertResolution(TestCase):
+    def test_without_feature(self):
+        time_window = 30
+        result = get_alert_resolution(time_window, self.organization)
+        assert result == DEFAULT_ALERT_RULE_RESOLUTION
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_enabled_feature(self):
+        time_window = 30
+        result = get_alert_resolution(time_window, self.organization)
+        assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_low_range(self):
+        time_window = 2
+        result = get_alert_resolution(time_window, self.organization)
+        assert result == DEFAULT_ALERT_RULE_RESOLUTION
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_high_range(self):
+        last_window = list(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())[-1]
+        time_window = last_window + 1000
+        result = get_alert_resolution(time_window, self.organization)
+
+        assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window]
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_mid_range(self):
+        time_window = 125
+        result = get_alert_resolution(time_window, self.organization)
+
+        # 125 is not part of the dict, will round down to the lower window of 120
+        assert result == 3
+
+    @with_feature("organizations:metric-alert-load-shedding")
+    def test_crazy_low_range(self):
+        time_window = -5
+        result = get_alert_resolution(time_window, self.organization)
+        assert result == DEFAULT_ALERT_RULE_RESOLUTION

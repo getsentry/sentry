@@ -83,7 +83,7 @@ function OptInModal({closeModal}: ModalRenderProps) {
       <ButtonGroup>
         <LinkButton
           external
-          href="https://help.sentry.io/product-features/other/metrics-beta-faqs/"
+          href="https://sentry.zendesk.com/hc/en-us/articles/24886170163867-Metrics-Beta-FAQ"
           onClick={() => {
             trackAnalytics('ddm.opt_in_modal_closed', {
               organization,

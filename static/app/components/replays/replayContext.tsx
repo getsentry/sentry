@@ -495,6 +495,7 @@ function ProviderNonMemo({
           setVideoBuffering(buffering);
         },
         clipWindow,
+        durationMs,
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
@@ -521,6 +522,7 @@ function ProviderNonMemo({
       startTimestampMs,
       startTimeOffsetMs,
       clipWindow,
+      durationMs,
     ]
   );
 

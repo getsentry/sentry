@@ -498,7 +498,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="tags/"
-        name={t('Tags')}
+        name={t('Tags & Context')}
         component={make(() => import('sentry/views/settings/projectTags'))}
       />
       <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
@@ -1212,6 +1212,7 @@ function buildRoutes() {
   );
 
   const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    // ALERT CHILD ROUTES
     return (
       <Fragment>
         <IndexRoute
@@ -1316,6 +1317,7 @@ function buildRoutes() {
       </Fragment>
     );
   };
+  // ALERT ROUTES
   const alertRoutes = (
     <Fragment>
       {USING_CUSTOMER_DOMAIN && (
@@ -1490,9 +1492,15 @@ function buildRoutes() {
     </Route>
   );
 
-  const aiAnalyticsRoutes = (
-    <Route path="/ai-analytics/" withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
+  const aiMonitoringRoutes = (
+    <Route path="/ai-monitoring/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/aiMonitoring/landing'))} />
+      <Route
+        path="pipeline-type/:groupId/"
+        component={make(
+          () => import('sentry/views/aiMonitoring/aiMonitoringDetailsPage')
+        )}
+      />
     </Route>
   );
 
@@ -1539,19 +1547,6 @@ function buildRoutes() {
         />
       </Route>
       <Route path="browser/">
-        <Route path="interactions/">
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/performance/browser/interactionsLandingPage')
-            )}
-          />
-          <Route
-            path="summary/"
-            component={make(
-              () => import('sentry/views/performance/browser/interactionSummary/index')
-            )}
-          />
-        </Route>
         <Route path="pageloads/">
           <IndexRoute
             component={make(
@@ -1583,30 +1578,42 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="queues/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/queues/queuesLandingPage')
+          )}
+        />
+        <Route
+          path="destination/"
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/queues/destinationSummary/destinationSummaryPage'
+              )
+          )}
+        />
+      </Route>
       <Route path="mobile/">
         <Route path="screens/">
           <IndexRoute
-            component={make(
-              () => import('sentry/views/starfish/modules/mobile/pageload')
-            )}
+            component={make(() => import('sentry/views/performance/mobile/screenload'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+              () => import('sentry/views/performance/mobile/screenload/screenLoadSpans')
             )}
           />
         </Route>
         <Route path="app-startup/">
           <IndexRoute
-            component={make(
-              () => import('sentry/views/starfish/modules/mobile/appStartup')
-            )}
+            component={make(() => import('sentry/views/performance/mobile/appStarts'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/starfish/views/appStartup/screenSummary')
+              () => import('sentry/views/performance/mobile/appStarts/screenSummary')
             )}
           />
         </Route>
@@ -1704,31 +1711,15 @@ function buildRoutes() {
       component={make(() => import('sentry/views/starfish'))}
       withOrgPath
     >
-      <IndexRoute
-        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
-      />
-      <Route path="endpoint-overview/">
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
-          )}
-        />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
-        />
-      </Route>
       <Redirect from="database/" to="/performance/database" />
       <Route path="appStartup/">
         <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/modules/mobile/appStartup')
-          )}
+          component={make(() => import('sentry/views/performance/mobile/appStarts'))}
         />
         <Route
           path="spans/"
           component={make(
-            () => import('sentry/views/starfish/views/appStartup/screenSummary')
+            () => import('sentry/views/performance/mobile/appStarts/screenSummary')
           )}
         />
       </Route>
@@ -1737,13 +1728,6 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/starfish/modules/mobile/responsiveness')
           )}
-        />
-      </Route>
-      <Route path="spans/">
-        <IndexRoute component={make(() => import('sentry/views/starfish/views/spans'))} />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
         />
       </Route>
     </Route>
@@ -2164,7 +2148,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
-      {aiAnalyticsRoutes}
+      {aiMonitoringRoutes}
       {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}

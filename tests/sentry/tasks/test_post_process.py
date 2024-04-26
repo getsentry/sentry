@@ -51,7 +51,8 @@ from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
@@ -2371,18 +2372,6 @@ class PostProcessGroupPerformanceTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        group_states = (
-            [
-                {
-                    "id": event.group_id,
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                }
-            ]
-            if event.group_id
-            else None
-        )
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
@@ -2391,7 +2380,7 @@ class PostProcessGroupPerformanceTest(
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
-                group_states=group_states,
+                group_id=event.group_id,
                 project_id=event.project_id,
             )
         return cache_key
@@ -2453,12 +2442,6 @@ class PostProcessGroupPerformanceTest(
     ):
         event = self.create_performance_issue()
         assert event.group
-        # cache_key = write_event_to_cache(event)
-        group_state = dict(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-        )
 
         # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
         # but because post-processing is async, this causes the assert to fail because it doesn't
@@ -2469,10 +2452,11 @@ class PostProcessGroupPerformanceTest(
         mock_process_rules.side_effect = None
 
         post_process_group(
-            **group_state,
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
             cache_key="dummykey",
             group_id=event.group_id,
-            group_states=[{"id": event.group.id, **group_state}],
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,
         )
@@ -2510,18 +2494,6 @@ class PostProcessGroupAggregateEventTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        group_states = (
-            [
-                {
-                    "id": event.group_id,
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                }
-            ]
-            if event.group_id
-            else None
-        )
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(
@@ -2532,7 +2504,7 @@ class PostProcessGroupAggregateEventTest(
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
-                group_states=group_states,
+                group_id=event.group_id,
                 project_id=event.project_id,
             )
         return cache_key
@@ -2567,7 +2539,6 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=None,
-            group_states=None,
         )
 
         assert mock_store_transaction_name.mock_calls == [
@@ -2707,11 +2678,23 @@ class PostProcessGroupFeedbackTest(
         project_id,
         assert_no_errors=True,
         feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        is_spam=False,
     ):
         data["type"] = "generic"
         event = self.store_event(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
         )
+
+        evidence_data = {
+            "Test": 123,
+            "source": feedback_type.value,
+        }
+        evidence_display = [
+            {"name": "hi", "value": "bye", "important": True},
+            {"name": "what", "value": "where", "important": False},
+        ]
+        if is_spam:
+            evidence_data["is_spam"] = True
 
         occurrence_data = self.build_occurrence_data(
             event_id=event.event_id,
@@ -2723,14 +2706,8 @@ class PostProcessGroupFeedbackTest(
                 "subtitle": "it was bad",
                 "culprit": "api/123",
                 "resource_id": "1234",
-                "evidence_data": {
-                    "Test": 123,
-                    "source": feedback_type.value,
-                },
-                "evidence_display": [
-                    {"name": "hi", "value": "bye", "important": True},
-                    {"name": "what", "value": "where", "important": False},
-                ],
+                "evidence_data": evidence_data,
+                "evidence_display": evidence_display,
                 "type": FeedbackGroup.type_id,
                 "detection_time": datetime.now().timestamp(),
                 "level": "info",
@@ -2764,6 +2741,31 @@ class PostProcessGroupFeedbackTest(
             data={},
             project_id=self.project.id,
             feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        assert mock_process_func.call_count == 0
+
+    def test_not_ran_if_spam(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+            is_spam=True,
         )
         mock_process_func = Mock()
         with patch(

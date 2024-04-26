@@ -9,17 +9,20 @@ const format = (v: number, abbrev: string, precision: number) => {
 // which the trace view is already doing a lot of, so we try to avoid it here as
 // gc during scrolling causes jank
 export function formatTraceDuration(duration_ms: number) {
-  if (duration_ms >= 24 * 60 * 60 * 1e3) {
-    return format((duration_ms / 24) * 60 * 60e3, 'd', 2);
+  if (duration_ms <= 0) {
+    return '0ms';
   }
-  if (duration_ms >= 60 * 60 * 1e3) {
-    return format((duration_ms / 60) * 60e3, 'h', 2);
+  if (duration_ms < 1000) {
+    return format(duration_ms, 'ms', 2);
   }
-  if (duration_ms >= 60 * 1e3) {
-    return format(duration_ms / 60e3, 'min', 2);
+  if (duration_ms < 60000) {
+    return format(duration_ms / 1000, 's', 2);
   }
-  if (duration_ms >= 1e3) {
-    return format(duration_ms / 1e3, 's', 2);
+  if (duration_ms < 3600000) {
+    return format(duration_ms / 60000, 'm', 2);
   }
-  return format(duration_ms, 'ms', 2);
+  if (duration_ms < 86400000) {
+    return format(duration_ms / 3600000, 'h', 2);
+  }
+  return format(duration_ms / 86400000, 'd', 2);
 }

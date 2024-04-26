@@ -7,11 +7,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -110,18 +106,12 @@ export function SpanSamplesTable({
       return (
         <Link
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug({
-              id: row['transaction.id'],
-              project: row.project,
-            }),
+            eventId: row['transaction.id'],
+            timestamp: row.timestamp,
+            traceSlug: row.transaction?.trace,
+            projectSlug: row.project,
             organization,
             location,
-            eventView: EventView.fromLocation(location),
-            dataRow: {
-              id: row['transaction.id'],
-              trace: row.transaction?.trace,
-              timestamp: row.timestamp,
-            },
             spanId: row.span_id,
           })}
         >
@@ -134,18 +124,12 @@ export function SpanSamplesTable({
       return (
         <Link
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug({
-              id: row['transaction.id'],
-              project: row.project,
-            }),
+            eventId: row['transaction.id'],
+            timestamp: row.timestamp,
+            traceSlug: row.transaction?.trace,
+            projectSlug: row.project,
             organization,
             location,
-            eventView: EventView.fromLocation(location),
-            dataRow: {
-              id: row['transaction.id'],
-              trace: row.transaction?.trace,
-              timestamp: row.timestamp,
-            },
             spanId: row.span_id,
           })}
         >

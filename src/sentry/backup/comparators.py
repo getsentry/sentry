@@ -793,10 +793,11 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator(
-                    "refresh_token", "token", "hashed_token", "hashed_refresh_token"
-                ),
-                IgnoredComparator("token_last_characters"),
+                HashObfuscatingComparator("refresh_token", "token"),
+                # TODO: when we get rid of token/refresh_token for their hashed versions, and are
+                # sure that none of the originals are left, we can compare these above. Until then,
+                # just ignore them.
+                IgnoredComparator("hashed_token", "hashed_refresh_token", "token_last_characters"),
                 UnorderedListComparator("scope_list"),
             ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
@@ -818,6 +819,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
             "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
+            "sentry.email": [DateUpdatedComparator("date_added")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [

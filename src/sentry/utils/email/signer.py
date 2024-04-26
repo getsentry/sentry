@@ -25,7 +25,7 @@ class _CaseInsensitiveSigner(Signer):
         kwargs.setdefault("algorithm", "sha1")
         super().__init__(*args, **kwargs)
 
-    def signature(self, value: str) -> str:
+    def signature(self, value: str | bytes) -> str:
         return super().signature(value).lower()
 
     def unsign(self, signed_value: str) -> str:

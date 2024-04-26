@@ -101,7 +101,7 @@ def validate(
             if model_type == User:
                 pks_to_usernames[pk] = model["fields"]["username"]
 
-            custom_ordinal_fields = model_type.get_relocation_ordinal_fields()
+            custom_ordinal_fields = model_type.get_relocation_ordinal_fields(model)
             if custom_ordinal_fields is None:
                 id, found = ordinal_counters[model_name].assign(model, pk, side)
                 findings.extend(found)
@@ -118,15 +118,18 @@ def validate(
 
             ordinal = tuple(custom_ordinal_parts)
             if need_ordering[model_name].get(ordinal) is not None:
-                findings.append(
-                    ComparatorFinding(
-                        kind=ComparatorFindingKind.DuplicateCustomOrdinal,
-                        on=InstanceID(str(model_name), None),
-                        left_pk=pk if side == Side.left else None,
-                        right_pk=pk if side == Side.right else None,
-                        reason=f"""custom ordinal value `{ordinal}` appears multiple times""",
+                # Special case: overwrites of custom ordinals for `useroption`, since it is okay to
+                # just use the latest one when there is a collision.
+                if str(model_name) != "sentry.useroption":
+                    findings.append(
+                        ComparatorFinding(
+                            kind=ComparatorFindingKind.DuplicateCustomOrdinal,
+                            on=InstanceID(str(model_name), None),
+                            left_pk=pk if side == Side.left else None,
+                            right_pk=pk if side == Side.right else None,
+                            reason=f"""custom ordinal value `{ordinal}` appears multiple times""",
+                        )
                     )
-                )
 
             need_ordering[model_name][ordinal] = model
 
@@ -138,6 +141,18 @@ def validate(
                 id, found = ordinal_counters[model_name].assign(model, ordinal_value, side)
                 findings.extend(found)
                 model_map[model_name][id] = model
+
+        # TODO(azaslavsky): This is a temporary fix. Remove it once we have a more sustainable
+        # export-side solution.
+        user_option_model_name = NormalizedModelName("sentry.useroption")
+        user_option_model_map = model_map.get(user_option_model_name, None)
+        if user_option_model_map is not None:
+            counter = 1
+            model_map[user_option_model_name] = ordereddict()
+            for model in user_option_model_map.values():
+                id = InstanceID(str(user_option_model_name), counter)
+                model_map[user_option_model_name][id] = model
+                counter += 1
 
         return (model_map, ordinal_counters)
 

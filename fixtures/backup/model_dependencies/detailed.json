@@ -2392,6 +2392,16 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.release",
         "nullable": true
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       }
     },
     "model": "sentry.grouphistory",
@@ -5309,6 +5319,16 @@
       "owner": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.actor",
+        "nullable": true
+      },
+      "owner_team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
         "nullable": true
       },
       "project": {

@@ -3,7 +3,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {ReleasesProvider, useReleases} from 'sentry/utils/releases/releasesProvider';
 
 function TestComponent({other}: {other: string}) {

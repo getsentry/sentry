@@ -25,6 +25,8 @@ from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
+logger = logging.getLogger("sentry.rules")
+
 SLOW_CONDITION_MATCHES = ["event_frequency"]
 
 
@@ -38,16 +40,42 @@ def get_match_function(match_name: str) -> Callable[..., bool] | None:
     return None
 
 
-def is_condition_slow(condition: Mapping[str, str]) -> bool:
+def is_condition_slow(
+    condition: Mapping[str, Any],
+) -> bool:
+    """
+    Returns whether a condition is considered slow. Note that the slow condition
+    mapping take the form on EventFrequencyConditionData.
+    """
     for slow_conditions in SLOW_CONDITION_MATCHES:
         if slow_conditions in condition["id"]:
             return True
     return False
 
 
-class RuleProcessor:
-    logger = logging.getLogger("sentry.rules")
+def get_rule_type(condition: Mapping[str, Any]) -> str | None:
+    rule_cls = rules.get(condition["id"])
+    if rule_cls is None:
+        logger.warning("Unregistered condition or filter %r", condition["id"])
+        return None
 
+    rule_type: str = rule_cls.rule_type
+    return rule_type
+
+
+def split_conditions_and_filters(rule_condition_list):
+    condition_list = []
+    filter_list = []
+    for rule_cond in rule_condition_list:
+        if get_rule_type(rule_cond) == "condition/event":
+            condition_list.append(rule_cond)
+        else:
+            filter_list.append(rule_cond)
+
+    return condition_list, filter_list
+
+
+class RuleProcessor:
     def __init__(
         self,
         event: GroupEvent,
@@ -126,7 +154,7 @@ class RuleProcessor:
 
                 if missing_rule_ids:
                     # Shouldn't happen, but log just in case
-                    self.logger.error(
+                    logger.error(
                         "Failed to fetch some GroupRuleStatuses in RuleProcessor",
                         extra={"missing_rule_ids": missing_rule_ids, "group_id": self.group.id},
                     )
@@ -138,16 +166,19 @@ class RuleProcessor:
         return rule_statuses
 
     def condition_matches(
-        self, condition: dict[str, Any], state: EventState, rule: Rule
+        self,
+        condition: MutableMapping[str, Any],
+        state: EventState,
+        rule: Rule,
     ) -> bool | None:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
-            self.logger.warning("Unregistered condition %r", condition["id"])
+            logger.warning("Unregistered condition %r", condition["id"])
             return None
 
-        condition_inst = condition_cls(self.project, data=condition, rule=rule)
+        condition_inst = condition_cls(project=self.project, data=condition, rule=rule)
         if not isinstance(condition_inst, (EventCondition, EventFilter)):
-            self.logger.warning("Unregistered condition %r", condition["id"])
+            logger.warning("Unregistered condition %r", condition["id"])
             return None
         passes: bool = safe_execute(
             condition_inst.passes,
@@ -156,15 +187,6 @@ class RuleProcessor:
             _with_transaction=False,
         )
         return passes
-
-    def get_rule_type(self, condition: Mapping[str, Any]) -> str | None:
-        rule_cls = rules.get(condition["id"])
-        if rule_cls is None:
-            self.logger.warning("Unregistered condition or filter %r", condition["id"])
-            return None
-
-        rule_type: str = rule_cls.rule_type
-        return rule_type
 
     def get_state(self) -> EventState:
         return EventState(
@@ -196,7 +218,6 @@ class RuleProcessor:
 
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
-        rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         try:
             environment = self.event.get_environment()
@@ -212,14 +233,7 @@ class RuleProcessor:
             return
 
         state = self.get_state()
-
-        condition_list = []
-        filter_list = []
-        for rule_cond in rule_condition_list:
-            if self.get_rule_type(rule_cond) == "condition/event":
-                condition_list.append(rule_cond)
-            else:
-                filter_list.append(rule_cond)
+        condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
 
         # Sort `condition_list` so that most expensive conditions run last.
         condition_list.sort(key=lambda condition: is_condition_slow(condition))
@@ -236,8 +250,9 @@ class RuleProcessor:
                 if not predicate_func(predicate_iter):
                     return
             else:
-                self.logger.error(
-                    f"Unsupported {name}_match {match!r} for rule {rule.id}",
+                log_string = f"Unsupported {name}_match {match!r} for rule {rule.id}"
+                logger.error(
+                    log_string,
                     filter_match,
                     rule.id,
                     extra={**logging_details},
@@ -272,7 +287,6 @@ class RuleProcessor:
         notification_uuid: str | None = None,
         rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
-        state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_inst = instantiate_action(rule, action, rule_fire_history)
             if not action_inst:
@@ -281,12 +295,11 @@ class RuleProcessor:
             results = safe_execute(
                 action_inst.after,
                 event=self.event,
-                state=state,
                 _with_transaction=False,
                 notification_uuid=notification_uuid,
             )
             if results is None:
-                self.logger.warning("Action %s did not return any futures", action["id"])
+                logger.warning("Action %s did not return any futures", action["id"])
                 continue
 
             for future in results:

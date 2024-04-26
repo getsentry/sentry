@@ -26,7 +26,7 @@ from sentry.ownership.grammar import Matcher, Owner
 from sentry.ownership.grammar import Rule as GrammarRule
 from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
@@ -512,7 +512,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         even when the users' issue alert notification settings are off and digests are triggered."""
 
         backend = RedisBackend()
-        digests.digest = backend.digest
+        digests.backend.digest = backend.digest
         digests.enabled.return_value = True
 
         # turn off the user's issue alert notification settings
@@ -900,7 +900,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         payload when block kit is enabled.
         """
         backend = RedisBackend()
-        digests.digest = backend.digest
+        digests.backend.digest = backend.digest
         digests.enabled.return_value = True
 
         rule = Rule.objects.create(project=self.project, label="my rule")
