@@ -39,6 +39,7 @@ def llm_settings(set_sentry_option):
             "llm.usecases.options",
             {"spamdetection": {"provider": "openai", "options": {"model": "gpt-4-turbo-1.0"}}},
         ),
+        set_sentry_option("feedback.spam-detection-actions", True),
     ):
         yield
 

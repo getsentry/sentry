@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event
 from sentry.feedback.usecases.spam_detection import is_spam
@@ -244,15 +244,7 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
     if is_message_spam:
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=StatusChangeMessage(
-                fingerprint=issue_fingerprint,
-                project_id=project_id,
-                new_status=GroupStatus.RESOLVED,
-                new_substatus=None,
-            ),
-        )
+        auto_ignore_spam_feedbacks(project_id, issue_fingerprint)
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={"referrer": source.value},
@@ -347,4 +339,18 @@ def shim_to_feedback(
     except Exception:
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"
+        )
+
+
+def auto_ignore_spam_feedbacks(project_id, issue_fingerprint):
+    if options.get("feedback.spam-detection-actions"):
+        metrics.incr("feedback.spam-detection-actions.set-ignored")
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=StatusChangeMessage(
+                fingerprint=issue_fingerprint,
+                project_id=project_id,
+                new_status=GroupStatus.RESOLVED,
+                new_substatus=None,
+            ),
         )
