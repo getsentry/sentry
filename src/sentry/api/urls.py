@@ -48,6 +48,7 @@ from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
 from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
 from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
 from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
+from sentry.api.endpoints.relocations.recover import RelocationRecoverEndpoint
 from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
 from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
 from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
@@ -855,6 +856,11 @@ RELOCATION_URLS = [
         r"^(?P<relocation_uuid>[^\/]+)/pause/$",
         RelocationPauseEndpoint.as_view(),
         name="sentry-api-0-relocations-pause",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/recover/$",
+        RelocationRecoverEndpoint.as_view(),
+        name="sentry-api-0-relocations-recover",
     ),
     re_path(
         r"^(?P<relocation_uuid>[^\/]+)/retry/$",
