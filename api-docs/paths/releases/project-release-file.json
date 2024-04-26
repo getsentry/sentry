@@ -198,7 +198,7 @@
         }
       },
       {
-        "name": "projproject_id_or_slugct_slug",
+        "name": "project_id_or_slug",
         "in": "path",
         "description": "The id or slug of the project.",
         "required": true,

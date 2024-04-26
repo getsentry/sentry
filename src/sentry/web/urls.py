@@ -692,7 +692,7 @@ urlpatterns += [
     ),
     # Issues
     re_path(
-        r"^issues/(?P<project_id_or_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-customer-domain-sentry-group-tag-export",
     ),
@@ -732,7 +732,7 @@ urlpatterns += [
         name="projects",
     ),
     re_path(
-        r"^projects/(?P<project_id_or_slug>[\w_-]+)/",
+        r"^projects/(?P<project_slug>[\w_-]+)/",
         react_page_view,
         name="project-details",
     ),
@@ -855,7 +855,7 @@ urlpatterns += [
     # Project on-boarding
     # We map /:orgid/:projectid/getting-started/* to /getting-started/:projectid/*
     re_path(
-        r"^getting-started/(?P<project_id_or_slug>[\w_-]+)/",
+        r"^getting-started/(?P<project_slug>[\w_-]+)/",
         react_page_view,
         name="project-getting-started",
     ),
@@ -928,12 +928,12 @@ urlpatterns += [
                     name="sentry-group-event-json",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_id_or_slug>[\w_-]+)/$",
+                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-project-details",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_id_or_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
+                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
                     ProjectEventRedirect.as_view(),
                     name="sentry-project-event-redirect",
                 ),
@@ -1012,7 +1012,7 @@ urlpatterns += [
                     name="sentry-organization-crons",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_id_or_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-cron-monitor-details",
                 ),
@@ -1042,11 +1042,11 @@ urlpatterns += [
     ),
     # Settings - Projects
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/settings/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$",
         RedirectView.as_view(pattern_name="sentry-manage-project", permanent=False),
     ),
     re_path(
-        r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_id_or_slug>[\w_-]+)/$",
+        r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
         react_page_view,
         name="sentry-manage-project",
     ),
@@ -1194,7 +1194,7 @@ urlpatterns += [
         name="sentry-group",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id>[\w-]+)/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id>[\w-]+)/$",
         react_page_view,
         name="sentry-group-event",
     ),
@@ -1214,22 +1214,22 @@ urlpatterns += [
         name="sentry-metric-alert-details",
     ),
     re_path(
-        r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_id_or_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
+        r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-alert-rule",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
         GroupPluginActionView.as_view(),
         name="sentry-group-plugin-action",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
         ProjectEventRedirect.as_view(),
         name="sentry-project-event-redirect",
     ),
