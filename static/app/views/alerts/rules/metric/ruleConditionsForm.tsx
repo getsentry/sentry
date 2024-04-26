@@ -641,6 +641,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         searchSource="alert_builder"
                         defaultQuery={initialData?.query ?? ''}
                         {...getSupportedAndOmittedTags(dataset, organization)}
+                        metricAlert
                         includeSessionTagsValues={dataset === Dataset.SESSIONS}
                         disabled={disabled || isErrorMigration}
                         useFormWrapper={false}

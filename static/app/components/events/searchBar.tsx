@@ -130,6 +130,31 @@ const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
   return tags;
 }, {});
 
+const isSuggestions = [
+  'resolved',
+  'unresolved',
+  ...['archived', 'escalating', 'new', 'ongoing', 'regressed'],
+  'assigned',
+  'unassigned',
+  'for_review',
+  'linked',
+  'unlinked',
+];
+
+const IS_FIELD_TAG = Object.fromEntries(
+  [FieldKey.IS].map(item => [
+    item,
+    {
+      key: item,
+      name: item,
+      values: isSuggestions,
+      maxSuggestedValues: isSuggestions.length,
+      predefined: true,
+      kind: FieldKind.FIELD,
+    },
+  ])
+);
+
 const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
 
 const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
@@ -156,6 +181,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
    */
   maxMenuHeight?: number;
   maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
+  metricAlert?: boolean;
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
 };
@@ -171,6 +197,7 @@ function SearchBar(props: SearchBarProps) {
     includeSessionTagsValues,
     maxMenuHeight,
     customMeasurements,
+    metricAlert = false,
   } = props;
 
   const api = useApi();
@@ -248,6 +275,10 @@ function SearchBar(props: SearchBarProps) {
           STATIC_FIELD_TAGS
         )
       : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
+
+    if (metricAlert === true) {
+      Object.assign(combinedTags, IS_FIELD_TAG);
+    }
 
     Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 
