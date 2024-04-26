@@ -1,6 +1,6 @@
 import dataclasses
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from datetime import datetime, timedelta
 from typing import Any, Literal, TypedDict, cast
 
@@ -38,6 +38,7 @@ class TraceResult(TypedDict):
     numErrors: int
     numOccurrences: int
     numSpans: int
+    project: str | None
     name: str | None
     duration: int
     start: int
@@ -222,13 +223,21 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 sentry_sdk.capture_exception(e)
                 breakdowns = defaultdict(list)
 
+            names_by_trace: MutableMapping[str, tuple[str, str]] = {}
+            for row in traces_breakdowns_results["data"]:
+                # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
+                # So make sure to handle both in case something changes.
+                if not row["parent_span"] or int(row["parent_span"], 16) == 0:
+                    names_by_trace[row["trace"]] = (row["project"], row["transaction"])
+
             traces: list[TraceResult] = [
                 {
                     "trace": row["trace"],
                     "numErrors": errors_by_trace.get(row["trace"], 0),
                     "numOccurrences": occurrences_by_trace.get(row["trace"], 0),
                     "numSpans": row["count()"],
-                    "name": row["trace_name()"],
+                    "project": names_by_trace.get(row["trace"], (None, None))[0],
+                    "name": names_by_trace.get(row["trace"], (None, None))[1],
                     "duration": row["last_seen()"] - row["first_seen()"],
                     "start": row["first_seen()"],
                     "end": row["last_seen()"],
@@ -350,17 +359,18 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 selected_columns=[
                     "trace",
                     "project",
+                    "parent_span",
                     "transaction",
-                    "first_seen()",
-                    "last_seen()",
+                    "precise.start_ts",
+                    "precise.finish_ts",
                 ],
-                orderby=["first_seen()", "last_seen()"],
+                orderby=["precise.start_ts", "precise.finish_ts"],
                 # limit the number of segments we fetch per trace so a single
                 # large trace does not result in the rest being blank
                 limitby=("trace", int(10_000 / len(trace_ids))),
                 limit=10_000,
                 config=QueryBuilderConfig(
-                    functions_acl=["trace_name", "first_seen", "last_seen"],
+                    functions_acl=["first_seen", "last_seen"],
                     transform_alias_to_input_format=True,
                 ),
             )
@@ -385,13 +395,12 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     "trace",
                     "count()",
                     # TODO: count if of matching spans
-                    "trace_name()",
                     "first_seen()",
                     "last_seen()",
                 ],
                 limit=len(trace_ids),
                 config=QueryBuilderConfig(
-                    functions_acl=["trace_name", "first_seen", "last_seen"],
+                    functions_acl=["first_seen", "last_seen"],
                     transform_alias_to_input_format=True,
                 ),
             )
@@ -590,10 +599,10 @@ def process_breakdowns(data, traces_range):
         trace = row["trace"]
 
         cur: TraceInterval = {
-            "project": row["project"],
-            "start": row["first_seen()"],
-            "end": row["last_seen()"],
             "kind": "project",
+            "project": row["project"],
+            "start": int(row["precise.start_ts"] * 1000),
+            "end": int(row["precise.finish_ts"] * 1000),
         }
 
         # Clear the stack of any intervals that end before the current interval
