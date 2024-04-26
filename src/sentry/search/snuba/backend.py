@@ -493,10 +493,17 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             retention_window_start = None
 
         if use_group_snuba_dataset:
-            # just use the basic group initialization query
-            group_queryset = self._initialize_group_queryset(
-                projects, environments, retention_window_start, search_filters
+            # just use the basic group initialization query which prevents us from
+            # returning groups that are pending deletion or merge
+            # this query is only used after we query snuba to filter out groups we don't want
+            group_queryset = Group.objects.filter(project__in=projects).exclude(
+                status__in=[
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                    GroupStatus.PENDING_MERGE,
+                ]
             )
+
         else:
             group_queryset = self._build_group_queryset(
                 projects=projects,

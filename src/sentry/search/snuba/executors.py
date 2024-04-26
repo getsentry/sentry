@@ -38,6 +38,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues import grouptype
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
@@ -47,12 +48,14 @@ from sentry.issues.search import (
     UnsupportedSearchQuery,
     get_search_strategies,
     group_categories_from,
+    group_types_from,
 )
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -128,6 +131,27 @@ def get_search_filter(
             val = search_filter.value.raw_value
             found_val = comparator(val, found_val) if found_val else val
     return found_val
+
+
+def group_categories_from_search_filters(
+    search_filters: Sequence[SearchFilter], organization: Organization, actor: User | RpcUser
+) -> set[int]:
+    group_categories = group_categories_from(search_filters)
+
+    if not group_categories:
+        group_categories = {
+            gc
+            for gc in get_search_strategies().keys()
+            if gc != GroupCategory.PROFILE.value
+            or features.has("organizations:issue-platform", organization, actor=actor)
+        }
+        # if we're not searching for feedbacks, then hide them by default
+        group_categories.discard(GroupCategory.FEEDBACK.value)
+
+    if not features.has("organizations:performance-issues-search", organization):
+        group_categories.discard(GroupCategory.PERFORMANCE.value)
+
+    return group_categories
 
 
 class AbstractQueryExecutor(metaclass=ABCMeta):
@@ -421,20 +445,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        group_categories = group_categories_from(search_filters)
-
-        if not group_categories:
-            group_categories = {
-                gc
-                for gc in get_search_strategies().keys()
-                if gc != GroupCategory.PROFILE.value
-                or features.has("organizations:issue-platform", organization, actor=actor)
-            }
-            # if we're not searching for feedbacks, then hide them by default
-            group_categories.discard(GroupCategory.FEEDBACK.value)
-
-        if not features.has("organizations:performance-issues-search", organization):
-            group_categories.discard(GroupCategory.PERFORMANCE.value)
+        group_categories = group_categories_from_search_filters(search_filters, organization, actor)
 
         query_params_for_categories = {}
 
@@ -1353,7 +1364,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         date_to: datetime | None,
         max_hits: int | None = None,
         referrer: str | None = None,
-        actor: Any | None = None,
+        actor: User | RpcUser | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
         use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
@@ -1374,13 +1385,28 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             # is invalid.
             return self.empty_result
 
+        if len(projects) == 0:
+            return self.empty_result
+
+        organization = projects[0].organization
+
         event_entity = self.entities["event"]
         attr_entity = self.entities["attrs"]
         search_issues_entity = self.entities["search_issues"]
 
         queries = []
-        entities_to_check = [event_entity, search_issues_entity]
+        entities_to_check = []
+        group_categories = group_categories_from_search_filters(search_filters, organization, actor)
+
+        if GroupCategory.ERROR.value in group_categories:
+            entities_to_check.append(event_entity)
+
+        # if we are checking more than one category or we are looking at something other than errors then we need to check search issues
+        if len(group_categories) > 1 or GroupCategory.ERROR.value not in group_categories:
+            entities_to_check.append(search_issues_entity)
+
         for joined_entity in entities_to_check:
+            is_errors = joined_entity.alias == "e"
             where_conditions = [
                 Condition(Column("project_id", joined_entity), Op.IN, [p.id for p in projects]),
                 Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
@@ -1392,10 +1418,33 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 fn = self.group_conditions_lookup.get(search_filter.key.name)
                 if fn:
                     where_conditions.append(fn(self, search_filter, joined_entity))
+                elif search_filter.key.name in ["issue.category", "issue.type"]:
+                    # handle this separately since it's a special case that combines both issue.type and issue.category to determine the type
+                    pass
                 else:
                     where_conditions.append(
                         self.get_basic_event_snuba_condition(search_filter, joined_entity)
                     )
+
+            # handle types based on issue.type and issue.category
+            if not is_errors:
+                raw_group_types = group_types_from(search_filters)
+                if raw_group_types is not None:
+                    # no possible groups, return empty
+                    if len(raw_group_types) == 0:
+                        return self.empty_result
+
+                    # filter out the group types that are not visible to the org/user
+                    group_types = [
+                        gt.type_id
+                        for gt in grouptype.registry.get_visible(organization, actor)
+                        if gt.type_id in raw_group_types
+                    ]
+                    where_conditions.append(
+                        Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                    )
+
+            sort_func = self.get_sort_defs(joined_entity)[sort_by]
 
             if environments:
                 # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
@@ -1404,9 +1453,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         Column("environment", joined_entity), Op.IN, [e.name for e in environments]
                     )
                 )
-
-            sort_func = self.get_sort_defs(joined_entity)[sort_by]
-
             having = []
             if cursor is not None:
                 op = Op.GTE if cursor.is_prev else Op.LTE
@@ -1430,9 +1476,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 orderby=[OrderBy(sort_func, direction=Direction.DESC)],
                 limit=Limit(limit + 1),
             )
-            dataset = (
-                Dataset.Events.value if joined_entity.alias == "e" else Dataset.IssuePlatform.value
-            )
+            dataset = Dataset.Events.value if is_errors else Dataset.IssuePlatform.value
             request = Request(
                 dataset=dataset,
                 app_id="group_attributes",

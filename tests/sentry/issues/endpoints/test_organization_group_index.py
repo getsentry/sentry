@@ -2759,6 +2759,97 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         }
         assert mock_query.call_count == 1
 
+    @patch("sentry.issues.ingest.should_create_group", return_value=True)
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @with_feature("organizations:issue-platform")
+    @with_feature(PerformanceRenderBlockingAssetSpanGroupType.build_visible_feature_name())
+    @with_feature(PerformanceNPlusOneGroupType.build_visible_feature_name())
+    def test_snuba_type_and_category(self, mock_query, mock_should_create_group):
+        self.project = self.create_project(organization=self.organization)
+        # create a render blocking issue
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            2,
+            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
+            event_data={
+                "type": "transaction",
+                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            override_occurrence_data={
+                "type": PerformanceRenderBlockingAssetSpanGroupType.type_id,
+            },
+        )
+        # make mypy happy
+        blocking_asset_group_id = group_info.group.id if group_info else None
+
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            2,
+            [f"{PerformanceNPlusOneGroupType.type_id}-group2"],
+            event_data={
+                "type": "transaction",
+                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            override_occurrence_data={
+                "type": PerformanceNPlusOneGroupType.type_id,
+            },
+        )
+        # make mypy happy
+        np1_group_id = group_info.group.id if group_info else None
+
+        # create an error issue
+        self.store_event(
+            data={
+                "fingerprint": ["error-issue"],
+                "event_id": "e" * 32,
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        assert Group.objects.filter(id=np1_group_id).exists()
+
+        # first test just the category
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.category:performance",
+        )
+        assert len(response.data) == 2
+        assert {r["id"] for r in response.data} == {
+            str(blocking_asset_group_id),
+            str(np1_group_id),
+        }
+        assert mock_query.call_count == 1
+
+        # now ask for the type
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.type:performance_n_plus_one_db_queries",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {
+            str(np1_group_id),
+        }
+
+        # now ask for the type and category in a way that should return no results
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.category:replay issue.type:performance_n_plus_one_db_queries",
+        )
+        assert len(response.data) == 0
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
