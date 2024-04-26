@@ -264,6 +264,8 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+    "sentry.rules.conditions.new_high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.existing_high_priority_issue.ExistingHighPriorityIssueCondition",
     "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition",
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
