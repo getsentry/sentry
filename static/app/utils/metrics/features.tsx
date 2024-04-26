@@ -5,10 +5,6 @@ export function hasMetricsExperimentalFeature(organization: Organization) {
   return organization.features.includes('custom-metrics-experimental');
 }
 
-export function hasDashboardImportFeature(organization: Organization) {
-  return organization.features.includes('ddm-dashboard-import');
-}
-
 export function hasMetricsSidebarItem(organization: Organization) {
   return !organization.features.includes('ddm-sidebar-item-hidden');
 }
