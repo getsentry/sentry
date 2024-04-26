@@ -290,7 +290,7 @@ sentry-cli releases finalize "$VERSION"`,
                         >
                           <MenuItemFooterWrapper>
                             <IconContainer>
-                              <IconAdd color="activeText" isCircled legacySize="14px" />
+                              <IconAdd color="activeText" isCircled size="sm" />
                             </IconContainer>
                             <Label>{t('Create New Integration')}</Label>
                           </MenuItemFooterWrapper>

@@ -1500,7 +1500,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
+    # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1522,15 +1522,11 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enables experimental WIP ddm related features
-    "organizations:ddm-experimental": False,
+    # Enables experimental WIP custom metrics related features
+    "organizations:custom-metrics-experimental": False,
     # Delightful Developer Metrics (DDM):
-    # Enable UI (requires custom-metrics flag as well)
-    "organizations:ddm-ui": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enable the unit normalization in the metrics API
-    "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enables category "metrics" in stats_v2 endpoint
@@ -1582,6 +1578,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
+    # Enable caching group counts in GroupSnooze
+    "organizations:groupsnooze-cached-counts": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -1653,18 +1651,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
     "organizations:metric-alert-ignore-archived": False,
+    # Enable load shedding for newly created metric alerts
+    "organizations:metric-alert-load-shedding": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enables the metrics metadata.
     "organizations:metric-meta": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
-    # Enables the usage of the new metrics layer in the metrics API.
-    "organizations:metrics-api-new-metrics-layer": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
-    # Enables the new samples list experience
-    "organizations:metrics-samples-list": False,
     # Enables the search bar for metrics samples list
     "organizations:metrics-samples-list-search": False,
     # Enable Session Stats down to a minute resolution
