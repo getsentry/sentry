@@ -1617,6 +1617,11 @@ function buildRoutes() {
             )}
           />
         </Route>
+        <Route path="ui/">
+          <IndexRoute
+            component={make(() => import('sentry/views/performance/mobile/ui'))}
+          />
+        </Route>
       </Route>
       <Route path="traces/">
         <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
@@ -1720,13 +1725,6 @@ function buildRoutes() {
           path="spans/"
           component={make(
             () => import('sentry/views/performance/mobile/appStarts/screenSummary')
-          )}
-        />
-      </Route>
-      <Route path="responsiveness/">
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/modules/mobile/responsiveness')
           )}
         />
       </Route>

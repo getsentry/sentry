@@ -349,6 +349,19 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
+              <Feature
+                features={['spans-first-ui', 'starfish-mobile-ui-module']}
+                organization={organization}
+              >
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={t('Mobile UI')}
+                  to={`/organizations/${organization.slug}/performance/mobile/ui/`}
+                  id="performance-mobile-ui"
+                  icon={<SubitemDot collapsed />}
+                  isAlpha
+                />
+              </Feature>
               <Feature features="spans-first-ui">
                 <SidebarItem
                   {...sidebarItemProps}
