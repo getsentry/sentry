@@ -13,7 +13,7 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 
 function ProjectMetricsContainer(props: Props) {
   return (
-    <Feature features={['ddm-ui', 'custom-metrics']}>
+    <Feature features={['custom-metrics']}>
       <ProjectMetrics {...props} />
     </Feature>
   );

@@ -586,7 +586,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             timeout=300,
             wait_for=["import-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
-            args=["--filter-usernames-file", "/conf/filter-usernames.txt"],
+            args=["--filter-usernames-file", "/in/filter-usernames.txt"],
         ),
         create_cloudbuild_validation_step(
             id="import-raw-relocation-data",
@@ -613,7 +613,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             timeout=300,
             wait_for=["export-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
-            args=["--filter-usernames-file", "/conf/filter-usernames.txt"],
+            args=["--filter-usernames-file", "/in/filter-usernames.txt"],
         ),
         COPY_OUT_DIR_TEMPLATE.substitute(
             bucket_root=bucket_root,
