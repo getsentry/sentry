@@ -111,9 +111,11 @@ describe('Related Issues View', function () {
     );
 
     expect(
-      await screen.findByText('No issues caused by the same root cause.')
+      await screen.findByText('No same-root-cause related issues were found.')
     ).toBeInTheDocument();
-    expect(await screen.findByText('No trace connected issues.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No trace-connected related issues were found.')
+    ).toBeInTheDocument();
 
     expect(relatedIssuesMock).toHaveBeenCalled();
   });
@@ -145,7 +147,9 @@ describe('Related Issues View', function () {
 
     expect(relatedIssuesMock).toHaveBeenCalled();
     expect(issuesMock).toHaveBeenCalled();
-    expect(await screen.findByText('No trace connected issues.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No trace-connected related issues were found.')
+    ).toBeInTheDocument();
   });
 
   it('renders with trace connected issues', async function () {
@@ -175,7 +179,7 @@ describe('Related Issues View', function () {
     expect(relatedIssuesMock).toHaveBeenCalled();
     expect(issuesMock).toHaveBeenCalled();
     expect(
-      await screen.findByText('No issues caused by the same root cause.')
+      await screen.findByText('No same-root-cause related issues were found.')
     ).toBeInTheDocument();
   });
 });

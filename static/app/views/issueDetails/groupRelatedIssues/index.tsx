@@ -90,7 +90,7 @@ function GroupRelatedIssues({params}: Props) {
                     source="related-issues-tab"
                   />
                 ) : (
-                  <small>No issues caused by the same root cause.</small>
+                  <small>{t('No same-root-cause related issues were found.')}</small>
                 )}
               </HeaderWrapper>
             </div>
@@ -113,7 +113,7 @@ function GroupRelatedIssues({params}: Props) {
                     />
                   </div>
                 ) : (
-                  <small>No trace connected issues.</small>
+                  <small>{t('No trace-connected related issues were found.')}</small>
                 )}
               </HeaderWrapper>
             </div>
