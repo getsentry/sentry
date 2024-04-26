@@ -74,7 +74,7 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 "includeSeries": "false",
             },
         )
-        assert response.data["data"] == [[{"by": {}, "totals": 18.0}]]
+        assert response.data["data"] == [[{"by": {}, "totals": 18000000.0}]]
         assert response.data["meta"] == [
             [
                 {"name": "aggregate_value", "type": "Float64"},
@@ -83,9 +83,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                     "limit": 3334,
                     "has_more": False,
                     "order": "DESC",
-                    "scaling_factor": None,
-                    "unit": None,
-                    "unit_family": None,
+                    "scaling_factor": 1000000.0,
+                    "unit": "nanosecond",
+                    "unit_family": "duration",
                 },
             ]
         ]
