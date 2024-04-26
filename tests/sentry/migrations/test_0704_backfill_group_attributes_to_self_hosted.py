@@ -33,8 +33,8 @@ def run_test(expected_groups):
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0699_update_monitor_owner_team_id_cascsade"
-    migrate_to = "0700_backfill_group_priority_to_self_hosted"
+    migrate_from = "0703_add_team_user_to_rule"
+    migrate_to = "0704_backfill_group_attributes_to_self_hosted"
 
     def setup_initial_state(self):
         self.group = self.create_group()
@@ -45,14 +45,14 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0699_update_monitor_owner_team_id_cascsade"
-    migrate_to = "0700_backfill_group_priority_to_self_hosted"
+    migrate_from = "0703_add_team_user_to_rule"
+    migrate_to = "0704_backfill_group_attributes_to_self_hosted"
 
     def setup_initial_state(self):
         self.group = self.create_group()
         self.group_2 = self.create_group()
         redis_client = redis.redis_clusters.get("default")
-        redis_client.set("backfill_group_attributes_to_snuba_progress", self.group.id)
+        redis_client.set("backfill_group_attributes_to_snuba_progress_again", self.group.id)
 
     def test_restart(self):
         run_test([self.group_2])
