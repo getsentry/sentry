@@ -300,13 +300,16 @@ function Content({
   return (
     <Wrapper>
       {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
-      <ContentPanel className={wrapperClassName} data-test-id="stack-trace-content">
+      <StackTraceContentPanel
+        className={wrapperClassName}
+        data-test-id="stack-trace-content"
+      >
         <GuideAnchor target="stack_trace">
           <StyledList data-test-id="frames">
             {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
           </StyledList>
         </GuideAnchor>
-      </ContentPanel>
+      </StackTraceContentPanel>
     </Wrapper>
   );
 }
@@ -315,7 +318,7 @@ const Wrapper = styled('div')`
   position: relative;
 `;
 
-const ContentPanel = styled(Panel)`
+export const StackTraceContentPanel = styled(Panel)`
   position: relative;
   border-top-left-radius: 0;
   overflow: hidden;

@@ -103,9 +103,6 @@ export function SpanNodeDetails({
                 {issues.length > 0 ? (
                   <IssueList organization={organization} issues={issues} node={node} />
                 ) : null}
-                {organization.features.includes('profiling') ? (
-                  <SpanProfileDetails span={node.value} event={event} />
-                ) : null}
                 <SpanNodeDetailTable
                   node={node}
                   openPanel="open"
@@ -120,6 +117,9 @@ export function SpanNodeDetails({
                   />
                 ) : null}
                 <EventContexts event={event} />
+                {organization.features.includes('profiling') ? (
+                  <SpanProfileDetails span={node.value} event={event} />
+                ) : null}
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>
