@@ -360,7 +360,6 @@ module = [
     "sentry.integrations.vsts.issues",
     "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
-    "sentry.issues.endpoints.source_map_debug",
     "sentry.issues.search",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
