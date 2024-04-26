@@ -7,7 +7,7 @@ from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode

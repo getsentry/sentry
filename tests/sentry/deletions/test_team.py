@@ -29,7 +29,9 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
     def test_alert_blanking(self):
         team = self.create_team(name="test")
         project = self.create_project(teams=[team], name="test1")
-        rule = Rule.objects.create(label="test rule", project=project, owner=team.actor)
+        rule = Rule.objects.create(
+            label="test rule", project=project, owner=team.actor, owner_team_id=team.id
+        )
         alert_rule = self.create_alert_rule(
             name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
         )
@@ -44,7 +46,9 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
         alert_rule.refresh_from_db()
         rule.refresh_from_db()
         assert rule.owner_id is None, "Should be blank when team is deleted."
+        assert rule.owner_team_id is None, "Should be blank when team is deleted."
         assert alert_rule.owner_id is None, "Should be blank when team is deleted."
+        assert alert_rule.team_id is None, "Should be blank when team is deleted."
 
     def test_monitor_blanking(self):
         team = self.create_team(name="test")
@@ -53,7 +57,7 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
-            owner_team_id=team.actor.id,
+            owner_team_id=team.id,
         )
         self.ScheduledDeletion.schedule(team, days=0)
 
@@ -64,3 +68,4 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
 
         monitor.refresh_from_db()
         assert monitor.owner_team_id is None, "Should be blank when team is deleted."
+        assert monitor.owner_user_id is None, "Should be blank when team is deleted."

@@ -3,7 +3,8 @@ import {browserHistory} from 'react-router';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -21,6 +22,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
+import {Referrer} from 'sentry/views/performance/http/referrers';
 import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
 import {
   DomainsTable,
@@ -80,7 +82,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['spm()'],
-    referrer: 'api.starfish.http-module-landing-throughput-chart',
+    referrer: Referrer.LANDING_THROUGHPUT_CHART,
   });
 
   const {
@@ -90,7 +92,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: [`avg(span.self_time)`],
-    referrer: 'api.starfish.http-module-landing-duration-chart',
+    referrer: Referrer.LANDING_DURATION_CHART,
   });
 
   const {
@@ -100,7 +102,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: 'api.starfish.http-module-landing-response-code-chart',
+    referrer: Referrer.LANDING_RESPONSE_CODE_CHART,
   });
 
   const domainsListResponse = useSpanMetrics({
@@ -119,7 +121,7 @@ export function HTTPLandingPage() {
     sorts: [sort],
     limit: DOMAIN_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-landing-domains-list',
+    referrer: Referrer.LANDING_DOMAINS_LIST,
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
@@ -146,12 +148,15 @@ export function HTTPLandingPage() {
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
-
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <PageFilterBar condensed>
@@ -238,7 +243,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL="/performance/http"
-      features="performance-http-view"
+      features="spans-first-ui"
     >
       <HTTPLandingPage />
     </ModulePageProviders>

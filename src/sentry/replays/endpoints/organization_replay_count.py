@@ -24,15 +24,6 @@ from sentry.replays.usecases.replay_counts import get_replay_counts
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
-MAX_REPLAY_COUNT = 51
-MAX_VALS_PROVIDED = {
-    "issue.id": 25,
-    "transaction": 25,
-    "replay_id": 100,
-}
-
-FILTER_HAS_A_REPLAY = "AND !replayId:''"
-
 
 class ReplayDataSourceValidator(serializers.Serializer):
     data_source = serializers.ChoiceField(

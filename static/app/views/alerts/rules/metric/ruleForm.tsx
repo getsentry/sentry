@@ -32,7 +32,7 @@ import type {
   Organization,
   Project,
 } from 'sentry/types';
-import {type ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -237,7 +237,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       monitorType: hasActivatedAlerts
         ? rule.monitorType || MonitorType.CONTINUOUS
         : undefined,
-      activationCondition: rule.activationCondition,
+      activationCondition:
+        rule.activationCondition || ActivationConditionType.RELEASE_CREATION,
     };
   }
 
@@ -1183,6 +1184,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               monitorType={monitorType}
               activationCondition={activationCondition}
               onMonitorTypeSelect={this.handleMonitorTypeSelect}
+              isEditing={Boolean(ruleId)}
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}

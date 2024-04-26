@@ -24,7 +24,7 @@ from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -397,6 +397,8 @@ class Fixtures:
         query_subscriptions=None,
         project=None,
         monitor_type=AlertRuleMonitorType.ACTIVATED,
+        activator=None,
+        activation_condition=None,
         *args,
         **kwargs,
     ):
@@ -409,6 +411,8 @@ class Fixtures:
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
                 monitor_type=monitor_type,
+                activation_condition=activation_condition,
+                activator=activator,
             )
 
         created_activations = []

@@ -148,6 +148,10 @@ describe('EventReplay', function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
     render(<EventReplay {...defaultProps} />, {organization});
 
     expect(

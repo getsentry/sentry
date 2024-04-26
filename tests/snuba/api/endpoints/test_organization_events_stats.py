@@ -822,7 +822,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         assert mock_query.call_count == 1
 
-    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": []}])
+    @mock.patch("sentry.snuba.discover.bulk_snuba_queries", return_value=[{"data": []}])
     def test_invalid_interval(self, mock_query):
         self.do_request(
             data={
@@ -2367,7 +2367,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
-    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
+    @mock.patch("sentry.snuba.discover.bulk_snuba_queries", return_value=[{"data": [], "meta": []}])
     @mock.patch(
         "sentry.search.events.builder.discover.raw_snql_query",
         return_value={"data": [], "meta": []},

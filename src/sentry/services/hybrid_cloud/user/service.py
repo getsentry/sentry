@@ -23,7 +23,8 @@ from sentry.services.hybrid_cloud.user.model import (
     RpcVerifyUserEmail,
     UserIdEmailArgs,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 
 
 class UserService(RpcService):
@@ -131,6 +132,7 @@ class UserService(RpcService):
         pass
 
     def get_user(self, user_id: int) -> RpcUser | None:
+        metrics.incr("user_service.get_user.call")
         return get_user(user_id)
 
     @rpc_method
@@ -208,6 +210,7 @@ class UserService(RpcService):
 
 @back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
 def get_user(user_id: int) -> RpcUser | None:
+    metrics.incr("user_service.get_user.rpc_call")
     users = user_service.get_many(filter=dict(user_ids=[user_id]))
     if len(users) > 0:
         return users[0]

@@ -46,7 +46,7 @@ from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_s
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import relocated, relocation_redeem_promo_code
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
@@ -67,14 +67,16 @@ logger = logging.getLogger(__name__)
 
 # Time limits for various steps in the process.
 RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min, etc.
-FAST_TIME_LIMIT = 60
-MEDIUM_TIME_LIMIT = 60 * 5
-SLOW_TIME_LIMIT = 60 * 30
+FAST_TIME_LIMIT = 60  # 1 minute
+MEDIUM_TIME_LIMIT = 60 * 5  # 5 minutes
+SLOW_TIME_LIMIT = 60 * 60  # 1 hour
 DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=60)
 
-# All pre and post processing tasks have the same number of retries.
-MAX_FAST_TASK_RETRIES = 2
+# All pre and post processing tasks have the same number of retries. A "fast" task is one that almost always completes in <=5 minutes, and does relatively little bulk writing to the database.
+MAX_FAST_TASK_RETRIES = 3
 MAX_FAST_TASK_ATTEMPTS = MAX_FAST_TASK_RETRIES + 1
+MAX_SLOW_TASK_RETRIES = 2
+MAX_SLOW_TASK_ATTEMPTS = MAX_SLOW_TASK_RETRIES + 1
 MAX_VALIDATION_POLLS = 60
 MAX_VALIDATION_POLL_ATTEMPTS = MAX_VALIDATION_POLLS + 1
 MAX_VALIDATION_RUNS = 3
@@ -380,6 +382,15 @@ def preprocessing_transfer(uuid: str) -> None:
         relocation_storage.save(f"runs/{uuid}/conf/cloudbuild.yaml", cloudbuild_yaml)
         relocation_storage.save(f"runs/{uuid}/conf/cloudbuild.zip", cloudbuild_zip)
 
+        # Only test existing users for collision and mutation.
+        existing_usernames = user_service.get_existing_usernames(
+            usernames=relocation.want_usernames
+        )
+        relocation_storage.save(
+            f"runs/{uuid}/in/filter-usernames.txt",
+            BytesIO(",".join(existing_usernames or []).encode("utf-8")),
+        )
+
         # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
         # during validation.
         log_gcp_credentials_details(logger)
@@ -557,6 +568,8 @@ def preprocessing_complete(uuid: str) -> None:
             raise FileNotFoundError("Could not locate `cloudbuild.yaml` in relocation bucket.")
         if not relocation_storage.exists(f"runs/{uuid}/conf/cloudbuild.zip"):
             raise FileNotFoundError("Could not locate `cloudbuild.zip` in relocation bucket.")
+        if not relocation_storage.exists(f"runs/{uuid}/in/filter-usernames.txt"):
+            raise FileNotFoundError("Could not locate `filter-usernames.txt` in relocation bucket.")
         if not relocation_storage.exists(f"runs/{uuid}/in/kms-config.json"):
             raise FileNotFoundError("Could not locate `kms-config.json` in relocation bucket.")
         for kind in RELOCATION_FILES_TO_BE_VALIDATED:
@@ -981,7 +994,22 @@ def validating_complete(uuid: str, build_id: str) -> None:
 @instrumented_task(
     name="sentry.relocation.importing",
     queue="relocation",
-    max_retries=0,
+    autoretry_for=(Exception,),
+    # At first blush, it would seem that retrying a failed import will leave a bunch of "abandoned"
+    # data from the previous one, but that is not actually the case: because we use this relocation
+    # UUID as the `import_uuid` for the `import...` call, we'll be able to re-use all of the
+    # already-written import chunks (and, by extension, their models). This is due to each import
+    # write operation atomically checking the relevant `ImportChunk` table for collisions at
+    # database write time. So it will attempt to write a new copy, realize that this `(import_uuid,
+    # model, ordinal)` three-tuple has already been written, and return that information instead.
+    # Basically, all of the already completed write operations will be no-ops that return the
+    # already-written models and pk maps, and we'll pick up right where we left off.
+    #
+    # The main reason to have this at all is to guard against transient errors, especially with RPC
+    # or task timeouts.
+    max_retries=MAX_SLOW_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
     soft_time_limit=SLOW_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
@@ -998,7 +1026,7 @@ def importing(uuid: str) -> None:
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.IMPORTING,
-        allowed_task_attempts=1,
+        allowed_task_attempts=MAX_SLOW_TASK_ATTEMPTS,
     )
     if relocation is None:
         return

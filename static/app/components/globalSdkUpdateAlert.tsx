@@ -10,7 +10,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import type {ProjectSdkUpdates} from 'sentry/types';
+import type {ProjectSdkUpdates} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';

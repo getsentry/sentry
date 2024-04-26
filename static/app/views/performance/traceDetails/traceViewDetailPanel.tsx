@@ -466,6 +466,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
       {detail.event._metrics_summary ? (
         <CustomMetricsEventData
+          projectId={detail.event.projectID}
           metricsSummary={detail.event._metrics_summary}
           startTimestamp={detail.event.startTimestamp}
         />
@@ -507,7 +508,7 @@ function SpanDetailsBody({
         </Tooltip>
         <div>
           <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(detail.span)}</TransactionOp>
+          <TransactionOp> {getSpanOperation(detail.node.value)}</TransactionOp>
         </div>
       </Title>
       {detail.event.projectSlug && (

@@ -250,7 +250,9 @@ Sentry.captureCheckIn({
         {tct(
           '[installLink:Install and configure] the Sentry Node SDK (min v7.52), then instrument your monitor:',
           {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/node/" />,
+            installLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/" />
+            ),
           }
         )}
       </div>
@@ -567,7 +569,7 @@ Sentry.captureCheckIn({
           'Use the [additionalDocs:Node SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
           {
             additionalDocs: (
-              <ExternalLink href="https://docs.sentry.io/platforms/node/crons/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/crons/" />
             ),
           }
         )}

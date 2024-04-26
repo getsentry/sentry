@@ -20,7 +20,7 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   MetricMeta,
   MetricsDataIntervalLadder,
@@ -99,7 +99,7 @@ export function getMetricsUrl(
 }
 
 const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
-  ddm: new GranularityLadder([
+  metrics: new GranularityLadder([
     [SIXTY_DAYS, '1d'],
     [THIRTY_DAYS, '2h'],
     [TWO_WEEKS, '1h'],
@@ -129,14 +129,14 @@ const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
 };
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-export function getDDMInterval(
+export function getMetricsInterval(
   datetimeObj: DateTimeObject,
   useCase: UseCase,
-  ladder: MetricsDataIntervalLadder = 'ddm'
+  ladder: MetricsDataIntervalLadder = 'metrics'
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && ladder === 'ddm') {
+  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && ladder === 'metrics') {
     return '10s';
   }
 
@@ -234,12 +234,7 @@ export function getMetricsSeriesName(
   groupBy?: Record<string, string>,
   isMultiQuery: boolean = true
 ) {
-  let name = '';
-  if (isMetricFormula(query)) {
-    name = unescapeMetricsFormula(query.formula);
-  } else {
-    name = formatMRIField(MRIToField(query.mri, query.op));
-  }
+  let name = getMetricQueryName(query);
 
   if (isMultiQuery) {
     name = `${query.name}: ${name}`;
@@ -259,6 +254,15 @@ export function getMetricsSeriesName(
     return `${name} - ${formattedGrouping}`;
   }
   return formattedGrouping;
+}
+
+export function getMetricQueryName(query: MetricsQueryApiQueryParams): string {
+  return (
+    query.alias ??
+    (isMetricFormula(query)
+      ? unescapeMetricsFormula(query.formula)
+      : formatMRIField(MRIToField(query.mri, query.op)))
+  );
 }
 
 export function getMetricsSeriesId(
@@ -330,7 +334,10 @@ export function isCustomMetric({mri}: {mri: MRI}) {
 }
 
 export function isSpanSelfTime({mri}: {mri: MRI}) {
-  return mri === 'd:spans/exclusive_time@millisecond';
+  return (
+    mri === 'd:spans/exclusive_time@millisecond' ||
+    mri === 'g:spans/self_time@millisecond'
+  );
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {

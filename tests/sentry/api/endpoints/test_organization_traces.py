@@ -7,6 +7,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.endpoints.organization_traces import process_breakdowns
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
 
 
 class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
@@ -136,12 +137,24 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         }
 
+    def test_query_not_required(self):
+        query = {
+            "project": [self.project.id],
+            "field": ["id"],
+            "maxSpansPerTrace": 1,
+            "query": [""],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
     def test_matching_tag(self):
         project_1 = self.create_project()
         project_2 = self.create_project()
 
         # Hack: ensure that no span ids with leading 0s are generated for the test
         span_ids = ["1" + uuid4().hex[:15] for _ in range(7)]
+        tags = ["", "bar", "bar", "baz", "", "bar", "baz"]
         timestamps = []
 
         trace_id_1 = uuid4().hex
@@ -156,7 +169,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=60_100,
             exclusive_time=60_100,
         )
-        for idx, i in enumerate(range(1, 4)):
+        for i in range(1, 4):
             timestamps.append(before_now(days=0, minutes=9, seconds=45 - i).replace(microsecond=0))
             self.store_segment(
                 project_2.id,
@@ -168,7 +181,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction="bar",
                 duration=30_000 + i,
                 exclusive_time=30_000 + i,
-                tags={"foo": "bar" if idx != 0 else "baz"},
+                tags={"foo": tags[i]},
             )
 
         trace_id_2 = uuid4().hex
@@ -195,104 +208,155 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction="baz",
                 duration=20_000 + i,
                 exclusive_time=20_000 + i,
-                tags={"foo": "bar"},
+                tags={"foo": tags[i]},
             )
 
-        query = {
-            "project": [project_2.id],
-            "field": ["id", "parent_span", "span.duration"],
-            "query": "foo:bar",
-            "suggestedQuery": "foo:baz",
-            "maxSpansPerTrace": 2,
-            "sort": ["-span.duration"],
+        error_data = load_data("javascript", timestamp=timestamps[0])
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": trace_id_1,
+            "span_id": span_ids[0],
         }
+        error_data["tags"] = [["transaction", "foo"]]
+        self.store_event(error_data, project_id=project_1.id)
 
-        response = self.do_request(query)
-        assert response.status_code == 200, response.data
-
-        assert response.data["meta"] == {
-            "dataset": "unknown",
-            "datasetReason": "unchanged",
-            "fields": {
-                "id": "string",
-                "parent_span": "string",
-                "span.duration": "duration",
-            },
-            "isMetricsData": False,
-            "isMetricsExtractedData": False,
-            "tips": {},
-            "units": {
-                "id": None,
-                "parent_span": None,
-                "span.duration": "millisecond",
-            },
-        }
-
-        result_data = sorted(response.data["data"], key=lambda trace: trace["trace"])
-
-        assert result_data == sorted(
+        for q in [
             [
-                {
-                    "trace": trace_id_1,
-                    "numSpans": 4,
-                    "name": "foo",
-                    "duration": 60_100,
-                    "start": int(timestamps[0].timestamp() * 1000),
-                    "end": int(timestamps[0].timestamp() * 1000) + 60_100,
-                    "breakdowns": [
-                        {
-                            "project": project_1.slug,
-                            "start": int(timestamps[0].timestamp() * 1000),
-                            "end": int(timestamps[0].timestamp() * 1000) + 60_100,
-                            "kind": "project",
-                        },
-                        {
-                            "project": project_2.slug,
-                            "start": int(timestamps[1].timestamp() * 1000),
-                            "end": int(timestamps[3].timestamp() * 1000) + 30_003,
-                            "kind": "project",
-                        },
-                    ],
-                    "spans": [
-                        {"id": span_ids[3], "parent_span": span_ids[0], "span.duration": 30_003.0},
-                        {"id": span_ids[2], "parent_span": span_ids[0], "span.duration": 30_002.0},
-                        # span_ids[1] does not match the user query
-                    ],
-                    "suggestedSpans": [
-                        # span_ids[1] matchees the suggested query
-                        {"id": span_ids[1], "parent_span": span_ids[0], "span.duration": 30_001.0},
-                    ],
-                },
-                {
-                    "trace": trace_id_2,
-                    "numSpans": 3,
-                    "name": "bar",
-                    "duration": 90_123,
-                    "start": int(timestamps[4].timestamp() * 1000),
-                    "end": int(timestamps[4].timestamp() * 1000) + 90_123,
-                    "breakdowns": [
-                        {
-                            "project": project_1.slug,
-                            "start": int(timestamps[4].timestamp() * 1000),
-                            "end": int(timestamps[4].timestamp() * 1000) + 90_123,
-                            "kind": "project",
-                        },
-                        {
-                            "project": project_2.slug,
-                            "start": int(timestamps[5].timestamp() * 1000),
-                            "end": int(timestamps[6].timestamp() * 1000) + 20_006,
-                            "kind": "project",
-                        },
-                    ],
-                    "spans": [
-                        {"id": span_ids[6], "parent_span": span_ids[4], "span.duration": 20_006.0},
-                        {"id": span_ids[5], "parent_span": span_ids[4], "span.duration": 20_005.0},
-                    ],
-                    "suggestedSpans": [],
-                },
+                "(foo:bar AND span.duration:>10s) OR (foo:bar AND span.duration:<10m)",
+                "foo:baz",
             ],
-            key=lambda trace: trace["trace"],  # type: ignore[arg-type, return-value]
-        )
+            ["foo:[bar, baz]"],
+        ]:
+            query = {
+                "project": [project_2.id],
+                "field": ["id", "parent_span", "span.duration"],
+                "query": q,
+                "suggestedQuery": "foo:baz span.duration:>0s",
+                "maxSpansPerTrace": 3,
+                "sort": ["-span.duration"],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+            assert response.data["meta"] == {
+                "dataset": "unknown",
+                "datasetReason": "unchanged",
+                "fields": {
+                    "id": "string",
+                    "parent_span": "string",
+                    "span.duration": "duration",
+                },
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {
+                    "id": None,
+                    "parent_span": None,
+                    "span.duration": "millisecond",
+                },
+            }
+
+            result_data = sorted(response.data["data"], key=lambda trace: trace["trace"])
+
+            assert result_data == sorted(
+                [
+                    {
+                        "trace": trace_id_1,
+                        "numErrors": 1,
+                        "numOccurrences": 0,
+                        "numSpans": 4,
+                        "project": project_1.slug,
+                        "name": "foo",
+                        "duration": 60_100,
+                        "start": int(timestamps[0].timestamp() * 1000),
+                        "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                        "breakdowns": [
+                            {
+                                "project": project_1.slug,
+                                "start": int(timestamps[0].timestamp() * 1000),
+                                "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                                "kind": "project",
+                            },
+                            {
+                                "project": project_2.slug,
+                                "start": int(timestamps[1].timestamp() * 1000),
+                                "end": int(timestamps[3].timestamp() * 1000) + 30_003,
+                                "kind": "project",
+                            },
+                        ],
+                        "spans": [
+                            {
+                                "id": span_ids[3],
+                                "parent_span": span_ids[0],
+                                "span.duration": 30_003.0,
+                            },
+                            {
+                                "id": span_ids[2],
+                                "parent_span": span_ids[0],
+                                "span.duration": 30_002.0,
+                            },
+                            {
+                                "id": span_ids[1],
+                                "parent_span": span_ids[0],
+                                "span.duration": 30_001.0,
+                            },
+                        ],
+                        "suggestedSpans": [
+                            {
+                                "id": span_ids[3],
+                                "parent_span": span_ids[0],
+                                "span.duration": 30_003.0,
+                            },
+                        ],
+                    },
+                    {
+                        "trace": trace_id_2,
+                        "numErrors": 0,
+                        "numOccurrences": 0,
+                        "numSpans": 3,
+                        "project": project_1.slug,
+                        "name": "bar",
+                        "duration": 90_123,
+                        "start": int(timestamps[4].timestamp() * 1000),
+                        "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                        "breakdowns": [
+                            {
+                                "project": project_1.slug,
+                                "start": int(timestamps[4].timestamp() * 1000),
+                                "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                                "kind": "project",
+                            },
+                            {
+                                "project": project_2.slug,
+                                "start": int(timestamps[5].timestamp() * 1000),
+                                "end": int(timestamps[6].timestamp() * 1000) + 20_006,
+                                "kind": "project",
+                            },
+                        ],
+                        "spans": [
+                            {
+                                "id": span_ids[6],
+                                "parent_span": span_ids[4],
+                                "span.duration": 20_006.0,
+                            },
+                            {
+                                "id": span_ids[5],
+                                "parent_span": span_ids[4],
+                                "span.duration": 20_005.0,
+                            },
+                        ],
+                        "suggestedSpans": [
+                            {
+                                "id": span_ids[6],
+                                "parent_span": span_ids[4],
+                                "span.duration": 20_006.0,
+                            },
+                        ],
+                    },
+                ],
+                key=lambda trace: trace["trace"],
+            )
 
 
 @pytest.mark.parametrize(
@@ -304,8 +368,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 100,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.1,
                 },
             ],
             {"a" * 32: (0, 100)},
@@ -328,15 +392,15 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 100,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.1,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
-                    "first_seen()": 25,
-                    "last_seen()": 75,
+                    "precise.start_ts": 0.025,
+                    "precise.finish_ts": 0.075,
                 },
             ],
             {"a" * 32: (0, 100)},
@@ -365,22 +429,22 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 50,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.05,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
-                    "first_seen()": 25,
-                    "last_seen()": 75,
+                    "precise.start_ts": 0.025,
+                    "precise.finish_ts": 0.075,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "baz",
                     "transaction": "baz1",
-                    "first_seen()": 50,
-                    "last_seen()": 100,
+                    "precise.start_ts": 0.05,
+                    "precise.finish_ts": 0.1,
                 },
             ],
             {"a" * 32: (0, 100)},
@@ -415,15 +479,15 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 25,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.025,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
-                    "first_seen()": 50,
-                    "last_seen()": 75,
+                    "precise.start_ts": 0.05,
+                    "precise.finish_ts": 0.075,
                 },
             ],
             {"a" * 32: (0, 75)},
@@ -458,15 +522,15 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 100,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.1,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo2",
-                    "first_seen()": 25,
-                    "last_seen()": 75,
+                    "precise.start_ts": 0.025,
+                    "precise.finish_ts": 0.075,
                 },
             ],
             {"a" * 32: (0, 100)},
@@ -489,15 +553,15 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 75,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.075,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo2",
-                    "first_seen()": 25,
-                    "last_seen()": 100,
+                    "precise.start_ts": 0.025,
+                    "precise.finish_ts": 0.1,
                 },
             ],
             {"a" * 32: (0, 100)},
@@ -520,15 +584,15 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 25,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.025,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo2",
-                    "first_seen()": 50,
-                    "last_seen()": 75,
+                    "precise.start_ts": 0.05,
+                    "precise.finish_ts": 0.075,
                 },
             ],
             {"a" * 32: (0, 75)},
@@ -563,22 +627,22 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 100,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.1,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
-                    "first_seen()": 20,
-                    "last_seen()": 80,
+                    "precise.start_ts": 0.02,
+                    "precise.finish_ts": 0.08,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "baz",
                     "transaction": "baz1",
-                    "first_seen()": 40,
-                    "last_seen()": 60,
+                    "precise.start_ts": 0.04,
+                    "precise.finish_ts": 0.06,
                 },
             ],
             {"a" * 32: (0, 100)},
@@ -613,22 +677,22 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 100,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.1,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
-                    "first_seen()": 25,
-                    "last_seen()": 50,
+                    "precise.start_ts": 0.025,
+                    "precise.finish_ts": 0.05,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "baz",
                     "transaction": "baz1",
-                    "first_seen()": 50,
-                    "last_seen()": 75,
+                    "precise.start_ts": 0.05,
+                    "precise.finish_ts": 0.075,
                 },
             ],
             {"a" * 32: (0, 100)},
@@ -663,22 +727,22 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 50,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.05,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
-                    "first_seen()": 20,
-                    "last_seen()": 30,
+                    "precise.start_ts": 0.02,
+                    "precise.finish_ts": 0.03,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "baz",
                     "transaction": "baz1",
-                    "first_seen()": 50,
-                    "last_seen()": 75,
+                    "precise.start_ts": 0.05,
+                    "precise.finish_ts": 0.075,
                 },
             ],
             {"a" * 32: (0, 75)},
@@ -713,22 +777,22 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 50,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.05,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
-                    "first_seen()": 20,
-                    "last_seen()": 30,
+                    "precise.start_ts": 0.02,
+                    "precise.finish_ts": 0.03,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "baz",
                     "transaction": "baz1",
-                    "first_seen()": 40,
-                    "last_seen()": 60,
+                    "precise.start_ts": 0.04,
+                    "precise.finish_ts": 0.06,
                 },
             ],
             {"a" * 32: (0, 60)},
@@ -763,22 +827,22 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 50,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.05,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "bar",
                     "transaction": "bar1",
-                    "first_seen()": 10,
-                    "last_seen()": 20,
+                    "precise.start_ts": 0.01,
+                    "precise.finish_ts": 0.02,
                 },
                 {
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 30,
-                    "last_seen()": 40,
+                    "precise.start_ts": 0.03,
+                    "precise.finish_ts": 0.04,
                 },
             ],
             {"a" * 32: (0, 50)},
@@ -807,8 +871,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 100,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.1,
                 },
             ],
             {"a" * 32: (0, 50)},
@@ -831,8 +895,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "trace": "a" * 32,
                     "project": "foo",
                     "transaction": "foo1",
-                    "first_seen()": 0,
-                    "last_seen()": 50,
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.05,
                 },
             ],
             {"a" * 32: (0, 100)},
