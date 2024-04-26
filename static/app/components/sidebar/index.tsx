@@ -474,7 +474,7 @@ function Sidebar() {
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
   const metrics = hasOrganization && hasMetricsSidebarItem(organization) && (
-    <Feature features={['custom-metrics']} organization={organization} requireAll>
+    <Feature features={['custom-metrics']} organization={organization} >
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
