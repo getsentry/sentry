@@ -18,7 +18,8 @@ import type {IssueAttachment, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
@@ -26,10 +27,7 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -168,9 +166,10 @@ class EventsTable extends Component<Props, State> {
       } else {
         if (field === 'id') {
           target = generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug(dataRow),
-            dataRow: dataRow,
-            eventView: EventView.fromLocation(location),
+            traceSlug: dataRow.trace?.toString(),
+            projectSlug: dataRow['project.name']?.toString(),
+            eventId: dataRow.id,
+            timestamp: dataRow.timestamp,
             location,
             organization,
             transactionName: transactionName,

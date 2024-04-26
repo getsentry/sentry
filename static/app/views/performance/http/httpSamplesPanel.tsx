@@ -24,14 +24,15 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
-import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/definitions';
-import {DurationChart} from 'sentry/views/performance/http/durationChart';
+import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
+import {ResponseCodeCountChart} from 'sentry/views/performance/http/charts/responseCodeCountChart';
+import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/data/definitions';
+import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
-import {ResponseCodeCountChart} from 'sentry/views/performance/http/responseCodeCountChart';
-import {SpanSamplesTable} from 'sentry/views/performance/http/spanSamplesTable';
+import {Referrer} from 'sentry/views/performance/http/referrers';
+import {SpanSamplesTable} from 'sentry/views/performance/http/tables/spanSamplesTable';
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
-import {useSpanSamples} from 'sentry/views/performance/http/useSpanSamples';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
@@ -149,7 +150,7 @@ export function HTTPSamplesPanel() {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
     enabled: isPanelOpen,
-    referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
+    referrer: Referrer.SAMPLES_PANEL_METRICS_RIBBON,
   });
 
   const {
@@ -160,7 +161,7 @@ export function HTTPSamplesPanel() {
     search,
     yAxis: [`avg(span.self_time)`],
     enabled: isPanelOpen && query.panel === 'duration',
-    referrer: 'api.starfish.http-module-samples-panel-duration-chart',
+    referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
   });
 
   const {
@@ -173,9 +174,25 @@ export function HTTPSamplesPanel() {
     yAxis: ['count()'],
     topEvents: 5,
     enabled: isPanelOpen && query.panel === 'status',
-    referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
+    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
   });
 
+  // NOTE: Due to some data confusion, the `domain` column in the spans table can either be `null` or `""`. Searches like `"!has:span.domain"` are turned into the ClickHouse clause `isNull(domain)`, and do not match the empty string. We need a query that matches empty strings _and_ null_ which is `(!has:domain OR domain:[""])`. This hack can be removed in August 2024, once https://github.com/getsentry/snuba/pull/5780 has been deployed for 90 days and all `""` domains have fallen out of the data retention window. Also, `null` domains will become more rare as people upgrade the JS SDK to versions that populate the `server.address` span attribute
+  const sampleSpansSearch = MutableSearch.fromQueryObject({
+    ...filters,
+    'span.domain': undefined,
+  });
+
+  if (query.domain === '') {
+    sampleSpansSearch.addOp('(');
+    sampleSpansSearch.addFilterValue('!has', 'span.domain');
+    sampleSpansSearch.addOp('OR');
+    // HACK: Use `addOp` to add the condition `'span.domain:[""]'` and avoid escaping the double quotes. Ideally there'd be a way to specify this explicitly, but this whole thing is a hack anyway. Once a plain `!has:span.domain` condition works, this is not necessary
+    sampleSpansSearch.addOp('span.domain:[""]');
+    sampleSpansSearch.addOp(')');
+  } else {
+    sampleSpansSearch.addFilterValue('span.domain', query.domain);
+  }
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
@@ -184,7 +201,7 @@ export function HTTPSamplesPanel() {
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
-    search,
+    search: sampleSpansSearch,
     fields: [
       SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
@@ -194,7 +211,7 @@ export function HTTPSamplesPanel() {
     min: 0,
     max: durationAxisMax,
     enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
-    referrer: 'api.starfish.http-module-samples-panel-duration-samples',
+    referrer: Referrer.SAMPLES_PANEL_DURATION_SAMPLES,
   });
 
   const {
@@ -203,7 +220,7 @@ export function HTTPSamplesPanel() {
     error: responseCodeSamplesDataError,
     refetch: refetchResponseCodeSpanSamples,
   } = useIndexedSpans({
-    filters,
+    search: sampleSpansSearch,
     fields: [
       SpanIndexedField.PROJECT,
       SpanIndexedField.TRACE,
@@ -216,7 +233,7 @@ export function HTTPSamplesPanel() {
     sorts: [SPAN_SAMPLES_SORT],
     limit: SPAN_SAMPLE_LIMIT,
     enabled: isPanelOpen && query.panel === 'status',
-    referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
+    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES,
   });
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
@@ -333,7 +350,7 @@ export function HTTPSamplesPanel() {
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
                   domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
-                  'db'
+                  'http.client'
                 )}
                 isLoading={areDomainTransactionMetricsFetching}
               />

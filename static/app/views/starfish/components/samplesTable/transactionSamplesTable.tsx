@@ -8,15 +8,12 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,12 +54,14 @@ export type DataRow = {
   'http.status_code': number;
   id: string;
   profile_id: string;
+  project: string;
   'spans.browser': number;
   'spans.db': number;
   'spans.http': number;
   'spans.resource': number;
   'spans.ui': number;
   timestamp: string;
+  trace: string;
   'transaction.duration': number;
   'transaction.status': string;
 };
@@ -186,11 +185,12 @@ export function TransactionSamplesTable({
         <Link
           {...commonProps}
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug(row),
             organization,
             location,
-            eventView,
-            dataRow: row,
+            eventId: row.id,
+            timestamp: row.timestamp,
+            traceSlug: row.trace,
+            projectSlug: row.project || row['project.name'],
           })}
         >
           {row.id.slice(0, 8)}

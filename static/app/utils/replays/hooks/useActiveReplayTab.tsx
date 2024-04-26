@@ -1,7 +1,5 @@
 import {useCallback} from 'react';
 
-import type {Organization} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
@@ -11,42 +9,46 @@ export enum TabKey {
   ERRORS = 'errors',
   MEMORY = 'memory',
   NETWORK = 'network',
-  PERF = 'perf',
   TAGS = 'tags',
   TRACE = 'trace',
 }
 
-function isReplayTab(tab: string, organization: Organization): tab is TabKey {
-  const hasPerfTab = organization.features.includes('session-replay-trace-table');
+function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
+  const supportedVideoTabs = [
+    TabKey.TAGS,
+    TabKey.ERRORS,
+    TabKey.BREADCRUMBS,
+    TabKey.NETWORK,
+    TabKey.CONSOLE,
+  ];
 
-  if (tab === TabKey.PERF) {
-    return hasPerfTab;
+  if (isVideoReplay) {
+    return supportedVideoTabs.includes(tab as TabKey);
   }
 
   return Object.values<string>(TabKey).includes(tab);
 }
 
-function useActiveReplayTab({isVideoReplay}: {isVideoReplay?: boolean}) {
+function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const defaultTab = isVideoReplay ? TabKey.TAGS : TabKey.BREADCRUMBS;
-  const organization = useOrganization();
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
   const paramValue = getParamValue()?.toLowerCase() ?? '';
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab(paramValue, organization) ? (paramValue as TabKey) : defaultTab),
-      [organization, paramValue, defaultTab]
+      () => (isReplayTab({tab: paramValue, isVideoReplay}) ? paramValue : defaultTab),
+      [paramValue, defaultTab, isVideoReplay]
     ),
     setActiveTab: useCallback(
       (value: string) => {
         setParamValue(
-          isReplayTab(value.toLowerCase(), organization)
+          isReplayTab({tab: value.toLowerCase(), isVideoReplay})
             ? value.toLowerCase()
             : defaultTab
         );
       },
-      [organization, setParamValue, defaultTab]
+      [setParamValue, defaultTab, isVideoReplay]
     ),
   };
 }

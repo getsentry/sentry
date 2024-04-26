@@ -7,7 +7,7 @@ export function makeMonitorListQueryKey(
   organization: Organization,
   params: Record<string, any>
 ) {
-  const {query, project, environment, cursor, sort, asc} = params;
+  const {query, project, environment, owner, cursor, sort, asc} = params;
 
   return [
     `/organizations/${organization.slug}/monitors/`,
@@ -17,6 +17,7 @@ export function makeMonitorListQueryKey(
         query,
         project,
         environment,
+        owner,
         includeNew: true,
         per_page: 20,
         sort,

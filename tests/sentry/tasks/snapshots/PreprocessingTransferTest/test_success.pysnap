@@ -1,5 +1,5 @@
 ---
-created: '2024-04-12T19:20:04.888623+00:00'
+created: '2024-04-18T19:31:46.747206+00:00'
 creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
@@ -267,7 +267,7 @@ steps:
   name: gcr.io/cloud-builders/gsutil
   timeout: 30s
   waitFor:
-  - export-baseline-config
+  - export-colliding-users
 - args:
   - compose
   - -f

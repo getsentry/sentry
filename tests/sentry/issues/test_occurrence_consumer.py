@@ -21,6 +21,7 @@ from sentry.issues.occurrence_consumer import (
     _process_message,
 )
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -200,6 +201,40 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
+
+    def test_new_group_with_user_assignee(self) -> None:
+        message = get_test_message(self.project.id, assignee=f"user:{self.user.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        assignee = GroupAssignee.objects.get(group=group)
+        assert assignee.user_id == self.user.id
+
+    def test_new_group_with_team_assignee(self) -> None:
+        message = get_test_message(self.project.id, assignee=f"team:{self.team.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        assignee = GroupAssignee.objects.get(group=group)
+        assert assignee.team_id == self.team.id
+
+    def test_new_group_with_invalid_user_assignee(self) -> None:
+        other_user = self.create_user()
+        message = get_test_message(self.project.id, assignee=f"user:{other_user.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        with pytest.raises(GroupAssignee.DoesNotExist):
+            GroupAssignee.objects.get(group=group)
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
@@ -387,8 +422,8 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
     def test_project_ids_mismatch(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
-        message["project_id"] = 1
-        message["event"]["project_id"] = 2
+        message["project_id"] = self.project.id
+        message["event"]["project_id"] = 999999999999
         with pytest.raises(InvalidEventPayloadError):
             _get_kwargs(message)
 
@@ -465,6 +500,25 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["assignee"] == f"user:{self.user.id}"
 
+    def test_assignee_perms(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        random_user = self.create_user()
+        message["assignee"] = f"user:{random_user.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = "user:99999999999"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
+        other_org = self.create_organization()
+        random_team = self.create_team(other_org)
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = f"team:{random_team.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
     def test_assignee_none(self) -> None:
         kwargs = _get_kwargs(deepcopy(get_test_message(self.project.id)))
         assert kwargs["occurrence_data"]["assignee"] is None
@@ -475,4 +529,4 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message = deepcopy(get_test_message(self.project.id))
         message["assignee"] = ""
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["assignee"] == ""
+        assert kwargs["occurrence_data"]["assignee"] is None

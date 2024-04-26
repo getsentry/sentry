@@ -8,7 +8,7 @@ from sentry.integrations.slack.webhooks.command import (
     LINK_USER_FIRST_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json

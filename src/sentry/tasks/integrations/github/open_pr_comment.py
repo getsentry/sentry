@@ -149,7 +149,9 @@ def get_issue_table_contents(issue_list: list[dict[str, Any]]) -> list[PullReque
             title=issue.title,
             subtitle=issue.culprit,
             url=issue.get_absolute_url(),
-            affected_users=issue.count_users_seen(),
+            affected_users=issue.count_users_seen(
+                referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_OPEN_PR_COMMENT.value
+            ),
             event_count=group_id_to_info[issue.id]["event_count"],
             function_name=group_id_to_info[issue.id]["function_name"],
         )

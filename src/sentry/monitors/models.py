@@ -258,7 +258,7 @@ class Monitor(Model):
 
     owner_team_id = BoundedBigIntegerField(null=True, db_index=True)
     """
-    The team assigned as the owener of this model.
+    The team assigned as the owner of this model.
     """
 
     config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)

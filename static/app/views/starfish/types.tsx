@@ -53,6 +53,7 @@ export type SpanStringFields =
   | 'span.module'
   | 'span.action'
   | 'span.group'
+  | 'span.category'
   | 'transaction'
   | 'transaction.method'
   | 'release'
@@ -75,6 +76,8 @@ export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as
 
 export type Aggregate = (typeof AGGREGATES)[number];
 
+export type ConditionalAggregate = `avg_if` | `count_op`;
+
 export const SPAN_FUNCTIONS = [
   'sps',
   'spm',
@@ -82,6 +85,8 @@ export const SPAN_FUNCTIONS = [
   'time_spent_percentage',
   'http_response_rate',
   'http_error_count',
+  'cache_hit_rate',
+  'ai_total_tokens_used',
 ] as const;
 
 const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
@@ -117,6 +122,11 @@ export type MetricsResponse = {
   [Function in RegressionFunctions]: number;
 } & {
   [Function in SpanAnyFunction]: string;
+} & {
+  [Property in ConditionalAggregate as
+    | `${Property}(${string})`
+    | `${Property}(${string},${string})`
+    | `${Property}(${string},${string},${string})`]: number;
 };
 
 export type MetricsFilters = {
@@ -157,6 +167,9 @@ export enum SpanIndexedField {
   TOTAL_SCORE = 'measurements.score.total',
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
+  MESSAGE_ID = 'message.id',
+  MESSAGE_SIZE = 'message.size',
+  MESSAGE_STATUS = 'message.status',
 }
 
 export type IndexedResponse = {
@@ -174,6 +187,7 @@ export type IndexedResponse = {
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
   [SpanIndexedField.SPAN_DOMAIN]: string[];
+  [SpanIndexedField.RAW_DOMAIN]: string;
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.PROJECT_ID]: number;
@@ -190,6 +204,9 @@ export type IndexedResponse = {
   [SpanIndexedField.TOTAL_SCORE]: number;
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
+  [SpanIndexedField.MESSAGE_ID]: string;
+  [SpanIndexedField.MESSAGE_SIZE]: number;
+  [SpanIndexedField.MESSAGE_STATUS]: string;
 };
 
 export type IndexedProperty = keyof IndexedResponse;
@@ -205,6 +222,7 @@ export enum SpanFunction {
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
+  CACHE_HIT_RATE = 'cache_hit_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -242,6 +260,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   },
   [SpanFunction.HTTP_RESPONSE_RATE]: {
     desc: t('Percentage of HTTP responses by code'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.CACHE_HIT_RATE]: {
+    desc: t('Percentage of cache hits'),
     defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,

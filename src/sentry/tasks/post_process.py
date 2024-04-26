@@ -23,7 +23,7 @@ from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -39,7 +39,7 @@ from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
-    from sentry.eventstream.base import GroupState, GroupStates
+    from sentry.eventstream.base import GroupState
     from sentry.models.group import Group
     from sentry.models.project import Project
     from sentry.models.team import Team
@@ -361,7 +361,14 @@ def handle_group_owners(
     from sentry.services.hybrid_cloud.user import RpcUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
+    logging_params = {
+        "group": group.id,
+        "project": project.id,
+        "organization": project.organization_id,
+        "issue_owners_length": len(issue_owners) if issue_owners else 0,
+    }
     try:
+        logger.info("handle_group_owners.start", extra=logging_params)
         with (
             metrics.timer("post_process.handle_group_owners"),
             sentry_sdk.start_span(op="post_process.handle_group_owners"),
@@ -383,12 +390,8 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
-                logging_params = {
-                    "group": group.id,
-                    "project": project.id,
-                    "organization": project.organization_id,
-                    "group_owner_id": group_owner.id,
-                }
+                local_logging_params = logging_params.copy()
+                local_logging_params["group_owner_id"] = group_owner.id
                 owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
@@ -405,7 +408,7 @@ def handle_group_owners(
                     group_owner.delete()
                     logger.info(
                         "handle_group_owners.delete_group_owner",
-                        extra={**logging_params, "reason": "assignment_deleted"},
+                        extra={**local_logging_params, "reason": "assignment_deleted"},
                     )
                 else:
                     lookup_key_value = new_owners.get(lookup_key)
@@ -417,7 +420,7 @@ def handle_group_owners(
                     group_owner.delete()
                     logger.info(
                         "handle_group_owners.delete_group_owner",
-                        extra={**logging_params, "reason": "outdated_rule"},
+                        extra={**local_logging_params, "reason": "outdated_rule"},
                     )
                 else:
                     keeping_owners.add(lookup_key)
@@ -459,17 +462,11 @@ def handle_group_owners(
                         instance=go,
                         created=True,
                     )
-                logger.info(
-                    "group_owners.bulk_create",
-                    extra={
-                        "group_id": group.id,
-                        "project_id": project.id,
-                        "organization_id": project.organization_id,
-                        "count": len(new_group_owners),
-                    },
-                )
+                logging_params["count"] = len(new_group_owners)
+                logger.info("group_owners.bulk_create", extra=logging_params)
 
     except UnableToAcquireLock:
+        logger.info("handle_group_owners.lock_failed", extra=logging_params)
         pass
 
 
@@ -539,7 +536,6 @@ def post_process_group(
     is_new_group_environment,
     cache_key,
     group_id=None,
-    group_states: GroupStates | None = None,
     occurrence_id: str | None = None,
     project_id: int | None = None,
     **kwargs,
@@ -662,89 +658,43 @@ def post_process_group(
                     event=event,
                 )
 
-        # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
-        # events the same way
-        if not is_transaction_event and group_states is None:
-            # error issue
-            group_states = [
-                {
-                    "id": group_id,
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                }
-            ]
+        metric_tags = {}
+        if group_id:
+            group_state: GroupState = {
+                "id": group_id,
+                "is_new": is_new,
+                "is_regression": is_regression,
+                "is_new_group_environment": is_new_group_environment,
+            }
 
-        try:
-            if group_states is not None:
-                if not is_transaction_event:
-                    if len(group_states) == 0:
-                        metrics.incr("sentry.tasks.post_process.error_empty_group_states")
-                    elif len(group_states) > 1:
-                        metrics.incr("sentry.tasks.post_process.error_too_many_group_states")
-                    elif group_id != group_states[0]["id"]:
-                        metrics.incr(
-                            "sentry.tasks.post_process.error_group_states_dont_match_group"
-                        )
-                else:
-                    if len(group_states) == 1:
-                        metrics.incr("sentry.tasks.post_process.transaction_has_group_state")
-                        if group_id != group_states[0]["id"]:
-                            metrics.incr(
-                                "sentry.tasks.post_process.transaction_group_states_dont_match_group"
-                            )
-                    if len(group_states) > 1:
-                        metrics.incr(
-                            "sentry.tasks.post_process.transaction_has_too_many_group_states"
-                        )
-        except Exception:
-            logger.exception(
-                "Error logging group_states stats. If this happens it's noisy but not critical, nothing is broken"
-            )
+            update_event_group(event, group_state)
+            bind_organization_context(event.project.organization)
+            _capture_event_stats(event)
+            if should_update_escalating_metrics(event, is_transaction_event):
+                _update_escalating_metrics(event)
 
-        update_event_groups(event, group_states)
-        bind_organization_context(event.project.organization)
-        _capture_event_stats(event)
-        if should_update_escalating_metrics(event, is_transaction_event):
-            _update_escalating_metrics(event)
+            group_events: Mapping[int, GroupEvent] = {
+                ge.group_id: ge for ge in list(event.build_group_events())
+            }
+            if occurrence is not None:
+                for ge in group_events.values():
+                    ge.occurrence = occurrence
 
-        group_events: Mapping[int, GroupEvent] = {
-            ge.group_id: ge for ge in list(event.build_group_events())
-        }
-        if occurrence is not None:
-            for ge in group_events.values():
-                ge.occurrence = occurrence
-
-        multi_groups = []
-        if group_states:
-            for gs in group_states:
-                gs_id = gs.get("id")
-                if gs_id:
-                    associated_event = group_events.get(gs_id)
-                    if associated_event:
-                        multi_groups.append((associated_event, gs))
-
-        group_jobs: Sequence[PostProcessJob] = [
-            {
-                "event": ge,
-                "group_state": gs,
+            group_job: PostProcessJob = {
+                "event": group_events[group_state["id"]],
+                "group_state": group_state,
                 "is_reprocessed": is_reprocessed,
-                "has_reappeared": bool(not gs["is_new"]),
+                "has_reappeared": bool(not group_state["is_new"]),
                 "has_alert": False,
                 "has_escalated": False,
             }
-            for ge, gs in multi_groups
-        ]
+            run_post_process_job(group_job)
 
-        for job in group_jobs:
-            run_post_process_job(job)
-
-        metric_tags = {}
-        if group_events:
-            # In practice, we only have one group here and will be removing the list of jobs. For now, just grab a
-            # random one
-            group_event = list(group_events.values())[0]
-            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+            if group_events:
+                # In practice, we only have one group here and will be removing the list of jobs. For now, just grab a
+                # random one
+                group_event = list(group_events.values())[0]
+                metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
         if not is_reprocessed and event.data.get("received"):
             duration = time() - event.data["received"]
@@ -758,15 +708,20 @@ def post_process_group(
             # We see occasional metrics being recorded with very old data,
             # temporarily log some information about these groups to help
             # investigate.
-            if duration and duration > 604_800:  # 7 days (7*24*60*60)
+            if duration and duration > 432_000:  # 5 days (5*24*60*60)
                 logger.warning(
                     "tasks.post_process.old_time_to_post_process",
                     extra={
                         "group_id": group_id,
                         "project_id": project_id,
                         "duration": duration,
-                        "original_issue_id": get_path(
-                            event.data, "contexts", "reprocessing", "original_issue_id"
+                        "received": event.data["received"],
+                        "platform": event.data["platform"],
+                        "reprocessing": json.dumps(
+                            get_path(event.data, "contexts", "reprocessing")
+                        ),
+                        "original_issue_id": json.dumps(
+                            get_path(event.data, "contexts", "reprocessing", "original_issue_id")
                         ),
                     },
                 )
@@ -840,54 +795,32 @@ def process_event(data: dict, group_id: int | None) -> Event:
     return event
 
 
-def update_event_groups(event: Event, group_states: GroupStates | None = None) -> None:
+def update_event_group(event: Event, group_state: GroupState) -> None:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
     from sentry.models.group import get_group_with_redirect
 
-    # event.group_id can be None in the case of transaction events
-    if event.group_id is not None:
-        # deprecated event.group and event.group_id usage, kept here for backwards compatibility
-        event.group, _ = get_group_with_redirect(event.group_id)
-        if event.group:
-            event.group_id = event.group.id
-            # We buffer updates to last_seen, assume its at least >= the event datetime
-            event.group.last_seen = max(event.datetime, event.group.last_seen)
-
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
-    group_states = group_states or (
-        [
-            {
-                "id": event.group_id,
-                "is_new": False,
-                "is_new_group_environment": False,
-                "is_regression": False,
-            }
-        ]
-        if event.group_id
-        else []
-    )
-    rebound_groups = []
-    for group_state in group_states:
-        rebound_group = get_group_with_redirect(group_state["id"])[0]
-        # We buffer updates to last_seen, assume its at least >= the event datetime
-        rebound_group.last_seen = max(event.datetime, rebound_group.last_seen)
+    rebound_group = get_group_with_redirect(group_state["id"])[0]
+    # We buffer updates to last_seen, assume it's at least >= the event datetime
+    rebound_group.last_seen = max(event.datetime, rebound_group.last_seen)
 
-        # We fetch buffered updates to group aggregates here and populate them on the Group. This
-        # helps us avoid problems with processing group ignores and alert rules that rely on these
-        # stats.
-        with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
-            fetch_buffered_group_stats(rebound_group)
+    # We fetch buffered updates to group aggregates here and populate them on the Group. This
+    # helps us avoid problems with processing group ignores and alert rules that rely on these
+    # stats.
+    with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
+        fetch_buffered_group_stats(rebound_group)
 
-        rebound_group.project = event.project
-        rebound_group.project.set_cached_field_value("organization", event.project.organization)
+    rebound_group.project = event.project
+    rebound_group.project.set_cached_field_value("organization", event.project.organization)
+    group_state["id"] = rebound_group.id
+    if event.group_id is not None:
+        # deprecated event.group and event.group_id usage, kept here for backwards compatibility
+        event.group = rebound_group
 
-        group_state["id"] = rebound_group.id
-        rebound_groups.append(rebound_group)
-
-    event.groups = rebound_groups
+    event.groups = [rebound_group]
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
@@ -1430,6 +1363,9 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     if not hasattr(event, "occurrence") or event.occurrence is None:
         return False
 
+    if event.occurrence.evidence_data.get("is_spam") is True:
+        return False
+
     feedback_source = event.occurrence.evidence_data.get("source")
 
     if feedback_source in FeedbackCreationSource.new_feedback_category_values():
@@ -1453,6 +1389,49 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         return True
 
     return False
+
+
+def check_has_high_priority_alerts(job: PostProcessJob) -> None:
+    """
+    Determine if we should fire a task to check if the new issue
+    threshold has been met to enable high priority alerts.
+    """
+    try:
+        event = job["event"]
+        if event.project.flags.has_high_priority_alerts:
+            return
+
+        from sentry.tasks.check_new_issue_threshold_met import (
+            check_new_issue_threshold_met,
+            new_issue_threshold_key,
+        )
+
+        # If the new issue volume has already been checked today, don't recalculate regardless of the value
+        project_key = new_issue_threshold_key(event.project_id)
+        threshold_met = cache.get(project_key)
+        if threshold_met is not None:
+            return
+
+        try:
+            lock = locks.get(project_key, duration=10)
+            with lock.acquire():
+                # If the threshold has already been calculated today, don't recalculate regardless of the value
+                task_scheduled = cache.get(project_key)
+                if task_scheduled is not None:
+                    return
+
+                check_new_issue_threshold_met.delay(event.project.id)
+
+                # Add the key to cache for 24 hours
+                cache.set(project_key, True, 60 * 60 * 24)
+        except UnableToAcquireLock:
+            pass
+    except Exception as e:
+        logger.warning(
+            "Failed to check new issue threshold met",
+            repr(e),
+            extra={"project_id": event.project_id},
+        )
 
 
 MAX_NEW_ESCALATION_AGE_HOURS = 24
@@ -1546,6 +1525,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
+        check_has_high_priority_alerts,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,

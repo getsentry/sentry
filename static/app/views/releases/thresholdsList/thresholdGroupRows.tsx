@@ -9,15 +9,14 @@ import Input from 'sentry/components/input';
 import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
-import {MonitorType} from 'sentry/types/alerts';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {Project} from 'sentry/types/project';
 import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   // ActionType,
-  ActivationCondition,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
@@ -196,6 +195,10 @@ export function ThresholdGroupRows({
   ) => {
     const slug = project.slug;
 
+    const windowMinutes =
+      moment
+        .duration(thresholdData.windowValue, thresholdData.windowSuffix)
+        .as('seconds') / 60;
     /* Convert threshold data structure to metric alert data structure */
     const metricAlertData: UnsavedMetricRule & {name: string} = {
       name: `Release Alert Rule for ${slug} in ${thresholdData.environmentName}`,
@@ -208,7 +211,7 @@ export function ThresholdGroupRows({
       resolveThreshold: null,
       thresholdPeriod: 1,
       thresholdType: AlertRuleThresholdType.ABOVE,
-      timeWindow: thresholdData.windowValue,
+      timeWindow: windowMinutes,
       triggers: [
         {
           label: AlertRuleTriggerType.CRITICAL,
@@ -221,7 +224,7 @@ export function ThresholdGroupRows({
       eventTypes: [EventTypes.ERROR],
       owner: null,
       queryType: MEPAlertsQueryType.ERROR,
-      activationCondition: ActivationCondition.RELEASE_CONDITION,
+      activationCondition: ActivationConditionType.RELEASE_CREATION,
     };
 
     let apiUrl = `/organizations/${organization.slug}/alert-rules/`;

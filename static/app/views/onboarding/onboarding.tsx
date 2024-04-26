@@ -20,7 +20,7 @@ import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OnboardingSelectedSDK} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';

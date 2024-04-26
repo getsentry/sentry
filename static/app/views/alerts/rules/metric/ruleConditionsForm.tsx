@@ -24,6 +24,7 @@ import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTa
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import {getDisplayName} from 'sentry/utils/environment';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {getMRI} from 'sentry/utils/metrics/mri';
@@ -69,6 +70,12 @@ type Props = {
   disabled: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid) => void;
+  onMonitorTypeSelect: (activatedAlertFields: {
+    activationCondition?: ActivationConditionType | undefined;
+    monitorType?: MonitorType;
+    monitorWindowSuffix?: string | undefined;
+    monitorWindowValue?: number | undefined;
+  }) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
@@ -76,6 +83,7 @@ type Props = {
   router: InjectedRouter;
   thresholdChart: React.ReactNode;
   timeWindow: number;
+  activationCondition?: ActivationConditionType;
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
@@ -83,6 +91,7 @@ type Props = {
   isExtrapolatedChartData?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
+  monitorType?: number;
 };
 
 type State = {
@@ -160,6 +169,20 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
+  }
+
+  get selectControlStyles() {
+    return {
+      control: (provided: {[x: string]: string | number | boolean}) => ({
+        ...provided,
+        minWidth: 200,
+        maxWidth: 300,
+      }),
+      container: (provided: {[x: string]: string | number | boolean}) => ({
+        ...provided,
+        margin: `${space(0.5)}`,
+      }),
+    };
   }
 
   renderEventTypeFilter() {
@@ -326,8 +349,15 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, disabled, alertType, timeWindow, onTimeWindowChange, project} =
-      this.props;
+    const {
+      organization,
+      disabled,
+      alertType,
+      timeWindow,
+      onTimeWindowChange,
+      project,
+      monitorType,
+    } = this.props;
 
     return (
       <Fragment>
@@ -353,27 +383,107 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             alertType={alertType}
             required
           />
-          <SelectControl
-            name="timeWindow"
-            styles={{
-              control: (provided: {[x: string]: string | number | boolean}) => ({
-                ...provided,
-                minWidth: 200,
-                maxWidth: 300,
-              }),
-              container: (provided: {[x: string]: string | number | boolean}) => ({
-                ...provided,
-                margin: `${space(0.5)}`,
-              }),
-            }}
-            options={this.timeWindowOptions}
-            required
-            isDisabled={disabled}
-            value={timeWindow}
-            onChange={({value}) => onTimeWindowChange(value)}
-            inline={false}
-            flexibleControlStateSize
-          />
+          {monitorType !== MonitorType.ACTIVATED && (
+            <SelectControl
+              name="timeWindow"
+              styles={this.selectControlStyles}
+              options={this.timeWindowOptions}
+              required={monitorType === MonitorType.CONTINUOUS}
+              isDisabled={disabled}
+              value={timeWindow}
+              onChange={({value}) => onTimeWindowChange(value)}
+              inline={false}
+              flexibleControlStateSize
+            />
+          )}
+        </FormRow>
+      </Fragment>
+    );
+  }
+
+  renderMonitorTypeSelect() {
+    const {
+      onMonitorTypeSelect,
+      monitorType,
+      activationCondition,
+      timeWindow,
+      onTimeWindowChange,
+    } = this.props;
+
+    return (
+      <Fragment>
+        <StyledListItem>
+          <StyledListTitle>
+            <div>{t('Select Monitor Type')}</div>
+          </StyledListTitle>
+        </StyledListItem>
+        <FormRow>
+          <MonitorSelect>
+            <MonitorCard
+              position="left"
+              isSelected={monitorType === MonitorType.CONTINUOUS}
+              onClick={() =>
+                onMonitorTypeSelect({
+                  monitorType: MonitorType.CONTINUOUS,
+                  activationCondition,
+                })
+              }
+            >
+              <strong>{t('Continuous')}</strong>
+              <div>{t('Continuously monitor trends for the metrics outlined below')}</div>
+            </MonitorCard>
+            <MonitorCard
+              position="right"
+              isSelected={monitorType === MonitorType.ACTIVATED}
+              onClick={() =>
+                onMonitorTypeSelect({
+                  monitorType: MonitorType.ACTIVATED,
+                })
+              }
+            >
+              <strong>Conditional</strong>
+              {monitorType === MonitorType.ACTIVATED ? (
+                <ActivatedAlertFields>
+                  {`${t('Monitor')} `}
+                  <SelectControl
+                    name="activationCondition"
+                    styles={this.selectControlStyles}
+                    options={[
+                      {
+                        value: ActivationConditionType.RELEASE_CREATION,
+                        label: t('New Release'),
+                      },
+                      {
+                        value: ActivationConditionType.DEPLOY_CREATION,
+                        label: t('New Deploy'),
+                      },
+                    ]}
+                    required
+                    value={activationCondition}
+                    onChange={({value}) =>
+                      onMonitorTypeSelect({activationCondition: value})
+                    }
+                    inline={false}
+                    flexibleControlStateSize
+                  />
+                  {` ${t('for')} `}
+                  <SelectControl
+                    name="timeWindow"
+                    styles={this.selectControlStyles}
+                    options={this.timeWindowOptions}
+                    value={timeWindow}
+                    onChange={({value}) => onTimeWindowChange(value)}
+                    inline={false}
+                    flexibleControlStateSize
+                  />
+                </ActivatedAlertFields>
+              ) : (
+                <div>
+                  {t('Temporarily monitor specified query given activation condition')}
+                </div>
+              )}
+            </MonitorCard>
+          </MonitorSelect>
         </FormRow>
       </Fragment>
     );
@@ -395,6 +505,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     } = this.props;
 
     const {environments} = this.state;
+    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
 
     const environmentOptions: SelectValue<string | null>[] = [
       {
@@ -425,6 +536,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 )}
               />
             )}
+            {hasActivatedAlerts && this.renderMonitorTypeSelect()}
             {!isErrorMigration && this.renderInterval()}
             <StyledListItem>{t('Filter events')}</StyledListItem>
             <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
@@ -651,6 +763,53 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
       display: grid;
       grid-template-columns: repeat(${p.columns}, auto);
     `}
+`;
+
+const MonitorSelect = styled('div')`
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 6rem;
+`;
+
+type MonitorCardProps = {
+  isSelected: boolean;
+  /**
+   * Adds hover and focus states to the card
+   */
+  position: 'left' | 'right';
+};
+
+const MonitorCard = styled('div')<MonitorCardProps>`
+  padding: ${space(1)};
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  cursor: pointer;
+  justify-content: center;
+
+  &:focus,
+  &:hover {
+    outline: 1px solid ${p => p.theme.purple200};
+    background-color: ${p => p.theme.backgroundSecondary};
+    margin: 0;
+  }
+
+  border-top-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
+  border-bottom-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
+  border-top-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
+  border-bottom-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
+  margin: ${p =>
+    p.isSelected ? (p.position === 'left' ? '1px 2px 1px 0' : '1px 0 1px 2px') : 0};
+  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple400}` : 'none')};
+`;
+
+const ActivatedAlertFields = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 export default withApi(withProjects(RuleConditionsForm));

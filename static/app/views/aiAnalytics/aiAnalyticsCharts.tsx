@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MetricsQueryApiResponseLastMeta} from 'sentry/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -20,6 +21,7 @@ export function TotalTokensUsedChart() {
         name: 'total',
         mri: `c:spans/ai.total_tokens.used@none`,
         op: 'sum',
+        // TODO this double counts the (e.g.) langchain and openai token usage
       },
     ],
     selection,
@@ -55,8 +57,15 @@ export function TotalTokensUsedChart() {
   );
 }
 
-export function NumberOfPipelinesChart() {
+interface NumberOfPipelinesChartProps {
+  groupId?: string;
+}
+export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
   const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
+  let query = 'span.category:"ai.pipeline"';
+  if (groupId) {
+    query = `${query} span.group:"${groupId}"`;
+  }
   const {
     data: timeseriesData,
     isLoading,
@@ -68,7 +77,7 @@ export function NumberOfPipelinesChart() {
         name: 'number',
         mri: `d:spans/exclusive_time@millisecond`,
         op: 'count',
-        query: 'span.op:"ai.pipeline.langchain"', // TODO: for now this is the only AI "pipeline" supported
+        query,
       },
     ],
     selection,
@@ -104,8 +113,15 @@ export function NumberOfPipelinesChart() {
   );
 }
 
-export function PipelineDurationChart() {
+interface PipelineDurationChartProps {
+  groupId?: string;
+}
+export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
   const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
+  let query = 'span.category:"ai.pipeline"';
+  if (groupId) {
+    query = `${query} span.group:"${groupId}"`;
+  }
   const {
     data: timeseriesData,
     isLoading,
@@ -114,10 +130,10 @@ export function PipelineDurationChart() {
   } = useMetricsQuery(
     [
       {
-        name: 'number',
-        mri: `d:spans/exclusive_time@millisecond`,
+        name: 'a',
+        mri: `d:spans/duration@millisecond`,
         op: 'avg',
-        query: 'span.op:"ai.pipeline.langchain"', // TODO: for now this is the only AI "pipeline" supported
+        query,
       },
     ],
     selection,
@@ -125,6 +141,11 @@ export function PipelineDurationChart() {
       intervalLadder: 'dashboard',
     }
   );
+  const lastMeta = timeseriesData?.meta?.findLast(_ => true);
+  if (lastMeta && lastMeta.length >= 2) {
+    // TODO hack: there is a bug somewhere that is dropping the unit
+    (lastMeta[1] as MetricsQueryApiResponseLastMeta).unit = 'millisecond';
+  }
 
   if (!isGlobalSelectionReady) {
     return null;
@@ -143,7 +164,7 @@ export function PipelineDurationChart() {
         metricQueries={[
           {
             name: 'mql',
-            formula: '$number',
+            formula: '$a',
           },
         ]}
         displayType={MetricDisplayType.AREA}
@@ -159,7 +180,6 @@ const PanelTitle = styled('h5')`
 `;
 
 const TokenChartContainer = styled('div')`
-  overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   height: 100%;

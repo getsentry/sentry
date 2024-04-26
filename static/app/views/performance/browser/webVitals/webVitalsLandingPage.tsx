@@ -70,7 +70,7 @@ export default function WebVitalsLandingPage() {
     <ModulePageProviders
       title={[t('Performance'), t('Web Vitals')].join(' — ')}
       baseURL="/performance/browser/pageloads"
-      features="starfish-browser-webvitals"
+      features="spans-first-ui"
     >
       <Layout.Header>
         <Layout.HeaderContent>

@@ -23,11 +23,7 @@ jest.mock('sentry/utils/useProjects');
 describe('PageloadModule', function () {
   const project = ProjectFixture({platform: 'react-native'});
   const organization = OrganizationFixture({
-    features: [
-      'performance-screens-view',
-      'mobile-ttid-ttfd-contribution',
-      'performance-screens-platform-selector',
-    ],
+    features: ['spans-first-ui'],
     projects: [project],
   });
   jest.mocked(useOrganization).mockReturnValue(organization);
@@ -137,7 +133,7 @@ describe('PageloadModule', function () {
 
     await waitFor(() => {
       expect(eventsMock).toHaveBeenNthCalledWith(
-        3,
+        4,
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
@@ -173,7 +169,7 @@ describe('PageloadModule', function () {
 
     await waitFor(() => {
       expect(eventsMock).toHaveBeenNthCalledWith(
-        3,
+        4,
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({

@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -30,13 +30,13 @@ type Row = Pick<
   | 'span.description'
   | 'span.group'
   | 'spm()'
-  | 'avg(span.self_time)'
-  | 'sum(span.self_time)'
+  | 'avg(span.duration)'
+  | 'sum(span.duration)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'span.description' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  'span.description' | 'spm()' | 'avg(span.duration)' | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -51,7 +51,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(span.self_time)`,
+    key: `avg(span.duration)`,
     name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -62,10 +62,10 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.self_time)', 'spm()', 'time_spent_percentage()'];
+const SORTABLE_FIELDS = ['avg(span.duration)', 'spm()', 'time_spent_percentage()'];
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
+  field: 'spm()' | 'avg(span.duration)' | 'time_spent_percentage()';
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
@@ -83,19 +83,20 @@ export function PipelinesTable() {
     sort = {field: 'time_spent_percentage()', kind: 'desc'};
   }
   const {data, isLoading, meta, pageLinks, error} = useSpanMetrics({
-    search: new MutableSearch('span.op:ai.pipeline.langchain'),
+    search: new MutableSearch('span.category:ai.pipeline'),
     fields: [
       'project.id',
       'span.group',
       'span.description',
       'spm()',
-      'avg(span.self_time)',
-      'sum(span.self_time)',
+      'avg(span.duration)',
+      'sum(span.duration)',
       'time_spent_percentage()',
     ],
     sorts: [sort],
     limit: 25,
     cursor,
+    referrer: 'api.ai-pipelines.view',
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
@@ -157,7 +158,7 @@ function renderBodyCell(
     return (
       <Link
         to={normalizeUrl(
-          `/organizations/${organization.slug}/ai-analytics/pipelines/${row['span.group']}`
+          `/organizations/${organization.slug}/ai-analytics/pipeline-type/${row['span.group']}`
         )}
       >
         {row['span.description']}

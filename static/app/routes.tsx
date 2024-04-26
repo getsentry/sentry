@@ -1212,6 +1212,7 @@ function buildRoutes() {
   );
 
   const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    // ALERT CHILD ROUTES
     return (
       <Fragment>
         <IndexRoute
@@ -1316,6 +1317,7 @@ function buildRoutes() {
       </Fragment>
     );
   };
+  // ALERT ROUTES
   const alertRoutes = (
     <Fragment>
       {USING_CUSTOMER_DOMAIN && (
@@ -1493,6 +1495,10 @@ function buildRoutes() {
   const aiAnalyticsRoutes = (
     <Route path="/ai-analytics/" withOrgPath>
       <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
+      <Route
+        path="pipeline-type/:groupId/"
+        component={make(() => import('sentry/views/aiAnalytics/aiAnalyticsDetailsPage'))}
+      />
     </Route>
   );
 
@@ -1582,6 +1588,22 @@ function buildRoutes() {
             )}
           />
         </Route>
+      </Route>
+      <Route path="queues/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/queues/queuesLandingPage')
+          )}
+        />
+        <Route
+          path="destination/"
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/queues/destinationSummary/destinationSummaryPage'
+              )
+          )}
+        />
       </Route>
       <Route path="mobile/">
         <Route path="screens/">

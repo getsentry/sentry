@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-from datetime import datetime
 from typing import Any
 
 from django.conf import settings
@@ -21,7 +20,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
@@ -113,7 +111,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise RpcResolutionException(f"Unknown method {method_name}")
         # As seer is a single service, we just directly expose the methods instead of services.
         method = seer_method_registry[method_name]
-        return method(**arguments)  # type: ignore[operator]
+        return method(**arguments)
 
     def post(self, request: Request, method_name: str) -> Response:
         if not self._is_authorized(request):
@@ -148,58 +146,12 @@ class SeerRpcServiceEndpoint(Endpoint):
         return Response(data=result)
 
 
-def on_autofix_step_update(*, issue_id: int, status: str, steps: list[dict]) -> None:
-    group: Group = Group.objects.get(id=issue_id)
-
-    metadata = group.data.get("metadata", {})
-    autofix_data = metadata.get("autofix", {})
-
-    metadata["autofix"] = {
-        **autofix_data,
-        "status": status,
-        "steps": steps,
-    }
-
-    group.data["metadata"] = metadata
-    group.save()
-
-
-def on_autofix_complete(*, issue_id: int, status: str, steps: list[dict], fix: dict | None) -> None:
-    group: Group = Group.objects.get(id=issue_id)
-
-    metadata = group.data.get("metadata", {})
-    autofix_data = metadata.get("autofix", {})
-
-    metadata["autofix"] = {
-        **autofix_data,
-        "completedAt": datetime.now().isoformat(),
-        "status": status,
-        "steps": steps,
-        "fix": fix,
-    }
-
-    group.data["metadata"] = metadata
-    group.save()
-
-
-def get_autofix_state(*, issue_id: int) -> dict:
-    group: Group = Group.objects.get(id=issue_id)
-
-    metadata = group.data.get("metadata", {})
-    autofix_data = metadata.get("autofix", {})
-
-    return autofix_data
-
-
 def get_organization_slug(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     return {"slug": org.slug}
 
 
 seer_method_registry = {
-    "on_autofix_step_update": on_autofix_step_update,
-    "on_autofix_complete": on_autofix_complete,
-    "get_autofix_state": get_autofix_state,
     "get_organization_slug": get_organization_slug,
 }
 

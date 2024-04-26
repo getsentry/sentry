@@ -736,7 +736,6 @@ CELERY_IMPORTS = (
     "sentry.monitors.tasks.check_missed",
     "sentry.monitors.tasks.check_timeout",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
-    "sentry.tasks.ai_autofix",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -745,6 +744,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.backfill_outboxes",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
+    "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
@@ -937,6 +937,7 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
+    Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
 ]
 
@@ -1476,6 +1477,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable auth provider configuration through api
     "organizations:api-auth-provider": False,
     "organizations:api-keys": False,
+    # Rollout of the new API rate limits for organization events
+    "organizations:api-organization_events-rate-limit-reduced-rollout": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
     # Enables the cron job to auto-enable codecov integrations.
@@ -1548,8 +1551,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
-    # Enables events endpoint rate limit
-    "organizations:discover-events-rate-limit": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable the org recalibration
@@ -1713,8 +1714,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable consecutive db performance issue type
-    "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
     "organizations:performance-consecutive-http-detector": False,
     # Enable database view powered by span metrics
@@ -1727,14 +1726,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-discover-widget-split-override-save": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
-    # Enable compressed assets performance issue type
-    "organizations:performance-issues-compressed-assets-detector": False,
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
-    # Enable MN+1 DB performance issue type
-    "organizations:performance-issues-m-n-plus-one-db-detector": False,
-    # Enable render blocking assets performance issue type
-    "organizations:performance-issues-render-blocking-assets-detector": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
     # Enables a longer stats period for the performance landing page
@@ -1749,8 +1742,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable the UI for displaying mobile performance score
     "organizations:performance-mobile-perf-score-ui": False,
-    # Enable N+1 API Calls performance issue type
-    "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable new trends
     "organizations:performance-new-trends": False,
     # Enable updated landing page widget designs
@@ -1767,8 +1758,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
-    # Enable slow DB performance issue type
-    "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
     # Enable trace details page with embedded spans
@@ -1789,6 +1778,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Experimental performance issue for streamed spans - ingestion
+    "organizations:performance-streamed-spans-exp-ingest": False,
+    # Experimental performance issue for streamed spans - UI
+    "organizations:performance-streamed-spans-exp-visible": False,
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
     # Enable processing slow issue alerts
@@ -1861,6 +1854,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-issue-emails": False,
     # Enable mobile replay player
     "organizations:session-replay-mobile-player": False,
+    # Enable mobile replay player network tab
+    "organizations:session-replay-mobile-network-tab": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
     # Enable Rage Click Issue Creation In Recording Consumer
@@ -1873,12 +1868,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
-    # Enable the Replay Details > Performance tab
-    "organizations:session-replay-trace-table": False,
     # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
-    # Enable 'Viewed By' state for replay items
-    "organizations:session-replay-viewed-by-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable the UI for updated terms of service
@@ -1922,6 +1913,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Enable queues module ui
+    "organizations:performance-queues-view": False,
     # Enable browser starfish cache module ui
     "organizations:performance-cache-view": False,
     # Enable mobile starfish app start module view
@@ -2023,6 +2016,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
+    "projects:span-metrics-double-write-distributions-as-gauges": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated
@@ -2337,11 +2331,6 @@ SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
-
-# User Feedback Spam Detection
-SENTRY_USER_FEEDBACK_SPAM = "sentry.feedback.spam.stub.StubFeedbackSpamDetection"
-SENTRY_USER_FEEDBACK_SPAM_OPTIONS: dict[str, str] = {}
-
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -2768,7 +2757,7 @@ SENTRY_USE_SPANS_BUFFER = False
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
 # This flag activates consuming GroupAttribute messages in the development environment
-SENTRY_USE_GROUP_ATTRIBUTES = False
+SENTRY_USE_GROUP_ATTRIBUTES = True
 
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
@@ -2966,6 +2955,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                     "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
                 ),
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
+                # TODO: remove setting
                 "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
                     "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
                 ),
@@ -3038,7 +3028,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "vroom": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/vroom:nightly",
+            "image": "us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest",
             "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
             "environment": {
                 "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
@@ -3083,7 +3073,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.0"
+SELF_HOSTED_STABLE_VERSION = "24.4.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3494,6 +3484,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-spans": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
+    "buffered-segments-dlq": "default",
 }
 
 

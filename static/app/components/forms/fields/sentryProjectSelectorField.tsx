@@ -1,8 +1,6 @@
-import groupBy from 'lodash/groupBy';
-
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -17,15 +15,15 @@ type GroupProjects = (project: Project) => string;
 export interface RenderFieldProps extends InputFieldProps {
   avatarSize?: number;
   /**
-   * When using groupProjects you can specify the labels of the groups as a
-   * mapping of the key returned for the groupProjects to the label
-   */
-  groupLabels?: Record<string, React.ReactNode>;
-  /**
    * Controls grouping of projects within the field. Useful to prioritize some
    * projects above others
    */
   groupProjects?: GroupProjects;
+  /**
+   * When using groupProjects you must specify the labels of the groups as a
+   * list of key and label. The ordering determines the order of the groups.
+   */
+  groups?: Array<{key: string; label: React.ReactNode}>;
   projects?: Project[];
   /**
    * Use the slug as the select field value. Without setting this the numeric id
@@ -37,7 +35,7 @@ export interface RenderFieldProps extends InputFieldProps {
 function SentryProjectSelectorField({
   projects,
   groupProjects,
-  groupLabels,
+  groups,
   avatarSize = 20,
   placeholder = t('Choose Sentry project'),
   valueIsSlug,
@@ -61,9 +59,11 @@ function SentryProjectSelectorField({
   const projectOptions =
     projects && groupProjects
       ? // Create project groups when groupProjects is in use
-        Object.entries(groupBy(projects, groupProjects)).map(([key, projectsGroup]) => ({
-          label: groupLabels?.[key] ?? key,
-          options: projectsGroup.map(projectToOption),
+        groups?.map(({key, label}) => ({
+          label,
+          options: projects
+            .filter(project => groupProjects(project) === key)
+            .map(projectToOption),
         }))
       : // Otherwise just map projects to the options
         projects?.map(projectToOption);

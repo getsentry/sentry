@@ -30,8 +30,8 @@ import {
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -584,6 +584,7 @@ function SpanDetail(props: Props) {
           </table>
           {span._metrics_summary && (
             <CustomMetricsEventData
+              projectId={event.projectID}
               metricsSummary={span._metrics_summary}
               startTimestamp={span.start_timestamp}
             />

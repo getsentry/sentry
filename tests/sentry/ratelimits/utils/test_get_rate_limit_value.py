@@ -52,8 +52,8 @@ class TestGetRateLimitValue(TestCase):
 
         class TestEndpoint(Endpoint):
             rate_limits = {
-                "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
-                "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
+                "GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)},
+                "POST": {RateLimitCategory.USER: RateLimit(limit=20, window=4)},
             }
 
         _test_endpoint = TestEndpoint.as_view()
@@ -75,7 +75,8 @@ class TestGetRateLimitValue(TestCase):
     def test_inherit(self):
         class ParentEndpoint(Endpoint):
             rate_limits = RateLimitConfig(
-                group="foo", limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(100, 5)}}
+                group="foo",
+                limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)}},
             )
 
         class ChildEndpoint(ParentEndpoint):
@@ -91,11 +92,11 @@ class TestGetRateLimitValue(TestCase):
     def test_multiple_inheritance(self):
         class ParentEndpoint(Endpoint):
             rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
-            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(100, 5)}}
+            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)}}
 
         class Mixin:
             rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
-            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 4)}}
+            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=2, window=4)}}
 
         class ChildEndpoint(ParentEndpoint, Mixin):
             pass
@@ -114,4 +115,4 @@ class TestGetRateLimitValue(TestCase):
         )
         assert get_rate_limit_value(
             "GET", RateLimitCategory.IP, rate_limit_config_reverse
-        ) == RateLimit(2, 4)
+        ) == RateLimit(limit=2, window=4)

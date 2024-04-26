@@ -217,6 +217,13 @@ class MonitorParams:
         type=str,
         description="The name of environment for the monitor environment.",
     )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=str,
+        description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
+    )
 
 
 class EventParams:

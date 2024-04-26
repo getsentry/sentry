@@ -1263,9 +1263,10 @@ function Connectors(props: {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
 }) {
+  const hasChildren =
+    (props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0;
   const showVerticalConnector =
-    ((props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0) ||
-    (props.node.value && isParentAutogroupedNode(props.node));
+    hasChildren || (props.node.value && isParentAutogroupedNode(props.node));
 
   // If the tail node of the collapsed node has no children,
   // we don't want to render the vertical connector as no children
@@ -1274,13 +1275,14 @@ function Connectors(props: {
     showVerticalConnector &&
     props.node.value &&
     props.node instanceof ParentAutogroupNode &&
-    !props.node.tail.children.length;
+    (!props.node.tail.children.length ||
+      (!props.node.tail.expanded && !props.node.expanded));
 
   return (
     <Fragment>
       {props.node.connectors.map((c, i) => {
         return (
-          <div
+          <span
             key={i}
             style={{
               left: -(
@@ -1292,12 +1294,12 @@ function Connectors(props: {
         );
       })}
       {showVerticalConnector && !hideVerticalConnector ? (
-        <div className="TraceExpandedVerticalConnector" />
+        <span className="TraceExpandedVerticalConnector" />
       ) : null}
       {props.node.isLastChild ? (
-        <div className="TraceVerticalLastChildConnector" />
+        <span className="TraceVerticalLastChildConnector" />
       ) : (
-        <div className="TraceVerticalConnector" />
+        <span className="TraceVerticalConnector" />
       )}
     </Fragment>
   );
