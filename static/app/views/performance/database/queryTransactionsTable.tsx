@@ -99,7 +99,7 @@ export function QueryTransactionsTable({
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.ENDPOINTS_CURSOR]: newCursor},
+      query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
     });
   };
 
@@ -111,14 +111,19 @@ export function QueryTransactionsTable({
         error={error}
         data={data}
         columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
+        columnSortBy={[
+          {
+            key: sort.field,
+            order: sort.kind,
+          },
+        ]}
         grid={{
           renderHeadCell: col =>
             renderHeadCell({
               column: col,
               sort,
               location,
-              sortParameterName: QueryParameterNames.ENDPOINTS_SORT,
+              sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, span, location, organization),
