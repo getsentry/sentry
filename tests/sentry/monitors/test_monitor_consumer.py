@@ -760,30 +760,30 @@ class MonitorConsumerTest(TestCase):
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
-    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_tasks_trigger")
-    def test_monitor_tasks_trigger(self, try_monitor_tasks_trigger):
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
+    def test_monitor_tasks_trigger(self, try_monitor_clock_tick):
         monitor = self._create_monitor(slug="my-monitor")
 
         now = datetime.now().replace(second=0, microsecond=0)
 
         # First checkin triggers tasks
         self.send_checkin(monitor.slug)
-        assert try_monitor_tasks_trigger.call_count == 1
+        assert try_monitor_clock_tick.call_count == 1
 
         # A clock pulse message also triggers the tasks
         self.send_clock_pulse()
-        assert try_monitor_tasks_trigger.call_count == 2
+        assert try_monitor_clock_tick.call_count == 2
 
         # An exception dispatching the tasks does NOT cause ingestion to fail
         with mock.patch("sentry.monitors.consumers.monitor_consumer.logger") as logger:
-            try_monitor_tasks_trigger.side_effect = Exception()
+            try_monitor_clock_tick.side_effect = Exception()
             self.send_checkin(monitor.slug, ts=now + timedelta(minutes=5))
             assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
             logger.exception.assert_called_with("Failed to trigger monitor tasks")
-            try_monitor_tasks_trigger.side_effect = None
+            try_monitor_clock_tick.side_effect = None
 
-    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_tasks_trigger")
-    def test_parallel_monitor_task_triggers(self, try_monitor_tasks_trigger):
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
+    def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick):
         factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
@@ -792,7 +792,7 @@ class MonitorConsumerTest(TestCase):
 
         # First checkin does NOT trigger task since we're batching
         self.send_checkin(monitor.slug, consumer=consumer)
-        assert try_monitor_tasks_trigger.call_count == 0
+        assert try_monitor_clock_tick.call_count == 0
 
         # Sending 3 messages (including a clock pulse)
         self.send_checkin(monitor.slug, consumer=consumer)
@@ -802,7 +802,7 @@ class MonitorConsumerTest(TestCase):
         # One more check-in to process the batch
         self.send_checkin(monitor.slug, consumer=consumer)
 
-        assert try_monitor_tasks_trigger.call_count == 1
+        assert try_monitor_clock_tick.call_count == 1
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
     def test_monitor_quotas_accept(self, check_accept_monitor_checkin):
