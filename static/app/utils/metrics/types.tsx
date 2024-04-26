@@ -59,7 +59,7 @@ export interface MetricsQueryWidget extends BaseWidgetParams, MetricsQuery {
 }
 
 export interface MetricsEquationWidget extends BaseWidgetParams {
-  formula: string;
+  equation: string;
   type: MetricExpressionType.EQUATION;
 }
 

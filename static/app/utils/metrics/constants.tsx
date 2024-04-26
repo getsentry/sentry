@@ -51,7 +51,7 @@ export const emptyMetricsQueryWidget: MetricsQueryWidget = {
 export const emptyMetricsFormulaWidget: MetricsEquationWidget = {
   type: MetricExpressionType.EQUATION,
   id: NO_QUERY_ID,
-  formula: '',
+  equation: '',
   sort: DEFAULT_SORT_STATE,
   displayType: MetricDisplayType.LINE,
   isHidden: false,

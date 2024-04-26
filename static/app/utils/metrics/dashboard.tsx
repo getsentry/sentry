@@ -13,7 +13,7 @@ interface QueryParams extends MetricsQuery {
 }
 
 interface EquationParams {
-  formula: string;
+  equation: string;
   isHidden?: boolean;
 }
 
@@ -29,7 +29,7 @@ export function convertToDashboardWidget(
     widgetType: WidgetType.METRICS,
     limit: 10,
     queries: metricQueries.map(query =>
-      'formula' in query ? getWidgetEquation(query) : getWidgetQuery(query)
+      'equation' in query ? getWidgetEquation(query) : getWidgetQuery(query)
     ),
   };
 }
@@ -58,9 +58,9 @@ export function getWidgetQuery(metricsQuery: QueryParams): WidgetQuery {
 export function getWidgetEquation(equation: EquationParams): WidgetQuery {
   return {
     name: '',
-    aggregates: [`equation|${equation.formula}`],
+    aggregates: [`equation|${equation.equation}`],
     columns: [],
-    fields: [`equation|${equation.formula}`],
+    fields: [`equation|${equation.equation}`],
     conditions: '',
     // @ts-expect-error TODO: change type of orderby
     orderby: undefined,

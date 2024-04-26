@@ -10,7 +10,7 @@ export function widgetToQuery(
   return isMetricsEquationWidget(widget)
     ? {
         name: getEquationSymbol(widget.id),
-        formula: widget.formula,
+        formula: widget.equation,
       }
     : {
         name: getQuerySymbol(widget.id),

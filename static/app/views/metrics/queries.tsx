@@ -275,8 +275,8 @@ function Formula({
       )}
       <FormulaInput
         availableVariables={availableVariables}
-        value={widget.formula}
-        onChange={formula => handleChange({formula})}
+        value={widget.equation}
+        onChange={equation => handleChange({equation})}
       />
       <MetricFormulaContextMenu
         widgetIndex={index}

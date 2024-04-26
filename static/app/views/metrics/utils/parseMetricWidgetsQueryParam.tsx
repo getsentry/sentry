@@ -155,14 +155,15 @@ function parseFormulaWidget(
   widget: Record<string, unknown>,
   baseWidgetParams: BaseWidgetParams
 ): MetricsEquationWidget | null {
-  const formula = parseStringParam(widget, 'formula');
+  const equation =
+    parseStringParam(widget, 'equation') || parseStringParam(widget, 'formula');
   // If we cannot retrieve a formula, there is nothing to display
-  if (formula === undefined) {
+  if (equation === undefined) {
     return null;
   }
 
   return {
-    formula,
+    equation,
     ...baseWidgetParams,
     type: MetricExpressionType.EQUATION,
   };

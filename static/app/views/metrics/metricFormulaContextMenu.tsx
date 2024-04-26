@@ -127,7 +127,7 @@ export function useCreateDashboardWidget(
   const widgetArray = useMemo(() => [formulaWidget], [formulaWidget]);
   const createDashboard = useCreateDashboard(widgetArray, formulaDependencies, false);
 
-  if (!formulaWidget.formula || isError || dependencies.some(isCustomMeasurement)) {
+  if (!formulaWidget.equation || isError || dependencies.some(isCustomMeasurement)) {
     return undefined;
   }
 

@@ -137,7 +137,7 @@ describe('parseMetricWidgetQueryParam', () => {
         {
           id: 0,
           type: MetricExpressionType.EQUATION,
-          formula: 'a + b',
+          equation: 'a + b',
           displayType: MetricDisplayType.LINE,
           sort: {name: 'avg', order: 'desc'},
           focusedSeries: [],
@@ -160,7 +160,7 @@ describe('parseMetricWidgetQueryParam', () => {
         },
         {
           type: MetricExpressionType.EQUATION,
-          formula: 'a * 2',
+          equation: 'a * 2',
         },
       ],
       // RESULT
@@ -182,7 +182,7 @@ describe('parseMetricWidgetQueryParam', () => {
         {
           id: 0,
           type: MetricExpressionType.EQUATION,
-          formula: 'a * 2',
+          equation: 'a * 2',
           displayType: MetricDisplayType.LINE,
           focusedSeries: [],
           sort: {name: undefined, order: 'asc'},

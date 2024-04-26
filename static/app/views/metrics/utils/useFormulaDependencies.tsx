@@ -61,7 +61,7 @@ export function useFormulaDependencies() {
   const formulaDependencies = useMemo(() => {
     return widgets.reduce((acc: Record<number, FormulaDependencies>, widget) => {
       if (isMetricsEquationWidget(widget)) {
-        acc[widget.id] = getFormulaQueryDependencies(widget.formula);
+        acc[widget.id] = getFormulaQueryDependencies(widget.equation);
       }
       return acc;
     }, {});

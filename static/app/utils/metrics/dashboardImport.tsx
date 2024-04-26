@@ -409,7 +409,7 @@ export class WidgetParser {
   private mapToMetricsEquation(formula: string) {
     return {
       type: 'formula',
-      formula,
+      equation: formula,
     };
   }
 
