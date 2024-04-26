@@ -46,6 +46,7 @@ import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
@@ -727,7 +728,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             trace_dispatch={traceDispatch}
             onTraceSearch={onTraceSearch}
           />
-          <TraceResetZoomButton viewManager={viewManager} />
+          <TraceResetZoomButton viewManager={viewManager} organization={organization} />
           <TraceShortcuts />
         </TraceToolbar>
         <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
@@ -771,9 +772,17 @@ function TraceViewContent(props: TraceViewContentProps) {
   );
 }
 
-function TraceResetZoomButton(props: {viewManager: VirtualizedViewManager}) {
+function TraceResetZoomButton(props: {
+  organization: Organization;
+  viewManager: VirtualizedViewManager;
+}) {
+  const onResetZoom = useCallback(() => {
+    traceAnalytics.trackResetZoom(props.organization);
+    props.viewManager.resetZoom();
+  }, [props.viewManager, props.organization]);
+
   return (
-    <Button size="xs" onClick={() => props.viewManager.resetZoom()}>
+    <Button size="xs" onClick={onResetZoom}>
       {t('Reset Zoom')}
     </Button>
   );

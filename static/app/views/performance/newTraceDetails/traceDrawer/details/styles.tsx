@@ -3,19 +3,22 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import {Button as CommonButton, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DataSection} from 'sentry/components/events/styles';
+import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Project} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatBytesBase10} from 'sentry/utils';
 import {getDuration} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -24,11 +27,18 @@ import {useParams} from 'sentry/utils/useParams';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
+  isRootNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {
+  MissingInstrumentationNode,
+  NoDataNode,
+  ParentAutogroupNode,
+  SiblingAutogroupNode,
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -53,11 +63,11 @@ const Actions = styled(FlexBox)`
   gap: ${space(0.5)};
   flex-wrap: wrap;
   justify-content: end;
+  width: 100%;
 `;
 
 const Title = styled(FlexBox)`
   gap: ${space(1)};
-  flex: none;
   width: 50%;
   > span {
     min-width: 30px;
@@ -112,16 +122,11 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   }
 `;
 
-const Button = styled(CommonButton)`
-  position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
-`;
-
 const HeaderContainer = styled(Title)`
   justify-content: space-between;
-  overflow: hidden;
   width: 100%;
+  z-index: 10;
+  flex: 1 1 auto;
 `;
 
 interface EventDetailsLinkProps {
@@ -174,11 +179,7 @@ function EventDetailsLink(props: EventDetailsLinkProps) {
       }
       size="xs"
       to={locationDescriptor}
-      onClick={() => {
-        trackAnalytics('performance_views.trace_details.view_event_details', {
-          organization: props.organization,
-        });
-      }}
+      onClick={() => traceAnalytics.trackViewEventDetails(props.organization)}
     >
       {t('View Event Details')}
     </LinkButton>
@@ -410,6 +411,167 @@ const ValueTd = styled('td')`
   position: relative;
 `;
 
+function NodeActions(props: {
+  node: TraceTreeNode<any>;
+  onTabScrollToNode: (
+    node:
+      | TraceTreeNode<any>
+      | ParentAutogroupNode
+      | SiblingAutogroupNode
+      | NoDataNode
+      | MissingInstrumentationNode
+  ) => void;
+  organization: Organization;
+  eventSize?: number | undefined;
+}) {
+  const items = useMemo(() => {
+    const showInView: MenuItemProps = {
+      key: 'show-in-view',
+      label: t('Show in View'),
+      onAction: () => {
+        traceAnalytics.trackShowInView(props.organization);
+        props.onTabScrollToNode(props.node);
+      },
+    };
+
+    const eventId = props.node.metadata.event_id;
+    const projectSlug = props.node.metadata.project_slug;
+    const query = {...qs.parse(location.search), legacy: 1};
+
+    const eventDetailsLink = {
+      query: query,
+      pathname: `/performance/${projectSlug}:${eventId}/`,
+      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
+    };
+
+    const viewEventDetails: MenuItemProps = {
+      key: 'view-event-details',
+      label: t('View Event Details'),
+      to: eventDetailsLink,
+      onAction: () => {
+        traceAnalytics.trackViewEventDetails(props.organization);
+      },
+    };
+
+    const eventSize = props.eventSize;
+    const jsonDetails: MenuItemProps = {
+      key: 'json-details',
+      onAction: () => {
+        traceAnalytics.trackViewEventJSON(props.organization);
+        window.open(
+          `/api/0/projects/${props.organization.slug}/${projectSlug}/events/${eventId}/json/`,
+          '_blank'
+        );
+      },
+      label:
+        t('JSON') +
+        (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
+    };
+
+    if (isTransactionNode(props.node)) {
+      return [showInView, viewEventDetails, jsonDetails];
+    }
+    if (isSpanNode(props.node)) {
+      return [showInView, viewEventDetails];
+    }
+    if (isMissingInstrumentationNode(props.node)) {
+      return [showInView];
+    }
+    if (isTraceErrorNode(props.node)) {
+      return [showInView];
+    }
+    if (isRootNode(props.node)) {
+      return [showInView];
+    }
+    if (isAutogroupedNode(props.node)) {
+      return [showInView];
+    }
+    if (isNoDataNode(props.node)) {
+      return [showInView];
+    }
+
+    return [showInView];
+  }, [props]);
+
+  return (
+    <ActionsContainer>
+      <Actions className="Actions">
+        <Button
+          size="xs"
+          onClick={_e => {
+            traceAnalytics.trackShowInView(props.organization);
+            props.onTabScrollToNode(props.node);
+          }}
+        >
+          {t('Show in view')}
+        </Button>
+
+        {isTransactionNode(props.node) ||
+        isSpanNode(props.node) ||
+        isTraceErrorNode(props.node) ? (
+          <EventDetailsLink node={props.node} organization={props.organization} />
+        ) : null}
+
+        {isTransactionNode(props.node) ? (
+          <Button
+            size="xs"
+            icon={<IconOpen />}
+            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            external
+          >
+            {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
+          </Button>
+        ) : null}
+      </Actions>
+      <DropdownMenu
+        items={items}
+        className="DropdownMenu"
+        position="bottom-end"
+        trigger={triggerProps => (
+          <ActionsButtonTrigger size="xs" {...triggerProps}>
+            {t('Actions')}
+            <IconChevron direction="down" size="xs" />
+          </ActionsButtonTrigger>
+        )}
+      />
+    </ActionsContainer>
+  );
+}
+
+const ActionsButtonTrigger = styled(Button)`
+  svg {
+    margin-left: ${space(0.5)};
+    width: 10px;
+    height: 10px;
+  }
+`;
+
+const ActionsContainer = styled('div')`
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  gap: ${space(1)};
+  container-type: inline-size;
+  min-width: 24px;
+  width: 100%;
+
+  @container (max-width: 380px) {
+    .DropdownMenu {
+      display: block;
+    }
+    .Actions {
+      display: none;
+    }
+  }
+
+  @container (min-width: 381px) {
+    .DropdownMenu {
+      display: none;
+    }
+  }
+`;
+
 function ProfileLink({
   event,
   project,
@@ -452,11 +614,11 @@ const TraceDrawerComponents = {
   TitleOp,
   HeaderContainer,
   Actions,
+  NodeActions,
   Table,
   IconTitleWrapper,
   IconBorder,
   EventDetailsLink,
-  Button,
   TitleText,
   Duration,
   TableRow,

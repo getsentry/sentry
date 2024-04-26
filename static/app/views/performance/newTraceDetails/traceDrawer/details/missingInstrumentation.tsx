@@ -1,6 +1,5 @@
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -47,11 +46,11 @@ export function MissingInstrumentationNodeDetails({
             <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation')}</div>
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
-        <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-            {t('Show in view')}
-          </Button>
-        </TraceDrawerComponents.Actions>
+        <TraceDrawerComponents.NodeActions
+          organization={organization}
+          node={node}
+          onTabScrollToNode={onTabScrollToNode}
+        />
       </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug ? (
         <ProfilesProvider

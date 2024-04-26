@@ -23,7 +23,7 @@ export interface TraceTreeNodeDetailsProps<T> {
   manager: VirtualizedViewManager;
   node: T;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  onTabScrollToNode: (node: T) => void;
+  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
 }
 

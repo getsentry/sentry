@@ -7,11 +7,15 @@ import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 
 export function TraceShortcuts() {
+  const organization = useOrganization();
   const onOpenShortcutsClick = useCallback(() => {
+    traceAnalytics.trackViewShortcuts(organization);
     openModal(props => <TraceShortcutsModal {...props} />);
-  }, []);
+  }, [organization]);
   return (
     <Button size="xs" onClick={onOpenShortcutsClick} aria-label="Trace Shortcuts">
       ⌘

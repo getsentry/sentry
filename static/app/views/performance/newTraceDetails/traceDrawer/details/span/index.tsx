@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {SpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
@@ -31,7 +30,7 @@ function SpanNodeDetailHeader({
   project,
 }: {
   node: TraceTreeNode<TraceTree.Span>;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.Span>) => void;
+  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   project: Project | undefined;
 }) {
@@ -56,12 +55,11 @@ function SpanNodeDetailHeader({
           </TraceDrawerComponents.TitleOp>
         </TraceDrawerComponents.TitleText>
       </TraceDrawerComponents.Title>
-      <TraceDrawerComponents.Actions>
-        <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-          {t('Show in view')}
-        </Button>
-        <TraceDrawerComponents.EventDetailsLink node={node} organization={organization} />
-      </TraceDrawerComponents.Actions>
+      <TraceDrawerComponents.NodeActions
+        node={node}
+        organization={organization}
+        onTabScrollToNode={onTabScrollToNode}
+      />
     </TraceDrawerComponents.HeaderContainer>
   );
 }
