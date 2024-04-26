@@ -72,7 +72,7 @@ class SentryAppsTest(APITestCase):
         sentry_app: SentryApp,
         organization: Organization,
         has_features: bool = False,
-        mask_secret: bool = True,
+        mask_secret: bool = False,
         scopes: list[str] | None = None,
     ) -> None:
         assert sentry_app.application is not None
@@ -321,6 +321,7 @@ class GetSentryAppsTest(SentryAppsTest):
             sentry_app=sentry_app,
             organization=self.organization,
             has_features=True,
+            mask_secret=True,
             scopes=["org:admin"],
         )
 
