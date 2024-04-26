@@ -1,6 +1,6 @@
+import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -37,43 +37,31 @@ import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 type Query = {
-  endpoint: string;
-  endpointMethod: string;
   transaction: string;
   transactionMethod: string;
-  [QueryParameterNames.SPANS_SORT]: string;
+  [QueryParameterNames.TRANSACTIONS_SORT]: string;
   aggregate?: string;
 };
 
-type Props = {
-  location: Location<Query>;
-} & RouteComponentProps<Query, {groupId: string}>;
+type Props = RouteComponentProps<Query, {groupId: string}>;
 
-function SpanSummaryPage({params}: Props) {
+export function DatabaseSpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
   const [selectedAggregate] = useSelectedDurationAggregate();
 
   const {groupId} = params;
-  const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
+  const {transaction, transactionMethod} = location.query;
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
   };
 
-  if (endpoint) {
-    filters.transaction = endpoint;
-  }
-
-  if (endpointMethod) {
-    filters['transaction.method'] = endpointMethod;
-  }
-
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.ENDPOINTS_CURSOR]);
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   // TODO: Fetch sort information using `useLocationQuery`
-  const sortField = decodeScalar(location.query?.[QueryParameterNames.ENDPOINTS_SORT]);
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
@@ -155,11 +143,7 @@ function SpanSummaryPage({params}: Props) {
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
-      baseURL="/performance/database"
-      features="spans-first-ui"
-    >
+    <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -278,7 +262,7 @@ function SpanSummaryPage({params}: Props) {
           />
         </Layout.Main>
       </Layout.Body>
-    </ModulePageProviders>
+    </Fragment>
   );
 }
 
@@ -316,4 +300,16 @@ const MetricsRibbon = styled('div')`
   gap: ${space(4)};
 `;
 
-export default SpanSummaryPage;
+function PageWithProviders(props) {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
+      baseURL="/performance/database"
+      features="spans-first-ui"
+    >
+      <DatabaseSpanSummaryPage {...props} />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;
