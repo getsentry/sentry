@@ -2,9 +2,9 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
+import {DeprecatedAssigneeSelectorDropdown} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import type {EventOwners} from 'sentry/components/group/assignedTo';
 import {getAssignedToDisplayName, getOwnerList} from 'sentry/components/group/assignedTo';
@@ -57,7 +57,7 @@ export default function FeedbackAssignedTo({
   const key = showActorName ? 'showActor' : 'hideActor';
 
   return (
-    <AssigneeSelectorDropdown
+    <DeprecatedAssigneeSelectorDropdown
       key={key}
       organization={organization}
       disabled={false}
@@ -94,7 +94,7 @@ export default function FeedbackAssignedTo({
           </ActorWrapper>
         </Button>
       )}
-    </AssigneeSelectorDropdown>
+    </DeprecatedAssigneeSelectorDropdown>
   );
 }
 
