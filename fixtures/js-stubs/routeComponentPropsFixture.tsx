@@ -2,8 +2,8 @@ import type {RouteComponentProps} from 'react-router';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 export function RouteComponentPropsFixture<
-  QueryParams = {orgId: string; projectId: string},
-  RouteParams = {},
+  QueryParams extends {[key: string]: string | undefined},
+  RouteParams extends {[key: string]: string | undefined},
 >(
   params: Partial<RouteComponentProps<QueryParams, RouteParams>> = {}
 ): RouteComponentProps<QueryParams, RouteParams> {
