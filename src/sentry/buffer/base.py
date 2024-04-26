@@ -36,6 +36,14 @@ class Buffer(Service):
         """
         return {col: 0 for col in columns}
 
+    def get_hash(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> dict[str, str]:
+        return {}
+
+    def get_set(self, key: str) -> list[tuple[int, datetime]]:
+        return []
+
     def incr(
         self,
         model: type[models.Model],
