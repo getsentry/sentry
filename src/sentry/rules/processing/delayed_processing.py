@@ -203,8 +203,9 @@ def get_group_id_to_event(
                 "project_id": project.id,
             },
         )
-        eventstore.backend.bind_nodes([event])
-        group_id_to_event[int(group_id)] = event
+        group_id_to_event[group_id] = event
+
+    eventstore.backend.bind_nodes(list(group_id_to_event.values()))
     return group_id_to_event
 
 
@@ -258,7 +259,7 @@ def apply_delayed(project_id: int) -> None:
         )
     # Step 7: Ready, aim, fire!!
 
-    # XXX: would be nice to bulk get the rules somehow but they need to be paired with the group
+    # XXX: would be nice to bulk get the rules somehow
     group_id_to_event = get_group_id_to_event(rulegroup_to_events, project)
 
     now = timezone.now()
