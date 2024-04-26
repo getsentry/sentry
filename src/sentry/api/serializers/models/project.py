@@ -1025,10 +1025,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
     def get_custom_metric_cardinality_limit(self, attrs):
         cardinalityLimits = attrs["options"].get("relay.cardinality-limiter.limits", [])
-        if not cardinalityLimits or len(cardinalityLimits) == 0:
-            return None
-
-        for limit in cardinalityLimits:
+        for limit in cardinalityLimits or ():
             if limit.get("limit", {}).get("id") == "project-override-custom":
                 return limit.get("limit", {}).get("limit", None)
 
