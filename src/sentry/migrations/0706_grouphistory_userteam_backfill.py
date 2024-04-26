@@ -6,15 +6,17 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from progressbar.utils import logging
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def backfill_grouphistory_actor(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     GroupHistory = apps.get_model("sentry", "GroupHistory")
     Actor = apps.get_model("sentry", "Actor")
 
-    query = GroupHistory.objects.filter(actor_id__isnull=False)
-    for history in RangeQuerySetWrapperWithProgressBarApprox(query):
+    for history in RangeQuerySetWrapperWithProgressBar(GroupHistory.objects.all()):
+        # Iterate all records as we have lots of records and no good index to filter and order by
+        if not history.actor_id:
+            continue
         actor = Actor.objects.get(id=history.actor_id)
         changed = False
         if actor.user_id:
