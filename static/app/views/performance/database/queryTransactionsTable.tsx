@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -8,6 +9,7 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -94,47 +96,6 @@ export function QueryTransactionsTable({
   const location = useLocation();
   const organization = useOrganization();
 
-  const renderBodyCell = (column: Column, row: Row) => {
-    if (column.key === 'transaction') {
-      const label =
-        row['transaction.method'] &&
-        !row.transaction.startsWith(row['transaction.method'])
-          ? `${row['transaction.method']} ${row.transaction}`
-          : row.transaction;
-
-      const pathname = normalizeUrl(
-        `/organizations/${organization.slug}$/performance/database/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
-      );
-      const query: {[key: string]: string | undefined} = {
-        ...location.query,
-        transaction: row.transaction,
-        transactionMethod: row['transaction.method'],
-      };
-
-      return (
-        <OverflowEllipsisTextContainer>
-          <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
-        </OverflowEllipsisTextContainer>
-      );
-    }
-
-    if (!meta || !meta?.fields) {
-      return row[column.key];
-    }
-
-    const renderer = getFieldRenderer(column.key, meta.fields, false);
-    const rendered = renderer(
-      {...row, 'span.op': span['span.op']},
-      {
-        location,
-        organization,
-        unit: meta.units?.[column.key],
-      }
-    );
-
-    return rendered;
-  };
-
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
@@ -159,7 +120,8 @@ export function QueryTransactionsTable({
               location,
               sortParameterName: QueryParameterNames.ENDPOINTS_SORT,
             }),
-          renderBodyCell,
+          renderBodyCell: (column, row) =>
+            renderBodyCell(column, row, meta, span, location, organization),
         }}
         location={location}
       />
@@ -167,4 +129,51 @@ export function QueryTransactionsTable({
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
+}
+
+function renderBodyCell(
+  column: Column,
+  row: Row,
+  meta: EventsMetaType | undefined,
+  span: Pick<MetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>,
+  location: Location,
+  organization: Organization
+) {
+  if (column.key === 'transaction') {
+    const label =
+      row['transaction.method'] && !row.transaction.startsWith(row['transaction.method'])
+        ? `${row['transaction.method']} ${row.transaction}`
+        : row.transaction;
+
+    const pathname = normalizeUrl(
+      `/organizations/${organization.slug}$/performance/database/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
+    );
+    const query: {[key: string]: string | undefined} = {
+      ...location.query,
+      transaction: row.transaction,
+      transactionMethod: row['transaction.method'],
+    };
+
+    return (
+      <OverflowEllipsisTextContainer>
+        <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
+      </OverflowEllipsisTextContainer>
+    );
+  }
+
+  if (!meta || !meta?.fields) {
+    return row[column.key];
+  }
+
+  const renderer = getFieldRenderer(column.key, meta.fields, false);
+  const rendered = renderer(
+    {...row, 'span.op': span['span.op']},
+    {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    }
+  );
+
+  return rendered;
 }
