@@ -1510,6 +1510,8 @@ export class VirtualizedViewManager {
   drawInvisibleBars() {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];
+      const text = this.span_text[i];
+
       if (invisible_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
         invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
@@ -1519,6 +1521,21 @@ export class VirtualizedViewManager {
           // @ts-expect-error we set number value type on purpose
           isNaN(inverseScale) ? 1 : inverseScale
         );
+      }
+
+      if (text) {
+        const [inside, text_transform] = this.computeSpanTextPlacement(
+          this.columns.list.column_nodes[i],
+          text.space,
+          text.text
+        );
+
+        if (text_transform === null) {
+          return;
+        }
+
+        text.ref.style.color = inside ? 'white' : '';
+        text.ref.style.transform = `translateX(${text_transform}px)`;
       }
     }
   }
