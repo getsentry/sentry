@@ -55,7 +55,7 @@ def get_stacktrace_string(data):
         if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
 
-        # For each exception, extract its type, value, and stacktrace frames
+        # For each exception, extract its type, value, and up to 50 stacktrace frames
         exc_type, exc_value, frame_str = "", "", ""
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
@@ -63,7 +63,6 @@ def get_stacktrace_string(data):
             elif exception_value.get("id") == "value":
                 exc_value = get_value_if_exists(exception_value)
             elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
-                # Take the last 50 in-app and contributing frames
                 contributing_frames = [
                     frame
                     for frame in exception_value["values"]
@@ -84,7 +83,8 @@ def get_stacktrace_string(data):
 
                     frame_str += f'  File "{frame_dict["filename"]}", line {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
 
-        # Add the exception values into the formatted string
+        # Only exceptions have the type and value properties, so we don't need to handle the threads
+        # case here
         if exception.get("id") == "exception":
             stacktrace_str += f"{exc_type}: {exc_value}\n"
         if frame_str:
