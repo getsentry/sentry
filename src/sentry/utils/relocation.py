@@ -566,21 +566,15 @@ def get_relocations_bucket_name():
 
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
-    # Only test existing users for collision and mutation.
-    existing_usernames = user_service.get_existing_usernames(usernames=relocation.want_usernames)
-    filter_usernames_args = [
-        "--filter-usernames",
-        ",".join(existing_usernames) if existing_usernames else ",",
-    ]
-    filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]
     bucket_root = f"gs://{get_relocations_bucket_name()}"
+    filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]
 
     validation_steps = [
         create_cloudbuild_validation_step(
             id="import-baseline-config",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="config",
-            timeout=300,
+            timeout=600,
             wait_for=[],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=["--overwrite-configs"],
@@ -589,10 +583,10 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="import-colliding-users",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="users",
-            timeout=300,
+            timeout=900,
             wait_for=["import-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
-            args=filter_usernames_args,
+            args=["--filter-usernames-file", "/in/filter-usernames.txt"],
         ),
         create_cloudbuild_validation_step(
             id="import-raw-relocation-data",
@@ -607,7 +601,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-baseline-config",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="config",
-            timeout=300,
+            timeout=600,
             wait_for=["import-raw-relocation-data"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
@@ -616,10 +610,10 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-colliding-users",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="users",
-            timeout=300,
+            timeout=600,
             wait_for=["export-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
-            args=filter_usernames_args,
+            args=["--filter-usernames-file", "/in/filter-usernames.txt"],
         ),
         COPY_OUT_DIR_TEMPLATE.substitute(
             bucket_root=bucket_root,
@@ -630,7 +624,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="compare-baseline-config",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="config",
-            timeout=120,
+            timeout=150,
             wait_for=["copy-out-dir"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
@@ -639,7 +633,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="compare-colliding-users",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="users",
-            timeout=120,
+            timeout=150,
             wait_for=["compare-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=[],

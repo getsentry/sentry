@@ -7,6 +7,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.endpoints.organization_traces import process_breakdowns
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
 
 
 class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
@@ -210,6 +211,15 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 tags={"foo": tags[i]},
             )
 
+        error_data = load_data("javascript", timestamp=timestamps[0])
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": trace_id_1,
+            "span_id": span_ids[0],
+        }
+        error_data["tags"] = [["transaction", "foo"]]
+        self.store_event(error_data, project_id=project_1.id)
+
         for q in [
             [
                 "(foo:bar AND span.duration:>10s) OR (foo:bar AND span.duration:<10m)",
@@ -253,6 +263,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 [
                     {
                         "trace": trace_id_1,
+                        "numErrors": 1,
+                        "numOccurrences": 0,
                         "numSpans": 4,
                         "name": "foo",
                         "duration": 60_100,
@@ -299,6 +311,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     },
                     {
                         "trace": trace_id_2,
+                        "numErrors": 0,
+                        "numOccurrences": 0,
                         "numSpans": 3,
                         "name": "bar",
                         "duration": 90_123,

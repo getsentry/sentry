@@ -1686,6 +1686,12 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
+register(
+    "performance.traces.span_query_minimum_spans",
+    type=Int,
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -2405,9 +2411,18 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TODO: remove once removed from options
 register(
     "issue_platform.use_kafka_partition_key",
     type=Bool,
     default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+register(
+    "issue_platform.use_kafka_partition_key.rollout",
+    type=Float,
+    default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -218,9 +218,12 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         raise NotImplementedError
 
-    def get_option_override(self, duration: timedelta) -> contextlib.AbstractContextManager[object]:
-        # For conditions with interval >= 1 hour we don't need to worry about read your writes
-        # consistency. Disable it so that we can scale to more nodes.
+    def disable_consistent_snuba_mode(
+        self, duration: timedelta
+    ) -> contextlib.AbstractContextManager[object]:
+        """For conditions with interval >= 1 hour we don't need to worry about read your writes
+        consistency. Disable it so that we can scale to more nodes.
+        """
         option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
@@ -248,7 +251,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         comparison_type: str,
     ) -> int:
         start, end = self.get_comparison_start_end(timedelta(), duration)
-        with self.get_option_override(duration):
+        with self.disable_consistent_snuba_mode(duration):
             result = self.query(event, start, end, environment_id=environment_id)
             if comparison_type == ComparisonType.PERCENT:
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
@@ -258,6 +261,36 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 comparison_result = self.query(event, start, end, environment_id=environment_id)
                 result = percent_increase(result, comparison_result)
 
+        return result
+
+    def get_rate_bulk(
+        self,
+        duration: timedelta,
+        comparison_interval: timedelta,
+        group_ids: set[int],
+        environment_id: int,
+        comparison_type: str,
+    ) -> dict[int, int]:
+        start, end = self.get_comparison_start_end(timedelta(), duration)
+        with self.disable_consistent_snuba_mode(duration):
+            result = self.batch_query(
+                group_ids=group_ids,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+            )
+        if comparison_type == ComparisonType.PERCENT:
+            start, comparison_end = self.get_comparison_start_end(comparison_interval, duration)
+            comparison_result = self.batch_query(
+                group_ids=group_ids,
+                start=start,
+                end=comparison_end,
+                environment_id=environment_id,
+            )
+            result = {
+                group_id: percent_increase(result[group_id], comparison_result[group_id])
+                for group_id in group_ids
+            }
         return result
 
     def get_snuba_query_result(

@@ -111,7 +111,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     )
     @patch("sentry.issues.producer._occurrence_producer.produce")
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    @override_options({"issue_platform.use_kafka_partition_key": True})
+    @override_options({"issue_platform.use_kafka_partition_key.rollout": 1.0})
     def test_payload_sent_to_kafka_with_partition_key(
         self, mock_produce, mock_prepare_occurrence_message
     ) -> None:
@@ -135,7 +135,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     )
     @patch("sentry.issues.producer._occurrence_producer.produce")
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    @override_options({"issue_platform.use_kafka_partition_key": True})
+    @override_options({"issue_platform.use_kafka_partition_key.rollout": 1.0})
     def test_payload_sent_to_kafka_with_partition_key_no_fingerprint(
         self, mock_produce, mock_prepare_occurrence_message
     ) -> None:
@@ -155,7 +155,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     )
     @patch("sentry.issues.producer._occurrence_producer.produce")
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    @override_options({"issue_platform.use_kafka_partition_key": True})
+    @override_options({"issue_platform.use_kafka_partition_key.rollout": 1.0})
     def test_payload_sent_to_kafka_with_partition_key_no_occurrence(
         self, mock_produce, mock_prepare_occurrence_message
     ) -> None:
@@ -388,3 +388,19 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         )
         assert group.status == initial_status
         assert group.substatus == initial_substatus
+
+    def test_generate_status_changes_id(self):
+        status_change_1 = StatusChangeMessage(
+            fingerprint=["status-change-1"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        status_change_2 = StatusChangeMessage(
+            fingerprint=["status-change-2"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        assert status_change_1.id
+        assert status_change_1.id != status_change_2.id

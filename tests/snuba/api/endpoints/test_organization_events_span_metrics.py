@@ -1060,6 +1060,47 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["cache_hit_rate()"] == "percentage"
 
+    def test_cache_miss_rate(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "true"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        response = self.do_request(
+            {
+                "field": ["cache_miss_rate()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["cache_miss_rate()"] == 0.75
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["cache_miss_rate()"] == "percentage"
+
     def test_http_response_rate(self):
         self.store_span_metric(
             1,

@@ -113,11 +113,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/metrics/`,
           title: t('Metrics'),
-          show: () =>
-            !!(
-              organization?.features?.includes('custom-metrics') &&
-              organization?.features?.includes('ddm-ui')
-            ),
+          show: () => !!organization?.features?.includes('custom-metrics'),
         },
         {
           path: `${pathPrefix}/replays/`,
