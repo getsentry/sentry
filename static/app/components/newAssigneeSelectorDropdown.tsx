@@ -38,7 +38,7 @@ export type OnAssignCallback = (
   type: Actor['type'],
   assignee: User | AssignableTeam,
   suggestedAssignee?: SuggestedAssignee
-) => void;
+) => Promise<void>;
 
 type AssignableTeam = {
   display: string;
@@ -220,40 +220,45 @@ function NewAssigneeSelectorDropdown({
     }
 
     if (type === 'user') {
-      const assignee = currentMemberList()?.find(member => member.id === assigneeId);
-      setState({...state, loading: true});
+      const assignee = currentMemberList()?.find(
+        member => member.id === assigneeId
+      ) as User;
+      setState({loading: true});
       await assignToUser({
         id: group.id,
         orgSlug: organization.slug,
-        user: assignee as User,
+        user: assignee,
         assignedBy: 'assignee_selector',
       });
-      setState({loading: false});
 
       if (onAssign) {
         const suggestion = getSuggestedAssignees().find(
           actor => actor.type === type && actor.id === assignee?.id
         );
-        onAssign(type, assignee as User, suggestion);
+        await onAssign(type, assignee, suggestion);
       }
+      setState({loading: false});
     } else if (type === 'team') {
-      const assignee = getAssignableTeams().find(team => team.id === assigneeId);
+      const assignee = getAssignableTeams().find(
+        team => team.id === assigneeId
+      ) as AssignableTeam;
+      setState({loading: true});
       await assignToActor({
         id: group.id,
         orgSlug: organization.slug,
-        actor: {id: (assignee as AssignableTeam).id, type: 'team'},
+        actor: {id: assignee.team.id, type: 'team'},
         assignedBy: 'assignee_selector',
-      });
-      setState({
-        loading: false,
       });
 
       if (onAssign) {
         const suggestion = getSuggestedAssignees().find(
           actor => actor.type === type && actor.id === assignee?.id
         );
-        onAssign(type, assignee as AssignableTeam, suggestion);
+        await onAssign(type, assignee, suggestion);
       }
+      setState({
+        loading: false,
+      });
     }
   };
 
@@ -267,22 +272,25 @@ function NewAssigneeSelectorDropdown({
     }
   };
 
-  const makeMemberOption = (member: User): SelectOption<string> => {
-    const isCurrentUser = member.id === sessionUser?.id;
+  const makeMemberOption = (
+    userId: string,
+    userDisplay: string
+  ): SelectOption<string> => {
+    const isCurrentUser = userId === sessionUser?.id;
 
     return {
       label: (
         <IdBadge
           actor={{
-            id: member.id,
-            name: `${member.name || member.email}${isCurrentUser ? ' (You)' : ''}`,
+            id: userId,
+            name: `${userDisplay}${isCurrentUser ? ' (You)' : ''}`,
             type: 'user',
           }}
         />
       ),
       // Jank way to pass assignee type (team or user) into each row
-      value: `USER_${member.id}`,
-      textValue: member.name || member.email,
+      value: `USER_${userId}`,
+      textValue: userDisplay,
     };
   };
 
@@ -308,17 +316,19 @@ function NewAssigneeSelectorDropdown({
           />
         ),
         value: `USER_${assignee.id}`,
+        textValue: assignee.name,
       };
     }
-
+    const assignedTeam = assignee.assignee as AssignableTeam;
     return {
       label: (
         <IdBadge
-          team={(assignee.assignee as AssignableTeam).team}
+          team={assignedTeam.team}
           description={suggestedReasonTable[assignee.suggestedReason]}
         />
       ),
       value: `TEAM_${assignee.id}`,
+      textValue: assignedTeam.team.slug,
     };
   };
 
@@ -350,7 +360,9 @@ function NewAssigneeSelectorDropdown({
           options.push({
             value: '_current_assignee',
             label: t('Current Assignee'),
-            options: [makeMemberOption(assignedUser)],
+            options: [
+              makeMemberOption(assignedUser.id, assignedUser.name || assignedUser.email),
+            ],
           });
           memList = memList?.filter(member => member.id !== group.assignedTo?.id);
         }
@@ -360,7 +372,10 @@ function NewAssigneeSelectorDropdown({
     const memberOptions = {
       value: '_members',
       label: t('Everyone Else'),
-      options: memList?.map(makeMemberOption) ?? [],
+      options:
+        memList?.map(member =>
+          makeMemberOption(member.id, member.name || member.email)
+        ) ?? [],
     };
 
     const teamOptions = {
@@ -383,7 +398,7 @@ function NewAssigneeSelectorDropdown({
   const makeTrigger = (props, isOpen) => {
     const avatarElement = (
       <AssigneeAvatar
-        assignedTo={group.assignedTo} // TODO(msun): Check if teams still have a # in front of them
+        assignedTo={group.assignedTo}
         suggestedActors={getSuggestedAssignees()}
       />
     );
