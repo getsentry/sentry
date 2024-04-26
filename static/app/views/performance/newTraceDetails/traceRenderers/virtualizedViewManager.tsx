@@ -787,9 +787,11 @@ export class VirtualizedViewManager {
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
     }
-    this.horizontal_scrollbar_container!.scrollLeft = -Math.round(
-      this.columns.list.translate[0]
-    );
+    if (this.horizontal_scrollbar_container) {
+      this.horizontal_scrollbar_container.scrollLeft = -Math.round(
+        this.columns.list.translate[0]
+      );
+    }
   }
 
   clampRowTransform(transform: number): number {
@@ -938,7 +940,9 @@ export class VirtualizedViewManager {
         this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
       } else {
         this.bringRowIntoViewAnimation = null;
-        this.horizontal_scrollbar_container!.scrollLeft = -x;
+        if (this.horizontal_scrollbar_container) {
+          this.horizontal_scrollbar_container.scrollLeft = -x;
+        }
         this.columns.list.translate[0] = x;
       }
 
