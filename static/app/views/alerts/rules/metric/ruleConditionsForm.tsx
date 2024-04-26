@@ -797,7 +797,7 @@ type MonitorCardProps = {
 };
 
 const MonitorCard = styled('div')<MonitorCardProps>`
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   display: flex;
   flex-grow: 1;
   flex-direction: column;
