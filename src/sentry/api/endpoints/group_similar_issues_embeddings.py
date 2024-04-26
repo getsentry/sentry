@@ -58,7 +58,6 @@ def get_stacktrace_string(data):
         # For each exception, extract its type, value, and stacktrace frames
         exc_type, exc_value, frame_str = "", "", ""
         for exception_value in exception.get("values", []):
-            contributing_frames = []
             if exception_value.get("id") == "type":
                 exc_type = get_value_if_exists(exception_value)
             elif exception_value.get("id") == "value":
