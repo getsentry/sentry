@@ -236,7 +236,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
   // TODO: Remove once we've finished rolling out the new renderer
   Sentry.setTag(
-    'concurrent-renderer',
+    'concurrentRenderer',
     (window.__initialData.features as unknown as string[]).includes(
       'organizations:react-concurrent-renderer-enabled'
     )
