@@ -595,7 +595,7 @@ class MetricsQueryBuilder(QueryBuilder):
     ) -> SelectType | None:
         metric_id = arguments.get("metric_id")
 
-        if snql_function.snql_distribution is not None and self.evaluate_metric_matches_function(
+        if snql_function.snql_distribution is not None and self._evaluate_metric_matches_function(
             metric_id, "d"
         ):
             resolved_function = snql_function.snql_distribution(arguments, alias)
@@ -607,7 +607,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_set is not None and self.evaluate_metric_matches_function(
+        if snql_function.snql_set is not None and self._evaluate_metric_matches_function(
             metric_id, "s"
         ):
             resolved_function = snql_function.snql_set(arguments, alias)
@@ -616,7 +616,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_counter is not None and self.evaluate_metric_matches_function(
+        if snql_function.snql_counter is not None and self._evaluate_metric_matches_function(
             metric_id, "c"
         ):
             resolved_function = snql_function.snql_counter(arguments, alias)
@@ -625,7 +625,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_gauge is not None and self.evaluate_metric_matches_function(
+        if snql_function.snql_gauge is not None and self._evaluate_metric_matches_function(
             metric_id, "g"
         ):
             resolved_function = snql_function.snql_gauge(arguments, alias)
