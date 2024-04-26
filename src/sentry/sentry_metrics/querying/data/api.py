@@ -14,7 +14,6 @@ from sentry.sentry_metrics.querying.data.postprocessing.base import run_post_pro
 from sentry.sentry_metrics.querying.data.postprocessing.remapping import QueryRemappingStep
 from sentry.sentry_metrics.querying.data.preparation.base import (
     IntermediateQuery,
-    PreparationStep,
     run_preparation_steps,
 )
 from sentry.sentry_metrics.querying.data.preparation.mapping import QueryMappingStep
@@ -68,14 +67,10 @@ def run_queries(
             )
         )
 
-    preparation_steps: list[PreparationStep] = []
-
-    preparation_steps.append(UnitsNormalizationStep())
-
-    preparation_steps.append(QueryMappingStep(projects, DEFAULT_MAPPINGS))
-
     # We run a series of preparation steps which operate on the entire list of queries.
-    intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
+    intermediate_queries = run_preparation_steps(
+        intermediate_queries, UnitsNormalizationStep(), QueryMappingStep(projects, DEFAULT_MAPPINGS)
+    )
 
     # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
     executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
