@@ -71,7 +71,7 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
                     # This is the other issue in the trace that it is not itself
                     "data": [another_proj_event.group_id],
                     "meta": {
-                        "event_id": error_event.event_id,
+                        "event_id": recommended_event.event_id,
                         "trace_id": error_event.trace_id,
                     },
                 },
