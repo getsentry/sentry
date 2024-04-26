@@ -9,6 +9,9 @@ const config: TransformOptions = {
       {
         runtime: 'automatic',
         importSource: '@emotion/react',
+        pure: true,
+        useBuiltIns: true,
+        useSpread: true,
       },
     ],
     [
