@@ -143,6 +143,10 @@ def activate_downstream_actions(
 ) -> MutableMapping[
     str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
 ]:
+    grouped_futures: MutableMapping[
+        str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+    ] = {}
+
     for action in rule.data.get("actions", ()):
         action_inst = instantiate_action(rule, action, rule_fire_history)
         if not action_inst:
@@ -157,10 +161,6 @@ def activate_downstream_actions(
         if results is None:
             logger.warning("Action %s did not return any futures", action["id"])
             continue
-
-        grouped_futures: MutableMapping[
-            str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
-        ] = {}
 
         for future in results:
             key = future.key if future.key is not None else future.callback
