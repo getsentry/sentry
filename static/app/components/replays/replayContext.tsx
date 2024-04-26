@@ -321,6 +321,14 @@ function ProviderNonMemo({
       }
 
       const skipInactive = replayer.config.skipInactive;
+
+      if (skipInactive) {
+        // If the replayer is set to skip inactive, we should turn it off before
+        // manually scrubbing, so when the player resumes playing it's not stuck
+        // fast-forwarding even through sections with activity
+        replayer.setConfig({skipInactive: false});
+      }
+
       const time = clamp(requestedTimeMs, 0, startTimeOffsetMs + durationMs);
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
