@@ -346,6 +346,10 @@ def workstations():
     """
     Create a bespoke Google Cloud Workstation instance.
 
+    NOTE: THIS IS CURRENTLY AN ALPHA STAGE COMMAND! If you are a Sentry dev, you'll need explicit
+    permissions from the OSPO team to spin up a workstation. Please reach out to us on
+    #discuss-self-hosted - we'd be happy to get you set up! :)
+
     This command is primarily intended for Sentry employees working on self-hosted. The
     `workstations` command requires that the `gcloud` command line utility be installed and visible
     from its `$PATH`.

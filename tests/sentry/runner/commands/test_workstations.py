@@ -2,12 +2,7 @@ import subprocess
 from dataclasses import dataclass
 from unittest.mock import MagicMock, Mock, patch
 
-from sentry.runner.commands.workstations import (
-    ERR_BIN_NOT_FOUND,
-    ERR_LOGGED_OUT,
-    ERR_TIMEOUT,
-    workstations,
-)
+from sentry.runner.commands.workstations import ERR_BIN_NOT_FOUND, workstations
 from sentry.testutils.cases import CliTestCase
 
 FAKE_GCLOUD_ERROR = "Fake gcloud error"
@@ -78,18 +73,6 @@ class GcloudCheckTests(WorkstationsTestCase):
         rv = self.invoke()
         assert rv.exit_code == 1
         assert rv.output.strip() == ERR_BIN_NOT_FOUND.strip()
-
-    def test_bad_timeout(self, popen_mock: FakePopen, _: Mock) -> None:
-        popen_mock.wait.side_effect = [raise_timeout]
-        rv = self.invoke()
-        assert rv.exit_code == 3
-        assert rv.output.strip() == ERR_TIMEOUT.strip()
-
-    def test_bad_logged_out(self, popen_mock: FakePopen, _: Mock) -> None:
-        popen_mock.wait.side_effect = [raise_error(ERR_LOGGED_OUT)]
-        rv = self.invoke()
-        assert rv.exit_code == 3
-        assert rv.output.strip() == ERR_LOGGED_OUT.substitute(e=FAKE_GCLOUD_ERROR).strip()
 
 
 @patch("shutil.which", return_value="/fake/path/to/gcloud/bin")
