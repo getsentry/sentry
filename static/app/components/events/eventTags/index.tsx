@@ -92,8 +92,9 @@ export function EventTags({
 
   useEffect(() => {
     const mechanism = filteredTags?.find(tag => tag.key === 'mechanism')?.value;
-    if (mechanism) {
-      Sentry.setTag('hasMechanism', mechanism);
+    const span = Sentry.getActiveSpan();
+    if (mechanism && span) {
+      Sentry.getRootSpan(span).setAttribute('hasMechanism', mechanism);
     }
   }, [filteredTags]);
 

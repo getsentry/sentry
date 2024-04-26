@@ -92,10 +92,12 @@ export function EventContexts({event, group}: Props) {
   );
 
   useEffect(() => {
-    if (usingOtel()) {
-      Sentry.setTag('otel_event', true);
-      Sentry.setTag('otel_sdk', sdk?.name);
-      Sentry.setTag('otel_sdk_version', sdk?.version);
+    const span = Sentry.getActiveSpan();
+    if (usingOtel() && span) {
+      const rootSpan = Sentry.getRootSpan(span);
+      rootSpan.setAttribute('otel_event', true);
+      rootSpan.setAttribute('otel_sdk', sdk?.name);
+      rootSpan.setAttribute('otel_sdk_version', sdk?.version);
     }
   }, [usingOtel, sdk]);
 

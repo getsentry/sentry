@@ -238,7 +238,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setupFramework.ts',
   ],
   testMatch: testMatch || ['<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/', '/node_modules/'],
+  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',
@@ -247,7 +247,7 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.ts?$': ['babel-jest', babelConfig as any],
+    // '^.+\\.ts?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [

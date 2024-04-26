@@ -68,14 +68,15 @@ export class PerformanceInteraction {
 
   static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
     try {
-      const currentIdleTransaction = Sentry.getActiveSpan();
-      if (currentIdleTransaction) {
+      const currentSpan = Sentry.getActiveSpan();
+      if (currentSpan) {
+        const currentIdleSpan = Sentry.getRootSpan(currentSpan);
         // If interaction is started while idle still exists.
-        currentIdleTransaction.setAttribute(
+        currentIdleSpan.setAttribute(
           'sentry.idle_span_finish_reason',
           'sentry.interactionStarted'
         );
-        currentIdleTransaction.end();
+        currentIdleSpan.end();
       }
       PerformanceInteraction.finishInteraction(immediate);
 
@@ -192,6 +193,13 @@ export function VisuallyCompleteWithData({
       return;
     }
     try {
+      const span = Sentry.getActiveSpan();
+
+      if (!span) {
+        return;
+      }
+      const rootSpan = Sentry.getRootSpan(span);
+
       if (!isDataCompleteSet.current && _hasData) {
         isDataCompleteSet.current = true;
 
@@ -205,7 +213,7 @@ export function VisuallyCompleteWithData({
           const startMarks = performance.getEntriesByName(`${id}-${VCD_START}`);
           const endMarks = performance.getEntriesByName(`${id}-${VCD_END}`);
           if (startMarks.length > 1 || endMarks.length > 1) {
-            Sentry.setTag('vcd_extra_recorded_marks', true);
+            rootSpan.setAttribute('vcd_extra_recorded_marks', true);
           }
 
           const startMark = startMarks.at(-1);
