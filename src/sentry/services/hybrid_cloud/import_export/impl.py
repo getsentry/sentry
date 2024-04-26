@@ -186,7 +186,7 @@ class UniversalImportExportService(ImportExportService):
                     batch_model_name, import_flags, import_chunk_type, min_ordinal
                 )
                 if existing_import_chunk is not None:
-                    logger.info("import_by_model.already_imported", extra)
+                    logger.info("import_by_model.already_imported", extra=extra)
                     return existing_import_chunk
 
                 ok_relocation_scopes = import_scope.value
@@ -331,7 +331,7 @@ class UniversalImportExportService(ImportExportService):
                 else:
                     RegionImportChunk(**import_chunk_args).save()
 
-                logger.info("import_by_model.successfully_imported", extra)
+                logger.info("import_by_model.successfully_imported", extra=extra)
                 return RpcImportOk(
                     mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
                     min_ordinal=min_ordinal,
@@ -365,7 +365,7 @@ class UniversalImportExportService(ImportExportService):
                             batch_model_name, import_flags, import_chunk_type, min_ordinal
                         )
                         if existing_import_chunk is not None:
-                            logger.warning("import_by_model.lost_import_race", extra)
+                            logger.warning("import_by_model.lost_import_race", extra=extra)
                             return existing_import_chunk
                     except Exception:
                         sentry_sdk.capture_exception()
