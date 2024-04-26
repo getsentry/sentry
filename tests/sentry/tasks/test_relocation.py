@@ -667,10 +667,9 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         assert preprocessing_baseline_config_mock.call_count == 1
 
         (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/conf")
-        assert len(files) == 3
+        assert len(files) == 2
         assert "cloudbuild.yaml" in files
         assert "cloudbuild.zip" in files
-        assert "filter-usernames.txt" in files
 
         cb_yaml_file = self.relocation_storage.open(f"runs/{self.uuid}/conf/cloudbuild.yaml")
         with cb_yaml_file:
@@ -691,8 +690,9 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         self.insta_snapshot(cb_conf)
 
         (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
-        assert len(files) == 2
+        assert len(files) == 3
         assert "kms-config.json" in files
+        assert "filter-usernames.txt" in files
         assert "raw-relocation-data.tar" in files
 
         kms_file = self.relocation_storage.open(f"runs/{self.uuid}/in/kms-config.json")
@@ -979,7 +979,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
 
         self.relocation_storage.save(f"runs/{self.uuid}/conf/cloudbuild.yaml", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/conf/cloudbuild.zip", BytesIO())
-        self.relocation_storage.save(f"runs/{self.uuid}/conf/filter-usernames.txt", BytesIO())
+        self.relocation_storage.save(f"runs/{self.uuid}/in/filter-usernames.txt", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/kms-config.json", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/raw-relocation-data.tar", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/baseline-config.tar", BytesIO())
@@ -1073,7 +1073,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         validating_start_mock: Mock,
         fake_message_builder: Mock,
     ):
-        self.relocation_storage.delete(f"runs/{self.uuid}/conf/filter-usernames.txt")
+        self.relocation_storage.delete(f"runs/{self.uuid}/in/filter-usernames.txt")
         self.mock_message_builder(fake_message_builder)
 
         # An exception being raised will trigger a retry in celery.
