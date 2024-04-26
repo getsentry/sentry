@@ -1,4 +1,3 @@
-import {act} from 'react-dom/test-utils';
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {DetailedEventsFixture} from 'sentry-fixture/events';
@@ -6,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   findByText,
   fireEvent,
   render,
