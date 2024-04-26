@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {
@@ -18,10 +17,8 @@ import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import type {
   TraceTree,
@@ -209,40 +206,6 @@ function EventSummary({
   );
 }
 
-function ProfileLink({
-  node,
-  organization,
-}: {
-  node: TraceTreeNode<TraceTree.Transaction>;
-  organization: Organization;
-}) {
-  return node.value.profile_id ? (
-    <TraceDrawerComponents.TableRow
-      title="Profile ID"
-      extra={
-        <Button
-          size="xs"
-          to={generateProfileFlamechartRoute({
-            orgSlug: organization.slug,
-            projectSlug: node.value.project_slug,
-            profileId: node.value.profile_id,
-          })}
-          onClick={function handleOnClick() {
-            trackAnalytics('profiling_views.go_to_flamegraph', {
-              organization,
-              source: 'performance.trace_view',
-            });
-          }}
-        >
-          {t('View Profile')}
-        </Button>
-      }
-    >
-      {node.value.profile_id}
-    </TraceDrawerComponents.TableRow>
-  ) : null;
-}
-
 type TableProps = {
   event: EventTransaction;
   location: Location;
@@ -255,7 +218,6 @@ export function Table({node, onParentClick, organization, event, location}: Tabl
   return (
     <TraceDrawerComponents.Table className="table key-value">
       <tbody>
-        <ProfileLink node={node} organization={organization} />
         <DurationSummary node={node} organization={organization} location={location} />
         <EventSummary
           node={node}
