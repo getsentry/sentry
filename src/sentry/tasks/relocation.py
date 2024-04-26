@@ -387,7 +387,7 @@ def preprocessing_transfer(uuid: str) -> None:
             usernames=relocation.want_usernames
         )
         relocation_storage.save(
-            f"runs/{uuid}/conf/filter-usernames.txt",
+            f"runs/{uuid}/in/filter-usernames.txt",
             BytesIO(",".join(existing_usernames or []).encode("utf-8")),
         )
 
@@ -568,7 +568,7 @@ def preprocessing_complete(uuid: str) -> None:
             raise FileNotFoundError("Could not locate `cloudbuild.yaml` in relocation bucket.")
         if not relocation_storage.exists(f"runs/{uuid}/conf/cloudbuild.zip"):
             raise FileNotFoundError("Could not locate `cloudbuild.zip` in relocation bucket.")
-        if not relocation_storage.exists(f"runs/{uuid}/conf/filter-usernames.txt"):
+        if not relocation_storage.exists(f"runs/{uuid}/in/filter-usernames.txt"):
             raise FileNotFoundError("Could not locate `filter-usernames.txt` in relocation bucket.")
         if not relocation_storage.exists(f"runs/{uuid}/in/kms-config.json"):
             raise FileNotFoundError("Could not locate `kms-config.json` in relocation bucket.")
