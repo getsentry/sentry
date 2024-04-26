@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -48,7 +49,7 @@ type Props = {
   location: Location<Query>;
 } & RouteComponentProps<Query, {groupId: string}>;
 
-function SpanSummaryPage({params}: Props) {
+export function DatabaseSpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
@@ -127,11 +128,7 @@ function SpanSummaryPage({params}: Props) {
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
-      baseURL="/performance/database"
-      features="spans-first-ui"
-    >
+    <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -247,7 +244,7 @@ function SpanSummaryPage({params}: Props) {
           />
         </Layout.Main>
       </Layout.Body>
-    </ModulePageProviders>
+    </Fragment>
   );
 }
 
@@ -283,4 +280,16 @@ const MetricsRibbon = styled('div')`
   gap: ${space(4)};
 `;
 
-export default SpanSummaryPage;
+function PageWithProviders(props) {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
+      baseURL="/performance/database"
+      features="spans-first-ui"
+    >
+      <DatabaseSpanSummaryPage {...props} />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;
