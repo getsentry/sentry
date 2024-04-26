@@ -135,10 +135,10 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
             if id_or_slug_path_params_enabled(self.convert_args.__qualname__) and is_uuid(
-                monitor_slug
+                monitor_id_or_slug
             ):
                 kwargs["monitor"] = Monitor.objects.get(
-                    project_id=kwargs["project"].id, guid=monitor_slug
+                    project_id=kwargs["project"].id, guid=monitor_id_or_slug
                 )
             else:
                 kwargs["monitor"] = Monitor.objects.get(
@@ -214,8 +214,10 @@ def get_monitor_by_org_id_or_slug(
     # This is a temporary measure until we remove these org level endpoints
     if id_or_slug_path_params_enabled(
         ProjectMonitorEnvironmentEndpoint.convert_args.__qualname__, str(organization.slug)
-    ) and is_uuid(monitor_slug):
-        monitors = list(Monitor.objects.filter(organization_id=organization.id, guid=monitor_slug))
+    ) and is_uuid(monitor_id_or_slug):
+        monitors = list(
+            Monitor.objects.filter(organization_id=organization.id, guid=monitor_id_or_slug)
+        )
     else:
         monitors = list(
             Monitor.objects.filter(organization_id=organization.id, slug=monitor_id_or_slug)
