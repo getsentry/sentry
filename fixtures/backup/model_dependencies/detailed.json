@@ -5316,11 +5316,6 @@
         "model": "sentry.environment",
         "nullable": true
       },
-      "owner": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
       "owner_team": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.team",
