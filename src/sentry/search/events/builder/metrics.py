@@ -596,7 +596,7 @@ class MetricsQueryBuilder(QueryBuilder):
         metric_id = arguments.get("metric_id")
 
         if snql_function.snql_distribution is not None and self._evaluate_metric_matches_function(
-            metric_id, "d"
+            metric_id, {"d", "measurements"}
         ):
             resolved_function = snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
@@ -778,16 +778,28 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return env_conditions[0]
 
-    def _evaluate_metric_matches_function(self, metric_id, expected_prefix):
-        primary_metric_argument = None
-        if metric_id is not None:
-            primary_metric_argument = indexer.reverse_resolve(
-                self.use_case_id, self.organization_id, metric_id
-            )
+    def _evaluate_metric_matches_function(
+        self, metric_id: int | None, expected_prefix: set[str] | str
+    ):
+        if type(expected_prefix) is str:
+            expected_prefix = {expected_prefix}
 
-        return metric_id is None or (
-            primary_metric_argument is not None and primary_metric_argument[0] == expected_prefix
+        if metric_id is None or metric_id == -1:
+            return True
+
+        primary_metric = indexer.reverse_resolve(self.use_case_id, self.organization_id, metric_id)
+        metric_prefix = primary_metric.split(":")[0] if primary_metric else None
+
+        is_requested_metric_matching_function = (
+            metric_prefix is not None and metric_prefix in expected_prefix
         )
+        is_compatible_measurement = (
+            metric_prefix is not None
+            and metric_prefix.startswith("measurements")
+            and "measurements" in expected_prefix
+        )
+
+        return is_requested_metric_matching_function or is_compatible_measurement
 
     def get_metrics_layer_snql_query(
         self,
