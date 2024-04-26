@@ -44,19 +44,20 @@ function GroupRelatedIssues({params}: Props) {
     staleTime: 0,
   });
 
-  // If the group we're looking related issues for shows up in the table,
-  // it will trigger a bug in getGroupReprocessingStatus because activites would be empty,
-  // thus, we excude it from the list of related issues
-  const sameRootCauseIssues = relatedIssues?.data
-    .filter(item => item.type === 'same_root_cause')
-    .map(item => item.data)
-    .filter(id => id.toString() !== groupId)
-    ?.join(',');
-  const traceConnectedIssues = relatedIssues?.data
-    .filter(item => item.type === 'trace_connected')
-    .map(item => item.data)
-    .filter(id => id.toString() !== groupId)
-    ?.join(',');
+  const {
+    same_root_cause: sameRootCauseIssues = [],
+    trace_connected: traceConnectedIssues = [],
+  } = (relatedIssues?.data ?? []).reduce(
+    (mapping, item) => {
+      // If the group we're looking related issues for shows up in the table,
+      // it will trigger a bug in getGroupReprocessingStatus because activites would be empty,
+      // thus, we excude it from the list of related issues
+      const issuesList = item.data.filter(id => id.toString() !== groupId);
+      mapping[item.type] = issuesList;
+      return mapping;
+    },
+    {same_root_cause: [], trace_connected: []}
+  );
 
   return (
     <Layout.Body>
@@ -80,7 +81,7 @@ function GroupRelatedIssues({params}: Props) {
             <div>
               <HeaderWrapper>
                 <Title>{t('Issues caused by the same root cause')}</Title>
-                {sameRootCauseIssues ? (
+                {sameRootCauseIssues.length > 0 ? (
                   <GroupList
                     endpointPath={`/organizations/${orgSlug}/issues/`}
                     orgSlug={orgSlug}
@@ -96,7 +97,7 @@ function GroupRelatedIssues({params}: Props) {
             <div>
               <HeaderWrapper>
                 <Title>{t('Trace connected issues')}</Title>
-                {traceConnectedIssues ? (
+                {traceConnectedIssues.length > 0 ? (
                   <div>
                     <small>
                       {t(
