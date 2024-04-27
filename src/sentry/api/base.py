@@ -34,7 +34,6 @@ from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -324,29 +323,6 @@ class Endpoint(APIView):
     def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
-    def load_json_body(self, request: Request):
-        """
-        Attempts to load the request body when it's JSON.
-
-        The end result is ``request.json_body`` having a value. When it can't
-        load the body as JSON, for any reason, ``request.json_body`` is None.
-
-        The request flow is unaffected and no exceptions are ever raised.
-        """
-
-        request.json_body = None
-
-        if not request.META.get("CONTENT_TYPE", "").startswith("application/json"):
-            return
-
-        if not len(request.body):
-            return
-
-        try:
-            request.json_body = json.loads(request.body)
-        except json.JSONDecodeError:
-            return
-
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
@@ -380,7 +356,6 @@ class Endpoint(APIView):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
-            self.load_json_body(request)
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
 

@@ -32,18 +32,18 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
             scope.set_tag("sentry_app_slug", installation.sentry_app.slug)
 
             try:
-                if request.json_body.get("grant_type") == GrantTypes.AUTHORIZATION:
+                if request.data.get("grant_type") == GrantTypes.AUTHORIZATION:
                     token = GrantExchanger.run(
                         install=installation,
-                        code=request.json_body.get("code"),
-                        client_id=request.json_body.get("client_id"),
+                        code=request.data.get("code"),
+                        client_id=request.data.get("client_id"),
                         user=promote_request_api_user(request),
                     )
-                elif request.json_body.get("grant_type") == GrantTypes.REFRESH:
+                elif request.data.get("grant_type") == GrantTypes.REFRESH:
                     token = Refresher.run(
                         install=installation,
-                        refresh_token=request.json_body.get("refresh_token"),
-                        client_id=request.json_body.get("client_id"),
+                        refresh_token=request.data.get("refresh_token"),
+                        client_id=request.data.get("client_id"),
                         user=promote_request_api_user(request),
                     )
                 else:
@@ -52,7 +52,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 logger.warning(e, exc_info=True)
                 return Response({"error": e.msg or "Unauthorized"}, status=403)
 
-            attrs = {"state": request.json_body.get("state"), "application": None}
+            attrs = {"state": request.data.get("state"), "application": None}
 
             body = ApiTokenSerializer().serialize(token, attrs, promote_request_api_user(request))
 

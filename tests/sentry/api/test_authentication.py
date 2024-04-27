@@ -53,7 +53,7 @@ class TestClientIdSecretAuthentication(TestCase):
 
     def test_authenticate(self):
         request = HttpRequest()
-        request.json_body = {
+        request.data = {
             "client_id": self.api_app.client_id,
             "client_secret": self.api_app.client_secret,
         }
@@ -64,35 +64,35 @@ class TestClientIdSecretAuthentication(TestCase):
 
     def test_without_json_body(self):
         request = HttpRequest()
-        request.json_body = None
+        request.data = None
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_missing_client_id(self):
         request = HttpRequest()
-        request.json_body = {"client_secret": self.api_app.client_secret}
+        request.data = {"client_secret": self.api_app.client_secret}
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_missing_client_secret(self):
         request = HttpRequest()
-        request.json_body = {"client_id": self.api_app.client_id}
+        request.data = {"client_id": self.api_app.client_id}
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_incorrect_client_id(self):
         request = HttpRequest()
-        request.json_body = {"client_id": "notit", "client_secret": self.api_app.client_secret}
+        request.data = {"client_id": "notit", "client_secret": self.api_app.client_secret}
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_incorrect_client_secret(self):
         request = HttpRequest()
-        request.json_body = {"client_id": self.api_app.client_id, "client_secret": "notit"}
+        request.data = {"client_id": self.api_app.client_id, "client_secret": "notit"}
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
