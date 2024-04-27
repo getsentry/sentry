@@ -76,12 +76,13 @@ function SearchQueryBuilderInputInternal({
   token,
   tabIndex,
 }: SearchQueryBuilderInputInternalProps) {
-  const [inputValue, setInputValue] = useState(token.value.trim());
+  const trimmedTokenValue = token.value.trim();
+  const [inputValue, setInputValue] = useState(trimmedTokenValue);
   // TODO(malwilley): Use input ref to update cursor position on mount
   const [selectionIndex, setSelectionIndex] = useState(0);
 
   const resetInputValue = () => {
-    setInputValue(token.value.trim());
+    setInputValue(trimmedTokenValue);
     // TODO(malwilley): Reset cursor position using ref
   };
 
@@ -109,10 +110,10 @@ function SearchQueryBuilderInputInternal({
   }, [allKeys]);
 
   // When token value changes, reset the input value
-  const [prevValue, setPrevValue] = useState(token.value);
-  if (token.value.trim() !== prevValue) {
-    setPrevValue(token.value.trim());
-    setInputValue(token.value.trim());
+  const [prevValue, setPrevValue] = useState(inputValue);
+  if (trimmedTokenValue !== prevValue) {
+    setPrevValue(trimmedTokenValue);
+    setInputValue(trimmedTokenValue);
   }
 
   return (
