@@ -35,16 +35,14 @@ class TestGroupAutofixUpdate(APITestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update",
-            data=json.dumps(
-                {
-                    "run_id": 123,
-                    "payload": {
-                        "type": "select_root_cause",
-                        "cause_id": 456,
-                        "fix_id": 789,
-                    },
-                }
-            ).encode("utf-8"),
+            data={
+                "run_id": 123,
+                "payload": {
+                    "type": "select_root_cause",
+                    "cause_id": 456,
+                    "fix_id": 789,
+                },
+            },
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
