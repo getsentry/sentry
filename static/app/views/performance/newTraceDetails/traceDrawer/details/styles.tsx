@@ -617,14 +617,14 @@ function SectionCardContent({
 
   return (
     <ContextContent {...props}>
-      {contextSubject ? <ContextSubject>{contextSubject}</ContextSubject> : null}
-      <ContextValueWrapper className="ctx-row-value">
+      {contextSubject ? <CardContentSubject>{contextSubject}</CardContentSubject> : null}
+      <CardContentValueWrapper className="ctx-row-value">
         {defined(action?.link) ? (
           <Link to={action.link}>{dataComponent}</Link>
         ) : (
           dataComponent
         )}
-      </ContextValueWrapper>
+      </CardContentValueWrapper>
     </ContextContent>
   );
 }
@@ -635,7 +635,7 @@ function SectionCard({items, title}: {items: KeyValueListData; title: React.Reac
 
   return (
     <Card>
-      <ContextTitle>{title}</ContextTitle>
+      <CardContentTitle>{title}</CardContentTitle>
       {items.slice(0, showingAll ? items.length : 5).map(item => (
         <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
       ))}
@@ -656,7 +656,7 @@ const Card = styled(Panel)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const ContextTitle = styled('p')`
+const CardContentTitle = styled('p')`
   grid-column: 1 / -1;
   padding: ${space(0.25)} ${space(0.75)};
   margin: 0;
@@ -679,13 +679,13 @@ const ContextContent = styled('div')`
   }
 `;
 
-const ContextSubject = styled('div')`
+export const CardContentSubject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-wrap: break-word;
 `;
 
-const ContextValueWrapper = styled(ContextSubject)`
+const CardContentValueWrapper = styled(CardContentSubject)`
   color: ${p => p.theme.textColor};
   grid-column: span 2;
 `;

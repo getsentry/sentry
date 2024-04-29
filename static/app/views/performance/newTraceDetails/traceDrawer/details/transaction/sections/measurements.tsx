@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {ContextSubject} from 'sentry/components/events/contexts/contextCard';
 import {
   getFieldTypeFromUnit,
   isNotMarkMeasurement,
@@ -20,7 +19,7 @@ import {
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {TraceDrawerComponents} from '../../styles';
+import {CardContentSubject, TraceDrawerComponents} from '../../styles';
 
 type MeasurementsProps = {
   event: EventTransaction;
@@ -164,7 +163,7 @@ const MeasurementValue = styled('div')`
 `;
 
 const Wrapper = styled('div')`
-  ${ContextSubject} {
+  ${CardContentSubject} {
     display: flex;
     align-items: center;
   }
