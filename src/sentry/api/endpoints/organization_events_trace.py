@@ -472,14 +472,15 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
 
 
 @sentry_sdk.tracing.trace
-def update_params_with_trace_timestamp_projects(
+def create_transaction_params(
     trace_id: str,
     params: Mapping[str, str],
-) -> None:
+) -> Mapping[str, str]:
+    transaction_params = params.copy()
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
     if not query_metadata:
-        return
+        return transaction_params
 
     metadata_query = QueryBuilder(
         Dataset.Discover,
@@ -519,17 +520,22 @@ def update_params_with_trace_timestamp_projects(
     # Reusing this option for now
     time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
     if min_timestamp:
-        params["start"] = min_timestamp - timedelta(hours=time_buffer)
+        transaction_params["start"] = min_timestamp - timedelta(hours=time_buffer)
     if max_timestamp:
-        params["end"] = max_timestamp + timedelta(hours=time_buffer)
-    params["project_objects"] = [p for p in params["project_objects"] if p.id in project_ids]
-    params["project_id"] = project_ids
+        transaction_params["end"] = max_timestamp + timedelta(hours=time_buffer)
+    transaction_params["project_objects"] = [
+        p for p in transaction_params["project_objects"] if p.id in project_ids
+    ]
+    transaction_params["project_id"] = project_ids
+
+    return transaction_params
 
 
 @sentry_sdk.tracing.trace
 def query_trace_data(
     trace_id: str,
     params: Mapping[str, str],
+    transaction_params: Mapping[str, str],
     limit: int,
     event_id: str | None,
     use_spans: bool,
@@ -567,7 +573,7 @@ def query_trace_data(
         )
     transaction_query = QueryBuilder(
         Dataset.Transactions,
-        params,
+        transaction_params,
         query=f"trace:{trace_id}",
         selected_columns=transaction_columns,
         orderby=transaction_orderby,
@@ -981,17 +987,19 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with handle_query_errors():
-            update_params_with_trace_timestamp_projects(trace_id, params)
+            transaction_params = create_transaction_params(trace_id, params)
 
             if use_spans:
                 transactions, errors = query_trace_data(
-                    trace_id, params, limit, event_id, use_spans
+                    trace_id, params, transaction_params, limit, event_id, use_spans
                 )
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
                 )
             else:
-                transactions, errors = query_trace_data(trace_id, params, limit, None, False)
+                transactions, errors = query_trace_data(
+                    trace_id, params, transaction_params, limit, None, False
+                )
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
@@ -1568,7 +1576,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         update_snuba_params_with_timestamp(request, params)
 
         with handle_query_errors():
-            update_params_with_trace_timestamp_projects(trace_id, params)
             result = discover.query(
                 selected_columns=[
                     "count_unique(project_id) as projects",
