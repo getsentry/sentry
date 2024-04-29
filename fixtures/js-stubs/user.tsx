@@ -24,9 +24,9 @@ export function UserFixture(params: Partial<User> = {}): User {
     dateJoined: '2020-01-01T00:00:00.000Z',
     emails: [
       {
-        "id": '1',
-        "email": 'foo@example.com',
-        "is_verified": true, 
+        id: '1',
+        email: 'foo@example.com',
+        is_verified: true,
       },
     ],
     experiments: [],
