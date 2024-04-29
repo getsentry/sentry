@@ -817,5 +817,23 @@ describe('GroupActivity', function () {
         'Sentry updated the priority value of this issue to be low after it was marked as ongoing'
       );
     });
+
+    it('renders a deleted attachment activity', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.DELETED_ATTACHMENT,
+            project: ProjectFixture(),
+            data: {},
+            dateCreated,
+            user: UserFixture(),
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'deleted an attachment'
+      );
+    });
   });
 });

@@ -62,7 +62,9 @@ def deduplicate(data):
             continue
 
         to_deduplicate, to_inline = interface.encode(data.pop(key))
-        to_deduplicate_serialized = json.dumps(to_deduplicate).encode()
+        to_deduplicate_serialized = json.dumps_experimental(
+            "eventstore.enable-orjson", to_deduplicate
+        ).encode()
         checksum = hashlib.md5(to_deduplicate_serialized).hexdigest()
         extra_keys[checksum] = to_deduplicate
         patchsets.append([key, checksum, to_inline])

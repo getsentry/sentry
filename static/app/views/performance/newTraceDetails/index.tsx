@@ -42,7 +42,6 @@ import {
   type DispatchingReducerMiddleware,
   useDispatchingReducer,
 } from 'sentry/utils/useDispatchingReducer';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -735,32 +734,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     storeTraceViewPreferences(traceState.preferences);
   }, [traceState.preferences]);
 
-  // Setup outside click handler so that we can clear the currently clicked node
-  const onOutsideTraceContainerClick = useCallback(() => {
-    if (tree.type !== 'trace') {
-      // Dont clear the URL in case the trace is still loading or failed for some reason,
-      // we want to keep the eventId in the URL so the user can share the URL with support
-      return;
-    }
-    // we will drop eventId such that after users clicks outside and shares the URL
-    const {
-      node: _node,
-      eventId: _eventId,
-      ...queryParamsWithoutNode
-    } = qs.parse(location.search);
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query: queryParamsWithoutNode,
-    });
-
-    traceDispatch({type: 'clear'});
-  }, [tree, traceDispatch]);
-
-  const [clickOutsideRef, setClickOutsideRef] = useState<HTMLElement | null>(null);
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
-
-  useOnClickOutside(clickOutsideRef, onOutsideTraceContainerClick);
 
   // Memoized because it requires tree traversal
   const shape = useMemo(() => tree.shape, [tree]);
@@ -791,7 +765,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         traces={props.trace}
         traceID={props.traceSlug}
       />
-      <TraceInnerLayout ref={setClickOutsideRef}>
+      <TraceInnerLayout>
         <TraceToolbar>
           <TraceSearchInput
             trace_state={traceState}
