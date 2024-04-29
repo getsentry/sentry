@@ -1,27 +1,25 @@
 import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {
-  Card,
-  ContextCardContent,
-  ContextTitle,
-} from 'sentry/components/events/contexts/contextCard';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
-import {formatBytesBase10} from 'sentry/utils';
+import {defined, formatBytesBase10} from 'sentry/utils';
 import {getDuration} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -576,6 +574,61 @@ const ActionsContainer = styled('div')`
   }
 `;
 
+interface SectionCardContentConfig {
+  disableErrors?: boolean;
+  includeAliasInSubject?: boolean;
+}
+
+export interface SectionCardContentProps {
+  item: KeyValueListDataItem;
+  meta: Record<string, any>;
+  alias?: string;
+  config?: SectionCardContentConfig;
+}
+
+function SectionCardContent({
+  item,
+  alias,
+  meta,
+  config,
+  ...props
+}: SectionCardContentProps) {
+  const {key, subject, value, action = {}} = item;
+  if (key === 'type') {
+    return null;
+  }
+
+  const dataComponent = (
+    <StructuredData
+      value={value}
+      depth={0}
+      maxDefaultDepth={0}
+      meta={meta?.[key]}
+      withAnnotatedText
+      withOnlyFormattedText
+    />
+  );
+
+  const contextSubject = subject
+    ? config?.includeAliasInSubject && alias
+      ? `${startCase(alias)}: ${subject}`
+      : subject
+    : null;
+
+  return (
+    <ContextContent {...props}>
+      {contextSubject ? <ContextSubject>{contextSubject}</ContextSubject> : null}
+      <ContextValueWrapper className="ctx-row-value">
+        {defined(action?.link) ? (
+          <Link to={action.link}>{dataComponent}</Link>
+        ) : (
+          dataComponent
+        )}
+      </ContextValueWrapper>
+    </ContextContent>
+  );
+}
+
 function SectionCard({items, title}: {items: KeyValueListData; title: React.ReactNode}) {
   const [showingAll, setShowingAll] = useState(false);
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
@@ -584,7 +637,7 @@ function SectionCard({items, title}: {items: KeyValueListData; title: React.Reac
     <Card>
       <ContextTitle>{title}</ContextTitle>
       {items.slice(0, showingAll ? items.length : 5).map(item => (
-        <ContextCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
+        <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
       ))}
       {items.length > 5 && (
         <TruncateActionWrapper>
@@ -594,6 +647,48 @@ function SectionCard({items, title}: {items: KeyValueListData; title: React.Reac
     </Card>
   );
 }
+
+const Card = styled(Panel)`
+  padding: ${space(0.75)};
+  display: grid;
+  column-gap: ${space(1.5)};
+  grid-template-columns: minmax(100px, auto) 1fr 30px;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const ContextTitle = styled('p')`
+  grid-column: 1 / -1;
+  padding: ${space(0.25)} ${space(0.75)};
+  margin: 0;
+  color: ${p => p.theme.headingColor};
+  font-weight: bold;
+`;
+
+const ContextContent = styled('div')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: span 3;
+  column-gap: ${space(1.5)};
+  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: 4px;
+  color: ${p => p.theme.subText};
+  border: 1px solid 'transparent';
+  background-color: ${p => p.theme.background};
+  &:nth-child(odd) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+`;
+
+const ContextSubject = styled('div')`
+  grid-column: span 1;
+  font-family: ${p => p.theme.text.familyMono};
+  word-wrap: break-word;
+`;
+
+const ContextValueWrapper = styled(ContextSubject)`
+  color: ${p => p.theme.textColor};
+  grid-column: span 2;
+`;
 
 const TruncateActionWrapper = styled('div')`
   grid-column: 1 / -1;

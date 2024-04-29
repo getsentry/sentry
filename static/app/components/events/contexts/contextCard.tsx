@@ -1,4 +1,3 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -9,6 +8,7 @@ import {
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
@@ -63,25 +63,26 @@ export function ContextCardContent({
     />
   );
 
-  const contextSubject = subject
-    ? config?.includeAliasInSubject && alias
-      ? `${startCase(alias)}: ${subject}`
-      : subject
-    : null;
+  const contextSubject =
+    config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
 
   return (
     <ContextContent hasErrors={hasErrors} {...props}>
-      {contextSubject ? <ContextSubject>{contextSubject}</ContextSubject> : null}
-      <ContextValueWrapper hasErrors={hasErrors} className="ctx-row-value">
-        {defined(action?.link) ? (
-          <Link to={action.link}>{dataComponent}</Link>
-        ) : (
-          dataComponent
+      <ContextSubject>{contextSubject}</ContextSubject>
+      <ContextValueSection hasErrors={hasErrors}>
+        <ContextValueWrapper>
+          {defined(action?.link) ? (
+            <Link to={action.link}>{dataComponent}</Link>
+          ) : (
+            dataComponent
+          )}
+        </ContextValueWrapper>
+        {hasErrors && (
+          <ContextErrors>
+            <AnnotatedTextErrors errors={contextErrors} />
+          </ContextErrors>
         )}
-      </ContextValueWrapper>
-      <ContextErrors>
-        <AnnotatedTextErrors errors={contextErrors} />
-      </ContextErrors>
+      </ContextValueSection>
     </ContextContent>
   );
 }
@@ -119,26 +120,26 @@ export default function ContextCard({
   );
 }
 
-export const Card = styled(Panel)`
+const Card = styled(Panel)`
   padding: ${space(0.75)};
   display: grid;
   column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, auto) 1fr 30px;
+  grid-template-columns: minmax(100px, auto) 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export const ContextTitle = styled('p')`
-  grid-column: 1 / -1;
+const ContextTitle = styled('p')`
+  grid-column: span 2;
   padding: ${space(0.25)} ${space(0.75)};
   margin: 0;
   color: ${p => p.theme.headingColor};
   font-weight: bold;
 `;
 
-export const ContextContent = styled('div')<{hasErrors: boolean}>`
+const ContextContent = styled('div')<{hasErrors: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
-  grid-column: span 3;
+  grid-column: span 2;
   column-gap: ${space(1.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
@@ -152,15 +153,22 @@ export const ContextContent = styled('div')<{hasErrors: boolean}>`
   }
 `;
 
-export const ContextSubject = styled('div')`
+const ContextSubject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
-  word-wrap: break-word;
+  word-break: break-word;
 `;
 
-export const ContextValueWrapper = styled(ContextSubject)<{hasErrors: boolean}>`
+const ContextValueSection = styled(ContextSubject)<{hasErrors: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
-  grid-column: span ${p => (p.hasErrors ? 1 : 2)};
+  grid-column: span 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-column-gap: ${space(0.5)};
+`;
+
+const ContextValueWrapper = styled('div')`
+  word-break: break-word;
 `;
 
 const ContextErrors = styled('div')``;
