@@ -206,6 +206,7 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
                 "title": transaction_name,
             },
             "nodestore_insert": (root_span.get("start_timestamp_ms", 0.0) + span_duration) / 1000,
+            "projectSlug": self.project.slug,
             "received": (root_span.get("start_timestamp_ms", 0.0) + span_duration) / 1000,
             "request": {},
             "sdk": {
