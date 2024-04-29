@@ -12,7 +12,10 @@ class ProjectDsymsDocs(APIDocsTestCase):
     def setUp(self):
         self.url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
         self.create_dif_file(project=self.project)
 

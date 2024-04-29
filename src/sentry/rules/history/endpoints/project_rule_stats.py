@@ -47,7 +47,7 @@ class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
         operation_id="Retrieve Firing Starts for an Issue Alert Rule for a Given Time Range.",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         responses={

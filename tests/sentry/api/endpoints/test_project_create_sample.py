@@ -18,7 +18,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -31,7 +34,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -43,7 +49,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -55,7 +64,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -67,7 +79,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -79,7 +94,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -91,7 +109,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -103,7 +124,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -115,7 +139,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -127,7 +154,10 @@ class ProjectCreateSampleTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.post(url, format="json")

@@ -18,7 +18,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-tagkey-values",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -43,7 +43,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-tagkey-values",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -72,7 +72,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-tagkey-values",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -100,7 +100,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-tagkey-values",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )

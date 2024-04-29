@@ -15,9 +15,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project.",
+        "description": "The id or slug of the project.",
         "required": true,
         "schema": {
           "type": "string"

@@ -105,7 +105,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         Retrieve a list of individual artifacts or artifact bundles for a given project.
 
         :pparam string organization_slug: the slug of the organization to query.
-        :pparam string project_slug: the slug of the project to query.
+        :pparam string project_id_or_slug: the id or slug of the project to query.
         :qparam string debug_id: if set, will query and return the artifact
                                  bundle that matches the given `debug_id`.
         :qparam string url: if set, will query and return all the individual

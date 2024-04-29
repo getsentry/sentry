@@ -18,7 +18,7 @@ class ProjectPluginsTest(APITestCase):
                 "sentry-api-0-project-plugins",
                 kwargs={
                     "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
+                    "project_id_or_slug": project.slug,
                 },
             )
             response = self.client.get(url)

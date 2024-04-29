@@ -28,7 +28,7 @@ class ProjectReleaseCommitsListDocsTest(APIDocsTestCase):
             "sentry-api-0-project-release-commits",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )

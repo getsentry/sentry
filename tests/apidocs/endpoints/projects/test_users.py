@@ -17,7 +17,10 @@ class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
         timestamp = iso_format(timezone.now() - timedelta(hours=1))
         self.url = reverse(
             "sentry-api-0-project-users",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
 
         self.event1 = self.store_event(

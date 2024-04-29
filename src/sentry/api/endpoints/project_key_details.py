@@ -41,7 +41,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         operation_id="Retrieve a Client Key",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the client key"),
         ],
         request=None,
@@ -69,7 +69,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         operation_id="Update a Client Key",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the key to update."),
         ],
         request=inline_serializer(
@@ -173,7 +173,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         operation_id="Delete a Client Key",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the key to delete."),
         ],
         responses={

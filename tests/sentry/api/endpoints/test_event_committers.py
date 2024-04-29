@@ -37,7 +37,7 @@ class EventCommittersTest(APITestCase):
             "sentry-api-0-event-file-committers",
             kwargs={
                 "event_id": event.event_id,
-                "project_slug": event.project.slug,
+                "project_id_or_slug": event.project.slug,
                 "organization_slug": event.project.organization.slug,
             },
         )
@@ -67,7 +67,7 @@ class EventCommittersTest(APITestCase):
             "sentry-api-0-event-file-committers",
             kwargs={
                 "event_id": event.event_id,
-                "project_slug": event.project.slug,
+                "project_id_or_slug": event.project.slug,
                 "organization_slug": event.project.organization.slug,
             },
         )
@@ -90,7 +90,7 @@ class EventCommittersTest(APITestCase):
             "sentry-api-0-event-file-committers",
             kwargs={
                 "event_id": event.event_id,
-                "project_slug": event.project.slug,
+                "project_id_or_slug": event.project.slug,
                 "organization_slug": event.project.organization.slug,
             },
         )
@@ -133,7 +133,7 @@ class EventCommittersTest(APITestCase):
             "sentry-api-0-event-file-committers",
             kwargs={
                 "event_id": event.event_id,
-                "project_slug": event.project.slug,
+                "project_id_or_slug": event.project.slug,
                 "organization_slug": event.project.organization.slug,
             },
         )
@@ -177,7 +177,7 @@ class EventCommittersTest(APITestCase):
             "sentry-api-0-event-file-committers",
             kwargs={
                 "event_id": event.event_id,
-                "project_slug": event.project.slug,
+                "project_id_or_slug": event.project.slug,
                 "organization_slug": event.project.organization.slug,
             },
         )
@@ -237,7 +237,7 @@ class EventCommittersTest(APITestCase):
             "sentry-api-0-event-file-committers",
             kwargs={
                 "event_id": event.event_id,
-                "project_slug": event.project.slug,
+                "project_id_or_slug": event.project.slug,
                 "organization_slug": event.project.organization.slug,
             },
         )

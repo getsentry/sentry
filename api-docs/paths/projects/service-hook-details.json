@@ -14,9 +14,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the client keys belong to.",
+        "description": "The id or slug of the project the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -79,9 +79,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the client keys belong to.",
+        "description": "The id or slug of the project the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -175,9 +175,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the client keys belong to.",
+        "description": "The id or slug of the project the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"

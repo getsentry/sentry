@@ -155,7 +155,7 @@ Retrieve a collection of feedback items.
     }
     ```
 
-## Feedback [/projects/<organization_slug>/<project_slug>/feedback/<feedback_id>/]
+## Feedback [/projects/<organization_slug>/<project_id_or_slug>/feedback/<feedback_id>/]
 
 - Model
 

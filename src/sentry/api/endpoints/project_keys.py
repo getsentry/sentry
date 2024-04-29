@@ -34,7 +34,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         operation_id="List a Project's Client Keys",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             CursorQueryParam,
             ProjectParams.STATUS,
         ],
@@ -73,7 +73,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         operation_id="Create a New Client Key",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectKeyPostSerializer,
         responses={

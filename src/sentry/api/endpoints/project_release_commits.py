@@ -28,7 +28,7 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      release files of.
         :pparam string version: the version identifier of the release.
 

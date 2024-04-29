@@ -39,7 +39,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         operation_id="Debug Issues Related to Source Maps for a Given Event",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
             EventParams.FRAME_IDX,
             EventParams.EXCEPTION_IDX,

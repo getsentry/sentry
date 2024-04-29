@@ -65,7 +65,7 @@ class EventAiSuggestedFixEndpointTest(APITestCase):
             "sentry-api-0-event-ai-fix-suggest",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": self.event.event_id,
             },
         )

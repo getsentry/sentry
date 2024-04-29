@@ -14,9 +14,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project to list the DIFs of.",
+        "description": "The id or slug of the project to list the DIFs of.",
         "required": true,
         "schema": {
           "type": "string"
@@ -58,9 +58,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project to upload a file to.",
+        "description": "The id or slug of the project to upload a file to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -126,9 +126,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project to delete the DIF.",
+        "description": "The id or slug of the project to delete the DIF.",
         "required": true,
         "schema": {
           "type": "string"

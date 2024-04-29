@@ -12,7 +12,10 @@ class ProjectTransferTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-transfer",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         with self.settings(SENTRY_PROJECT=project.id):
@@ -31,7 +34,7 @@ class ProjectTransferTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-transfer",
-            kwargs={"organization_slug": organization.slug, "project_slug": project.slug},
+            kwargs={"organization_slug": organization.slug, "project_id_or_slug": project.slug},
         )
 
         with self.tasks():
@@ -50,7 +53,10 @@ class ProjectTransferTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-transfer",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         with self.settings(SENTRY_PROJECT=0):

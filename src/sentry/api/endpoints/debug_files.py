@@ -159,7 +159,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           file belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      DIFs of.
         :qparam string proguard_uuid: the uuid of the Proguard file.
         :auth: required
@@ -229,7 +229,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           file belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      DIFs of.
         :qparam string query: If set, this parameter is used to locate DIFs with.
         :qparam string id: If set, the specified DIF will be sent in the response.
@@ -314,7 +314,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           file belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                      DIF.
         :qparam string id: The id of the DIF to delete.
         :auth: required
@@ -348,7 +348,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.
         :param file file: the multipart encoded file.
         :auth: required
@@ -523,7 +523,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           source map archive belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      source map archives of.
         :qparam string query: If set, this parameter is used to locate source map archives with.
         :auth: required
@@ -587,7 +587,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                             archive belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                         archive of.
         :qparam string name: The name of the archive to delete.
         :auth: required

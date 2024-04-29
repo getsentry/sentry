@@ -33,7 +33,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry-api-0-event-grouping-info",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )
@@ -52,7 +52,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry-api-0-event-grouping-info",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )
@@ -70,7 +70,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry-api-0-event-grouping-info",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )

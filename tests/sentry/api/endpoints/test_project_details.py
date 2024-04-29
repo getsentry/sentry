@@ -270,7 +270,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             "sentry-api-0-project-details",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -1586,7 +1586,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry-api-0-project-details",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
         self.login_as(user=self.user)
@@ -1687,7 +1687,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry-api-0-project-details",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -1731,7 +1731,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             "sentry-api-0-project-details",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 

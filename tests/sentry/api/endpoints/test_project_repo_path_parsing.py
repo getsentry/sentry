@@ -20,7 +20,10 @@ class BaseStacktraceLinkTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-repo-path-parsing",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})

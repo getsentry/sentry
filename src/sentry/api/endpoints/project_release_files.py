@@ -246,7 +246,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      release files of.
         :pparam string version: the version identifier of the release.
         :qparam string query: If set, only files with these partial names will be returned.
@@ -278,7 +278,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.
         :pparam string version: the version identifier of the release.
         :param string name: the name (full path) of the file.

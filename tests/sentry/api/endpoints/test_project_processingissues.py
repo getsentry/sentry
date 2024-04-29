@@ -25,7 +25,10 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-processing-issues",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
+            kwargs={
+                "organization_slug": project1.organization.slug,
+                "project_id_or_slug": project1.slug,
+            },
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -61,7 +64,10 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-processing-issues",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
+            kwargs={
+                "organization_slug": project1.organization.slug,
+                "project_id_or_slug": project1.slug,
+            },
         )
         response = self.client.get(url + "?detailed=1", format="json")
         assert response.status_code == 200, response.content
@@ -87,7 +93,10 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-processing-issues",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
+            kwargs={
+                "organization_slug": project1.organization.slug,
+                "project_id_or_slug": project1.slug,
+            },
         )
         response = self.client.get(url + "?detailed=1", format="json")
         assert response.status_code == 200, response.content

@@ -25,7 +25,7 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
         Return a list of teams that have access to this project.
 
         :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         """
         queryset = Team.objects.filter(projectteam__project=project)

@@ -28,7 +28,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.external_team = self.create_external_team(integration=self.integration)
         self.url = reverse(
             "sentry-api-0-project-codeowners",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
         self.data = {
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n",

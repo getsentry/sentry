@@ -14,7 +14,10 @@ class ReleaseTokenGetTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases-token",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -29,7 +32,10 @@ class ReleaseTokenGetTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases-token",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -45,7 +51,10 @@ class ReleaseTokenGetTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases-token",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -64,7 +73,10 @@ class ReleaseTokenGetTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases-token",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)

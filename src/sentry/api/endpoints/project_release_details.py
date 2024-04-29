@@ -36,7 +36,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to retrieve the
+        :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      release of.
         :pparam string version: the version identifier of the release.
         :auth: required
@@ -80,7 +80,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.
         :pparam string version: the version identifier of the release.
         :param string ref: an optional commit reference.  This is useful if
@@ -156,7 +156,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                      release of.
         :pparam string version: the version identifier of the release.
         :auth: required

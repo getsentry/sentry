@@ -30,7 +30,7 @@ class GroupTombstoneDetailsTest(APITestCase):
             "sentry-api-0-group-tombstone-details",
             kwargs={
                 "organization_slug": self.org.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "tombstone_id": tombstone.id,
             },
         )
@@ -68,7 +68,7 @@ class GroupTombstoneDetailsTest(APITestCase):
             "sentry-api-0-group-tombstone-details",
             kwargs={
                 "organization_slug": self.org.slug,
-                "project_slug": self.other_project.slug,
+                "project_id_or_slug": self.other_project.slug,
                 "tombstone_id": tombstone.id,
             },
         )

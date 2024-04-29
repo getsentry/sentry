@@ -12,7 +12,7 @@ class ProjectServiceHookDetailsDocs(APIDocsTestCase):
             "sentry-api-0-project-service-hook-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "hook_id": hook.guid,
             },
         )

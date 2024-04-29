@@ -32,7 +32,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         resolutions.
 
         :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :qparam string stat: the name of the stat to query (``"received"``,
                              ``"rejected"``, ``"blacklisted"``, ``generated``)
         :qparam timestamp since: a timestamp to set the start of the query

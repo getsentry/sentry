@@ -14,9 +14,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the event belongs to.",
+        "description": "The id or slug of the project the event belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -154,10 +154,7 @@
                                   71,
                                   "            return fn.apply(this, wrappedArguments);"
                                 ],
-                                [
-                                  72,
-                                  "            // tslint:enable:no-unsafe-any"
-                                ],
+                                [72, "            // tslint:enable:no-unsafe-any"],
                                 [73, "        }"],
                                 [74, "        catch (ex) {"],
                                 [75, "            ignoreNextOnError();"],
@@ -182,10 +179,7 @@
                               "instructionAddr": null,
                               "context": [
                                 [69, "     */"],
-                                [
-                                  70,
-                                  "    triggerAsync: function triggerAsync() {"
-                                ],
+                                [70, "    triggerAsync: function triggerAsync() {"],
                                 [71, "        var args = arguments,"],
                                 [72, "            me = this;"],
                                 [73, "        _.nextTick(function () {"],
@@ -227,14 +221,8 @@
                               "context": [
                                 [76, "/*!"],
                                 [77, "  Copyright (c) 2018 Jed Watson."],
-                                [
-                                  78,
-                                  "  Licensed under the MIT License (MIT), see"
-                                ],
-                                [
-                                  79,
-                                  "  http://jedwatson.github.io/react-select"
-                                ],
+                                [78, "  Licensed under the MIT License (MIT), see"],
+                                [79, "  http://jedwatson.github.io/react-select"],
                                 [80, "*/"],
                                 [
                                   81,
@@ -242,15 +230,9 @@
                                 ],
                                 [82, "/*!"],
                                 [83, " * JavaScript Cookie v2.2.1"],
-                                [
-                                  84,
-                                  " * https://github.com/js-cookie/js-cookie"
-                                ],
+                                [84, " * https://github.com/js-cookie/js-cookie"],
                                 [85, " *"],
-                                [
-                                  86,
-                                  " * Copyright 2006, 2015 Klaus Hartl & Fagner Brack"
-                                ]
+                                [86, " * Copyright 2006, 2015 Klaus Hartl & Fagner Brack"]
                               ],
                               "symbolAddr": null,
                               "trust": null,
