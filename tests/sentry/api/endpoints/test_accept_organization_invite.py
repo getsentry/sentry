@@ -16,9 +16,9 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.outbox import outbox_context
+from sentry.models.useremail import UserEmail
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
