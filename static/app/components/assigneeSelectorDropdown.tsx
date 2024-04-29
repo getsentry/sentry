@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -179,11 +179,9 @@ function AssigneeSelectorDropdown({
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
 
-  const {mutate, isLoading} = useMutation<
-    AssignableEntity,
-    RequestError,
-    AssignableEntity
-  >({
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const {mutate} = useMutation<AssignableEntity, RequestError, AssignableEntity>({
     mutationFn: (newAssignee: AssignableEntity): Promise<AssignableEntity> => {
       assignToActor({
         id: group.id,
@@ -326,8 +324,9 @@ function AssigneeSelectorDropdown({
         assignableTeam => assignableTeam.team.id === assigneeId
       ) as AssignableTeam;
     }
-
-    mutate({assignee: assignee, id: assigneeId, type: type});
+    setIsLoading(true);
+    await mutate({assignee: assignee, id: assigneeId, type: type});
+    setIsLoading(false);
   };
 
   const handleClear = async () => {
@@ -517,7 +516,7 @@ function AssigneeSelectorDropdown({
         value={
           group.assignedTo
             ? `${group.assignedTo?.type === 'user' ? 'USER_' : 'TEAM_'}${group.assignedTo.id}`
-            : undefined
+            : ''
         }
         onClear={handleClear}
         menuTitle={t('Select Assignee')}
