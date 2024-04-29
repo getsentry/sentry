@@ -15,6 +15,7 @@ import type {
   ReplayPrefs,
 } from 'sentry/components/replays/preferences/replayPreferences';
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
+import {WrapperReplayer} from 'sentry/components/replays/wrapperReplayer';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -26,7 +27,6 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
-import {VideoReplayer} from './videoReplayer';
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -474,34 +474,43 @@ function ProviderNonMemo({
         return null;
       }
 
-      // check if this is a video replay and if we can use the video replayer
+      // check if this is a video replay and if we can use the video (wrapper) replayer
       if (!isVideoReplay || !videoEvents || !startTimestampMs) {
         return null;
       }
 
-      const inst = new VideoReplayer(videoEvents, {
-        videoApiPrefix: `/api/0/projects/${
-          organization.slug
-        }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
-        root,
-        start: startTimestampMs,
-        onFinished: setReplayFinished,
-        onLoaded: event => {
-          const {videoHeight, videoWidth} = event.target;
-          if (!videoHeight || !videoWidth) {
-            return;
-          }
-          setDimensions({
-            height: videoHeight,
-            width: videoWidth,
-          });
-        },
-        onBuffer: buffering => {
-          setVideoBuffering(buffering);
-        },
-        clipWindow,
-        durationMs,
-      });
+      // This is a wrapper class that wraps both the VideoReplayer
+      // and the rrweb Replayer
+      const inst = new WrapperReplayer(
+        {videoEvents, events: events ?? []},
+        {
+          // video specific
+          videoApiPrefix: `/api/0/projects/${
+            organization.slug
+          }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
+          start: startTimestampMs,
+          onFinished: setReplayFinished,
+          onLoaded: event => {
+            const {videoHeight, videoWidth} = event.target;
+            if (!videoHeight || !videoWidth) {
+              return;
+            }
+            setDimensions({
+              height: videoHeight,
+              width: videoWidth,
+            });
+          },
+          onBuffer: buffering => {
+            setVideoBuffering(buffering);
+          },
+          clipWindow,
+          durationMs,
+          // rrweb specific
+          theme,
+          // common to both
+          root,
+        }
+      );
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
@@ -520,6 +529,7 @@ function ProviderNonMemo({
       isFetching,
       isVideoReplay,
       videoEvents,
+      events,
       organization.slug,
       projectSlug,
       replay,
@@ -528,6 +538,7 @@ function ProviderNonMemo({
       startTimeOffsetMs,
       clipWindow,
       durationMs,
+      theme,
     ]
   );
 
