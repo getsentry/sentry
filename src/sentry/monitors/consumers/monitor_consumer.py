@@ -15,7 +15,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import BrokerValue, Commit, Message, Partition
+from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 from django.db import router, transaction
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
@@ -904,8 +904,10 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
             logger.exception("Failed to trigger monitor tasks")
 
 
-def process_single(message: Message[KafkaPayload]):
+def process_single(message: Message[KafkaPayload | FilteredPayload]):
+    assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
+
     try:
         wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(message.payload.value)
         ts = message.value.timestamp
