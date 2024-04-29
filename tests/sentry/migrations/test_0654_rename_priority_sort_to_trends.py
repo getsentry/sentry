@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.models.savedsearch import SavedSearch
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class RenamePrioritySortToTrendsTest(TestMigrations):
     migrate_from = "0653_apitoken_add_token_type"
     migrate_to = "0654_rename_priority_sort_to_trends"

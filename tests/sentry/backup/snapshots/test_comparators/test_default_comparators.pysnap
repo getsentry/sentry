@@ -1338,7 +1338,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - environment_id
-    - owner
     - owner_team
     - owner_user_id
     - project
