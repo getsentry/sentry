@@ -8,7 +8,11 @@
  * into the configuration file loaded by the service.
  */
 
-// eslint-disable-next-line import/no-named-default
+import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
+
+// Set locale to english to prevent warning on init
+setLocale(DEFAULT_LOCALE_DATA);
+
 import {discoverCharts} from './discover';
 import {metricAlertCharts} from './metricAlert';
 import {performanceCharts} from './performance';
