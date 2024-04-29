@@ -142,10 +142,10 @@ function DefaultGroupEventDetailsContent({
           const lowerText = value.toLowerCase();
           return (
             (lowerText.includes('api key') || lowerText.includes('429')) &&
-            (lowerText.toLowerCase().includes('openai') ||
-              lowerText.toLowerCase().includes('anthropic') ||
-              lowerText.toLowerCase().includes('cohere') ||
-              lowerText.toLowerCase().includes('langchain'))
+            (lowerText.includes('openai') ||
+              lowerText.includes('anthropic') ||
+              lowerText.includes('cohere') ||
+              lowerText.includes('langchain'))
           );
         }) ? (
         <LazyLoad
