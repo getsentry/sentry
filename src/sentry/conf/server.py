@@ -3472,6 +3472,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-replay-recordings": "default",
     "ingest-occurrences": "default",
     "ingest-monitors": "default",
+    "monitors-clock-tick": "default",
+    "monitors-clock-tasks": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
