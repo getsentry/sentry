@@ -331,35 +331,44 @@ def _import(
         # the RPC divide, we create a replica of the `ControlImportChunk` that successful import
         # would have generated in the calling region as well.
         if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
-            # If `min_ordinal` is not null, these values must not be either.
-            assert result.max_ordinal is not None
-            assert result.min_source_pk is not None
-            assert result.max_source_pk is not None
+            # Maybe we are resuming an import on a retry. Check to see if this
+            # `ControlImportChunkReplica` already exists, and only write it if it does not. There
+            # can't be races here, since there is only one celery task running at a time, pushing
+            # updates in a synchronous manner.
+            existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
+                import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
+            ).first()
+            if existing_control_import_chunk_replica is None:
+                # If `min_ordinal` is not null, these values must not be either.
+                assert result.max_ordinal is not None
+                assert result.min_source_pk is not None
+                assert result.max_source_pk is not None
 
-            inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
-                model_name_str
-            ]
-            existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
-                model_name_str
-            ]
-            overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
-                model_name_str
-            ]
-            control_import_chunk_replica = ControlImportChunkReplica(
-                import_uuid=flags.import_uuid,
-                model=model_name_str,
-                min_ordinal=result.min_ordinal,
-                max_ordinal=result.max_ordinal,
-                min_source_pk=result.min_source_pk,
-                max_source_pk=result.max_source_pk,
-                min_inserted_pk=result.min_inserted_pk,
-                max_inserted_pk=result.max_inserted_pk,
-                inserted_map={k: v[0] for k, v in inserted.items()},
-                existing_map={k: v[0] for k, v in existing.items()},
-                overwrite_map={k: v[0] for k, v in overwrite.items()},
-                inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
-            )
-            control_import_chunk_replica.save()
+                inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
+                    model_name_str
+                ]
+                existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
+                    model_name_str
+                ]
+                overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
+                    model_name_str
+                ]
+
+                control_import_chunk_replica = ControlImportChunkReplica(
+                    import_uuid=flags.import_uuid,
+                    model=model_name_str,
+                    min_ordinal=result.min_ordinal,
+                    max_ordinal=result.max_ordinal,
+                    min_source_pk=result.min_source_pk,
+                    max_source_pk=result.max_source_pk,
+                    min_inserted_pk=result.min_inserted_pk,
+                    max_inserted_pk=result.max_inserted_pk,
+                    inserted_map={k: v[0] for k, v in inserted.items()},
+                    existing_map={k: v[0] for k, v in existing.items()},
+                    overwrite_map={k: v[0] for k, v in overwrite.items()},
+                    inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
+                )
+                control_import_chunk_replica.save()
 
     import_write_context = ImportWriteContext(
         scope=RpcImportScope.into_rpc(scope),

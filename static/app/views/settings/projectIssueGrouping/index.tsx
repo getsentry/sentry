@@ -21,7 +21,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import UpgradeGrouping from './upgradeGrouping';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
+type Props = RouteComponentProps<{}, {projectId: string}> & {
   organization: Organization;
   project: Project;
 };

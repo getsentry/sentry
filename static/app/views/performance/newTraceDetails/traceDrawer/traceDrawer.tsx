@@ -134,6 +134,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.manager.initializePhysicalSpace(width, height);
         props.manager.draw();
       }
+
       minimized = minimized ?? traceStateRef.current.preferences.drawer.minimized;
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom' && user) {
@@ -172,9 +173,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
       }, 1000);
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
-        min = minimized ? 27 : drawerHeight;
+        min = minimized ? 27 : size;
       } else {
-        min = minimized ? 0 : drawerWidth;
+        min = minimized ? 0 : size;
       }
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
@@ -253,6 +254,23 @@ export function TraceDrawer(props: TraceDrawerProps) {
       onResize(0, 0, true, true);
       size.current = drawerOptions.min;
     } else {
+      if (drawerOptions.initialSize === 0) {
+        const userPreference =
+          traceStateRef.current.preferences.drawer.sizes[
+            traceStateRef.current.preferences.layout
+          ];
+
+        const {width, height} = props.traceGridRef?.getBoundingClientRect() ?? {
+          width: 0,
+          height: 0,
+        };
+        const containerSize =
+          traceStateRef.current.preferences.layout === 'drawer bottom' ? height : width;
+        const drawer_size = containerSize * userPreference;
+        onResize(drawer_size, drawerOptions.min, true, false);
+        size.current = userPreference;
+        return;
+      }
       onResize(drawerOptions.initialSize, drawerOptions.min, true, false);
       size.current = drawerOptions.initialSize;
     }
@@ -260,6 +278,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
     size,
     onResize,
     trace_dispatch,
+    props.traceGridRef,
     props.trace_state.preferences.drawer.minimized,
     organization,
     drawerOptions,

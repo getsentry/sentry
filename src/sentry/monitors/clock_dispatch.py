@@ -25,9 +25,9 @@ def _int_or_none(s: str | None) -> int | None:
         return int(s)
 
 
-def _dispatch_tasks(ts: datetime):
+def _dispatch_tick(ts: datetime):
     """
-    Dispatch monitor tasks triggered by the consumer clock.
+    Dispatch a clock tick which will trigger monitor tasks.
 
     These tasks are triggered via the consumer processing check-ins. This
     allows the monitor tasks to be synchronized to any backlog of check-ins
@@ -45,7 +45,7 @@ def _dispatch_tasks(ts: datetime):
     check_timeout.delay(current_datetime=ts)
 
 
-def try_monitor_tasks_trigger(ts: datetime, partition: int):
+def try_monitor_clock_tick(ts: datetime, partition: int):
     """
     Handles triggering the monitor tasks when we've rolled over the minute.
 
@@ -121,4 +121,4 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
             scope.set_extra("slowest_part_ts", slowest_part_ts)
             sentry_sdk.capture_message("Monitor task dispatch minute skipped")
 
-    _dispatch_tasks(tick)
+    _dispatch_tick(tick)
