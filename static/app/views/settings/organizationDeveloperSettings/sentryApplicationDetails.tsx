@@ -530,7 +530,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                         position="right"
                         containerDisplayMode="inline"
                         title={t(
-                          'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
+                          'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
                         )}
                       >
                         <TextCopyInput id={id}>

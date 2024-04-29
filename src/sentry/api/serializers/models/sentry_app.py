@@ -14,6 +14,7 @@ from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -95,9 +96,19 @@ class SentryAppSerializer(Serializer):
             )
             if elevated_user or owner.id in user_org_ids:
                 is_secret_visible = obj.date_added > timezone.now() - timedelta(days=1)
-                client_secret = (
-                    obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE
+
+                owner_context = organization_service.get_organization_by_id(
+                    id=owner.id, user_id=user.id
                 )
+
+                client_secret = MASKED_VALUE
+                if elevated_user or (
+                    owner_context
+                    and "org:write" in owner_context.member.scopes
+                    and obj.show_auth_info(owner_context.member)
+                ):
+                    client_secret = obj.application.client_secret
+
                 data.update(
                     {
                         "clientId": obj.application.client_id,
