@@ -3124,7 +3124,6 @@ class MonitorTestCase(APITestCase):
         ]
         rule = Creator(
             name="New Cool Rule",
-            owner=None,
             project=self.project,
             conditions=conditions,
             filterMatch="all",

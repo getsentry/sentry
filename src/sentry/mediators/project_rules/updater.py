@@ -10,7 +10,6 @@ from sentry.models.rule import Rule
 class Updater(Mediator):
     rule = Param(Rule)
     name = Param(str, required=False)
-    owner = Param(int, required=False)
     owner_team_id = Param(int, required=False)
     owner_user_id = Param(int, required=False)
     environment = Param(int, required=False)
@@ -41,7 +40,6 @@ class Updater(Mediator):
             self.rule.label = self.name
 
     def _update_owner(self) -> None:
-        self.rule.owner_id = self.owner
         self.rule.owner_user_id = self.owner_user_id
         self.rule.owner_team_id = self.owner_team_id
 

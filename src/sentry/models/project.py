@@ -515,7 +515,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
                     organization_id=organization.id, id=rule.owner_team_id
                 ).exists()
             if not is_member:
-                rule.update(owner=None, owner_user_id=None, owner_team_id=None)
+                rule.update(owner_user_id=None, owner_team_id=None)
 
         # [Rule, AlertRule(SnubaQuery->Environment)]
         # id -> name
@@ -580,9 +580,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(
             owner=None, team_id=None
         )
-        Rule.objects.filter(owner_team_id=team.id, project=self).update(
-            owner=None, owner_team_id=None
-        )
+        Rule.objects.filter(owner_team_id=team.id, project=self).update(owner_team_id=None)
 
     def get_security_token(self):
         lock = locks.get(self.get_lock_key(), duration=5, name="project_security_token")

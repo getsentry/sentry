@@ -62,7 +62,9 @@ __all__ = (
 DELETED_FIELDS: dict[
     str, set[str]
 ] = {  # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
-    "sentry.team": {"org_role"}
+    "sentry.team": {"org_role"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.rule": {"owner"},
 }
 
 # The maximum number of models that may be sent at a time.

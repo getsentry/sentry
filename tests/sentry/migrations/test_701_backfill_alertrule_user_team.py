@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.team import Team
@@ -6,6 +8,7 @@ from sentry.testutils.cases import TestMigrations
 from sentry.utils.actor import ActorTuple
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillAlertRuleUserTeamTest(TestMigrations):
     migrate_from = "0700_drop_fileid_controlavatar"
     migrate_to = "0701_backfill_alertrule_user_team"

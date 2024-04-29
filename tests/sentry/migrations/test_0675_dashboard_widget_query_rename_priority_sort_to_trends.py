@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class RenamePrioritySortToTrendsTest(TestMigrations):
     migrate_from = "0674_monitor_clear_missed_timeout_as_error"
     migrate_to = "0675_dashboard_widget_query_rename_priority_sort_to_trends"

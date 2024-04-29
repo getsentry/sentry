@@ -57,7 +57,6 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.rule import Rule
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -2182,11 +2181,10 @@ class CustomImportBehaviorTests(ImportTestCase):
     """
 
     # TODO(hybrid-cloud): actor refactor. Remove this test case when done.
-    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Actor, AlertRule, Rule)
-    def test_alert_rule_and_rule_with_owner_id(self, expected_models: list[type[Model]]):
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Actor, AlertRule)
+    def test_alert_rule_with_owner_id(self, expected_models: list[type[Model]]):
         user = self.create_user()
         org = self.create_organization(name="test-org", owner=user)
-        proj = self.create_project(name="test-proj")
         team = self.create_team(name="test-team", organization=org)
 
         def create_fake_snuba_query() -> SnubaQuery:
@@ -2254,32 +2252,6 @@ class CustomImportBehaviorTests(ImportTestCase):
             ]
         )
 
-        # Repeat with `Rule`.
-        Rule.objects.bulk_create(
-            [
-                Rule(
-                    label="user-rule",
-                    owner=user_actor,
-                    project=proj,
-                ),
-                Rule(
-                    label="team-rule",
-                    owner=team_actor,
-                    project=proj,
-                ),
-                Rule(
-                    label="null-rule",
-                    owner=null_actor,
-                    project=proj,
-                ),
-                Rule(
-                    label="unowned-rule",
-                    owner=None,
-                    project=proj,
-                ),
-            ]
-        )
-
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
             with open(tmp_path, "rb") as tmp_file:
@@ -2306,25 +2278,6 @@ class CustomImportBehaviorTests(ImportTestCase):
             unowned_alert_rule: AlertRule = AlertRule.objects.get(name="unowned-alert-rule")
             assert null_alert_rule.owner is None
             assert unowned_alert_rule.owner is None
-
-            user_rule: Rule = Rule.objects.get(label="user-rule")
-            user_actor = Actor.objects.get(id=user_rule.owner_id)
-            assert user_rule.owner is not None
-            assert user_rule.owner_user_id == user_actor.user_id
-            assert user_rule.owner_team is None
-            assert user_actor.team is None
-
-            team_rule: Rule = Rule.objects.get(label="team-rule")
-            team_actor = Actor.objects.get(id=team_rule.owner_id)
-            assert team_rule.owner is not None
-            assert team_rule.owner_team == team_actor.team
-            assert team_rule.owner_user_id is None
-            assert team_actor.user_id is None
-
-            null_rule: Rule = Rule.objects.get(label="null-rule")
-            unowned_rule: Rule = Rule.objects.get(label="unowned-rule")
-            assert null_rule.owner is None
-            assert unowned_rule.owner is None
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))

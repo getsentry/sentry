@@ -4,6 +4,7 @@ from typing import Any, DefaultDict
 from sentry.api.serializers.models.rule import generate_rule_label
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule
+from sentry.utils.actor import ActorTuple
 
 ONE_HOUR = 60
 ONE_DAY = ONE_HOUR * 24
@@ -14,8 +15,10 @@ def get_updated_rule_data(rule: Rule) -> dict[str, Any]:
     rule_data = dict(rule.data)
     if rule.environment_id:
         rule_data["environment_id"] = rule.environment_id
-    if rule.owner:
-        rule_data["owner"] = rule.owner
+    if rule.owner_user_id or rule.owner_team_id:
+        rule_data["owner"] = ActorTuple.from_id(
+            user_id=rule.owner_user_id, team_id=rule.owner_team_id
+        )
     rule_data["label"] = rule.label
     return rule_data
 

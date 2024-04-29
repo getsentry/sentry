@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillGroupHistoryUserTeamTest(TestMigrations):
     migrate_from = "0705_grouphistory_add_userteam"
     migrate_to = "0706_grouphistory_userteam_backfill"
