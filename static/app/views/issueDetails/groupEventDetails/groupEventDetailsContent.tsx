@@ -155,7 +155,6 @@ function DefaultGroupEventDetailsContent({
           LazyComponent={AIMonitoringSection}
           event={event}
           organization={organization}
-          project={project}
         />
       ) : null}
       {group.issueCategory === IssueCategory.CRON && (

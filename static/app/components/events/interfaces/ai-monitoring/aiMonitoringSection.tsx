@@ -2,12 +2,10 @@ import Alert from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   NumberOfPipelinesChart,
@@ -20,10 +18,9 @@ import {type IndexedResponse, SpanIndexedField} from 'sentry/views/starfish/type
 interface Props {
   event: Event;
   organization: Organization;
-  project: Project;
 }
 
-export default function AIMonitoringSection({event, organization, project}: Props) {
+export default function AIMonitoringSection({event, organization}: Props) {
   const traceId = event.contexts.trace?.trace_id;
   const spanId = event.contexts.trace?.span_id;
   const {data, error, isLoading} = useIndexedSpans({
@@ -54,24 +51,22 @@ export default function AIMonitoringSection({event, organization, project}: Prop
       help={t('Charts showing how many tokens are being used')}
       actions={actions}
     >
-      <PageFiltersContainer forceProject={project} shouldForceProject>
-        {error ? (
-          <Alert type="error" showIcon>
-            {'' + error}
-          </Alert>
-        ) : isLoading ? (
-          'loading'
-        ) : (
-          <ModuleLayout.Layout>
-            <ModuleLayout.Half>
-              <TotalTokensUsedChart groupId={aiPipelineGroup} />
-            </ModuleLayout.Half>
-            <ModuleLayout.Half>
-              <NumberOfPipelinesChart groupId={aiPipelineGroup} />
-            </ModuleLayout.Half>
-          </ModuleLayout.Layout>
-        )}
-      </PageFiltersContainer>
+      {error ? (
+        <Alert type="error" showIcon>
+          {'' + error}
+        </Alert>
+      ) : isLoading ? (
+        'loading'
+      ) : (
+        <ModuleLayout.Layout>
+          <ModuleLayout.Half>
+            <TotalTokensUsedChart groupId={aiPipelineGroup} />
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <NumberOfPipelinesChart groupId={aiPipelineGroup} />
+          </ModuleLayout.Half>
+        </ModuleLayout.Layout>
+      )}
     </EventDataSection>
   );
 }
