@@ -13,8 +13,10 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
+from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.types.activity import ActivityType
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -128,5 +130,14 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)
 
+        # an activity with no group cannot be associated with an issue or displayed in an issue details page
+        if attachment.group_id is not None:
+            Activity.objects.create(
+                group_id=attachment.group_id,
+                project=project,
+                type=ActivityType.DELETED_ATTACHMENT.value,
+                user_id=request.user.id,
+                data={},
+            )
         attachment.delete()
         return self.respond(status=204)
