@@ -205,6 +205,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
                 # Disable snuba here as it often causes 429s when overloaded and
                 # a freshly created release won't have health data anyways.
-                return Response(serialize(release, request.user, no_snuba=True), status=status)
+                return Response(
+                    serialize(release, request.user, no_snuba_for_release_creation=True),
+                    status=status,
+                )
             scope.set_tag("failure_reason", "serializer_error")
             return Response(serializer.errors, status=400)
