@@ -281,6 +281,12 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         group5 = event5.group
         assert group5
         assert self.group1
+        condition_wont_pass_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[self.create_event_frequency_condition(value=100)],
+            environment_id=self.environment.id,
+        )
+
         self.push_to_hash(
             self.project.id, two_conditions_match_all_rule.id, group5.id, event5.event_id
         )
@@ -290,3 +296,4 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             assert self.rule1 in rules
             assert self.rule2 in rules
             assert two_conditions_match_all_rule in rules
+            assert condition_wont_pass_rule not in rules

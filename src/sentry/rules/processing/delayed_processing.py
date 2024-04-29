@@ -147,31 +147,29 @@ def get_rules_to_fire(
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rule_to_slow_conditions.items():
         action_match = alert_rule.data.get("action_match", "any")
-        num_conditions_passed = 0
-        for slow_condition in slow_conditions:
-            if slow_condition:
-                condition_id = slow_condition.get("id")
-                condition_interval = slow_condition.get("interval")
-                target_value = int(str(slow_condition.get("value")))
-                for condition_data, results in condition_group_results.items():
-                    if (
-                        alert_rule.environment_id == condition_data.environment_id
-                        and condition_id == condition_data.cls_id
-                        and condition_interval == condition_data.interval
-                    ):
-                        for group_id in rules_to_groups[alert_rule.id]:
-                            if results[group_id] > target_value:
-                                if action_match == "all":
-                                    num_conditions_passed += 1
+        for group_id in rules_to_groups[alert_rule.id]:
+            conditions_matched = 0
+            for slow_condition in slow_conditions:
+                if slow_condition:
+                    unique_condition = UniqueCondition(
+                        str(slow_condition.get("id")),
+                        str(slow_condition.get("interval")),
+                        alert_rule.environment_id,
+                    )
+                    results = condition_group_results.get(unique_condition, {})
+                    if results:
+                        target_value = int(str(slow_condition.get("value")))
+                        if results[group_id] >= target_value:
+                            if action_match == "any":
                                 rules_to_fire[alert_rule].add(group_id)
-
-        if (
-            action_match == "all"
-            and len(slow_conditions) > 1
-            and len(slow_conditions) != num_conditions_passed
-            and rules_to_fire[alert_rule]
-        ):
-            del rules_to_fire[alert_rule]
+                                break
+                            conditions_matched += 1
+                        else:
+                            if action_match == "all":
+                                # We failed to match all conditions for this group, skip
+                                break
+            if action_match == "all" and conditions_matched == len(slow_conditions):
+                rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
 
 
