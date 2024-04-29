@@ -1,5 +1,5 @@
 import logging
-from functools import partial, update_wrapper
+from functools import partial
 
 from django.contrib import messages
 from django.contrib.auth import authenticate
@@ -273,12 +273,10 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
 # Set password variation of password recovery
 set_password_confirm = partial(recover_confirm, mode="set_password")
-set_password_confirm = update_wrapper(set_password_confirm, recover)
 
 
 # Relocation variation of password recovery
 relocate_confirm = partial(recover_confirm, mode="relocate")
-relocate_confirm = update_wrapper(relocate_confirm, recover)
 
 
 @login_required
