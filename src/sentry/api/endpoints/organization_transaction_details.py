@@ -178,8 +178,8 @@ class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
 
 def _query_all_spans_in_transaction(organization, project, transaction_id, start, end):
     params: ParamsType = {
-        "start": start - 1,
-        "end": end + 1,
+        "start": start - timedelta(seconds=1),
+        "end": end + timedelta(seconds=1),
         "project_id": [project.id],
         "project_objects": [project],
         "organization_id": organization.id,
