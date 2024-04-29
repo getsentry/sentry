@@ -352,7 +352,7 @@ class CombinedRuleSerializer(Serializer):
                 # This is a metric alert rule
                 serialized_alert_rule = serialized_alert_rule_map_by_id[item_id]
                 if "latestIncident" in self.expand:
-                    serialized_alert_rule["latestIncident"] = incident_map.get(item["incident_id"])
+                    serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
                 results[item] = serialized_alert_rule
             elif item_id in serialized_issue_rule_map_by_id:
                 # This is an issue alert rule
