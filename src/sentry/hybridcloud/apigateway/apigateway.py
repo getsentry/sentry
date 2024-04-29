@@ -9,6 +9,7 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.hybridcloud.apigateway.proxy import (
+    proxy_error_embed_request,
     proxy_region_request,
     proxy_request,
     proxy_sentryapp_request,
@@ -104,6 +105,18 @@ def proxy_request_if_needed(
             },
         )
         return proxy_sentryapp_request(request, app_id_or_slug, url_name)
+
+    if url_name == "sentry-error-page-embed" and "dsn" in request.GET:
+        # Error embed modal is special as customers can't easily use region URLs.
+        dsn = request.GET["dsn"]
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": url_name,
+                "kind": "error-embed",
+            },
+        )
+        return proxy_error_embed_request(request, dsn, url_name)
 
     if (
         request.resolver_match
