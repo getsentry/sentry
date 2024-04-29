@@ -101,7 +101,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         return query
 
-    @staticmethod
     def to_reference_unit(
         value: float | int, measurement_unit: MeasurementUnit = "millisecond"
     ) -> float:
