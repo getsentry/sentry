@@ -137,15 +137,17 @@ function DefaultGroupEventDetailsContent({
       organization.features.includes('ai-analytics') &&
       event?.entries
         ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
-        .flatMap(x => x.data.values)
-        .some(
-          x =>
-            (x?.value?.includes('API key') || x?.value?.includes('429')) &&
-            (x?.value?.includes('openai') ||
-              x?.value?.includes('anthropic') ||
-              x?.value?.includes('cohere') ||
-              x?.value?.includes('langchain'))
-        ) ? (
+        .flatMap(x => x.data.values ?? [])
+        .some(({value}) => {
+          const lowerText = value.toLowerCase();
+          return (
+            (lowerText.includes('api key') || lowerText.includes('429')) &&
+            (lowerText.toLowerCase().includes('openai') ||
+              lowerText.toLowerCase().includes('anthropic') ||
+              lowerText.toLowerCase().includes('cohere') ||
+              lowerText.toLowerCase().includes('langchain'))
+          );
+        }) ? (
         <LazyLoad
           LazyComponent={AIMonitoringSection}
           event={event}
