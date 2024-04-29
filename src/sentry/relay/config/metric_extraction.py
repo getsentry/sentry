@@ -1,7 +1,7 @@
 import logging
 import random
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Literal, TypedDict
@@ -74,11 +74,16 @@ class HighCardinalityWidgetException(Exception):
     pass
 
 
+class GlobalTemplateOverride(TypedDict):
+    isEnabled: bool
+
+
 class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
     metrics: list[MetricSpec]
+    global_templates: dict[str, GlobalTemplateOverride]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -126,7 +131,7 @@ def get_metric_extraction_config(
         global_templates = _get_global_templates(project)
     timeout.check()
 
-    if not (metric_specs or global_templates["templates"]):
+    if not (metric_specs or global_templates):
         return None
 
     return {
@@ -210,20 +215,12 @@ def _get_alert_metric_specs(
     return specs
 
 
-class GlobalTemplateOverride:
-    isEnabled: bool
-
-
-class GlobalTemplates(TypedDict):
-    templates: Mapping[str, GlobalTemplateOverride]
-
-
 @metrics.wraps("on_demand_metrics._get_alert_metric_specs")
-def _get_global_templates(project: Project) -> GlobalTemplates:
-    templates = {}
+def _get_global_templates(project: Project) -> dict[str, GlobalTemplateOverride]:
+    templates: dict[str, GlobalTemplateOverride] = {}
     if features.has("projects:span-metrics-extraction", project):
         templates["spans_hardcoded"] = {"isEnabled": True}
-    return {"templates": templates}
+    return templates
 
 
 def _bulk_cache_query_key(project: Project, chunk: int) -> str:
