@@ -394,9 +394,7 @@ def start_relocation_task(
         return (None, 0)
 
     logger_data["task"] = task.name
-    if relocation.latest_task == task.name:
-        relocation.latest_task_attempts += 1
-    elif relocation.latest_task not in {prev_task_name, task.name}:
+    if relocation.latest_task not in {prev_task_name, task.name}:
         logger.error(
             "Task %s tried to follow %s which is the wrong order",
             task.name,
@@ -405,6 +403,20 @@ def start_relocation_task(
         )
         fail_relocation(relocation, task)
         return (None, 0)
+    if relocation.latest_task == task.name:
+        # It is possible for a task to have been scheduled even when all of it's attempted have been
+        # exhausted due to some tasks using `acks_late`, causing them to be retried in the event of
+        # a worker-wide SIGKILL/TERM/QUIT. This check catches such scenarios on the retry, and
+        # gracefully marks the task as failed before exiting.
+        if relocation.latest_task_attempts >= allowed_task_attempts:
+            logger.error(
+                "Task %s has exhausted all of its attempts",
+                task.name,
+                extra=logger_data,
+            )
+            fail_relocation(relocation, task)
+            return (None, 0)
+        relocation.latest_task_attempts += 1
     else:
         relocation.latest_task = task.name
         relocation.latest_task_attempts = 1

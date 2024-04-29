@@ -75,7 +75,7 @@ DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=60)
 # All pre and post processing tasks have the same number of retries. A "fast" task is one that almost always completes in <=5 minutes, and does relatively little bulk writing to the database.
 MAX_FAST_TASK_RETRIES = 3
 MAX_FAST_TASK_ATTEMPTS = MAX_FAST_TASK_RETRIES + 1
-MAX_SLOW_TASK_RETRIES = 2
+MAX_SLOW_TASK_RETRIES = 4
 MAX_SLOW_TASK_ATTEMPTS = MAX_SLOW_TASK_RETRIES + 1
 MAX_VALIDATION_POLLS = 60
 MAX_VALIDATION_POLL_ATTEMPTS = MAX_VALIDATION_POLLS + 1
@@ -1010,6 +1010,11 @@ def validating_complete(uuid: str, build_id: str) -> None:
     max_retries=MAX_SLOW_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
+    # Setting `acks_late` here allows us to retry the potentially long-lived task if the k8s pod if
+    # the worker received SIGKILL/TERM/QUIT. Since the `Relocation` model itself is counting the
+    # number of attempts using `latest_task_attempts` anyway, we ensure that this won't result in an
+    # infinite loop of very long-lived tasks being continually retried.
+    acks_late=True,
     soft_time_limit=SLOW_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
