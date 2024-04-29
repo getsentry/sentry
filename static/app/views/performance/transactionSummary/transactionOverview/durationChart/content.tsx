@@ -8,6 +8,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
@@ -132,6 +133,16 @@ function Content({
       },
     },
   };
+
+  const avgSeriesIdx = series.findIndex(({seriesName}) => seriesName === 'avg()');
+  if (avgSeriesIdx) {
+    const avgSeries = series[avgSeriesIdx];
+    series[avgSeriesIdx] = LineSeries({
+      name: avgSeries.seriesName,
+      data: avgSeries.data.map(({name, value}) => [name, value]),
+      z: 99,
+    });
+  }
 
   return (
     <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
