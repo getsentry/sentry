@@ -289,6 +289,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         group6 = event6.group
         assert group6
         assert self.group1
+        assert self.group2
         condition_wont_pass_rule = self.create_project_rule(
             project=self.project,
             condition_match=[self.create_event_frequency_condition(value=100)],
