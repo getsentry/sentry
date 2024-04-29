@@ -79,7 +79,8 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       replayRecord &&
       !replayRecord.has_viewed &&
       projectSlug &&
-      !fetching
+      !fetching &&
+      replayId
     ) {
       markAsViewed({projectSlug, replayId});
     }
