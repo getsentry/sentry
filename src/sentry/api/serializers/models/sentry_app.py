@@ -89,8 +89,6 @@ class SentryAppSerializer(Serializer):
         owner = attrs["owner"]
         user_org_ids = attrs["user_org_ids"]
 
-        owner_context = organization_service.get_organization_by_id(id=owner.id, user_id=user.id)
-
         if owner:
             # TODO(schew2381): Check if superuser needs this for Sentry Apps in the UI.
             elevated_user = env.request and (
@@ -99,9 +97,14 @@ class SentryAppSerializer(Serializer):
             if elevated_user or owner.id in user_org_ids:
                 is_secret_visible = obj.date_added > timezone.now() - timedelta(days=1)
 
+                owner_context = organization_service.get_organization_by_id(
+                    id=owner.id, user_id=user.id
+                )
+
                 client_secret = MASKED_VALUE
                 if elevated_user or (
-                    "org:write" in owner_context.member.scopes
+                    owner_context
+                    and "org:write" in owner_context.member.scopes
                     and obj.show_auth_info(owner_context.member)
                 ):
                     client_secret = obj.application.client_secret
