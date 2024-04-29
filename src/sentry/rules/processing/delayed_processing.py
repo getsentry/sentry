@@ -4,11 +4,9 @@ from collections import defaultdict
 from typing import DefaultDict, NamedTuple
 from collections.abc import MutableMapping
 from datetime import timedelta
-from random import randrange
-
 from django.utils import timezone
 
-from sentry import analytics, eventstore
+from sentry import eventstore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.eventstore.models import Event
 from sentry.models.group import Group
@@ -280,15 +278,6 @@ def apply_delayed(project_id: int) -> None:
             if not updated:
                 return
 
-            if randrange(10) == 0:
-                # TODO: make a new analytic? does anyone look at this?
-                analytics.record(
-                    "issue_alert.fired",
-                    issue_id=group.id,
-                    project_id=project.id,
-                    organization_id=project.organization.id,
-                    rule_id=rule.id,
-                )
             event = group_id_to_event[group.id]
             notification_uuid = str(uuid.uuid4())
             rule_fire_history = history.record(rule, group, event.event_id, notification_uuid)
