@@ -825,7 +825,12 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         owner = data.get("owner")
         if owner:
             try:
-                kwargs["owner"] = owner.resolve_to_actor().id
+                kwargs["owner_user_id"] = None
+                kwargs["owner_team_id"] = None
+                if owner.type == User:
+                    kwargs["owner_user_id"] = owner.id
+                if owner.type == Team:
+                    kwargs["owner_team_id"] = owner.id
             except (User.DoesNotExist, Team.DoesNotExist):
                 return Response(
                     "Could not resolve owner",

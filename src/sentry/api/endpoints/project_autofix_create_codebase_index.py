@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.repos import get_repos_from_project_code_mappings
 from sentry.models.project import Project
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,13 @@ class ProjectAutofixCreateCodebaseIndexEndpoint(ProjectEndpoint):
         for repo in repos:
             response = requests.post(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-                data={
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                    "repo": repo,
-                },
+                data=json.dumps(
+                    {
+                        "organization_id": project.organization.id,
+                        "project_id": project.id,
+                        "repo": repo,
+                    }
+                ),
                 headers={"content-type": "application/json;charset=utf-8"},
             )
 

@@ -7,6 +7,7 @@ import tempfile
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 import urllib3.exceptions
@@ -22,6 +23,7 @@ from sentry.backup.crypto import LocalFileDecryptor
 from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
+    MAX_BATCH_SIZE,
     ImportingError,
     import_in_config_scope,
     import_in_global_scope,
@@ -42,6 +44,7 @@ from sentry.models.importchunk import (
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -68,6 +71,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
@@ -2205,6 +2209,9 @@ class CustomImportBehaviorTests(ImportTestCase):
         #
         # The expected result is that the first two instances succeed, while the last two are
         # ignored.]
+        user_actor = Actor.objects.create(user_id=user.id, type=ACTOR_TYPES["user"])
+        team_actor = Actor.objects.get(team=team, type=ACTOR_TYPES["team"])
+        null_actor = Actor.objects.create(team=None, user_id=None, type=ACTOR_TYPES["team"])
         common_alert_rule_args = {
             "organization": org,
             "threshold_type": AlertRuleThresholdType.ABOVE.value,
@@ -2220,19 +2227,19 @@ class CustomImportBehaviorTests(ImportTestCase):
             [
                 AlertRule(
                     name="user-alert-rule",
-                    owner=Actor.objects.create(user_id=user.id, type=ACTOR_TYPES["user"]),
+                    owner=user_actor,
                     snuba_query=create_fake_snuba_query(),
                     **common_alert_rule_args,
                 ),
                 AlertRule(
                     name="team-alert-rule",
-                    owner=Actor.objects.get(team=team, type=ACTOR_TYPES["team"]),
+                    owner=team_actor,
                     snuba_query=create_fake_snuba_query(),
                     **common_alert_rule_args,
                 ),
                 AlertRule(
                     name="null-alert-rule",
-                    owner=Actor.objects.create(team=None, user_id=None, type=ACTOR_TYPES["team"]),
+                    owner=null_actor,
                     snuba_query=create_fake_snuba_query(),
                     **common_alert_rule_args,
                 ),
@@ -2254,14 +2261,14 @@ class CustomImportBehaviorTests(ImportTestCase):
                 )
 
             user_alert_rule: AlertRule = AlertRule.objects.get(name="user-alert-rule")
-            user_actor: Actor = Actor.objects.get(id=user_alert_rule.owner_id)
+            user_actor = Actor.objects.get(id=user_alert_rule.owner_id)
             assert user_alert_rule.owner is not None
             assert user_alert_rule.user_id == user_actor.user_id
             assert user_alert_rule.team is None
             assert user_actor.team is None
 
             team_alert_rule: AlertRule = AlertRule.objects.get(name="team-alert-rule")
-            team_actor: Actor = Actor.objects.get(id=team_alert_rule.owner_id)
+            team_actor = Actor.objects.get(id=team_alert_rule.owner_id)
             assert team_alert_rule.owner is not None
             assert team_alert_rule.team == team_actor.team
             assert team_alert_rule.user_id is None
@@ -2403,6 +2410,151 @@ class CustomImportBehaviorTests(ImportTestCase):
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))
+
+
+class BatchingTests(TestCase):
+    """
+    Ensure large lists of a single model type are batched properly, and that this batching does not disrupt pk mapping. These tests do not inherit from `ImportTestCase` because they do not require a completely clean database.
+    """
+
+    def import_n_users_with_options(self, import_uuid: str, n: int) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w") as tmp_file:
+                users = []
+                user_options = []
+                for i in range(1, n + 1):
+                    users.append(
+                        {
+                            "model": "sentry.user",
+                            "pk": i + 100,
+                            "fields": {
+                                "password": "fake",
+                                "username": f"user-{i}",
+                                "name": f"user-{i}",
+                                "email": f"{i}@example.com",
+                                "is_staff": False,
+                                "is_active": True,
+                                "is_superuser": False,
+                                "is_managed": False,
+                                "is_password_expired": False,
+                                "is_unclaimed": False,
+                                "last_password_change": "2023-06-22T22:59:57.023Z",
+                                "flags": "0",
+                                "date_joined": "2023-06-22T22:59:55.488Z",
+                                "last_active": "2023-06-22T22:59:55.489Z",
+                                "avatar_type": 0,
+                            },
+                        }
+                    )
+                    user_options.append(
+                        {
+                            "model": "sentry.useroption",
+                            "pk": i + 1000,
+                            "fields": {
+                                "user": i + 100,
+                                "key": f"key-{i}",
+                                "value": f"user-{i}",
+                            },
+                        }
+                    )
+
+                json.dump(users + user_options, tmp_file)
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(
+                    tmp_file, flags=ImportFlags(import_uuid=import_uuid), printer=NOOP_PRINTER
+                )
+
+    def test_exact_multiple_of_batch_size(self):
+        import_uuid = uuid4().hex
+        want_chunks = 2
+        n = MAX_BATCH_SIZE * want_chunks
+        self.import_n_users_with_options(import_uuid, n)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_chunks = list(
+                ControlImportChunk.objects.filter(import_uuid=import_uuid, model="sentry.user")
+            )
+            user_option_chunks = list(
+                ControlImportChunk.objects.filter(
+                    import_uuid=import_uuid, model="sentry.useroption"
+                )
+            )
+
+            assert len(user_chunks) == want_chunks
+            assert len(user_option_chunks) == want_chunks
+
+            assert user_chunks[0].min_ordinal == 1
+            assert user_chunks[0].max_ordinal == MAX_BATCH_SIZE
+            assert user_chunks[0].min_source_pk == 101
+            assert user_chunks[0].max_source_pk == MAX_BATCH_SIZE + 100
+
+            assert user_chunks[1].min_ordinal == MAX_BATCH_SIZE + 1
+            assert user_chunks[1].max_ordinal == MAX_BATCH_SIZE * 2
+            assert user_chunks[1].min_source_pk == MAX_BATCH_SIZE + 101
+            assert user_chunks[1].max_source_pk == (MAX_BATCH_SIZE * 2) + 100
+
+            assert user_option_chunks[0].min_ordinal == 1
+            assert user_option_chunks[0].max_ordinal == MAX_BATCH_SIZE
+            assert user_option_chunks[0].min_source_pk == 1001
+            assert user_option_chunks[0].max_source_pk == MAX_BATCH_SIZE + 1000
+
+            assert user_option_chunks[1].min_ordinal == MAX_BATCH_SIZE + 1
+            assert user_option_chunks[1].max_ordinal == MAX_BATCH_SIZE * 2
+            assert user_option_chunks[1].min_source_pk == MAX_BATCH_SIZE + 1001
+            assert user_option_chunks[1].max_source_pk == (MAX_BATCH_SIZE * 2) + 1000
+
+            # Ensure pk mapping from a later batch is still consistent.
+            target = MAX_BATCH_SIZE + (MAX_BATCH_SIZE // 2)
+            user_option = UserOption.objects.get(key=f"key-{target}")
+            user = User.objects.get(id=user_option.user_id)
+            assert user.name == f"user-{target}"
+
+    def test_one_more_than_batch_size(self):
+        import_uuid = uuid4().hex
+        want_chunks = 2
+        n = MAX_BATCH_SIZE + 1
+        self.import_n_users_with_options(import_uuid, n)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_chunks = list(
+                ControlImportChunk.objects.filter(import_uuid=import_uuid, model="sentry.user")
+            )
+            user_option_chunks = list(
+                ControlImportChunk.objects.filter(
+                    import_uuid=import_uuid, model="sentry.useroption"
+                )
+            )
+
+            assert len(user_chunks) == want_chunks
+            assert len(user_option_chunks) == want_chunks
+
+            assert user_chunks[0].min_ordinal == 1
+            assert user_chunks[0].max_ordinal == MAX_BATCH_SIZE
+            assert user_chunks[0].min_source_pk == 101
+            assert user_chunks[0].max_source_pk == MAX_BATCH_SIZE + 100
+
+            assert user_chunks[1].min_ordinal == MAX_BATCH_SIZE + 1
+            assert user_chunks[1].max_ordinal == MAX_BATCH_SIZE + 1
+            assert user_chunks[1].min_source_pk == MAX_BATCH_SIZE + 101
+            assert user_chunks[1].max_source_pk == MAX_BATCH_SIZE + 101
+
+            assert user_option_chunks[0].min_ordinal == 1
+            assert user_option_chunks[0].max_ordinal == MAX_BATCH_SIZE
+            assert user_option_chunks[0].min_source_pk == 1001
+            assert user_option_chunks[0].max_source_pk == MAX_BATCH_SIZE + 1000
+
+            assert user_option_chunks[1].min_ordinal == MAX_BATCH_SIZE + 1
+            assert user_option_chunks[1].max_ordinal == MAX_BATCH_SIZE + 1
+            assert user_option_chunks[1].min_source_pk == MAX_BATCH_SIZE + 1001
+            assert user_option_chunks[1].max_source_pk == MAX_BATCH_SIZE + 1001
+
+            # Ensure pk mapping from a later batch is still consistent.
+            target = MAX_BATCH_SIZE + 1
+            user_option = UserOption.objects.get(key=f"key-{target}")
+            user = User.objects.get(id=user_option.user_id)
+            assert user.name == f"user-{target}"
 
 
 @pytest.mark.skipif(reason="not legacy")

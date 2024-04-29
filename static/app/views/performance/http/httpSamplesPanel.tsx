@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import Link from 'sentry/components/links/link';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,6 +30,7 @@ import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/data/def
 import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
+import {Referrer} from 'sentry/views/performance/http/referrers';
 import {SpanSamplesTable} from 'sentry/views/performance/http/tables/spanSamplesTable';
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -149,7 +150,7 @@ export function HTTPSamplesPanel() {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
     enabled: isPanelOpen,
-    referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
+    referrer: Referrer.SAMPLES_PANEL_METRICS_RIBBON,
   });
 
   const {
@@ -160,7 +161,7 @@ export function HTTPSamplesPanel() {
     search,
     yAxis: [`avg(span.self_time)`],
     enabled: isPanelOpen && query.panel === 'duration',
-    referrer: 'api.starfish.http-module-samples-panel-duration-chart',
+    referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
   });
 
   const {
@@ -173,7 +174,7 @@ export function HTTPSamplesPanel() {
     yAxis: ['count()'],
     topEvents: 5,
     enabled: isPanelOpen && query.panel === 'status',
-    referrer: 'api.starfish.http-module-samples-panel-response-code-chart',
+    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
   });
 
   // NOTE: Due to some data confusion, the `domain` column in the spans table can either be `null` or `""`. Searches like `"!has:span.domain"` are turned into the ClickHouse clause `isNull(domain)`, and do not match the empty string. We need a query that matches empty strings _and_ null_ which is `(!has:domain OR domain:[""])`. This hack can be removed in August 2024, once https://github.com/getsentry/snuba/pull/5780 has been deployed for 90 days and all `""` domains have fallen out of the data retention window. Also, `null` domains will become more rare as people upgrade the JS SDK to versions that populate the `server.address` span attribute
@@ -210,7 +211,7 @@ export function HTTPSamplesPanel() {
     min: 0,
     max: durationAxisMax,
     enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
-    referrer: 'api.starfish.http-module-samples-panel-duration-samples',
+    referrer: Referrer.SAMPLES_PANEL_DURATION_SAMPLES,
   });
 
   const {
@@ -232,7 +233,7 @@ export function HTTPSamplesPanel() {
     sorts: [SPAN_SAMPLES_SORT],
     limit: SPAN_SAMPLE_LIMIT,
     enabled: isPanelOpen && query.panel === 'status',
-    referrer: 'api.starfish.http-module-samples-panel-response-code-samples',
+    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES,
   });
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(

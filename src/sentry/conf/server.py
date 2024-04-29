@@ -736,7 +736,6 @@ CELERY_IMPORTS = (
     "sentry.monitors.tasks.check_missed",
     "sentry.monitors.tasks.check_timeout",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
-    "sentry.tasks.ai_autofix",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -849,6 +848,7 @@ CELERY_QUEUES_REGION = [
     Queue("commits", routing_key="commits"),
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
+    Queue("delayed_rules", routing_key="delayed_rules"),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
@@ -1478,6 +1478,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable auth provider configuration through api
     "organizations:api-auth-provider": False,
     "organizations:api-keys": False,
+    # Rollout of the new API rate limits for organization events
+    "organizations:api-organization_events-rate-limit-reduced-rollout": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
     # Enables the cron job to auto-enable codecov integrations.
@@ -1499,9 +1501,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
-    # Enables ownership features for cron monitors
-    "organizations:crons-ownership": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
+    # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1523,15 +1523,11 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enables experimental WIP ddm related features
-    "organizations:ddm-experimental": False,
+    # Enables experimental WIP custom metrics related features
+    "organizations:custom-metrics-experimental": False,
     # Delightful Developer Metrics (DDM):
-    # Enable UI (requires custom-metrics flag as well)
-    "organizations:ddm-ui": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enable the unit normalization in the metrics API
-    "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enables category "metrics" in stats_v2 endpoint
@@ -1583,6 +1579,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
+    # Enable caching group counts in GroupSnooze
+    "organizations:groupsnooze-cached-counts": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -1654,18 +1652,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
     "organizations:metric-alert-ignore-archived": False,
+    # Enable load shedding for newly created metric alerts
+    "organizations:metric-alert-load-shedding": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enables the metrics metadata.
     "organizations:metric-meta": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
-    # Enables the usage of the new metrics layer in the metrics API.
-    "organizations:metrics-api-new-metrics-layer": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
-    # Enables the new samples list experience
-    "organizations:metrics-samples-list": False,
     # Enables the search bar for metrics samples list
     "organizations:metrics-samples-list-search": False,
     # Enable Session Stats down to a minute resolution
@@ -1783,6 +1779,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-streamed-spans-exp-visible": False,
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
+    # Enables the new UI for span summary and the spans tab
+    "organizations:performance-spans-new-ui": False,
     # Enable processing slow issue alerts
     "organizations:process-slow-alerts": False,
     # Enable profiling
@@ -1912,6 +1910,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Enable queues module ui
+    "organizations:performance-queues-view": False,
     # Enable browser starfish cache module ui
     "organizations:performance-cache-view": False,
     # Enable mobile starfish app start module view
@@ -2006,6 +2006,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:similarity-embeddings": False,
     # Enable similarity embeddings grouping
     "projects:similarity-embeddings-grouping": False,
+    # Enable adding seer grouping metadata to new groups
+    "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
@@ -2013,6 +2015,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
+    "projects:span-metrics-double-write-distributions-as-gauges": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated
@@ -2894,12 +2897,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-                if not ARM64
-                # altinity provides clickhouse support to other companies
-                # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-                # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-                else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm"
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:22.8.15.25.altinitystable"
             ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -3024,7 +3022,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "vroom": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/vroom:nightly",
+            "image": "us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest",
             "volumes": {"profiles": {"bind": "/var/lib/sentry-profiles"}},
             "environment": {
                 "SENTRY_KAFKA_BROKERS_PROFILING": "{containers[kafka][name]}:9093",
@@ -3474,6 +3472,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-replay-recordings": "default",
     "ingest-occurrences": "default",
     "ingest-monitors": "default",
+    "monitors-clock-tick": "default",
+    "monitors-clock-tasks": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -3968,7 +3968,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-relays-details",
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
-    "sentry-error-page-embed",
     "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",

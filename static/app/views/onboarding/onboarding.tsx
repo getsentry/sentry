@@ -405,7 +405,7 @@ function Onboarding(props: Props) {
         <Confirm bypass={!shallProjectBeDeleted} {...goBackDeletionAlertModalProps}>
           <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
         </Confirm>
-        <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+        <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
               <stepObj.Component

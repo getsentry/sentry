@@ -8,9 +8,9 @@ export const ALLOWED_WILDCARD_FIELDS = [
 export const EMPTY_OPTION_VALUE = '(empty)' as const;
 
 export enum TokenType {
-  OPERATOR,
-  FILTER,
-  FREE_TEXT,
+  OPERATOR = 0,
+  FILTER = 1,
+  FREE_TEXT = 2,
 }
 
 export type Token = {

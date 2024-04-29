@@ -18,6 +18,7 @@ from sentry_sdk import Scope, capture_exception, capture_message, configure_scop
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
+from sentry_sdk.types import Event, Hint
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -29,8 +30,6 @@ from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
-    from sentry_sdk._types import Event, Hint
-
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.organization import RpcOrganization
 
@@ -80,7 +79,6 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.mark_checkin_timeout": 0.05,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,

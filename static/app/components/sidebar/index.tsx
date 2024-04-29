@@ -29,7 +29,6 @@ import {
   IconReleases,
   IconSettings,
   IconSiren,
-  IconStar,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -251,8 +250,8 @@ function Sidebar() {
         // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
         if (
           organization.features.includes('spans-first-ui') ||
-          organization.features.includes('performance-http-view') ||
-          organization.features.includes('performance-cache-view')
+          organization.features.includes('performance-cache-view') ||
+          organization.features.includes('performance-queues-view')
         ) {
           return (
             <SidebarAccordion
@@ -278,7 +277,7 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="performance-http-view" organization={organization}>
+              <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={
@@ -319,6 +318,18 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
+              <Feature features="performance-queues-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={
+                    <GuideAnchor target="performance-queues">{t('Queues')}</GuideAnchor>
+                  }
+                  isAlpha
+                  to={`/organizations/${organization.slug}/performance/queues/`}
+                  id="performance-queues"
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
               <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
@@ -335,6 +346,19 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/mobile/app-startup/`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature
+                features={['spans-first-ui', 'starfish-mobile-ui-module']}
+                organization={organization}
+              >
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={t('Mobile UI')}
+                  to={`/organizations/${organization.slug}/performance/mobile/ui/`}
+                  id="performance-mobile-ui"
+                  icon={<SubitemDot collapsed />}
+                  isAlpha
                 />
               </Feature>
               <Feature features="spans-first-ui">
@@ -373,32 +397,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const starfish = hasOrganization && (
-    <Feature
-      hookName="feature-disabled:starfish-view"
-      features="starfish-view"
-      organization={organization}
-    >
-      <SidebarAccordion
-        {...sidebarItemProps}
-        icon={<IconStar />}
-        aria-label={t('Starfish')}
-        label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/starfish/`}
-        id="starfish"
-        exact={!shouldAccordionFloat}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/interactions`}
-          id="performance-browser-interactions"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-      </SidebarAccordion>
-    </Feature>
-  );
-
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -409,16 +407,16 @@ function Sidebar() {
     />
   );
 
-  const aiAnalytics = hasOrganization && (
+  const aiMonitoring = hasOrganization && (
     <Feature features="ai-analytics" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconRobot />}
-        label={t('AI Analytics')}
+        label={t('AI Monitoring')}
         isAlpha
         variant="short"
-        to={`/organizations/${organization.slug}/ai-analytics/`}
-        id="ai-analytics"
+        to={`/organizations/${organization.slug}/ai-monitoring/`}
+        id="ai-monitoring"
       />
     </Feature>
   );
@@ -488,11 +486,7 @@ function Sidebar() {
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
   const metrics = hasOrganization && hasMetricsSidebarItem(organization) && (
-    <Feature
-      features={['ddm-ui', 'custom-metrics']}
-      organization={organization}
-      requireAll
-    >
+    <Feature features={['custom-metrics']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
@@ -585,11 +579,10 @@ function Sidebar() {
 
                 <SidebarSection>
                   {performance}
-                  {starfish}
                   {profiling}
                   {metrics}
                   {replays}
-                  {aiAnalytics}
+                  {aiMonitoring}
                   {feedback}
                   {monitors}
                   {alerts}

@@ -94,8 +94,8 @@ from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode
@@ -468,7 +468,11 @@ class BackupTestCase(TransactionTestCase):
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         self.create_alert_rule_activation(
-            alert_rule=activated_alert, project=project, metric_value=100
+            alert_rule=activated_alert,
+            project=project,
+            metric_value=100,
+            activator="testing exhaustive",
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)

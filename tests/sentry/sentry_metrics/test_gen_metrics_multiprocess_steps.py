@@ -158,7 +158,6 @@ def test_batch_messages_rejected_message() -> None:
     assert next_step.submit.called
 
 
-@pytest.mark.django_db
 def test_batch_messages_join() -> None:
     next_step = Mock()
 

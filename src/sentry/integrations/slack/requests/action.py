@@ -37,7 +37,9 @@ class SlackActionRequest(SlackRequest):
             - is_message: did the original message have a 'message' type
         """
         if self.data.get("callback_id"):
-            return json.loads(self.data["callback_id"])
+            return json.loads_experimental(
+                "integrations.slack.enable-orjson", self.data["callback_id"]
+            )
 
         # XXX(CEO): can't really feature flag this but the block kit data is very different
 
@@ -45,19 +47,29 @@ class SlackActionRequest(SlackRequest):
         # we don't do anything with it until the user hits "Submit" but we need to handle it anyway
         if self.data["type"] == "block_actions":
             if self.data.get("view"):
-                return json.loads(self.data["view"]["private_metadata"])
+                return json.loads_experimental(
+                    "integrations.slack.enable-orjson", self.data["view"]["private_metadata"]
+                )
+
             elif self.data.get("container", {}).get(
                 "is_app_unfurl"
             ):  # for actions taken on interactive unfurls
-                return json.loads(self.data["app_unfurl"]["blocks"][0]["block_id"])
-            return json.loads(self.data["message"]["blocks"][0]["block_id"])
+                return json.loads_experimental(
+                    "integrations.slack.enable-orjson",
+                    self.data["app_unfurl"]["blocks"][0]["block_id"],
+                )
+            return json.loads_experimental(
+                "integrations.slack.enable-orjson", self.data["message"]["blocks"][0]["block_id"]
+            )
 
         if self.data["type"] == "view_submission":
-            return json.loads(self.data["view"]["private_metadata"])
+            return json.loads_experimental(
+                "integrations.slack.enable-orjson", self.data["view"]["private_metadata"]
+            )
 
         for data in self.data["message"]["blocks"]:
             if data["type"] == "section" and len(data["block_id"]) > 5:
-                return json.loads(data["block_id"])
+                return json.loads_experimental("integrations.slack.enable-orjson", data["block_id"])
                 # a bit hacky, you can only provide a block ID per block (not per entire message),
                 # and if not provided slack generates a 5 char long one. our provided block_id is at least '{issue: <issue_id>}'
                 # so we know it's longer than 5 chars
@@ -74,7 +86,9 @@ class SlackActionRequest(SlackRequest):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            self._data = json.loads(self.data["payload"])
+            self._data = json.loads_experimental(
+                "integrations.slack.enable-orjson", self.data["payload"]
+            )
         except (KeyError, IndexError, TypeError, ValueError):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 

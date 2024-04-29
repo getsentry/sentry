@@ -13,7 +13,7 @@ from fixtures.vercel import (
 )
 from sentry import VERSION
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

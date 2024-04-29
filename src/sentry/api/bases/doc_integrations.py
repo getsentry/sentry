@@ -76,12 +76,16 @@ class DocIntegrationBaseEndpoint(DocIntegrationsBaseEndpoint):
     Base endpoint used for doc integration item endpoints.
     """
 
-    def convert_args(self, request: Request, doc_integration_slug: str, *args, **kwargs):
+    def convert_args(
+        self, request: Request, doc_integration_id_or_slug: int | str, *args, **kwargs
+    ):
         try:
             if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
-                doc_integration = DocIntegration.objects.get(slug__id_or_slug=doc_integration_slug)
+                doc_integration = DocIntegration.objects.get(
+                    slug__id_or_slug=doc_integration_id_or_slug
+                )
             else:
-                doc_integration = DocIntegration.objects.get(slug=doc_integration_slug)
+                doc_integration = DocIntegration.objects.get(slug=doc_integration_id_or_slug)
         except DocIntegration.DoesNotExist:
             raise Http404
 

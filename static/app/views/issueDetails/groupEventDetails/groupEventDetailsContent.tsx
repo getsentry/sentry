@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
@@ -43,6 +43,7 @@ import {IssueCategory, IssueType} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
@@ -84,9 +85,10 @@ function DefaultGroupEventDetailsContent({
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
   const hasNewTagsUI = useHasNewTagsUI();
+  const tagsRef = useRef<HTMLDivElement>(null);
 
   const projectSlug = project.slug;
-  const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
+  const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
@@ -129,7 +131,12 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} group={group} project={project} />
+      <HighlightsDataSection
+        event={event}
+        group={group}
+        project={project}
+        viewAllRef={tagsRef}
+      />
       {!hasNewTagsUI && (
         <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
       )}
@@ -164,7 +171,9 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       {hasNewTagsUI && (
-        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+        <div ref={tagsRef}>
+          <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+        </div>
       )}
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />

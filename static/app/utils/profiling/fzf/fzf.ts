@@ -41,10 +41,10 @@ const bonusConsecutive = -(scoreGapStart + scoreGapExtention);
 const bonusFirstCharMultiplier = 2;
 
 enum CharTypes {
-  CHAR_LOWER,
-  CHAR_UPPER,
-  CHAR_NUMBER,
-  CHAR_NON_WORD,
+  CHAR_LOWER = 0,
+  CHAR_UPPER = 1,
+  CHAR_NUMBER = 2,
+  CHAR_NON_WORD = 3,
 }
 
 const CharCodes = {

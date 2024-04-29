@@ -36,7 +36,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         operation_id="Retrieve a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
         ],
         responses={
@@ -56,7 +56,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         operation_id="Update a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -77,7 +77,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         operation_id="Delete a Monitor or Monitor Environments",
         parameters=[
             GlobalParams.ORG_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
         ],
         request=MonitorValidator,

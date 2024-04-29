@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
+from sentry.utils import json
 
 
 class TestProjectAutofixCodebaseIndexCreate(APITestCase):
@@ -27,7 +28,9 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {}
 
-        repo = self.create_repo(name="getsentry/sentry", provider="integrations:github")
+        repo = self.create_repo(
+            name="getsentry/sentry", provider="integrations:github", external_id="123"
+        )
         self.create_code_mapping(project=self.project, repo=repo)
 
         response = self.client.post(
@@ -38,23 +41,30 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-            data={
-                "organization_id": self.project.organization.id,
-                "project_id": self.project.id,
-                "repo": {
-                    "provider": "integrations:github",
-                    "owner": "getsentry",
-                    "name": "sentry",
-                },
-            },
+            data=json.dumps(
+                {
+                    "organization_id": self.project.organization.id,
+                    "project_id": self.project.id,
+                    "repo": {
+                        "provider": "integrations:github",
+                        "owner": "getsentry",
+                        "name": "sentry",
+                        "external_id": "123",
+                    },
+                }
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
     @patch("sentry.api.endpoints.project_autofix_create_codebase_index.requests.post")
     def test_autofix_create_multiple_repos_successful(self, mock_post):
         # Setup multiple repositories
-        repo1 = self.create_repo(name="getsentry/sentry", provider="integrations:github")
-        repo2 = self.create_repo(name="getsentry/relay", provider="integrations:github")
+        repo1 = self.create_repo(
+            name="getsentry/sentry", provider="integrations:github", external_id="123"
+        )
+        repo2 = self.create_repo(
+            name="getsentry/relay", provider="integrations:github", external_id="234"
+        )
         self.create_code_mapping(project=self.project, repo=repo1, stack_root="/path1")
         self.create_code_mapping(project=self.project, repo=repo2, stack_root="/path2")
 
@@ -76,28 +86,34 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
         calls = [
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-                data={
-                    "organization_id": self.project.organization.id,
-                    "project_id": self.project.id,
-                    "repo": {
-                        "provider": "integrations:github",
-                        "owner": "getsentry",
-                        "name": "sentry",
-                    },
-                },
+                data=json.dumps(
+                    {
+                        "organization_id": self.project.organization.id,
+                        "project_id": self.project.id,
+                        "repo": {
+                            "provider": "integrations:github",
+                            "owner": "getsentry",
+                            "name": "sentry",
+                            "external_id": "123",
+                        },
+                    }
+                ),
                 headers={"content-type": "application/json;charset=utf-8"},
             ),
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-                data={
-                    "organization_id": self.project.organization.id,
-                    "project_id": self.project.id,
-                    "repo": {
-                        "provider": "integrations:github",
-                        "owner": "getsentry",
-                        "name": "relay",
-                    },
-                },
+                data=json.dumps(
+                    {
+                        "organization_id": self.project.organization.id,
+                        "project_id": self.project.id,
+                        "repo": {
+                            "provider": "integrations:github",
+                            "owner": "getsentry",
+                            "name": "relay",
+                            "external_id": "234",
+                        },
+                    }
+                ),
                 headers={"content-type": "application/json;charset=utf-8"},
             ),
         ]

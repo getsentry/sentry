@@ -6,9 +6,9 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Literal
 
-import msgpack
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -17,13 +17,17 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.monitors.clock_dispatch import try_monitor_tasks_trigger
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
@@ -37,7 +41,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.types import CheckinItem, CheckinMessage, ClockPulseMessage
+from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
@@ -47,10 +51,13 @@ from sentry.monitors.utils import (
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
+from sentry.utils.actor import parse_and_validate_actor
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
+
+MONITOR_CODEC = get_codec("ingest-monitors")
 
 CHECKIN_QUOTA_LIMIT = 6
 CHECKIN_QUOTA_WINDOW = 60
@@ -60,7 +67,6 @@ def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
     config: Mapping | None,
-    quotas_outcome: PermitCheckInStatus,
 ):
     try:
         monitor = Monitor.objects.get(
@@ -73,6 +79,27 @@ def _ensure_monitor_with_config(
 
     if not config:
         return monitor
+
+    # The upsert payload doesn't quite match the api one. Pop out the owner here since
+    # it's not part of the monitor config
+    owner = config.pop("owner", None)
+    owner_user_id = None
+    owner_team_id = None
+    try:
+        owner_actor = parse_and_validate_actor(owner, project.organization_id)
+    except Exception:
+        logger.exception(
+            "Error attempting to resolve owner",
+            extra={
+                "slug": monitor_slug,
+                "owner": owner,
+            },
+        )
+    else:
+        if owner_actor and owner_actor.type == User:
+            owner_user_id = owner_actor.id
+        elif owner_actor and owner_actor.type == Team:
+            owner_team_id = owner_actor.id
 
     validator = ConfigValidator(data=config)
 
@@ -99,6 +126,8 @@ def _ensure_monitor_with_config(
                 "status": ObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
                 "config": validated_config,
+                "owner_user_id": owner_user_id,
+                "owner_team_id": owner_team_id,
             },
         )
         if created:
@@ -118,15 +147,13 @@ def _ensure_monitor_with_config(
             )
 
     # Update existing monitor
-    if monitor and not created and monitor.config != validated_config:
-        monitor.update_config(config, validated_config)
-
-    # When accepting for upsert attempt to assign a seat for the monitor,
-    # otherwise the monitor is marked as disabled
-    if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
-        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
-        if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+    if monitor and not created:
+        if monitor.config != validated_config:
+            monitor.update_config(config, validated_config)
+        if (owner_user_id or owner_team_id) and (
+            owner_user_id != monitor.owner_user_id or owner_team_id != monitor.owner_team_id
+        ):
+            monitor.update(owner_user_id=owner_user_id, owner_team_id=owner_team_id)
 
     return monitor
 
@@ -467,7 +494,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             project,
             monitor_slug,
             monitor_config,
-            quotas_outcome,
         )
     except MonitorLimitsExceeded:
         metrics.incr(
@@ -489,6 +515,13 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             category=DataCategory.MONITOR,
         )
         return
+
+    # When accepting for upsert attempt to assign a seat for the monitor,
+    # otherwise the monitor is marked as disabled
+    if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
+        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
+        if seat_outcome != Outcome.ACCEPTED:
+            monitor.update(status=ObjectStatus.DISABLED)
 
     if not monitor:
         metrics.incr(
@@ -788,9 +821,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         logger.exception("Failed to process check-in")
 
 
-_checkin_worker = ThreadPoolExecutor()
-
-
 def process_checkin(item: CheckinItem):
     """
     Process an individual check-in
@@ -814,7 +844,7 @@ def process_checkin_group(items: list[CheckinItem]):
         process_checkin(item)
 
 
-def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
+def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
     """
     Receives batches of check-in messages. This function will take the batch
     and group them together by monitor ID (ensuring order is preserved) and
@@ -832,7 +862,7 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
         assert isinstance(item, BrokerValue)
 
         try:
-            wrapper: CheckinMessage | ClockPulseMessage = msgpack.unpackb(item.payload.value)
+            wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(item.payload.value)
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue
@@ -862,15 +892,14 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
-            _checkin_worker.submit(process_checkin_group, group)
-            for group in checkin_mapping.values()
+            executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]
         wait(futures)
 
     # Attempt to trigger monitor tasks across processed partitions
     for partition, ts in latest_partition_ts.items():
         try:
-            try_monitor_tasks_trigger(ts, partition)
+            try_monitor_clock_tick(ts, partition)
         except Exception:
             logger.exception("Failed to trigger monitor tasks")
 
@@ -878,12 +907,12 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
 def process_single(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
     try:
-        wrapper = msgpack.unpackb(message.payload.value)
+        wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(message.payload.value)
         ts = message.value.timestamp
         partition = message.value.partition.index
 
         try:
-            try_monitor_tasks_trigger(ts, partition)
+            try_monitor_clock_tick(ts, partition)
         except Exception:
             logger.exception("Failed to trigger monitor tasks")
 
@@ -903,6 +932,8 @@ def process_single(message: Message[KafkaPayload]):
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    parallel_executor: ThreadPoolExecutor | None = None
+
     parallel = False
     """
     Does the consumer process unrelated check-ins in parallel?
@@ -932,9 +963,15 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         if max_batch_time is not None:
             self.max_batch_time = max_batch_time
 
+    def shutdown(self) -> None:
+        if self.parallel_executor:
+            self.parallel_executor.shutdown()
+
     def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        self.parallel_executor = ThreadPoolExecutor()
+
         batch_processor = RunTask(
-            function=process_batch,
+            function=partial(process_batch, self.parallel_executor),
             next_step=CommitOffsets(commit),
         )
         return BatchStep(

@@ -2392,6 +2392,16 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.release",
         "nullable": true
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       }
     },
     "model": "sentry.grouphistory",
@@ -2857,6 +2867,11 @@
   "sentry.incident": {
     "dangling": false,
     "foreign_keys": {
+      "activation": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertruleactivations",
+        "nullable": true
+      },
       "alert_rule": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.alertrule",
@@ -5306,9 +5321,14 @@
         "model": "sentry.environment",
         "nullable": true
       },
-      "owner": {
+      "owner_team": {
         "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
         "nullable": true
       },
       "project": {

@@ -7,7 +7,7 @@ from django.db.models import F
 from django.db.models.base import Model
 
 from sentry import eventstream, similarity, tsdb
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tsdb.base import TSDBModel
 
