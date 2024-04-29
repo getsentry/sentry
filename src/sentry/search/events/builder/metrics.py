@@ -593,11 +593,16 @@ class MetricsQueryBuilder(QueryBuilder):
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-        metric_id = arguments.get("metric_id")
 
-        if snql_function.snql_distribution is not None and self._evaluate_metric_matches_function(
-            metric_id, {"d", "measurements"}
-        ):
+        # Only spans metrics support MRI prefixes used to route metrics and functions to the correct table
+        prefix = None
+        if self.use_case_id is UseCaseID.SPANS:
+            primary_metric = indexer.reverse_resolve(
+                self.use_case_id, self.organization_id, arguments.get("metric_id")
+            )
+            prefix = primary_metric.split(":")[0] if primary_metric else None
+
+        if snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
             resolved_function = snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
                 if snql_function.is_percentile:
@@ -607,27 +612,21 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_set is not None and self._evaluate_metric_matches_function(
-            metric_id, "s"
-        ):
+        if snql_function.snql_set is not None and (prefix is None or prefix == "s"):
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
                 self.sets.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_counter is not None and self._evaluate_metric_matches_function(
-            metric_id, "c"
-        ):
+        if snql_function.snql_counter is not None and (prefix is None or prefix == "c"):
             resolved_function = snql_function.snql_counter(arguments, alias)
             if not resolve_only:
                 self.counters.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_gauge is not None and self._evaluate_metric_matches_function(
-            metric_id, "g"
-        ):
+        if snql_function.snql_gauge is not None and (prefix is None or prefix == "g"):
             resolved_function = snql_function.snql_gauge(arguments, alias)
             if not resolve_only:
                 self.gauges.append(resolved_function)
@@ -777,29 +776,6 @@ class MetricsQueryBuilder(QueryBuilder):
             return Or(conditions=env_conditions)
         else:
             return env_conditions[0]
-
-    def _evaluate_metric_matches_function(
-        self, metric_id: int | None, allowed_prefixes: set[str] | str
-    ):
-        if type(allowed_prefixes) is str:
-            allowed_prefixes = {allowed_prefixes}
-
-        if metric_id is None:
-            return True
-
-        primary_metric = indexer.reverse_resolve(self.use_case_id, self.organization_id, metric_id)
-        metric_prefix = primary_metric.split(":")[0] if primary_metric else None
-
-        is_requested_metric_matching_function = (
-            metric_prefix is not None and metric_prefix in allowed_prefixes
-        )
-        is_compatible_measurement = (
-            metric_prefix is not None
-            and metric_prefix.startswith("measurements")
-            and "measurements" in allowed_prefixes
-        )
-
-        return is_requested_metric_matching_function or is_compatible_measurement
 
     def get_metrics_layer_snql_query(
         self,
