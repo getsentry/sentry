@@ -348,6 +348,9 @@ def _get_model_ids_for_tombstone_cascade(
 
             return to_delete_ids, oldest_seen
 
+    if not options.get("hybrid_cloud.allow_cross_db_tombstones"):
+        raise Exception("Cannot process tombstones due to model living in separate database.")
+
     # Because tombstones can span multiple databases, we can't always rely on
     # the join code above. Instead, we have to manually query IDs from the
     # watermark target table, querying the intersection of IDs manually.
@@ -408,9 +411,6 @@ def get_ids_cross_db_for_tombstone_watermark(
     field: HybridCloudForeignKey,
     tombstone_watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
-    if not options.get("hybrid_cloud.allow_cross_db_tombstones"):
-        raise Exception("Cannot process tombstones due to model living in separate database.")
-
     oldest_seen = timezone.now()
 
     tombstone_entries = tombstone_cls.objects.filter(

@@ -324,6 +324,7 @@ def setup_cross_db_deletion_data(
     )
 
 
+# TODO(Gabe): Enable this test when the multi-db test changes land
 # @region_silo_test
 # class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 #     def assert_monitors_unchanged(self, unaffected_data: list[dict]):
@@ -425,7 +426,7 @@ def setup_cross_db_deletion_data(
 #         affected_monitors.extend(
 #             [
 #                 Monitor.objects.create(
-#                     id=5 + i * 2,  # Ensure that each monitor is in its own batch
+#                     id=10 + i * 2,  # Ensure that each monitor is in its own batch
 #                     organization_id=organization.id,
 #                     project_id=project.id,
 #                     slug=f"test-monitor-{i}",
@@ -440,7 +441,6 @@ def setup_cross_db_deletion_data(
 #
 #         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
 #         self.assert_monitors_user_ids_null(monitors=affected_monitors)
-#
 
 
 @region_silo_test
