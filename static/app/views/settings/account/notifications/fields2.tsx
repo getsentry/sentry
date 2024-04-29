@@ -218,6 +218,7 @@ export const QUOTA_FIELDS = [
   },
 ];
 
+// TODO(isabella): Once GA, remove QUOTA_FIELDS
 export const SPEND_FIELDS = [
   {
     name: 'quotaWarnings',

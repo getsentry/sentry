@@ -213,6 +213,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
           }))
         );
       } else {
+        // TODO(isabella): Once GA, remove this case
         fields.push(
           ...QUOTA_FIELDS.map(field => ({
             ...field,
@@ -367,6 +368,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {notificationOptions} = this.state;
     const unlinkedSlackOrgs = this.getUnlinkedOrgs('slack');
     const notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    // TODO(isabella): Once GA, remove this
     if (
       notificationType === 'quota' &&
       organizations.some(org => org.features?.includes('spend-visibility-notifications'))

@@ -215,6 +215,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
 
     const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
+    // TODO(isabella): once GA, remove this
     if (
       fineTuneType === 'quota' &&
       organizations.some(org => org.features?.includes('spend-visibility-notifications'))
