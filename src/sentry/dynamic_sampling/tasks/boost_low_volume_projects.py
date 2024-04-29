@@ -1,3 +1,4 @@
+import logging
 import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -75,6 +76,7 @@ from sentry.utils.snuba import raw_snql_query
 # This set contains all the projects for which we want to start extracting the sample rate over time. This is done
 # as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
 PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -88,6 +90,7 @@ PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
+    logger.info(sentry_sdk.scope)
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
         for (
             org_id,
