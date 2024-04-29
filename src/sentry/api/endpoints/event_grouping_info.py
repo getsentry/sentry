@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
@@ -8,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.variants import PerformanceProblemVariant
 from sentry.models.project import Project
@@ -21,8 +23,6 @@ def get_grouping_info(config_name: str | None, project: Project, event_id: str):
     event = eventstore.backend.get_event_by_id(project.id, event_id)
     if event is None:
         raise ResourceDoesNotExist
-
-    grouping_info = {}
 
     # We always fetch the stored hashes here.  The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
@@ -53,6 +53,20 @@ def get_grouping_info(config_name: str | None, project: Project, event_id: str):
     except GroupingConfigNotFound:
         raise ResourceDoesNotExist(detail="Unknown grouping config")
 
+    return get_grouping_info_from_variants(
+        event, project, variants, hashes.hashes, hashes.hierarchical_hashes
+    )
+
+
+def get_grouping_info_from_variants(
+    event: Event,
+    project: Project,
+    variants: dict[str, Any],
+    hashes: list[str],
+    hierarchical_hashes: list[str],
+) -> dict[str, dict[str, Any]]:
+    grouping_info = {}
+
     for key, variant in variants.items():
         variant_dict = variant.as_dict()
         # Since the hashes are generated on the fly and might no
@@ -60,15 +74,15 @@ def get_grouping_info(config_name: str | None, project: Project, event_id: str):
         # generation caused the hash to mismatch.
         variant_dict["hashMismatch"] = hash_mismatch = (
             variant_dict["hash"] is not None
-            and variant_dict["hash"] not in hashes.hashes
-            and variant_dict["hash"] not in hashes.hierarchical_hashes
+            and variant_dict["hash"] not in hashes
+            and variant_dict["hash"] not in hierarchical_hashes
         )
 
         if hash_mismatch:
             metrics.incr("event_grouping_info.hash_mismatch")
             logger.error(
                 "event_grouping_info.hash_mismatch",
-                extra={"project_id": project.id, "event_id": event_id},
+                extra={"project_id": project.id, "event_id": event.event_id},
             )
         else:
             metrics.incr("event_grouping_info.hash_match")
