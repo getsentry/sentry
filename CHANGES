@@ -1,3 +1,41 @@
+24.4.2
+------
+
+### Related Issues - V1 (ongoing)
+
+This will include same-root and trace-connected issues.
+
+By: @armenzg (#69670, #69693, #69237)
+
+### Various fixes & improvements
+
+- feat(traces): Add multiple queries for trace search (#69929) by @k-fish
+- feat(api-idorslug): Rename Path paramaters to `project_id_or_slug` (#69716) by @iamrajjoshi
+- ref(rules): Handle action match in delayed rule processor (#69797) by @ceorourke
+- ref(crons): Improve typing on MONITOR_CODEC (#69919) by @evanpurkhiser
+- reF(ui): Use Link component for performance/cache/tables/transactionCell (#69906) by @evanpurkhiser
+- feat(replay): Refetch the viewed-by data after an update to it (#69357) by @ryan953
+- fix: no attribute error (#69908) by @nhsiehgit
+- feat(user): Add option to only return verified emails from verify_user_emails (#69812) by @davidenwang
+- ref(py): Update monitor_consumer to handle FilteredPayload (#69904) by @evanpurkhiser
+- ref: fix BytesWarning in last_seen_updater (#69909) by @asottile-sentry
+- ref(crons): Remove decode compat code (#69905) by @evanpurkhiser
+- ref(app-starts): Generalize screen table component (#69839) by @narsaynorath
+- ref(profiling): preserve colors when highlighting (#69912) by @JonasBa
+- fix(trace): track data quality from frontend (#69907) by @JonasBa
+- fix(project-release): POST should not call Snuba (#69831) by @sentaur-athena
+- fix(trace): use the same resize icon (#69869) by @JonasBa
+- feat(ui): Remove lazy renderer component prop (#69823) by @scttcper
+- ref(js): Use Link component in spanDescriptionLink (#69897) by @evanpurkhiser
+- feat(ui): Tag sentry events with concurrent mode (#69819) by @scttcper
+- ref: maxminddb module is always available, GEOIP_PATH_MMDB attr always present (#69902) by @asottile-sentry
+- fix(trace): remove click outside (#69862) by @JonasBa
+- ref(ui): Use Link component in performance http/tables/transactionCell (#69891) by @evanpurkhiser
+- ref(ui): Use Button for "Change Photo" (#69901) by @evanpurkhiser
+- feat(crons): Add ability dispatch clock ticks to kafka (#69896) by @evanpurkhiser
+
+_Plus 478 more_
+
 24.4.1
 ------
 
