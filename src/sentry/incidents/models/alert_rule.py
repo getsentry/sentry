@@ -14,9 +14,7 @@ from django.db.models import Q, QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.helpers import ImportFlags
-from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -32,7 +30,6 @@ from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import IncidentTrigger
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.models.actor import Actor
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -252,12 +249,7 @@ class AlertRule(Model):
         "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
     )
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
-    # Deprecated use user_id or team_id instead.
-    owner = FlexibleForeignKey(
-        "sentry.Actor",
-        null=True,
-        on_delete=models.SET_NULL,
-    )
+
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
@@ -290,15 +282,6 @@ class AlertRule(Model):
 
     __repr__ = sane_repr("id", "name", "date_added")
 
-    def _validate_actor(self):
-        # TODO(mark): Remove once owner is fully removed.
-        if self.owner_id is not None and self.team_id is None and self.user_id is None:
-            raise ValueError("AlertRule with owner requires either team_id or user_id")
-
-    def save(self, *args, **kwargs: Any) -> None:
-        self._validate_actor()
-        return super().save(*args, **kwargs)
-
     @property
     def created_by_id(self):
         try:
@@ -312,31 +295,6 @@ class AlertRule(Model):
 
     def get_audit_log_data(self):
         return {"label": self.name}
-
-    def normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> int | None:
-        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
-        # TODO(hybrid-cloud): actor refactor. Remove this check once we're sure we've migrated all
-        # remaining `owner_id`'s to also have `team_id` or `user_id`, which seems to not be the case
-        # today.
-        if self.owner_id is not None and self.team_id is None and self.user_id is None:
-            actor = Actor.objects.filter(id=self.owner_id).first()
-            if actor is None or (actor.team_id is None and actor.user_id is None):
-                # The `owner_id` references a non-existent `Actor`, or else one that has no
-                # `team_id` or `user_id` of its own, making it functionally a null `Actor`. This
-                # means the `owner_id` is invalid, so we simply delete it.
-                self.owner_id = None
-            else:
-                # Looks like an existing `Actor` points to a valid team or user - make sure that
-                # information is duplicated into this `AlertRule` model as well.
-                self.team_id = actor.team_id
-                self.user_id = actor.user_id
-
-        return old_pk
 
     def subscribe_projects(
         self,

@@ -361,11 +361,6 @@
         "model": "sentry.organization",
         "nullable": true
       },
-      "owner": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
       "snuba_query": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.snubaquery",
