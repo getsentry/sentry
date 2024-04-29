@@ -116,9 +116,9 @@ class ProjectEndpoint(Endpoint):
         **kwargs,
     ):
         if args and args[0] is not None:
-            project_id_or_slug = args[0]
+            project_id_or_slug: int | str = args[0]
         else:
-            project_id_or_slug: int | str = kwargs.pop("project_id_or_slug", None) or kwargs.pop(
+            project_id_or_slug = kwargs.pop("project_id_or_slug", None) or kwargs.pop(
                 "project_slug"
             )
         try:
