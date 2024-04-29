@@ -105,7 +105,7 @@ type Props = {
   selectedSearchId: string;
   selection: PageFilters;
   tags: TagCollection;
-} & RouteComponentProps<{searchId?: string}, {}> &
+} & RouteComponentProps<{}, {searchId?: string}> &
   WithRouteAnalyticsProps;
 
 type State = {
