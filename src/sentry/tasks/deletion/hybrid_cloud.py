@@ -351,54 +351,72 @@ def _get_model_ids_for_tombstone_cascade(
     # Because tombstones can span multiple databases, we can't always rely on
     # the join code above. Instead, we have to manually query IDs from the
     # watermark target table, querying the intersection of IDs manually.
-    return get_ids_for_tombstone_cascade_cross_db(
+    # The implementation of this varies depending on whether we are
+    # processing row or tombstone watermarks.
+    if row_after_tombstone:
+        return get_ids_cross_db_for_row_watermark(
+            tombstone_cls=tombstone_cls,
+            model=model,
+            field=field,
+            row_watermark_batch=watermark_batch,
+        )
+
+    return get_ids_cross_db_for_tombstone_watermark(
         tombstone_cls=tombstone_cls,
         model=model,
         field=field,
-        row_after_tombstone=row_after_tombstone,
-        watermark_batch=watermark_batch,
+        tombstone_watermark_batch=watermark_batch,
     )
 
 
-def get_ids_for_tombstone_cascade_cross_db(
+def get_ids_cross_db_for_row_watermark(
     tombstone_cls: type[TombstoneBase],
     model: type[Model],
     field: HybridCloudForeignKey,
-    row_after_tombstone: bool,
-    watermark_batch: WatermarkBatch,
+    row_watermark_batch: WatermarkBatch,
+) -> tuple[list[int], datetime.datetime]:
+    oldest_seen = timezone.now()
+    affected_rows = []
+    model_object_id_pairs = model.objects.filter(
+        id__lte=row_watermark_batch.up, id__gt=row_watermark_batch.low
+    ).values_list("id", f"{field.name}")
+
+    # Construct a map of foreign key IDs to model IDs, which gives us the
+    # minimal set of foreign key values to lookup in the tombstones table.
+    fk_to_model_id_map = defaultdict(set)
+    for m_id, o_id in model_object_id_pairs:
+        fk_to_model_id_map[o_id].add(m_id)
+
+    object_ids_to_check = fk_to_model_id_map.keys()
+    tombstone_entries = tombstone_cls.objects.filter(
+        object_identifier__in=object_ids_to_check
+    ).values_list("object_identifier", "created_at")
+
+    # Once we have the intersecting tombstones, use the dictionary we
+    # created before to construct the minimal set of model IDs we need to
+    # update with cascade behavior.
+    for object_id, created_at in tombstone_entries:
+        affected_rows.extend(fk_to_model_id_map[object_id])
+        oldest_seen = min(oldest_seen, created_at)
+
+    return affected_rows, oldest_seen
+
+
+def get_ids_cross_db_for_tombstone_watermark(
+    tombstone_cls: type[TombstoneBase],
+    model: type[Model],
+    field: HybridCloudForeignKey,
+    tombstone_watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
     if not options.get("hybrid_cloud.allow_cross_db_tombstones"):
         raise Exception("Cannot process tombstones due to model living in separate database.")
 
     oldest_seen = timezone.now()
-    if row_after_tombstone:
-        affected_rows = []
-        model_object_id_pairs = model.objects.filter(
-            id__lte=watermark_batch.up, id__gt=watermark_batch.low
-        ).values_list("id", f"{field.name}")
-
-        # Construct a map of foreign key IDs to model IDs, which gives us the
-        # minimal set of foreign key values to lookup in the tombstones table.
-        fk_to_model_id_map = defaultdict(set)
-        for m_id, o_id in model_object_id_pairs:
-            fk_to_model_id_map[o_id].add(m_id)
-
-        object_ids_to_check = fk_to_model_id_map.keys()
-        tombstone_entries = tombstone_cls.objects.filter(
-            object_identifier__in=object_ids_to_check
-        ).values_list("object_identifier", "created_at")
-
-        # Once we have the intersecting tombstones, use the dictionary we
-        # created before to construct the minimal set of model IDs we need to
-        # update with cascade behavior.
-        for object_id, created_at in tombstone_entries:
-            affected_rows.extend(fk_to_model_id_map[object_id])
-            oldest_seen = min(oldest_seen, created_at)
-
-        return affected_rows, oldest_seen
 
     tombstone_entries = tombstone_cls.objects.filter(
-        id__lte=watermark_batch.up, id__gt=watermark_batch.low, table_name=field.foreign_table_name
+        id__lte=tombstone_watermark_batch.up,
+        id__gt=tombstone_watermark_batch.low,
+        table_name=field.foreign_table_name,
     ).values_list("object_identifier", "created_at")
 
     ids_to_check = []
