@@ -1744,7 +1744,7 @@ const TraceStylingWrapper = styled('div')`
     height: 100%;
     background-color: transparent;
     top: 0;
-    cursor: col-resize;
+    cursor: ew-resize;
     z-index: 10;
 
     &:before {
