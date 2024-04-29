@@ -64,7 +64,7 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
     'count_starts(measurements.app_start_warm)': t('Count'),
   };
 
-  function renderBodyCell(column, row): React.ReactNode | null {
+  function renderBodyCell(column, row): React.ReactNode {
     if (!data) {
       return null;
     }

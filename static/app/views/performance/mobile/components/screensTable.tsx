@@ -10,7 +10,6 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -29,7 +28,7 @@ type Props = {
   customBodyCellRenderer?: (
     column: GridColumn<string>,
     row: TableDataRow
-  ) => React.ReactNode | null;
+  ) => React.ReactNode;
 };
 
 export function ScreensTable({
@@ -68,11 +67,8 @@ export function ScreensTable({
     });
   }
 
-  function renderHeadCell(
-    column: GridColumnHeader,
-    tableMeta?: MetaType
-  ): React.ReactNode {
-    const fieldType = tableMeta?.fields?.[column.key];
+  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+    const fieldType = data?.meta?.fields?.[column.key];
     const alignment = fieldAlignment(column.key as string, fieldType);
     const field = {
       field: column.key as string,
@@ -80,11 +76,11 @@ export function ScreensTable({
     };
 
     function generateSortLink() {
-      if (!tableMeta) {
+      if (!data?.meta) {
         return undefined;
       }
 
-      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const nextEventView = eventView.sortOnField(field, data?.meta);
       const queryStringObject = nextEventView.generateQueryStringObject();
 
       return {
@@ -93,9 +89,9 @@ export function ScreensTable({
       };
     }
 
-    const currentSort = eventView.sortForField(field, tableMeta);
+    const currentSort = eventView.sortForField(field, data?.meta);
     const currentSortKind = currentSort ? currentSort.kind : undefined;
-    const canSort = isFieldSortable(field, tableMeta);
+    const canSort = isFieldSortable(field, data?.meta);
 
     const sortLink = (
       <SortLink
@@ -124,7 +120,7 @@ export function ScreensTable({
         columnSortBy={defaultSort}
         location={location}
         grid={{
-          renderHeadCell: column => renderHeadCell(column, data?.meta),
+          renderHeadCell,
           renderBodyCell,
         }}
       />
