@@ -356,8 +356,7 @@ METRIC_DURATION_COLUMNS = {
 SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
-    if (value.endswith("@millisecond") and value.startswith("d:"))
-    or (value.endswith("@second") and value.startswith("g:"))
+    if value.endswith("@millisecond") or value.endswith("@second")
 }
 SPAN_METRIC_COUNT_COLUMNS = {
     key
