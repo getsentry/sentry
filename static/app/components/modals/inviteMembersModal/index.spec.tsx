@@ -149,7 +149,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders for superuser', async function () {
-    jest.mocked(isActiveSuperuser).mockReturnValue(true);
+    jest.mocked(isActiveSuperuser).mockReturnValueOnce(true);
 
     const errorResponse: MockApiResponseFn = (client, orgSlug, _) => {
       return client.addMockResponse({
