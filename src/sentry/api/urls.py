@@ -2747,7 +2747,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-monitor-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/autofix/codebase-index/status/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/status/$",
         ProjectAutofixCodebaseIndexStatusEndpoint.as_view(),
         name="sentry-api-0-project-autofix-codebase-index-status",
     ),
