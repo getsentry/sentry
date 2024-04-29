@@ -497,11 +497,18 @@ describe('groupEventDetails', () => {
   describe('changes to event tags ui', () => {
     async function assertNewTagsView() {
       expect(await screen.findByText('Event ID:')).toBeInTheDocument();
-      const contextSummary = screen.getByTestId('highlighted-event-data');
-      const contextSummaryContainer = within(contextSummary);
-      // 3 contexts in makeDefaultMockData.event.contexts, trace is ignored
-      expect(contextSummaryContainer.queryAllByTestId('context-item')).toHaveLength(3);
+      expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
       expect(screen.getByTestId('event-tags')).toBeInTheDocument();
+      const highlights = screen.getByTestId('event-highlights');
+      expect(
+        within(highlights).getByRole('button', {name: 'View All'})
+      ).toBeInTheDocument();
+      expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+      // No highlights setup
+      expect(
+        within(highlights).getByRole('button', {name: 'Add Highlights'})
+      ).toBeInTheDocument();
+      expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
     }
 
     it('works with the feature flag', async function () {

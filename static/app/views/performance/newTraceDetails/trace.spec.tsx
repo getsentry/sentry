@@ -1,4 +1,3 @@
-import {act} from 'react-dom/test-utils';
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {DetailedEventsFixture} from 'sentry-fixture/events';
@@ -6,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   findByText,
   fireEvent,
   render,
@@ -1287,9 +1287,10 @@ describe('trace view', () => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
       });
 
-      await userEvent.click(
-        await screen.findAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID)[0]
-      );
+      const tabButtons = screen.queryAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID);
+      expect(tabButtons).toHaveLength(2);
+
+      await userEvent.click(tabButtons[0]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });

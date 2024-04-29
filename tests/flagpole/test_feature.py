@@ -4,6 +4,13 @@ import pytest
 
 from flagpole import ContextBuilder, EvaluationContext, Feature, InvalidFeatureFlagConfiguration
 from flagpole.operators import OperatorKind
+from sentry.testutils.helpers import override_options
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"flagpole.enable-orjson": 0.0}):
+        yield
 
 
 class TestParseFeatureConfig:
