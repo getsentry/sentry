@@ -80,7 +80,7 @@ export default function InviteMembersModalView({
 
   const isSuperUser = isActiveSuperuser();
 
-  const disableInputs = sendingInvites || complete || !isVerified || !isSuperUser;
+  const disableInputs = sendingInvites || complete || (!isVerified && !isSuperUser);
 
   return (
     <Fragment>

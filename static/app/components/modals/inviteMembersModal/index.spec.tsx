@@ -12,9 +12,13 @@ import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import {ORG_ROLES} from 'sentry/constants';
 import TeamStore from 'sentry/stores/teamStore';
 import type {DetailedTeam, Scope} from 'sentry/types';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 
 jest.mock('sentry/utils/useOrganization');
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: jest.fn(),
+}));
 
 describe('InviteMembersModal', function () {
   const styledWrapper = styled(c => c.children);
@@ -22,13 +26,32 @@ describe('InviteMembersModal', function () {
   type MockApiResponseFn = (
     client: typeof MockApiClient,
     orgSlug: string,
+    is_superuser: boolean,
+    verified_email: boolean,
     roles?: object[]
   ) => jest.Mock;
-  const defaultMockOrganizationRoles: MockApiResponseFn = (client, orgSlug, roles) => {
+  const defaultMockOrganizationRoles: MockApiResponseFn = (
+    client,
+    orgSlug,
+    is_superuser,
+    verified_email,
+    roles
+  ) => {
     return client.addMockResponse({
       url: `/organizations/${orgSlug}/members/me/`,
       method: 'GET',
-      body: {orgRoleList: roles},
+      body: {
+        user: {
+          isSuperuser: is_superuser,
+          emails: [
+            {
+              email: 'test@dev.getsentry.net',
+              is_verified: verified_email,
+            },
+          ],
+        },
+        orgRoleList: roles,
+      },
     });
   };
 
@@ -50,6 +73,8 @@ describe('InviteMembersModal', function () {
   const setupView = ({
     orgTeams = [TeamFixture()],
     orgAccess = ['member:write'],
+    is_superuser = false,
+    verified_email = false,
     roles = [
       {
         id: 'admin',
@@ -69,11 +94,13 @@ describe('InviteMembersModal', function () {
     modalProps = defaultMockModalProps,
     mockApiResponses = [defaultMockOrganizationRoles],
   }: {
+    is_superuser?: boolean;
     mockApiResponses?: MockApiResponseFn[];
     modalProps?: ComponentProps<typeof InviteMembersModal>;
     orgAccess?: Scope[];
     orgTeams?: DetailedTeam[];
     roles?: object[];
+    verified_email?: boolean;
   } = {}) => {
     const org = OrganizationFixture({access: orgAccess, teams: orgTeams});
     TeamStore.reset();
@@ -82,7 +109,9 @@ describe('InviteMembersModal', function () {
     MockApiClient.clearMockResponses();
     const mocks: jest.Mock[] = [];
     mockApiResponses.forEach(mockApiResponse => {
-      mocks.push(mockApiResponse(MockApiClient, org.slug, roles));
+      mocks.push(
+        mockApiResponse(MockApiClient, org.slug, is_superuser, verified_email, roles)
+      );
     });
     jest.mocked(useOrganization).mockReturnValue(org);
 
@@ -106,7 +135,7 @@ describe('InviteMembersModal', function () {
   };
 
   it('renders', async function () {
-    setupView();
+    setupView({verified_email: true});
     await waitFor(() => {
       // Starts with one invite row
       expect(screen.getByRole('listitem')).toBeInTheDocument();
@@ -120,9 +149,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders for superuser', async function () {
-    jest.mock('sentry/utils/isActiveSuperuser', () => ({
-      isActiveSuperuser: jest.fn(),
-    }));
+    jest.mocked(isActiveSuperuser).mockReturnValue(true);
 
     const errorResponse: MockApiResponseFn = (client, orgSlug, _) => {
       return client.addMockResponse({
