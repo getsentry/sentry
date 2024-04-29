@@ -74,4 +74,22 @@ describe('NotificationSettings', function () {
     }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
   });
+
+  it('renders spend section instead of quota section with feature flag', async function () {
+    const {routerContext, organization} = initializeOrg({
+      organization: {
+        features: ['slack-overage-notifications', 'spend-visibility-notifications'],
+      },
+    });
+
+    renderMockRequests({});
+
+    render(<NotificationSettings organizations={[organization]} />, {
+      context: routerContext,
+    });
+
+    expect(await screen.findByText('Spend')).toBeInTheDocument();
+
+    expect(screen.queryByText('Quota')).not.toBeInTheDocument();
+  });
 });

@@ -259,4 +259,21 @@ describe('NotificationSettingsByType', function () {
     await selectEvent.select(multiSelect, ['Email']);
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
   });
+
+  it('renders spend notifications page instead of quota notifications with flag', async function () {
+    const organizationWithFlag = OrganizationFixture();
+    organizationWithFlag.features.push('spend-visibility-notifications');
+    const organizationNoFlag = OrganizationFixture();
+    renderComponent({
+      notificationType: 'quota',
+      organizations: [organizationWithFlag, organizationNoFlag],
+    });
+
+    expect(await screen.findByText('Spend Notifications')).toBeInTheDocument();
+    expect(screen.queryByText('Quota Notifications')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Control the notifications you receive for organizations spend.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Receive Notifications')).toBeInTheDocument();
+  });
 });
