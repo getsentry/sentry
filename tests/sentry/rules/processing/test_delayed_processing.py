@@ -166,34 +166,35 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_apply_delayed_rules_to_fire(self):
         """
-        Test that rules of various event frequency conditions, projects, environments, etc. are properly scheduled to fire
+        Test that rules of various event frequency conditions, projects, environments, etc. are properly fired
         """
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             apply_delayed(self.project.id)
-            rule_fire_history_rules = RuleFireHistory.objects.filter(
+            rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, self.rule2],
                 group__in=[self.group1, self.group2],
                 event_id__in=[self.event1.event_id, self.event2.event_id],
                 project=self.project,
-            ).values_list("rule", flat=True)
-            assert len(rule_fire_history_rules) == 2
-            assert self.rule1.id in rule_fire_history_rules
-            assert self.rule2.id in rule_fire_history_rules
+            ).values_list("rule", "group")
+
+            assert len(rule_fire_histories) == 2
+            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
+            assert rule_fire_histories[1] == (self.rule2.id, self.group2.id)
 
             apply_delayed(self.project_two.id)
-            rule_fire_history_rules = RuleFireHistory.objects.filter(
+            rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule3, self.rule4],
                 group__in=[self.group3, self.group4],
                 event_id__in=[self.event3.event_id, self.event4.event_id],
                 project=self.project_two,
-            ).values_list("rule", flat=True)
-            assert len(rule_fire_history_rules) == 2
-            assert self.rule3.id in rule_fire_history_rules
-            assert self.rule4.id in rule_fire_history_rules
+            ).values_list("rule", "group")
+            assert len(rule_fire_histories) == 2
+            assert rule_fire_histories[0] == (self.rule3.id, self.group3.id)
+            assert rule_fire_histories[1] == (self.rule4.id, self.group4.id)
 
     def test_apply_delayed_same_condition_diff_value(self):
         """
-        Test that two rules with the same condition and interval but a different value are both scheduled to fire
+        Test that two rules with the same condition and interval but a different value are both fired
         """
         rule5 = self.create_project_rule(
             project=self.project,
@@ -210,19 +211,20 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             apply_delayed(self.project.id)
-            rule_fire_history_rules = RuleFireHistory.objects.filter(
+            rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, rule5],
                 group__in=[self.group1, group5],
                 event_id__in=[self.event1.event_id, event5.event_id],
                 project=self.project,
-            ).values_list("rule", flat=True)
-            assert len(rule_fire_history_rules) == 3  # TODO rule1 fired twice somehow
-            assert self.rule1.id in rule_fire_history_rules
-            assert rule5.id in rule_fire_history_rules
+            ).values_list("rule", "group")
+            assert len(rule_fire_histories) == 3
+            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
+            assert rule_fire_histories[1] == (self.rule1.id, group5.id)
+            assert rule_fire_histories[2] == (rule5.id, group5.id)
 
     def test_apply_delayed_same_condition_diff_interval(self):
         """
-        Test that two rules with the same condition and value but a different interval are both scheduled to fire
+        Test that two rules with the same condition and value but a different interval are both fired
         """
         diff_interval_rule = self.create_project_rule(
             project=self.project,
@@ -238,19 +240,19 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             apply_delayed(self.project.id)
-            rule_fire_history_rules = RuleFireHistory.objects.filter(
+            rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, diff_interval_rule],
                 group__in=[self.group1, group5],
                 event_id__in=[self.event1.event_id, event5.event_id],
                 project=self.project,
-            ).values_list("rule", flat=True)
-            assert len(rule_fire_history_rules) == 2
-            assert self.rule1.id in rule_fire_history_rules
-            assert diff_interval_rule.id in rule_fire_history_rules
+            ).values_list("rule", "group")
+            assert len(rule_fire_histories) == 2
+            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
+            assert rule_fire_histories[1] == (diff_interval_rule.id, group5.id)
 
     def test_apply_delayed_same_condition_diff_env(self):
         """
-        Test that two rules with the same condition, value, and interval but different environment are both scheduled to fire
+        Test that two rules with the same condition, value, and interval but different environment are both fired
         """
         environment3 = self.create_environment(project=self.project)
         diff_env_rule = self.create_project_rule(
@@ -267,19 +269,19 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             apply_delayed(self.project.id)
-            rule_fire_history_rules = RuleFireHistory.objects.filter(
+            rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, diff_env_rule],
                 group__in=[self.group1, group5],
                 event_id__in=[self.event1.event_id, event5.event_id],
                 project=self.project,
-            ).values_list("rule", flat=True)
-            assert len(rule_fire_history_rules) == 2
-            assert self.rule1.id in rule_fire_history_rules
-            assert diff_env_rule.id in rule_fire_history_rules
+            ).values_list("rule", "group")
+            assert len(rule_fire_histories) == 2
+            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
+            assert rule_fire_histories[1] == (diff_env_rule.id, group5.id)
 
     def test_apply_delayed_two_rules_one_fires(self):
         """
-        Test that with two rules in one project where one rule hasn't met the trigger threshold, only one is scheduled to fire
+        Test that with two rules in one project where one rule hasn't met the trigger threshold, only one is fired
         """
         high_event_frequency_condition = {
             "interval": "1d",
@@ -301,20 +303,19 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             apply_delayed(self.project.id)
-            rule_fire_history_rules = RuleFireHistory.objects.filter(
+            rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, no_fire_rule],
                 group__in=[self.group1, group5],
                 event_id__in=[self.event1.event_id, event5.event_id],
                 project=self.project,
-            ).values_list("rule", flat=True)
-            assert len(rule_fire_history_rules) == 2
-            assert self.rule1.id in rule_fire_history_rules
-            assert no_fire_rule.id not in rule_fire_history_rules
-
+            ).values_list("rule", "group")
+            assert len(rule_fire_histories) == 2
+            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
+            assert rule_fire_histories[1] == (self.rule1.id, group5.id)
 
     def test_apply_delayed_action_match_all(self):
         """
-        Test that a rule with multiple conditions and an action match of 'all' is scheduled to fire
+        Test that a rule with multiple conditions and an action match of 'all' is fired
         """
         two_conditions_match_all_rule = self.create_project_rule(
             project=self.project,
@@ -344,12 +345,14 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         )
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            rules = apply_delayed(self.project.id)
-            assert self.rule1 in rules
-            assert self.group1.id in rules[self.rule1]
-            assert self.rule2 in rules
-            assert self.group2.id in rules[self.rule2]
-            assert two_conditions_match_all_rule in rules
-            assert group5.id in rules[two_conditions_match_all_rule]
-            assert group6.id not in rules[two_conditions_match_all_rule]
-            assert condition_wont_pass_rule not in rules
+            apply_delayed(self.project.id)
+            rule_fire_histories = RuleFireHistory.objects.filter(
+                rule__in=[self.rule1, two_conditions_match_all_rule, condition_wont_pass_rule],
+                group__in=[self.group1, group5],
+                event_id__in=[self.event1.event_id, event5.event_id],
+                project=self.project,
+            ).values_list("rule", "group")
+            assert len(rule_fire_histories) == 3
+            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
+            assert rule_fire_histories[1] == (self.rule1.id, group5.id)
+            assert rule_fire_histories[2] == (two_conditions_match_all_rule.id, group5.id)
