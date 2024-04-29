@@ -112,10 +112,15 @@ class ProjectEndpoint(Endpoint):
         self,
         request: Request,
         organization_slug: str | int,
-        project_id_or_slug: int | str,
         *args,
         **kwargs,
     ):
+        if args and args[0] is not None:
+            project_id_or_slug = args[0]
+        else:
+            project_id_or_slug: int | str = kwargs.pop("project_id_or_slug", None) or kwargs.pop(
+                "project_slug"
+            )
         try:
             if id_or_slug_path_params_enabled(
                 self.convert_args.__qualname__, str(organization_slug)
