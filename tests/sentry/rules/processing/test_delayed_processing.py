@@ -176,7 +176,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
                 event_id__in=[self.event1.event_id, self.event2.event_id],
                 project=self.project,
             ).values_list("rule", "group")
-
+            assert self.group1
+            assert self.group2
             assert len(rule_fire_histories) == 2
             assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
             assert rule_fire_histories[1] == (self.rule2.id, self.group2.id)
@@ -189,6 +190,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
                 project=self.project_two,
             ).values_list("rule", "group")
             assert len(rule_fire_histories) == 2
+            assert self.group3
+            assert self.group4
             assert rule_fire_histories[0] == (self.rule3.id, self.group3.id)
             assert rule_fire_histories[1] == (self.rule4.id, self.group4.id)
 
