@@ -74,7 +74,7 @@ describe('withIssueTags HoC', function () {
     });
 
     expect(
-      screen.getByText(/assigned: me, my_teams, \[me, my_teams, none\]/)
+      screen.getByText(/assigned: me, my_teams, none, \[me, my_teams, none\]/)
     ).toBeInTheDocument();
 
     act(() => {
