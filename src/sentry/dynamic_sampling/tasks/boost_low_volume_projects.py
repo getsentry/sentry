@@ -2,6 +2,7 @@ import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from functools import wraps
 
 import sentry_sdk
 from snuba_sdk import (
@@ -19,6 +20,7 @@ from snuba_sdk import (
 )
 
 from sentry import quotas
+from sentry.celery import app
 from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
@@ -67,7 +69,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import TaskSiloLimit
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
@@ -77,7 +79,35 @@ from sentry.utils.snuba import raw_snql_query
 PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 
 
-@instrumented_task(
+def experimental_instrumented_task(name, silo_mode=None, **kwargs):
+    """
+    Decorator for defining celery tasks without some extra dependencies which are included in the original
+    `instrumented_task`.
+
+    This is implemented for internal testing purposes.
+    """
+
+    def wrapped(func):
+        @wraps(func)
+        def _wrapped(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
+        # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
+        # being OOM killed.
+        kwargs["trail"] = False
+        task = app.task(name=name, **kwargs)(_wrapped)
+
+        if silo_mode:
+            silo_limiter = TaskSiloLimit(silo_mode)
+            return silo_limiter(task)
+
+        return task
+
+    return wrapped
+
+
+@experimental_instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     queue="dynamicsampling",
     default_retry_delay=5,
@@ -98,7 +128,7 @@ def boost_low_volume_projects(context: TaskContext) -> None:
             boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
 
 
-@instrumented_task(
+@experimental_instrumented_task(
     name="sentry.dynamic_sampling.boost_low_volume_projects_of_org",
     queue="dynamicsampling",
     default_retry_delay=5,
