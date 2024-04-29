@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import IO
@@ -46,6 +47,8 @@ __all__ = (
     "import_in_config_scope",
     "import_in_global_scope",
 )
+
+logger = logging.getLogger(__name__)
 
 # We have to be careful when removing fields from our model schemas, since exports created using
 # the old-but-still-in-the-support-window versions could have those fields set in the data they
@@ -304,6 +307,15 @@ def _import(
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
         model_name_str = str(model_name)
+        min_ordinal = offset + 1
+
+        extra = {
+            "model_name": model_name_str,
+            "import_uuid": flags.import_uuid,
+            "min_ordinal": min_ordinal,
+        }
+        logger.info("import_by_model.request_import", extra=extra)
+
         result = import_by_model(
             model_name=model_name_str,
             scope=import_write_context.scope,
@@ -311,7 +323,7 @@ def _import(
             filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
-            min_ordinal=offset + 1,
+            min_ordinal=min_ordinal,
         )
 
         if isinstance(result, RpcImportError):
@@ -336,7 +348,9 @@ def _import(
             existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
                 import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
             ).first()
-            if existing_control_import_chunk_replica is None:
+            if existing_control_import_chunk_replica is not None:
+                logger.info("import_by_model.control_replica_already_exists", extra=extra)
+            else:
                 # If `min_ordinal` is not null, these values must not be either.
                 assert result.max_ordinal is not None
                 assert result.min_source_pk is not None
