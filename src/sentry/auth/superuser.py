@@ -436,7 +436,7 @@ class Superuser(ElevatedMode):
         else:
             try:
                 # need to use json loads as the data is no longer in request.data
-                su_access_json = json.loads(request.body)
+                su_access_json = json.loads_experimental("auth.enable-orjson", request.body)
             except json.JSONDecodeError:
                 metrics.incr(
                     "superuser.failure",

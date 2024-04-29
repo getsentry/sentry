@@ -93,7 +93,7 @@ class OAuth2Callback(AuthView):
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body))
-        return json.loads(body)
+        return json.loads_experimental("auth.enable-orjson", body)
 
     def dispatch(self, request: Request, helper) -> HttpResponse:
         error = request.GET.get("error")
@@ -192,7 +192,7 @@ class OAuth2Provider(Provider, abc.ABC):
 
         try:
             body = safe_urlread(req)
-            payload = json.loads(body)
+            payload = json.loads_experimental("auth.enable-orjson", body)
         except Exception:
             payload = {}
 

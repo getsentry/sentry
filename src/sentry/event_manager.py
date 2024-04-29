@@ -2451,11 +2451,13 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
-                    body=json.dumps(payload),
+                    body=json.dumps_experimental("event-manager.enable-orjson", payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
-                severity = json.loads(response.data).get("severity")
+                severity = json.loads_experimental(
+                    "event-manager.enable-orjson", response.data
+                ).get("severity")
                 reason = "ml"
         except MaxRetryError as e:
             logger.warning(
@@ -2801,7 +2803,9 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event"].data["_metrics"] = event_metrics
 
         # Capture the actual size that goes into node store.
-        event_metrics["bytes.stored.event"] = len(json.dumps(dict(job["event"].data.items())))
+        event_metrics["bytes.stored.event"] = len(
+            json.dumps_experimental("event-manager.enable-orjson", dict(job["event"].data.items()))
+        )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):

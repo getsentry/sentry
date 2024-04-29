@@ -433,7 +433,9 @@ class AuthIdentityHandler:
             # add events that we can handle on the front end
             provider = self.auth_provider.provider if self.auth_provider else None
             params = {
-                "frontend_events": json.dumps({"event_name": "Sign Up", "event_label": provider})
+                "frontend_events": json.dumps_experimental(
+                    "auth.enable-orjson", {"event_name": "Sign Up", "event_label": provider}
+                )
             }
             url = add_params_to_url(url, params)
         response = HttpResponseRedirect(url)

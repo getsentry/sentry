@@ -525,7 +525,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def size(self) -> int:
-        return len(json.dumps(dict(self.data)))
+        return len(json.dumps_experimental("eventstore.enable-orjson", dict(self.data)))
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
