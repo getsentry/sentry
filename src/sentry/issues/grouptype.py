@@ -581,7 +581,6 @@ class FeedbackGroup(GroupType):
     notification_config = NotificationConfig(context=[])
 
 
-@metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
     grouptype: type[GroupType],
     client: RedisCluster | StrictRedis,
