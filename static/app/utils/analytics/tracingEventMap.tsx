@@ -1,5 +1,7 @@
 export type TracingEventParameters = {
-  'trace.shape': {};
+  'trace.shape': {
+    shape: string;
+  };
   'trace.trace_layout.change': {
     layout: string;
   };
