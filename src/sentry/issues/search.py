@@ -104,10 +104,10 @@ def group_types_from(
     search_filters: Sequence[SearchFilter] | None,
 ) -> set[int] | None:
     """
-    Return the a set of group type ids to include in the query, or None if all group types should be included.
+    Return the set of group type ids to include in the query, or None if all group types should be included.
     """
 
-    # if no releveant filters, return none to signify we should query all group types
+    # if no relevant filters, return none to signify we should query all group types
     if not any(sf.key.name in ("issue.category", "issue.type") for sf in search_filters or ()):
         return None
 

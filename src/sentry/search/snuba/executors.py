@@ -1253,7 +1253,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 Column("owner_codeowners_user_id", attr_entity), operator, user_ids
             )
 
-            # need to explicitly alllow for null values if we are negating
+            # need to explicitly allow for null values if we are negating
             if search_filter.is_negation:
                 suspect_commit_user = BooleanCondition(
                     op=BooleanOp.OR,
@@ -1291,7 +1291,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             codowner_team = Condition(
                 Column("owner_codeowners_team_id", attr_entity), operator, team_ids
             )
-            # need to explicitly alllow for null values if we are negating
+            # need to explicitly allow for null values if we are negating
             if search_filter.is_negation:
                 ownership_rule_team = BooleanCondition(
                     op=BooleanOp.OR,
