@@ -65,6 +65,7 @@ DELETED_FIELDS: dict[
     "sentry.team": {"org_role"},
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
     "sentry.rule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
     "sentry.alertrule": {"owner"},
 }
 
