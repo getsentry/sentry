@@ -18,8 +18,7 @@ from sentry.testutils.cases import TestCase
 
 
 def mixed_payload():
-    return bytes(
-        """
+    return b"""
         {
             "mapping_meta": {
                 "c": {
@@ -38,30 +37,22 @@ def mixed_payload():
                 }
             }
         }
-        """,
-        encoding="utf-8",
-    )
+        """
 
 
 def empty_payload():
-    return bytes(
-        """
+    return b"""
         {
         }
-        """,
-        encoding="utf-8",
-    )
+        """
 
 
 def bad_payload():
-    return bytes(
-        "not JSON",
-        encoding="utf-8",
-    )
+    return b"not JSON"
 
 
 def headerless_kafka_payload(payload_bytes):
-    return KafkaPayload(key=bytes("fake-key", encoding="utf-8"), value=payload_bytes, headers=[])
+    return KafkaPayload(key=b"fake-key", value=payload_bytes, headers=[])
 
 
 def kafka_message(kafka_payload):
@@ -171,7 +162,7 @@ class TestFilterMethod:
     def message_filter(self):
         return LastSeenUpdaterMessageFilter(DummyMetricsBackend())
 
-    def empty_message_with_headers(self, headers):
+    def empty_message_with_headers(self, headers: list[tuple[str, bytes]]):
         payload = KafkaPayload(headers=headers, key=Mock(), value=Mock())
         return Message(
             BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=timezone.now())
@@ -182,11 +173,11 @@ class TestFilterMethod:
         assert not message_filter.should_drop(message)
 
     def test_message_filter_header_contains_d(self, message_filter):
-        message = self.empty_message_with_headers([("mapping_sources", "hcd")])
+        message = self.empty_message_with_headers([("mapping_sources", b"hcd")])
         assert not message_filter.should_drop(message)
 
     def test_message_filter_header_contains_no_d(self, message_filter):
-        message = self.empty_message_with_headers([("mapping_sources", "fhc")])
+        message = self.empty_message_with_headers([("mapping_sources", b"fhc")])
         assert message_filter.should_drop(message)
 
 
