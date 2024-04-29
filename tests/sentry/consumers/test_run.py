@@ -37,6 +37,8 @@ def test_dlq(consumer_def) -> None:
         "process-spans",
         "detect-performance-issues",
         "ingest-monitors",
+        "monitors-clock-tick",
+        "monitors-clock-tasks",
         "metrics-last-seen-updater",
         "generic-metrics-last-seen-updater",
         "billing-metrics-consumer",
