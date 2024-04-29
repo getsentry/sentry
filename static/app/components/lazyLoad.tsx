@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
 
-type Props<C extends React.LazyExoticComponent<any>> = React.ComponentProps<C> & {
+type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   /**
    * Wrap the component with lazy() before passing it to LazyLoad.
    */
