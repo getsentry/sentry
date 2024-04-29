@@ -258,8 +258,6 @@ def apply_delayed(project_id: int) -> None:
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
     # Step 7: Ready, aim, fire!!
-
-    # XXX: would be nice to bulk get the rules somehow
     group_id_to_event = get_group_id_to_event(rulegroup_to_events, project)
 
     now = timezone.now()
@@ -268,7 +266,6 @@ def apply_delayed(project_id: int) -> None:
         freq_offset = now - timedelta(minutes=frequency)
         groups = Group.objects.filter(id__in=group_ids)
         for group in groups:
-            # XXX: could we get this to take groups in bulk?
             rule_statuses = bulk_get_rule_status(alert_rules, group, project)
             status = rule_statuses[rule.id]
             if status.last_active and status.last_active > freq_offset:
