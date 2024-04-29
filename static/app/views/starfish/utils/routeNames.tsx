@@ -5,5 +5,5 @@ export const ROUTE_NAMES = {
   database: t('Database'),
   'app-startup': t('App Starts'),
   pageload: t('Screen Loads'),
-  responsiveness: t('Responsiveness'),
+  mobileUI: t('Mobile UI'),
 };
