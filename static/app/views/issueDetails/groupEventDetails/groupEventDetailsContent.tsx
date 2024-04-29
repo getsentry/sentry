@@ -37,12 +37,13 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
+  type EntryException,
   type Event,
   EventOrGroupType,
-  type ExceptionType,
   type Group,
   IssueCategory,
   IssueType,
@@ -135,15 +136,18 @@ function DefaultGroupEventDetailsContent({
       {event.type === EventOrGroupType.ERROR &&
       organization.features.includes('ai-analytics') &&
       event?.entries
-        ?.filter(x => x.type === EntryType.EXCEPTION)
-        ?.map(x => x.data as ExceptionType)
-        ?.flatMap(x => x.values)
-        ?.find(
+        ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
+        .flatMap(x => x.data.values)
+        .some(
           x =>
             (x?.value?.includes('API key') || x?.value?.includes('429')) &&
-            x?.value?.includes('openai')
+            (x?.value?.includes('openai') ||
+              x?.value?.includes('anthropic') ||
+              x?.value?.includes('cohere') ||
+              x?.value?.includes('langchain'))
         ) ? (
-        <AIMonitoringSection
+        <LazyLoad
+          LazyComponent={AIMonitoringSection}
           event={event}
           organization={organization}
           project={project}
