@@ -1,16 +1,25 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import type {AriaGridListOptions} from '@react-aria/gridlist';
+import {Item} from '@react-stately/collections';
+import {useListState} from '@react-stately/list';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {inputStyles} from 'sentry/components/input';
 import {SearchQueryBuilerContext} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
+import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {
   collapseTextTokens,
   makeTokenKey,
 } from 'sentry/components/searchQueryBuilder/utils';
-import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {
+  type ParseResultToken,
+  parseSearch,
+  Token,
+} from 'sentry/components/searchSyntax/parser';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,6 +34,51 @@ interface SearchQueryBuilderProps {
   onChange?: (query: string) => void;
 }
 
+interface GridProps extends AriaGridListOptions<ParseResultToken> {
+  children: CollectionChildren<ParseResultToken>;
+}
+
+function Grid(props: GridProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const state = useListState<ParseResultToken>(props);
+
+  const {gridProps} = useQueryBuilderGrid(props, state, ref);
+
+  return (
+    <Wrapper {...gridProps} ref={ref}>
+      <PositionedSearchIcon size="sm" />
+      {[...state.collection].map(item => {
+        const token = item.value;
+
+        switch (token?.type) {
+          case Token.FILTER:
+            return (
+              <SearchQueryBuilderFilter
+                key={makeTokenKey(token)}
+                token={token}
+                item={item}
+                state={state}
+              />
+            );
+          case Token.SPACES:
+          case Token.FREE_TEXT:
+            return (
+              <SearchQueryBuilderInput
+                key={makeTokenKey(token)}
+                token={token}
+                item={item}
+                state={state}
+              />
+            );
+          // TODO(malwilley): Add other token types
+          default:
+            return null;
+        }
+      })}
+    </Wrapper>
+  );
+}
+
 export function SearchQueryBuilder({
   label,
   initialQuery,
@@ -32,7 +86,6 @@ export function SearchQueryBuilder({
   getTagValues,
   onChange,
 }: SearchQueryBuilderProps) {
-  const [hasFocus, setHasFocus] = useState(false);
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
   const parsedQuery = useMemo(
@@ -54,49 +107,21 @@ export function SearchQueryBuilder({
     };
   }, [state, parsedQuery, supportedKeys, getTagValues, dispatch]);
 
-  const ref = useRef<HTMLDivElement>(null);
+  if (!parsedQuery) {
+    return null;
+  }
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
-      <Wrapper
-        ref={ref}
-        tabIndex={hasFocus ? -1 : 0}
-        role="grid"
-        aria-label={label ?? t('Create a search query')}
-        onBlur={e => {
-          if (!ref.current?.contains(e.relatedTarget as Node)) {
-            setHasFocus(false);
-          }
-        }}
-        onFocus={e => {
-          if (e.target === ref.current) {
-            dispatch({type: 'FOCUS_FREE_TEXT', cursor: state.query.length});
-          }
-
-          setHasFocus(true);
-        }}
-      >
-        <PositionedSearchIcon size="sm" />
-        <PanelProvider>
-          {parsedQuery?.map(token => {
-            switch (token?.type) {
-              case Token.FILTER:
-                return (
-                  <SearchQueryBuilderFilter key={makeTokenKey(token)} token={token} />
-                );
-              case Token.SPACES:
-              case Token.FREE_TEXT:
-                return (
-                  <SearchQueryBuilderInput key={makeTokenKey(token)} token={token} />
-                );
-              // TODO(malwilley): Add other token types
-              default:
-                return null;
-            }
-          }) ?? null}
-        </PanelProvider>
-        {/* TODO(malwilley): Add action buttons */}
-      </Wrapper>
+      <PanelProvider>
+        <Grid aria-label={label ?? t('Create a search query')} items={parsedQuery}>
+          {item => (
+            <Item key={makeTokenKey(item)}>
+              {item.text.trim() ? item.text : t('Space')}
+            </Item>
+          )}
+        </Grid>
+      </PanelProvider>
     </SearchQueryBuilerContext.Provider>
   );
 }
@@ -107,7 +132,8 @@ const Wrapper = styled('div')`
   position: relative;
 
   display: flex;
-  gap: ${space(0.5)};
+  align-items: stretch;
+  row-gap: ${space(0.5)};
   flex-wrap: wrap;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} 36px;
