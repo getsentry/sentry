@@ -28,11 +28,14 @@ jobs:
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
 
       - name: Check for backend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd  # v3.0.0
         id: changes
         with:
           token: ${{ github.token }}
@@ -43,10 +46,14 @@ jobs:
     needs: files-changed
     name: api docs test
     runs-on: ubuntu-22.04
+    permissions: {}
+    timeout-minutes: 8
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
 
-      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
+      - name: Checkout repository
+        uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581  # v2.0.0
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
@@ -54,12 +61,14 @@ jobs:
         with:
           snuba: true
 
-      - name: Run API docs tests
+      - name: Add ts-node
         # install ts-node for ts build scripts to execute properly without potentially installing
         # conflicting deps when running scripts locally
         # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          yarn add ts-node && make test-api-docs
+          yarn add ts-node
+      - name: Run api docs test
+        run: make test-api-docs
 
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'
@@ -85,7 +94,8 @@ jobs:
       MATRIX_INSTANCE_TOTAL: 11
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -134,12 +144,15 @@ jobs:
     name: backend migration tests
     runs-on: ubuntu-22.04
     timeout-minutes: 30
+    permissions:
+      actions: write
     strategy:
       matrix:
         pg-version: ['14']
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -153,6 +166,7 @@ jobs:
           pg-version: ${{ matrix.pg-version }}
 
       - name: run tests
+        # historic migrations trigger some warnings
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0" make test-python-ci
 
@@ -170,11 +184,14 @@ jobs:
     name: cli test
     runs-on: ubuntu-22.04
     timeout-minutes: 10
+    permissions:
+      actions: write
     strategy:
       matrix:
         pg-version: ['14']
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -200,29 +217,36 @@ jobs:
     name: requirements check
     runs-on: ubuntu-22.04
     timeout-minutes: 3
+    permissions:
+      contents: write
     steps:
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+      - name: Fetch GitHub auth token
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc  # v3.0.0
         id: token
         continue-on-error: true
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+      - name: Checkout repository
+        uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f  # v2.1.0
         with:
           python-version: 3.11.8
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: python3 -m tools.hack_pip && pip install -q --constraint requirements-dev-frozen.txt pip-tools
-      - name: check requirements
-        run: |
-          python -S -m tools.freeze_requirements
-          if ! git diff --exit-code; then
-            echo $'\n\nrun `make freeze-requirements` locally to update requirements'
-            exit 1
-          fi
+      - name: Freeze requirements
+        run: python -S -m tools.freeze_requirements
+      - name: Check if this changes the files
+        id: git-check
+        run: echo "diff=$(git diff --exit-code)" >> $GITHUB_OUTPUT
+      - name: run make freeze-requirements locally to update requirements
+        if: steps.git-check.outputs.diff
+        run: exit 1
+
       - name: apply any requirements changes
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
-        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632  # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':snowflake: re-freeze requirements'
@@ -232,13 +256,15 @@ jobs:
     needs: files-changed
     name: check migration
     runs-on: ubuntu-22.04
+    timeout-minutes: 2
     strategy:
       matrix:
         pg-version: ['14']
+    permissions: {}
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -263,7 +289,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -301,8 +328,11 @@ jobs:
     name: backend typing
     runs-on: ubuntu-22.04
     timeout-minutes: 20
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
 
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
@@ -310,15 +340,18 @@ jobs:
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev-frozen.txt
 
-      - name: setup sentry (lite)
-        run: |
-          python3 -m tools.fast_editable --path .
-          sentry init
+      - name: Run fast_editable
+        run: python3 -m tools.fast_editable --path .
 
-      - run: mypy
+      - name: init sentry
+        run: sentry init
+
+      - name: Run mypy
+        run: mypy
         id: run
 
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+      - name: Fetch GitHub auth token
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc  # v3.0.0
         id: token
         continue-on-error: true
         with:
@@ -326,22 +359,15 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       # only if `mypy` succeeds should we try and trim the blocklist
-      - run: python3 -m tools.mypy_helpers.make_module_ignores
+      - name: run mypy_helpers.make_module_ignores
+        run: python3 -m tools.mypy_helpers.make_module_ignores
         id: regen-blocklist
 
-      - run: git diff --exit-code
+      - name: Run git d0ff
+        run: git diff --exit-code
 
-      - run: |
-          # mypy does not have granular codes so don't allow specific messages to regress
-          ! grep "'Settings' object has no attribute" .artifacts/mypy-all
-          ! grep 'Cannot override class variable' .artifacts/mypy-all
-          ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
-          ! grep 'Incompatible default for argument' .artifacts/mypy-all
-          ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
-          ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
-          ! grep 'Module "sentry.*has no attribute' .artifacts/mypy-all
-          ! grep 'base class .* defined the type as.*Permission' .artifacts/mypy-all
-          ! grep 'does not explicitly export attribute' .artifacts/mypy-all
+      - name: Check if failure in the mypy output
+        run: .github/workflows/scripts/check-mypy-output.sh
 
       - name: apply blocklist changes
         if: |
@@ -350,7 +376,7 @@ jobs:
           steps.regen-blocklist.outcome == 'success' &&
           github.ref != 'refs/heads/master' &&
           always()
-        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632  # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':knife: regenerate mypy module blocklist'
@@ -375,10 +401,14 @@ jobs:
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
     runs-on: ubuntu-22.04
+    timeout-minutes: 1
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure
       - name: Check for failures
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
-          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+          echo "One of the dependent jobs have failed. You may need to re-run it."
+      - name: Fail pipeline if failed earlier
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
