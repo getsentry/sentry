@@ -205,10 +205,12 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 2 requests should be sent.
-    await screen.findByTestId('child');
+    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(error).toEqual('Bad request data');
+    });
     expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
-    expect(error).toEqual('Bad request data');
   });
 
   it('adjusts interval based on date window', async function () {
