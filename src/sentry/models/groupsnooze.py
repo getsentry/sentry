@@ -128,9 +128,7 @@ class GroupSnooze(Model):
           to query Snuba. This functionality relies on the fact that this is called in
           post-processing for every event, so we can assume that the call-count == event count.
         """
-        if features.has(
-            "organizations:groupsnooze-cached-counts", organization=self.group.project.organization
-        ):
+        if features.has("organizations:groupsnooze-cached-counts", self.group.project.organization):
             if self.user_window:
                 if not self.test_user_rates_w_cache():
                     return False
