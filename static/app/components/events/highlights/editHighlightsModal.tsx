@@ -281,17 +281,21 @@ export default function EditHighlightsModal({
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const {mutate: saveHighlights, isLoading} = useMutation<Project, RequestError>({
-    mutationFn: () => {
+  const {mutate: saveHighlights, isLoading} = useMutation<
+    Project,
+    RequestError,
+    {
+      highlightContext: HighlightContext;
+      highlightTags: HighlightTags;
+    }
+  >({
+    mutationFn: data => {
       return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
         method: 'PUT',
-        data: {
-          highlightContext,
-          highlightTags,
-        },
+        data,
       });
     },
-    onSuccess: (_updatedProject: Project) => {
+    onSuccess: (updatedProject: Project) => {
       addSuccessMessage(
         tct(`Successfully updated highlights for '[projectName]' project`, {
           projectName: project.name,
@@ -303,7 +307,8 @@ export default function EditHighlightsModal({
           orgSlug: organization.slug,
           projectSlug: project.slug,
         }),
-        data => (data ? {...data, highlightTags, highlightContext} : data)
+        data =>
+          updatedProject ? updatedProject : {...data, highlightTags, highlightContext}
       );
       closeModal();
     },
@@ -386,7 +391,7 @@ export default function EditHighlightsModal({
           )}
           <Button
             disabled={isLoading}
-            onClick={() => saveHighlights()}
+            onClick={() => saveHighlights({highlightContext, highlightTags})}
             priority="primary"
             size="sm"
           >

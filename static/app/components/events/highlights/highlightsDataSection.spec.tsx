@@ -38,7 +38,7 @@ describe('HighlightsDataSection', function () {
         event={event}
         group={group}
         project={project}
-        viewAllRef={'ref' as any}
+        viewAllRef={{current: null}}
       />,
       {organization}
     );
