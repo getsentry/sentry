@@ -20,7 +20,10 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
     permission_classes = ()
 
     def get(
-        self, request: Request, organization_slug: str | None = None, share_id: str | None = None
+        self,
+        request: Request,
+        organization_slug: int | str | None = None,
+        share_id: str | None = None,
     ) -> Response:
         """
         Retrieve an aggregate
@@ -42,8 +45,11 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
         except Group.DoesNotExist:
             raise ResourceDoesNotExist
 
+        # Checks if the organization_slug (eventually renamed to organization_id_or_slug) matches the group organization's id or slug
         if organization_slug:
-            if organization_slug != group.organization.slug:
+            if organization_slug != group.organization.slug and organization_slug != str(
+                group.organization.id
+            ):
                 raise ResourceDoesNotExist
 
         if group.organization.flags.disable_shared_issues:
