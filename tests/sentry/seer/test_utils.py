@@ -67,12 +67,12 @@ def test_simple_similar_issues_embeddings(mock_seer_request):
     }
     mock_seer_request.return_value = HTTPResponse(json.dumps(expected_return_value).encode("utf-8"))
 
-    params: SimilarIssuesEmbeddingsRequest = {
-        "group_id": 1,
-        "project_id": 1,
-        "stacktrace": "string",
-        "message": "message",
-    }
+    params = SimilarIssuesEmbeddingsRequest(
+        group_id=1,
+        project_id=1,
+        stacktrace="string",
+        message="message",
+    )
     response = get_similar_issues_embeddings(params)
     assert response == expected_return_value
 
@@ -83,11 +83,11 @@ def test_empty_similar_issues_embeddings(mock_seer_request):
 
     mock_seer_request.return_value = HTTPResponse([])
 
-    params: SimilarIssuesEmbeddingsRequest = {
-        "group_id": 1,
-        "project_id": 1,
-        "stacktrace": "string",
-        "message": "message",
-    }
+    params = SimilarIssuesEmbeddingsRequest(
+        group_id=1,
+        project_id=1,
+        stacktrace="string",
+        message="message",
+    )
     response = get_similar_issues_embeddings(params)
     assert response == {"responses": []}

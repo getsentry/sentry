@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
+from dataclasses import asdict
 from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
@@ -154,19 +155,19 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if stacktrace_string == "":
             return Response([])  # No exception, stacktrace or in-app frames
 
-        similar_issues_params: SimilarIssuesEmbeddingsRequest = {
-            "group_id": group.id,
-            "project_id": group.project.id,
-            "stacktrace": stacktrace_string,
-            "message": group.message,
-        }
+        similar_issues_params = SimilarIssuesEmbeddingsRequest(
+            group_id=group.id,
+            project_id=group.project.id,
+            stacktrace=stacktrace_string,
+            message=group.message,
+        )
         # Add optional parameters
         if request.GET.get("k"):
-            similar_issues_params.update({"k": int(request.GET["k"])})
+            similar_issues_params.k = int(request.GET["k"])
         if request.GET.get("threshold"):
-            similar_issues_params.update({"threshold": float(request.GET["threshold"])})
+            similar_issues_params.threshold = float(request.GET["threshold"])
 
-        extra: dict[str, Any] = dict(similar_issues_params.copy())
+        extra = asdict(similar_issues_params)
         extra["group_message"] = extra.pop("message")
         logger.info("Similar issues embeddings parameters", extra=extra)
 

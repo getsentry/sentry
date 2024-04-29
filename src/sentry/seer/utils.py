@@ -1,3 +1,4 @@
+from dataclasses import asdict, dataclass
 from typing import TypedDict
 
 import sentry_sdk
@@ -80,16 +81,14 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     return {"data": []}
 
 
-class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
-    k: int
-    threshold: float
-
-
-class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):
+@dataclass
+class SimilarIssuesEmbeddingsRequest:
     group_id: int
     project_id: int
     stacktrace: str
     message: str
+    k: int | None = 1  # how many neighbors to find
+    threshold: float | None = None
 
 
 class SimilarIssuesEmbeddingsData(TypedDict):
@@ -110,7 +109,7 @@ def get_similar_issues_embeddings(
     response = seer_staging_connection_pool.urlopen(
         "POST",
         "/v0/issues/similar-issues",
-        body=json.dumps(similar_issues_request),
+        body=json.dumps(asdict(similar_issues_request)),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
 
