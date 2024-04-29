@@ -1,12 +1,16 @@
 from django.db import models
-from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import (
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    region_silo_only_model,
+    sane_repr,
+)
 
 
 @region_silo_only_model
-class ProjectTemplate(Model):
+class ProjectTemplate(DefaultFieldsModel):
     """
     Identifies a project template that can be used to create new projects.
 
@@ -17,8 +21,6 @@ class ProjectTemplate(Model):
 
     name = models.CharField(max_length=200)
     organization = FlexibleForeignKey("sentry.Organization")
-    date_added = models.DateTimeField(default=timezone.now, null=True)
-    updated_at = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
