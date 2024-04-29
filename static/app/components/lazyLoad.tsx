@@ -47,6 +47,7 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
           )
         }
       >
+        {/* Props are strongly typed when passed in, but seem to conflict with LazyExoticComponent */}
         <LazyComponent {...(props as any)} />
       </Suspense>
     </ErrorBoundary>
