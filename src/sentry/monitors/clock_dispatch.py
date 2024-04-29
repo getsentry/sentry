@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import sentry_sdk
 from django.conf import settings
 
+from sentry import options
 from sentry.monitors.tasks.check_missed import check_missing
 from sentry.monitors.tasks.check_timeout import check_timeout
 from sentry.utils import metrics, redis
@@ -41,8 +42,13 @@ def _dispatch_tick(ts: datetime):
     sentry.io, when we deploy we restart the celery beat worker and it will
     skip any tasks it missed)
     """
-    check_missing.delay(current_datetime=ts)
-    check_timeout.delay(current_datetime=ts)
+    if options.get("crons.use_clock_pulse_consumer"):
+        # TODO(epurkhiser): This should dispatch the pulse as a message on the
+        # monitors-clock-pulse topic
+        pass
+    else:
+        check_missing.delay(current_datetime=ts)
+        check_timeout.delay(current_datetime=ts)
 
 
 def try_monitor_clock_tick(ts: datetime, partition: int):
