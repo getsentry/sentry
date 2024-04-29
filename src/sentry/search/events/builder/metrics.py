@@ -784,7 +784,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if type(allowed_prefixes) is str:
             allowed_prefixes = {allowed_prefixes}
 
-        if metric_id is None or metric_id == -1:
+        if metric_id is None:
             return True
 
         primary_metric = indexer.reverse_resolve(self.use_case_id, self.organization_id, metric_id)

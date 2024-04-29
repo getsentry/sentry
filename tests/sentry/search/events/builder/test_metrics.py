@@ -1483,8 +1483,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Handled by the discover transform later so its fine that this is nan
         assert math.isnan(data["p50"])
 
+    @mock.patch(
+        "sentry.search.events.builder.metrics.indexer.reverse_resolve",
+        return_value=constants.METRICS_MAP["measurements.lcp"],
+    )
     @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
-    def test_multiple_references_only_resolve_index_once(self, mock_indexer):
+    def test_multiple_references_only_resolve_index_once(self, mock_indexer, _mock_reverse_resolve):
         MetricsQueryBuilder(
             self.params,
             query=f"project:{self.project.slug} transaction:foo_transaction transaction:foo_transaction",
