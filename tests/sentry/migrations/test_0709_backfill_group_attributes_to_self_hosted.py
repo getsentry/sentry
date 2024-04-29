@@ -33,8 +33,8 @@ def run_test(expected_groups):
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0703_add_team_user_to_rule"
-    migrate_to = "0704_backfill_group_attributes_to_self_hosted"
+    migrate_from = "0708_rule_remove_owner_state"
+    migrate_to = "0709_backfill_group_attributes_to_self_hosted"
 
     def setup_initial_state(self):
         self.group = self.create_group()
@@ -45,8 +45,8 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0703_add_team_user_to_rule"
-    migrate_to = "0704_backfill_group_attributes_to_self_hosted"
+    migrate_from = "0708_rule_remove_owner_state"
+    migrate_to = "0709_backfill_group_attributes_to_self_hosted"
 
     def setup_initial_state(self):
         self.group = self.create_group()
