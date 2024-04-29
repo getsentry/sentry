@@ -130,12 +130,13 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)
 
-        Activity.objects.create(
-            group_id=attachment.group_id,
-            project=project,
-            type=ActivityType.DELETED_ATTACHMENT.value,
-            user_id=request.user.id,
-            data={},
-        )
+        if attachment.group_id is not None:
+            Activity.objects.create(
+                group_id=attachment.group_id,
+                project=project,
+                type=ActivityType.DELETED_ATTACHMENT.value,
+                user_id=request.user.id,
+                data={},
+            )
         attachment.delete()
         return self.respond(status=204)

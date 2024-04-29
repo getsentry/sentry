@@ -1,3 +1,4 @@
+import pytest
 from django.test import override_settings
 
 from sentry.attachments.base import CachedAttachment
@@ -150,10 +151,9 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         response = self.client.delete(path)
         assert response.status_code == 204
 
-        delete_activity = Activity.objects.get(type=ActivityType.DELETED_ATTACHMENT.value)
-        assert delete_activity.project == self.project
-        assert delete_activity.group_id is None
-        assert delete_activity.group is None
+        # an activity with no group cannot be associated with an issue, or be displayed in any issue details page
+        with pytest.raises(Activity.DoesNotExist):
+            Activity.objects.get(type=ActivityType.DELETED_ATTACHMENT.value)
 
     @with_feature("organizations:event-attachments")
     def test_delete_activity_with_group(self):
