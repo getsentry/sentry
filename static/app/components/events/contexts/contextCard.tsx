@@ -1,4 +1,3 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -9,6 +8,7 @@ import {
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
