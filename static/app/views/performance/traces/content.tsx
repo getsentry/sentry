@@ -56,9 +56,11 @@ export function Content() {
   const handleSearch = useCallback(
     (searchIndex: number, searchQuery: string) => {
       const newQueries = [...queries];
-      if (typeof newQueries[searchIndex] !== undefined) {
-        newQueries[searchIndex] = searchQuery;
+      if (newQueries.length === 0) {
+        // In the odd case someone wants to add search bars before any query has been made, we add both the default one shown and a new one.
+        newQueries[0] = '';
       }
+      newQueries[searchIndex] = searchQuery;
       browserHistory.push({
         ...location,
         query: {

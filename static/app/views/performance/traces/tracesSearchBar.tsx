@@ -1,10 +1,10 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface TracesSearchBarProps {
@@ -13,6 +13,11 @@ interface TracesSearchBarProps {
   queries: string[];
 }
 
+const getSpanName = (index: number) => {
+  const spanNames = [t('Span A'), t('Span B'), t('Span C')];
+  return spanNames[index];
+};
+
 export function TracesSearchBar({
   queries,
   handleSearch,
@@ -20,41 +25,40 @@ export function TracesSearchBar({
 }: TracesSearchBarProps) {
   // TODO: load tags for autocompletion
   const organization = useOrganization();
+  const canAddMoreQueries = queries.length <= 2;
+  const localQueries = queries.length ? queries : [''];
   return (
     <TraceSearchBarsContainer>
-      {queries.map((query, index) => (
+      {localQueries.map((query, index) => (
         <TraceBar key={index}>
-          {index !== 0 ? <BridgeLine key={index} /> : null}
+          <SpanLetter>{getSpanName(index)}</SpanLetter>
           <StyledSearchBar
             query={query}
             onSearch={(queryString: string) => handleSearch(index, queryString)}
-            placeholder={t('Filter by tags')}
+            placeholder={t(
+              'Search for traces containing a span matching these attributes'
+            )}
             organization={organization}
-            onClearSearch={() => (queries.length <= 1 ? false : handleClearSearch(index))}
-            alwaysShowClearSearch
+          />
+          <StyledButton
+            aria-label={t('Remove span')}
+            icon={<IconClose size="sm" />}
+            size="sm"
+            onClick={() => (queries.length === 0 ? false : handleClearSearch(index))}
           />
         </TraceBar>
       ))}
 
-      {queries.length ? null : (
-        <StyledSearchBar
-          query={''}
-          onSearch={(queryString: string) => handleSearch(queries.length, queryString)}
-          placeholder={t('Filter by tags')}
-          organization={organization}
-          alwaysShowClearSearch
-        />
-      )}
-
-      <TraceBar>
-        <BridgeLine />
+      {canAddMoreQueries ? (
         <Button
           aria-label={t('Add query')}
-          icon={<IconAdd size="xs" />}
+          icon={<IconAdd size="xs" isCircled />}
           size="sm"
-          onClick={() => handleSearch(queries.length + 1, '')}
-        />
-      </TraceBar>
+          onClick={() => handleSearch(localQueries.length, '')}
+        >
+          {t('Add Span')}
+        </Button>
+      ) : null}
     </TraceSearchBarsContainer>
   );
 }
@@ -64,25 +68,32 @@ const TraceSearchBarsContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  gap: ${space(1)};
 `;
 
 const TraceBar = styled('div')`
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
   justify-content: flex-start;
   width: 100%;
+  gap: ${space(1)};
+`;
+
+const SpanLetter = styled('div')`
+  background-color: ${p => p.theme.purple100};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)} ${space(2)};
+
+  color: ${p => p.theme.purple400};
+  white-space: nowrap;
+  font-weight: 800;
 `;
 
 const StyledSearchBar = styled(SearchBar)`
   width: 100%;
 `;
 
-function BridgeLine() {
-  const theme = useTheme();
-  return (
-    <svg width="10" height="10" style={{marginLeft: '14px'}}>
-      <line x1="5" y1="0" x2="5" y2="10" stroke={theme.gray300} />
-    </svg>
-  );
-}
+const StyledButton = styled(Button)`
+  height: 38px;
+`;
