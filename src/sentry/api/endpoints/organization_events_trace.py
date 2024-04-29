@@ -476,6 +476,7 @@ def create_transaction_params(
     trace_id: str,
     params: Mapping[str, str],
 ) -> Mapping[str, str]:
+    """Can't use the transaction params for errors since traces can be errors only"""
     transaction_params = params.copy()
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
