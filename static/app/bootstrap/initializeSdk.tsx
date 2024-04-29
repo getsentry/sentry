@@ -225,7 +225,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
   }
 
-  const {customerDomain} = window.__initialData;
+  const {customerDomain, features} = window.__initialData;
 
   if (customerDomain) {
     Sentry.setTag('isCustomerDomain', 'yes');
@@ -237,9 +237,9 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   // TODO: Remove once we've finished rolling out the new renderer
   Sentry.setTag(
     'isConcurrentRenderer',
-    (window.__initialData.features as unknown as string[]).includes(
+    (features as unknown as string[])?.includes(
       'organizations:react-concurrent-renderer-enabled'
-    )
+    ) ?? false
   );
 }
 
