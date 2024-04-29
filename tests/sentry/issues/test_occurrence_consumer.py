@@ -570,6 +570,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             new_substatus=None,
         )
         message = _prepare_status_change_message(status_change)
+        assert message is not None
         process_occurrence_group([message])
 
         group = Group.objects.get(id=group.id)
