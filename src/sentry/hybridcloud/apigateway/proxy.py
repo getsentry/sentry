@@ -155,7 +155,8 @@ def proxy_error_embed_request(
 ) -> HttpResponseBase | None:
     try:
         parsed = urlparse(dsn)
-    except Exception:
+    except Exception as err:
+        logger.info("apigateway.error_embed.invalid_dsn", extra={"dsn": dsn, "error": err})
         return None
     host = parsed.netloc
     app_host = urlparse(options.get("system.url-prefix")).netloc
