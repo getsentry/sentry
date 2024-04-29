@@ -2,12 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
-from django.utils import timezone
-from django.utils.timesince import timesince
-from django.utils.translation import gettext as _
 from sentry_relay.processing import parse_release
 
 from sentry import tagstore
@@ -31,6 +28,8 @@ from sentry.integrations.slack.message_builder import (
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
+from sentry.integrations.slack.message_builder.time_utils import get_approx_start_time, time_since
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.issues.grouptype import (
     GroupCategory,
@@ -76,27 +75,6 @@ MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 
 
-def get_approx_start_time(group: Group):
-    event = group.get_recommended_event_for_environments()
-
-    if event is None:
-        return None
-
-    occurrence = event.occurrence
-
-    if occurrence is None:
-        return None
-
-    regression_time = occurrence.evidence_data.get("breakpoint", None)
-
-    if regression_time is None:
-        return None
-
-    # format moment into YYYY-mm-dd h:m:s
-    time = datetime.fromtimestamp(regression_time)
-    return time.strftime("%Y-%m-%d %H:%M:%S")
-
-
 # NOTE: if this starts getting large and functions get complicated,
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA = {
@@ -120,21 +98,6 @@ REGRESSION_PERFORMANCE_ISSUE_TYPES = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-def time_since(value: datetime):
-    """
-    Display the relative time
-    """
-    now = timezone.now()
-    if value < (now - timedelta(days=5)):
-        return value.date()
-    diff = timesince(value, now)
-    if diff == timesince(now, now):
-        return "Just now"
-    if diff == "1 day":
-        return _("Yesterday")
-    return f"{diff} ago"
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -687,6 +650,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         block_id = {"issue": self.group.id}
         if rule_id:
             block_id["rule"] = rule_id
+
+        chart_block = ImageBlockBuilder(group=self.group).build_image_block()
+        if chart_block:
+            blocks.append(chart_block)
 
         return self._build_blocks(
             *blocks,

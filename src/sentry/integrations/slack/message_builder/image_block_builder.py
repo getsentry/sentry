@@ -35,7 +35,6 @@ class ImageBlockBuilder(BlockSlackMessageBuilder):
             return self._build_endpoint_regression_image_block()
 
         # TODO: Add support for other issue alerts
-        logger.warning("build_issue_alert_image.not_supported")
         return None
 
     def _build_endpoint_regression_image_block(self) -> SlackBlock | None:
