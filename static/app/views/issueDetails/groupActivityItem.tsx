@@ -597,8 +597,6 @@ function GroupActivityItem({
             );
         }
       }
-      case GroupActivityType.DELETED_ATTACHMENT:
-        return tct('[author] deleted an attachment', {author});
       default:
         return ''; // should never hit (?)
     }

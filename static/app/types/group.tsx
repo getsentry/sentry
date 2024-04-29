@@ -374,7 +374,6 @@ export enum GroupActivityType {
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
-  DELETED_ATTACHMENT = 'deleted_attachment',
 }
 
 interface GroupActivityBase {
@@ -633,11 +632,6 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
   type: GroupActivityType.CREATE_ISSUE;
 }
 
-interface GroupActivityDeletedAttachment extends GroupActivityBase {
-  data: {};
-  type: GroupActivityType.DELETED_ATTACHMENT;
-}
-
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -665,8 +659,7 @@ export type GroupActivity =
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
-  | GroupActivitySetPriority
-  | GroupActivityDeletedAttachment;
+  | GroupActivitySetPriority;
 
 export type Activity = GroupActivity;
 
