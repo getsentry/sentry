@@ -74,7 +74,7 @@ describe('withIssueTags HoC', function () {
     });
 
     expect(
-      screen.getByText(/assigned: me, my_teams, \[me, my_teams, none\]/)
+      screen.getByText(/assigned: me, my_teams, none, \[me, my_teams, none\]/)
     ).toBeInTheDocument();
 
     act(() => {
@@ -89,7 +89,7 @@ describe('withIssueTags HoC', function () {
 
     expect(
       screen.getByText(
-        /assigned: me, my_teams, \[me, my_teams, none\], #best-team-na, foo@example.com, joe@example.com/
+        /assigned: me, my_teams, none, \[me, my_teams, none\], #best-team-na, foo@example.com, joe@example.com/
       )
     ).toBeInTheDocument();
 
@@ -113,7 +113,7 @@ describe('withIssueTags HoC', function () {
     );
 
     expect(container).toHaveTextContent(
-      'assigned: me, my_teams, [me, my_teams, none], #best-team'
+      'assigned: me, my_teams, none, [me, my_teams, none], #best-team'
     );
     // Has the other teams/members
     expect(container).toHaveTextContent('foo@example.com, joe@example.com, #worst-team');
