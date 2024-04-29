@@ -76,7 +76,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Error, transaction, and attachment quota limits.'),
+    help: t('Error, transaction, replay, attachment, and cron monitor quota limits.'),
   },
   reports: {
     name: 'reports',
@@ -195,6 +195,37 @@ export const QUOTA_FIELDS = [
       'Receive notifications about your cron monitors quotas. [learnMore:Learn more]',
       {
         learnMore: <ExternalLink href={getDocsLinkForEventType('monitorSeat')} />,
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
+    name: 'quotaSpendAllocations',
+    label: (
+      <Fragment>
+        {t('Spend Allocations')}{' '}
+        <QuestionTooltip position="top" title="Business plan only" size="xs" />
+      </Fragment>
+    ),
+    help: t('Receive notifications about your spend allocations.'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+];
+
+export const SPEND_FIELDS = [
+  {
+    name: 'quotaWarnings',
+    label: t('Receive Notifications'),
+    help: tct(
+      'Receive notifications about your organizations spend. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={'#'} />, // TODO(isabella): replace with proper link
       }
     ),
     choices: [

@@ -215,6 +215,15 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
 
     const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
+    if (
+      fineTuneType === 'quota' &&
+      organizations.some(org => org.features?.includes('spend-visibility-notifications'))
+    ) {
+      field.title = t('Spend Notifications');
+      field.description = t(
+        'Control the notifications you receive for organizations spend.'
+      );
+    }
     const {title, description} = field;
 
     const [stateKey] = isProject ? this.getEndpoints()[2] : [];
