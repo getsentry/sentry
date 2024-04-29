@@ -10,7 +10,8 @@ import {isWebpackChunkLoadingError} from 'sentry/utils';
 
 type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   /**
-   * Wrap the component with lazy() before passing it to LazyLoad.
+   * Wrap the component with `lazy()` before passing it to LazyLoad.
+   * This should be declared outside of the render funciton.
    */
   LazyComponent: C;
 
