@@ -269,11 +269,10 @@ describe('NotificationSettingsByType', function () {
       organizations: [organizationWithFlag, organizationNoFlag],
     });
 
-    expect(await screen.findByText('Spend Notifications')).toBeInTheDocument();
+    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
     expect(screen.queryByText('Quota Notifications')).not.toBeInTheDocument();
     expect(
       screen.getByText('Control the notifications you receive for organizations spend.')
     ).toBeInTheDocument();
-    expect(screen.getByText('Receive Notifications')).toBeInTheDocument();
   });
 });

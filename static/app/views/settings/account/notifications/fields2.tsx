@@ -127,6 +127,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   },
 };
 
+// TODO(isabella): Once spend vis notifs are GA, remove this
 // partial field definition for quota sub-categories
 export const QUOTA_FIELDS = [
   {
@@ -192,7 +193,7 @@ export const QUOTA_FIELDS = [
     name: 'quotaMonitorSeats',
     label: t('Cron Monitors'),
     help: tct(
-      'Receive notifications about your cron monitors quotas. [learnMore:Learn more]',
+      'Receive notifications about your cron monitor quotas. [learnMore:Learn more]',
       {
         learnMore: <ExternalLink href={getDocsLinkForEventType('monitorSeat')} />,
       }
@@ -218,13 +219,12 @@ export const QUOTA_FIELDS = [
   },
 ];
 
-// TODO(isabella): Once GA, remove QUOTA_FIELDS
 export const SPEND_FIELDS = [
   {
     name: 'quotaWarnings',
-    label: t('Receive Notifications'),
+    label: t('Spend Notifications'),
     help: tct(
-      'Receive notifications about your organizations spend. [learnMore:Learn more]',
+      'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
       {
         learnMore: <ExternalLink href={'#'} />, // TODO(isabella): replace with proper link
       }
@@ -234,18 +234,5 @@ export const SPEND_FIELDS = [
       ['never', t('Off')],
     ] as const,
   },
-  {
-    name: 'quotaSpendAllocations',
-    label: (
-      <Fragment>
-        {t('Spend Allocations')}{' '}
-        <QuestionTooltip position="top" title="Business plan only" size="xs" />
-      </Fragment>
-    ),
-    help: t('Receive notifications about your spend allocations.'),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
+  ...QUOTA_FIELDS.slice(1),
 ];
