@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0706_grouphistory_userteam_backfill"),
+        ("sentry", "0707_alert_rule_activations_incidents_fk"),
     ]
 
     operations = [
