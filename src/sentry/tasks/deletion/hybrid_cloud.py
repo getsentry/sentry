@@ -376,14 +376,13 @@ def get_ids_cross_db_for_row_watermark(
     row_watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
     oldest_seen = timezone.now()
-    affected_rows = []
     model_object_id_pairs = model.objects.filter(
         id__lte=row_watermark_batch.up, id__gt=row_watermark_batch.low
     ).values_list("id", f"{field.name}")
 
     # Construct a map of foreign key IDs to model IDs, which gives us the
     # minimal set of foreign key values to lookup in the tombstones table.
-    fk_to_model_id_map = defaultdict(set)
+    fk_to_model_id_map: defaultdict[int, set[int]] = defaultdict(set)
     for m_id, o_id in model_object_id_pairs:
         fk_to_model_id_map[o_id].add(m_id)
 
@@ -392,6 +391,7 @@ def get_ids_cross_db_for_row_watermark(
         object_identifier__in=object_ids_to_check
     ).values_list("object_identifier", "created_at")
 
+    affected_rows: list[int] = []
     # Once we have the intersecting tombstones, use the dictionary we
     # created before to construct the minimal set of model IDs we need to
     # update with cascade behavior.
