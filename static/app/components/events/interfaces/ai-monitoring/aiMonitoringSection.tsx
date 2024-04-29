@@ -23,14 +23,14 @@ interface Props {
   project: Project;
 }
 
-export function AIMonitoringSection({event, organization, project}: Props) {
+export default function AIMonitoringSection({event, organization, project}: Props) {
   const traceId = event.contexts.trace?.trace_id;
   const spanId = event.contexts.trace?.span_id;
   const {data, error, isLoading} = useIndexedSpans({
     limit: 1,
     fields: [SpanIndexedField.SPAN_AI_PIPELINE_GROUP],
     referrer: 'api.ai-pipelines.view',
-    search: new MutableSearch(`span.trace_id:${traceId} id:"${spanId}"`),
+    search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
   });
   const aiPipelineGroup =
     data && (data[0] as IndexedResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP];

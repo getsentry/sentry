@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, lazy, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
@@ -26,7 +26,6 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
-import {AIMonitoringSection} from 'sentry/components/events/interfaces/ai-monitoring/aiMonitoringSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -55,6 +54,10 @@ import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig'
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
+
+const AIMonitoringSection = lazy(
+  () => import('sentry/components/events/interfaces/ai-monitoring/aiMonitoringSection')
+);
 
 type GroupEventDetailsContentProps = {
   group: Group;
