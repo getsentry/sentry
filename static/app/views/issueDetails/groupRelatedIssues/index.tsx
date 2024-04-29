@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import GroupList from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -23,6 +24,10 @@ type RelatedIssuesResponse = {
   data: [
     {
       data: number[];
+      meta: {
+        event_id: string;
+        trace_id: string;
+      };
       type: string;
     },
   ];
@@ -44,11 +49,18 @@ function GroupRelatedIssues({params}: Props) {
     staleTime: 0,
   });
 
+  let traceMeta = {
+    trace_id: '',
+    event_id: '',
+  };
   const {
     same_root_cause: sameRootCauseIssues = [],
     trace_connected: traceConnectedIssues = [],
   } = (relatedIssues?.data ?? []).reduce(
     (mapping, item) => {
+      if (item.type === 'trace_connected') {
+        traceMeta = {...item.meta};
+      }
       // If the group we're looking related issues for shows up in the table,
       // it will trigger a bug in getGroupReprocessingStatus because activites would be empty,
       // thus, we excude it from the list of related issues
@@ -100,9 +112,12 @@ function GroupRelatedIssues({params}: Props) {
                 {traceConnectedIssues.length > 0 ? (
                   <div>
                     <small>
-                      {t(
-                        'These are the issues belonging to the same trace (TODO: add link to trace).'
-                      )}
+                      {t('These are the issues belonging to ')}
+                      <Link
+                        to={`/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
+                      >
+                        {t('this trace')}
+                      </Link>
                     </small>
                     <GroupList
                       endpointPath={`/organizations/${orgSlug}/issues/`}
