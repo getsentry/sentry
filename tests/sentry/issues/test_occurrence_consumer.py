@@ -24,9 +24,8 @@ from sentry.issues.occurrence_consumer import (
 )
 from sentry.issues.producer import _prepare_status_change_message
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.grouphash import GroupHash
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -540,7 +539,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def test_validate_cache(self, mock_process_message):
         # Test to ensure cache is set properly after processing an occurrence group
         with mock.patch("django.core.cache.cache.set", side_effect=cache.set) as mock_cache_set:
-            process_occurrence_group([{"event_id": 1}, {"event_id": 2}, {"event_id": 2}])
+            process_occurrence_group([{"id": 1}, {"id": 2}, {"id": 2}])
 
             # Check if cache.set is called with the correct parameters
             expected_calls = [
@@ -551,7 +550,6 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             assert mock_process_message.call_count == 2
 
     def test_status_change(self) -> None:
-        # TODO: fix
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -562,16 +560,17 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             project_id=self.project.id,
         )
         group = event.group
-        assert group
-        group_hash = GroupHash.objects.filter(group=group, project=self.project).first()
-        initial_status = group.status
-        initial_substatus = group.substatus
+        assert group.status == GroupStatus.UNRESOLVED
+        status = GroupStatus.RESOLVED
 
         status_change = StatusChangeMessage(
-            fingerprint=[group_hash.hash],
+            fingerprint=["group-1"],
             project_id=group.project_id,
-            new_status=initial_status,
-            new_substatus=initial_substatus,
+            new_status=status,
+            new_substatus=None,
         )
         message = _prepare_status_change_message(status_change)
         process_occurrence_group([message])
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == status
