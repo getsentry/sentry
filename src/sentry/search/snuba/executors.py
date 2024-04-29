@@ -1513,8 +1513,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if GroupCategory.ERROR.value in group_categories:
             entities_to_check.append(event_entity)
 
-        # if we are checking more than one category or we are looking at something other than errors then we need to check search issues
-        if len(group_categories) > 1 or GroupCategory.ERROR.value not in group_categories:
+        # check we have non-error categories to search for
+        if any([GroupCategory.ERROR.value != gc for gc in group_categories]):
             entities_to_check.append(search_issues_entity)
 
         for joined_entity in entities_to_check:
