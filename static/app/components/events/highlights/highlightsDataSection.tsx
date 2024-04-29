@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
@@ -119,6 +120,11 @@ export default function HighlightsDataSection({
     );
   }
 
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {
+    organization: organization,
+    project: detailedProject,
+  });
+
   function openEditHighlightsModal() {
     openModal(
       deps => (
@@ -135,6 +141,13 @@ export default function HighlightsDataSection({
     );
   }
 
+  const editProps = {
+    disabled: !isProjectAdmin,
+    title: !isProjectAdmin
+      ? t('You must be a Project Admin to edit highlights.')
+      : undefined,
+  };
+
   return (
     <EventDataSection
       title={t('Event Highlights')}
@@ -143,7 +156,12 @@ export default function HighlightsDataSection({
       actions={
         <ButtonBar gap={1}>
           {viewAllButton}
-          <Button size="xs" icon={<IconEdit />} onClick={openEditHighlightsModal}>
+          <Button
+            size="xs"
+            icon={<IconEdit />}
+            onClick={openEditHighlightsModal}
+            {...editProps}
+          >
             {t('Edit')}
           </Button>
         </ButtonBar>
@@ -158,7 +176,11 @@ export default function HighlightsDataSection({
           <EmptyHighlights>
             <EmptyHighlightsContent>
               {t("There's nothing here...")}
-              <AddHighlightsButton size="xs" onClick={openEditHighlightsModal}>
+              <AddHighlightsButton
+                size="xs"
+                onClick={openEditHighlightsModal}
+                {...editProps}
+              >
                 {t('Add Highlights')}
               </AddHighlightsButton>
             </EmptyHighlightsContent>

@@ -1,6 +1,6 @@
-import type {RefObject} from 'react';
+import {type RefObject, useCallback, useState} from 'react';
+import {useResizeObserver} from '@react-aria/utils';
 
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -174,7 +174,16 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
  * accurately describe the available space.
  */
 export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): number {
-  const {width} = useDimensions<HTMLElement>({elementRef});
+  const [width, setWidth] = useState(0);
+
+  const element = elementRef.current;
+
+  const onResize = useCallback(() => {
+    setWidth(element?.clientWidth || 0);
+  }, [element]);
+
+  useResizeObserver({ref: elementRef, onResize});
+
   const breakPoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
     ({minWidth}) => width >= minWidth
   );
