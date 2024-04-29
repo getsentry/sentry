@@ -53,6 +53,10 @@ describe('Related Issues View', function () {
       {
         type: 'trace_connected',
         data: [group1, group2],
+        meta: {
+          event_id: 'abcd',
+          trace_id: '1234',
+        },
       },
     ],
   };
@@ -181,5 +185,10 @@ describe('Related Issues View', function () {
     expect(
       await screen.findByText('No same-root-cause related issues were found.')
     ).toBeInTheDocument();
+    const linkElement = screen.getByRole('link', {name: /this trace/i});
+    expect(linkElement).toHaveAttribute(
+      'href',
+      '/performance/trace/1234/?node=error-abcd'
+    );
   });
 });
