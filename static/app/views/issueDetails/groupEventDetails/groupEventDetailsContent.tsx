@@ -26,6 +26,7 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import {AIMonitoringSection} from 'sentry/components/events/interfaces/ai-monitoring/aiMonitoringSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -38,8 +39,15 @@ import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group, Project} from 'sentry/types';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {
+  type Event,
+  EventOrGroupType,
+  type ExceptionType,
+  type Group,
+  IssueCategory,
+  IssueType,
+  type Project,
+} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
@@ -124,6 +132,23 @@ function DefaultGroupEventDetailsContent({
           />
         </EventDataSection>
       )}
+      {event.type === EventOrGroupType.ERROR &&
+      organization.features.includes('ai-analytics') &&
+      event?.entries
+        ?.filter(x => x.type === EntryType.EXCEPTION)
+        ?.map(x => x.data as ExceptionType)
+        ?.flatMap(x => x.values)
+        ?.find(
+          x =>
+            (x?.value?.includes('API key') || x?.value?.includes('429')) &&
+            x?.value?.includes('openai')
+        ) ? (
+        <AIMonitoringSection
+          event={event}
+          organization={organization}
+          project={project}
+        />
+      ) : null}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
