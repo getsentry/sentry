@@ -300,6 +300,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
       this.program,
       'a_is_search_result'
     );
+
     createAndBindBuffer(this.ctx, this.searchResults, this.ctx.STATIC_DRAW);
     pointToAndEnableVertexAttribute(this.ctx, this.attributes.a_is_search_result, {
       size: 1,
