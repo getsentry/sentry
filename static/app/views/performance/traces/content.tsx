@@ -17,13 +17,12 @@ import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
+import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -46,26 +45,52 @@ const DEFAULT_PER_PAGE = 20;
 export function Content() {
   const location = useLocation();
 
-  const query = useMemo(() => {
-    return decodeScalar(location.query.query, '');
+  const queries = useMemo(() => {
+    return decodeList(location.query.query);
   }, [location.query.query]);
 
   const limit = useMemo(() => {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
   }, [location.query.perPage]);
 
-  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
-    (searchQuery: string) => {
+  const handleSearch = useCallback(
+    (searchIndex: number, searchQuery: string) => {
+      const newQueries = [...queries];
+      if (newQueries.length === 0) {
+        // In the odd case someone wants to add search bars before any query has been made, we add both the default one shown and a new one.
+        newQueries[0] = '';
+      }
+      newQueries[searchIndex] = searchQuery;
       browserHistory.push({
         ...location,
         query: {
           ...location.query,
           cursor: undefined,
-          query: searchQuery || undefined,
+          query: typeof searchQuery === 'string' ? newQueries : queries,
         },
       });
     },
-    [location]
+    [location, queries]
+  );
+
+  const handleClearSearch = useCallback(
+    (searchIndex: number) => {
+      const newQueries = [...queries];
+      if (typeof newQueries[searchIndex] !== undefined) {
+        delete newQueries[searchIndex];
+        browserHistory.push({
+          ...location,
+          query: {
+            ...location.query,
+            cursor: undefined,
+            query: newQueries,
+          },
+        });
+        return true;
+      }
+      return false;
+    },
+    [location, queries]
   );
 
   const traces = useTraces<Field>({
@@ -76,7 +101,7 @@ export function Content() {
       ),
     ],
     limit,
-    query,
+    query: queries,
     sort: SORTS,
   });
 
@@ -92,7 +117,11 @@ export function Content() {
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      <TracesSearchBar query={query} handleSearch={handleSearch} />
+      <TracesSearchBar
+        queries={queries}
+        handleSearch={handleSearch}
+        handleClearSearch={handleClearSearch}
+      />
       <StyledPanel>
         <TracePanelContent>
           <StyledPanelHeader align="right" lightText>
@@ -292,7 +321,7 @@ interface UseTracesOptions<F extends string> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
-  query?: string;
+  query?: string | string[];
   sort?: string[];
   suggestedQuery?: string;
 }
