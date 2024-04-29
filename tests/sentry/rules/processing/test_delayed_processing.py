@@ -22,7 +22,9 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequencyPercentTest):
-    def create_event(self, project_id, timestamp, fingerprint, environment=None) -> Event:
+    def create_event(
+        self, project_id, timestamp, fingerprint, environment=None, user: bool = True
+    ) -> Event:
         data = {
             "timestamp": iso_format(timestamp),
             "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
@@ -70,7 +72,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         self.event_frequency_condition3 = self.create_event_frequency_condition(
             interval="1h", value=1
         )
-        user_frequency_condition = self.create_event_frequency_condition(
+        self.user_frequency_condition = self.create_event_frequency_condition(
             interval="1m",
             id="EventUniqueUserFrequencyCondition",
         )
@@ -91,7 +93,7 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         assert self.group1
 
         self.rule2 = self.create_project_rule(
-            project=self.project, condition_match=[user_frequency_condition]
+            project=self.project, condition_match=[self.user_frequency_condition]
         )
         self.event2 = self.create_event(self.project, self.now, "group-2", self.environment.name)
         self.create_event(self.project, self.now, "group-2", self.environment.name)
@@ -266,3 +268,45 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             rules = apply_delayed(self.project.id)
             assert self.rule1 in rules
             assert no_fire_rule not in rules
+
+    def test_apply_delayed_action_match_all(self):
+        """
+        Test that a rule with multiple conditions and an action match of 'all' is scheduled to fire
+        """
+        two_conditions_match_all_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[self.event_frequency_condition, self.user_frequency_condition],
+            environment_id=self.environment.id,
+        )
+        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        group5 = event5.group
+        assert group5
+        event6 = self.create_event(
+            self.project.id, self.now, "group-6", self.environment.name, user=False
+        )
+        self.create_event(self.project.id, self.now, "group-5", self.environment.name, user=False)
+        group6 = event6.group
+        assert group6
+        assert self.group1
+        assert self.group2
+        condition_wont_pass_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[self.create_event_frequency_condition(value=100)],
+            environment_id=self.environment.id,
+        )
+
+        self.push_to_hash(
+            self.project.id, two_conditions_match_all_rule.id, group5.id, event5.event_id
+        )
+
+        with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
+            rules = apply_delayed(self.project.id)
+            assert self.rule1 in rules
+            assert self.group1.id in rules[self.rule1]
+            assert self.rule2 in rules
+            assert self.group2.id in rules[self.rule2]
+            assert two_conditions_match_all_rule in rules
+            assert group5.id in rules[two_conditions_match_all_rule]
+            assert group6.id not in rules[two_conditions_match_all_rule]
+            assert condition_wont_pass_rule not in rules

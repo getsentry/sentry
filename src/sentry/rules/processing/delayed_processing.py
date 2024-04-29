@@ -61,10 +61,8 @@ def get_rules_to_groups(rulegroup_to_events: dict[str, str]) -> DefaultDict[int,
 
 def get_rule_to_slow_conditions(
     alert_rules: list[Rule],
-) -> DefaultDict[Rule, list[MutableMapping[str, str] | None]]:
-    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str] | None]] = defaultdict(
-        list
-    )
+) -> DefaultDict[Rule, list[MutableMapping[str, str]]]:
+    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str]]] = defaultdict(list)
     for rule in alert_rules:
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
@@ -141,25 +139,34 @@ def get_condition_group_results(
 
 def get_rules_to_fire(
     condition_group_results: dict[UniqueCondition, dict[int, int]],
-    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str] | None]],
+    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str]]],
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rule_to_slow_conditions.items():
-        for slow_condition in slow_conditions:
-            if slow_condition:
-                condition_id = slow_condition.get("id")
-                condition_interval = slow_condition.get("interval")
-                target_value = int(str(slow_condition.get("value")))
-                for condition_data, results in condition_group_results.items():
-                    if (
-                        alert_rule.environment_id == condition_data.environment_id
-                        and condition_id == condition_data.cls_id
-                        and condition_interval == condition_data.interval
-                    ):
-                        for group_id in rules_to_groups[alert_rule.id]:
-                            if results[group_id] > target_value:
-                                rules_to_fire[alert_rule].add(group_id)
+        action_match = alert_rule.data.get("action_match", "any")
+        for group_id in rules_to_groups[alert_rule.id]:
+            conditions_matched = 0
+            for slow_condition in slow_conditions:
+                unique_condition = UniqueCondition(
+                    str(slow_condition.get("id")),
+                    str(slow_condition.get("interval")),
+                    alert_rule.environment_id,
+                )
+                results = condition_group_results.get(unique_condition, {})
+                if results:
+                    target_value = int(str(slow_condition.get("value")))
+                    if results[group_id] > target_value:
+                        if action_match == "any":
+                            rules_to_fire[alert_rule].add(group_id)
+                            break
+                        conditions_matched += 1
+                    else:
+                        if action_match == "all":
+                            # We failed to match all conditions for this group, skip
+                            break
+            if action_match == "all" and conditions_matched == len(slow_conditions):
+                rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
 
 
