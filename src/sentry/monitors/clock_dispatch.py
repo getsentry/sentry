@@ -4,12 +4,18 @@ import logging
 from datetime import datetime, timezone
 
 import sentry_sdk
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
+from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry import options
+from sentry.conf.types.kafka_definition import Topic
 from sentry.monitors.tasks.check_missed import check_missing
 from sentry.monitors.tasks.check_timeout import check_timeout
-from sentry.utils import metrics, redis
+from sentry.utils import json, metrics, redis
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger("sentry")
 # This key is used to store the last timestamp that the tasks were triggered.
@@ -24,6 +30,17 @@ def _int_or_none(s: str | None) -> int | None:
         return None
     else:
         return int(s)
+
+
+def _get_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(Topic.MONITORS_CLOCK_TICK)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_clock_tick_producer = SingletonProducer(_get_producer)
 
 
 def _dispatch_tick(ts: datetime):
@@ -43,9 +60,15 @@ def _dispatch_tick(ts: datetime):
     skip any tasks it missed)
     """
     if options.get("crons.use_clock_pulse_consumer"):
-        # TODO(epurkhiser): This should dispatch the pulse as a message on the
-        # monitors-clock-pulse topic
-        pass
+        if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
+            # XXX(epurkhiser): Unclear what we want to do if we're not using kafka
+            return
+
+        message: ClockTick = {"ts": ts.timestamp()}
+        payload = KafkaPayload(None, json.dumps(message).encode("utf-8"), [])
+
+        topic = get_topic_definition(Topic.MONITORS_CLOCK_TICK)["real_topic_name"]
+        _clock_tick_producer.produce(ArroyoTopic(topic), payload)
     else:
         check_missing.delay(current_datetime=ts)
         check_timeout.delay(current_datetime=ts)
