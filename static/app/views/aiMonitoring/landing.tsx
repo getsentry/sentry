@@ -78,10 +78,7 @@ export default function AiMonitoringPage() {
                     </ModuleLayout.Full>
                     {isOnboarding ? (
                       <ModuleLayout.Full>
-                        <AIMonitoringOnboarding
-                          organization={organization}
-                          project={selectedProjects[0]}
-                        />
+                        <AIMonitoringOnboarding />
                       </ModuleLayout.Full>
                     ) : (
                       <Fragment>
