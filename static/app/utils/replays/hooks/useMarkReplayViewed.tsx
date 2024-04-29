@@ -20,11 +20,9 @@ export default function useMarkReplayViewed() {
       const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
       return fetchMutation(api)(['POST', url]);
     },
-    onMutate({replayId}: TVariables) {
-      const cache = queryClient.getQueryCache();
-      cache
-        .findAll([`/organizations/${organization.slug}/replays/${replayId}/viewed-by/`])
-        .forEach(response => response.invalidate());
+    onSuccess(_data, {projectSlug, replayId}) {
+      const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
+      queryClient.refetchQueries({queryKey: [url]});
     },
     retry: false,
   });
