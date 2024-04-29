@@ -1126,3 +1126,31 @@ def test_project_config_cardinality_limits_organization_options_override_options
 def test_project_config_valid_with_generic_filters(default_project):
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])
+
+
+@django_db_all
+@region_silo_test
+@pytest.mark.parametrize("has_feature", [False, True])
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["projects:span-metrics-extraction"])
+def test_global_templates(default_project, has_feature):
+    """
+    Tests that the project config properly returns healthcheck filters when the
+    user has enabled healthcheck filters.
+    """
+
+    with Feature(
+        {
+            "organizations:transaction-metrics-extraction": True,
+            "projects:span-metrics-extraction": has_feature,
+        }
+    ):
+        config = get_project_config(default_project).to_dict()["config"]
+
+    _validate_project_config(config)
+
+    if has_feature:
+        assert config["metricExtraction"]["globalTemplates"] == {
+            "templates": {"spans_hardcoded": {"isEnabled": True}}
+        }
+    else:
+        assert "metricExtraction" not in config

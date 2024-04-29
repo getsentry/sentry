@@ -1,7 +1,7 @@
 import logging
 import random
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Literal, TypedDict
@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 # GENERIC METRIC EXTRACTION
 
 # Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 2
+_METRIC_EXTRACTION_VERSION = 3
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
@@ -122,12 +122,17 @@ def get_metric_extraction_config(
         metric_specs = _merge_metric_specs(alert_specs, widget_specs)
     timeout.check()
 
-    if not metric_specs:
+    with sentry_sdk.start_span(op="get_global_templates"):
+        global_templates = _get_global_templates(project)
+    timeout.check()
+
+    if not (metric_specs or global_templates["templates"]):
         return None
 
     return {
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metric_specs,
+        "global_templates": global_templates,
     }
 
 
@@ -203,6 +208,22 @@ def _get_alert_metric_specs(
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
+
+
+class GlobalTemplateOverride:
+    isEnabled: bool
+
+
+class GlobalTemplates(TypedDict):
+    templates: Mapping[str, GlobalTemplateOverride]
+
+
+@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
+def _get_global_templates(project: Project) -> GlobalTemplates:
+    templates = {}
+    if features.has("projects:span-metrics-extraction", project):
+        templates["spans_hardcoded"] = {"isEnabled": True}
+    return {"templates": templates}
 
 
 def _bulk_cache_query_key(project: Project, chunk: int) -> str:
