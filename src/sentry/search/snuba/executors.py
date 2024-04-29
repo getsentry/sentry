@@ -1390,7 +1390,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             )
             top_level_conditions.append(condition_assigned_or_suggested_none)
 
-        # if one conditoin, we just use that
+        # if one condition, we just use that
         if len(top_level_conditions) == 1:
             return top_level_conditions[0]
 
