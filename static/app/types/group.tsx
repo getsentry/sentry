@@ -907,7 +907,7 @@ export type UserReport = {
 
 export type KeyValueListDataItem = {
   key: string;
-  subject: string;
+  subject: string | null;
   action?: {
     link?: string | LocationDescriptor;
   };

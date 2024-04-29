@@ -63,12 +63,15 @@ export function ContextCardContent({
     />
   );
 
-  const contextSubject =
-    config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
+  const contextSubject = subject
+    ? config?.includeAliasInSubject && alias
+      ? `${startCase(alias)}: ${subject}`
+      : subject
+    : null;
 
   return (
     <ContextContent hasErrors={hasErrors} {...props}>
-      <ContextSubject>{contextSubject}</ContextSubject>
+      {contextSubject ? <ContextSubject>{contextSubject}</ContextSubject> : null}
       <ContextValueWrapper hasErrors={hasErrors} className="ctx-row-value">
         {defined(action?.link) ? (
           <Link to={action.link}>{dataComponent}</Link>
@@ -116,7 +119,7 @@ export default function ContextCard({
   );
 }
 
-const Card = styled(Panel)`
+export const Card = styled(Panel)`
   padding: ${space(0.75)};
   display: grid;
   column-gap: ${space(1.5)};
@@ -124,15 +127,15 @@ const Card = styled(Panel)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const ContextTitle = styled('p')`
-  grid-column: span 2;
+export const ContextTitle = styled('p')`
+  grid-column: 1 / -1;
   padding: ${space(0.25)} ${space(0.75)};
   margin: 0;
   color: ${p => p.theme.headingColor};
   font-weight: bold;
 `;
 
-const ContextContent = styled('div')<{hasErrors: boolean}>`
+export const ContextContent = styled('div')<{hasErrors: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: span 3;
@@ -149,13 +152,13 @@ const ContextContent = styled('div')<{hasErrors: boolean}>`
   }
 `;
 
-const ContextSubject = styled('div')`
+export const ContextSubject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-wrap: break-word;
 `;
 
-const ContextValueWrapper = styled(ContextSubject)<{hasErrors: boolean}>`
+export const ContextValueWrapper = styled(ContextSubject)<{hasErrors: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
   grid-column: span ${p => (p.hasErrors ? 1 : 2)};
 `;

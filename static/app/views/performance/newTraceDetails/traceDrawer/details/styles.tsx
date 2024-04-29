@@ -1,9 +1,14 @@
-import {Fragment, type PropsWithChildren, useMemo} from 'react';
+import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {
+  Card,
+  ContextCardContent,
+  ContextTitle,
+} from 'sentry/components/events/contexts/contextCard';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
@@ -14,6 +19,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {KeyValueListData} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils';
 import {getDuration} from 'sentry/utils/formatters';
@@ -570,6 +576,32 @@ const ActionsContainer = styled('div')`
   }
 `;
 
+function SectionCard({items, title}: {items: KeyValueListData; title: React.ReactNode}) {
+  const [showingAll, setShowingAll] = useState(false);
+  const renderText = showingAll ? t('Show less') : t('Show more') + '...';
+
+  return (
+    <Card>
+      <ContextTitle>{title}</ContextTitle>
+      {items.slice(0, showingAll ? items.length : 5).map(item => (
+        <ContextCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
+      ))}
+      {items.length > 5 && (
+        <TruncateActionWrapper>
+          <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
+        </TruncateActionWrapper>
+      )}
+    </Card>
+  );
+}
+
+const TruncateActionWrapper = styled('div')`
+  grid-column: 1 / -1;
+  margin: ${space(0.5)} 0;
+  display: flex;
+  justify-content: center;
+`;
+
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
@@ -590,6 +622,7 @@ const TraceDrawerComponents = {
   TableRowButtonContainer,
   TableValueRow,
   IssuesLink,
+  SectionCard,
 };
 
 export {TraceDrawerComponents};

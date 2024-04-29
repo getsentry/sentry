@@ -71,7 +71,7 @@ export function getHighlightContextData({
       const highlightContextItems: KeyValueListData = data.filter(
         ({key, subject}) =>
           // We match on key (e.g. 'trace_id') and subject (e.g. 'Trace ID')
-          highlightContextKeys.has(key) || highlightContextKeys.has(subject)
+          highlightContextKeys.has(key) || highlightContextKeys.has(subject ?? '')
       );
       return {alias, type: contextType, data: highlightContextItems, value: value};
     })
