@@ -175,12 +175,12 @@ function parseQueryId(widget: Record<string, unknown>, key: string): number {
 
 function fillIds(
   entries: MetricsWidget[],
-  indezesWithoutId: Set<number>,
+  indicesWithoutId: Set<number>,
   usedIds: Set<number>
 ): MetricsWidget[] {
-  if (indezesWithoutId.size > 0) {
+  if (indicesWithoutId.size > 0) {
     const generateId = getUniqueQueryIdGenerator(usedIds);
-    for (const index of indezesWithoutId) {
+    for (const index of indicesWithoutId) {
       const widget = entries[index];
       if (!widget) {
         continue;
@@ -207,11 +207,11 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
 
   const queries: MetricsQueryWidget[] = [];
   const usedQueryIds = new Set<number>();
-  const queryIndezesWithoutId = new Set<number>();
+  const queryIndicesWithoutId = new Set<number>();
 
   const formulas: MetricsEquationWidget[] = [];
   const usedFormulaIds = new Set<number>();
-  const formulaIndezesWithoutId = new Set<number>();
+  const formulaIndicesWithoutId = new Set<number>();
 
   (currentWidgets as unknown[]).forEach((widget: unknown) => {
     if (!isRecord(widget)) {
@@ -259,7 +259,7 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
         }
         queries.push(query);
         if (query.id === NO_QUERY_ID) {
-          queryIndezesWithoutId.add(queries.length - 1);
+          queryIndicesWithoutId.add(queries.length - 1);
         }
         break;
       }
@@ -270,7 +270,7 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
         }
         formulas.push(formula);
         if (formula.id === NO_QUERY_ID) {
-          formulaIndezesWithoutId.add(formulas.length - 1);
+          formulaIndicesWithoutId.add(formulas.length - 1);
         }
         break;
       }
@@ -295,7 +295,7 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
   }
 
   return [
-    ...fillIds(queries, queryIndezesWithoutId, usedQueryIds),
-    ...fillIds(formulas, formulaIndezesWithoutId, usedFormulaIds),
+    ...fillIds(queries, queryIndicesWithoutId, usedQueryIds),
+    ...fillIds(formulas, formulaIndicesWithoutId, usedFormulaIds),
   ];
 }

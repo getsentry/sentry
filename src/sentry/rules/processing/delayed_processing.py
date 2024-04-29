@@ -50,22 +50,19 @@ def get_slow_conditions(rule: Rule) -> list[MutableMapping[str, str]]:
     return slow_conditions
 
 
-def get_rules_to_groups(rulegroup_to_events: list[dict[str, str]]) -> DefaultDict[int, set[int]]:
+def get_rules_to_groups(rulegroup_to_events: dict[str, str]) -> DefaultDict[int, set[int]]:
     rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
-    for rulegroup_to_event in rulegroup_to_events:
-        for rule_group in rulegroup_to_event.keys():
-            rule_id, group_id = rule_group.split(":")
-            rules_to_groups[int(rule_id)].add(int(group_id))
+    for rule_group in rulegroup_to_events.keys():
+        rule_id, group_id = rule_group.split(":")
+        rules_to_groups[int(rule_id)].add(int(group_id))
 
     return rules_to_groups
 
 
 def get_rule_to_slow_conditions(
     alert_rules: list[Rule],
-) -> DefaultDict[Rule, list[MutableMapping[str, str] | None]]:
-    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str] | None]] = defaultdict(
-        list
-    )
+) -> DefaultDict[Rule, list[MutableMapping[str, str]]]:
+    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str]]] = defaultdict(list)
     for rule in alert_rules:
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
@@ -142,25 +139,34 @@ def get_condition_group_results(
 
 def get_rules_to_fire(
     condition_group_results: dict[UniqueCondition, dict[int, int]],
-    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str] | None]],
+    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str]]],
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rule_to_slow_conditions.items():
-        for slow_condition in slow_conditions:
-            if slow_condition:
-                condition_id = slow_condition.get("id")
-                condition_interval = slow_condition.get("interval")
-                target_value = int(str(slow_condition.get("value")))
-                for condition_data, results in condition_group_results.items():
-                    if (
-                        alert_rule.environment_id == condition_data.environment_id
-                        and condition_id == condition_data.cls_id
-                        and condition_interval == condition_data.interval
-                    ):
-                        for group_id in rules_to_groups[alert_rule.id]:
-                            if results[group_id] > target_value:
-                                rules_to_fire[alert_rule].add(group_id)
+        action_match = alert_rule.data.get("action_match", "any")
+        for group_id in rules_to_groups[alert_rule.id]:
+            conditions_matched = 0
+            for slow_condition in slow_conditions:
+                unique_condition = UniqueCondition(
+                    str(slow_condition.get("id")),
+                    str(slow_condition.get("interval")),
+                    alert_rule.environment_id,
+                )
+                results = condition_group_results.get(unique_condition, {})
+                if results:
+                    target_value = int(str(slow_condition.get("value")))
+                    if results[group_id] > target_value:
+                        if action_match == "any":
+                            rules_to_fire[alert_rule].add(group_id)
+                            break
+                        conditions_matched += 1
+                    else:
+                        if action_match == "all":
+                            # We failed to match all conditions for this group, skip
+                            break
+            if action_match == "all" and conditions_matched == len(slow_conditions):
+                rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
 
 
@@ -168,29 +174,29 @@ def get_rules_to_fire(
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-
         for project_id in project_ids:
             with metrics.timer("delayed_processing.process_project.duration"):
-                apply_delayed.delay(project_id=project_id, buffer=buffer)
+                apply_delayed.delay(project_id=project_id)
 
 
 @instrumented_task(
     name="sentry.delayed_processing.tasks.apply_delayed",
+    queue="delayed_rules",
     default_retry_delay=5,
     max_retries=5,
     soft_time_limit=50,
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int, buffer: RedisBuffer) -> DefaultDict[Rule, set[int]] | None:
+def apply_delayed(project_id: int) -> DefaultDict[Rule, set[int]] | None:
     # XXX(CEO) this is a temporary return value!
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     # STEP 1: Fetch the rulegroup_to_events mapping for the project from redis
-    project = Project.objects.get(id=project_id)
+    project = Project.objects.get_from_cache(id=project_id)
+    buffer = RedisBuffer()
     rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": project.id})
-
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_events)
 

@@ -140,7 +140,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == name
-        assert rule.owner == get_actor_for_user(self.user)
+        assert rule.owner_user_id == self.user.id
+        assert rule.owner_team_id is None
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
 
@@ -558,7 +559,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert response.data["owner"] == f"team:{team.id}"
 
         rule = Rule.objects.get(id=response.data["id"])
-        assert rule.owner_id
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
 
@@ -760,7 +760,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
-            "owner": get_actor_for_user(self.user).id,
             "environment": payload.get("environment"),
             "action_match": payload["actionMatch"],
             "filter_match": payload.get("filterMatch"),

@@ -1,4 +1,3 @@
-import type {QueryBuilderFocusState} from 'sentry/components/searchQueryBuilder/types';
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -68,20 +67,6 @@ export function getValidOpsForFilter(
   );
 
   return [...validOps];
-}
-
-export function focusIsWithinToken(
-  focus: QueryBuilderFocusState | null,
-  token: TokenResult<Token>
-) {
-  if (!focus) {
-    return false;
-  }
-
-  return (
-    token.location.start.offset <= focus.range.start &&
-    token.location.end.offset >= focus.range.end
-  );
 }
 
 export function escapeTagValue(value: string): string {

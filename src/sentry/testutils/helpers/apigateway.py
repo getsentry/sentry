@@ -66,6 +66,11 @@ urlpatterns = [
         RegionEndpoint.as_view(),
         name="region-endpoint-id-or-slug",
     ),
+    re_path(
+        r"^api/embed/error-page/$",
+        RegionEndpoint.as_view(),
+        name="sentry-error-page-embed",
+    ),
 ] + api_urls.urlpatterns
 
 
