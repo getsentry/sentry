@@ -1228,9 +1228,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ],
         )
 
-    def get_suggested(
-        self, search_filter: SearchFilter, joined_entity: Entity, check_none=True
-    ) -> Condition:
+    def get_suggested(self, search_filter: SearchFilter) -> Condition:
         """
         Returns the suggested lookup for a search filter.
         """
@@ -1242,7 +1240,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
         operator = Op.NOT_IN if search_filter.is_negation else Op.IN
         null_check_operator = Op.IS_NULL if search_filter.is_negation else Op.IS_NOT_NULL
-        check_for_none = check_none and None in search_filter.value.raw_value
 
         conditions = []
         if user_ids:
@@ -1320,10 +1317,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             conditions = conditions + [ownership_rule_team, codowner_team]
 
-        # need to check for unsuggested issues if we are checking for none
-        if check_for_none:
-            conditions.append(self.get_unsuggested(search_filter.is_negation))
-
         # if one condition, we just use that
         if len(conditions) == 1:
             return conditions[0]
@@ -1370,9 +1363,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             condition_assigned_not_none = self.get_assigned(
                 search_filter, joined_entity, check_none=False
             )
-            condition_suggested_not_none = self.get_suggested(
-                search_filter, joined_entity, check_none=False
-            )
+            condition_suggested_not_none = self.get_suggested(search_filter)
 
             condition_assigned_or_suggested_not_none = BooleanCondition(
                 op=BooleanOp.AND if search_filter.is_negation else BooleanOp.OR,
