@@ -61,7 +61,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         .filter(team => !team.isMember)
         .map(team => `#${team.slug}`);
 
-      const meAndMyTeamsNone = ['my_teams', '[me, my_teams, none]', 'none'];
+      const meAndMyTeamsNone = ['my_teams', 'none', '[me, my_teams, none]'];
       const suggestedAssignees: string[] = ['me', ...meAndMyTeamsNone, ...userTeams];
       const assigndValues: SearchGroup[] | string[] = [
         {
