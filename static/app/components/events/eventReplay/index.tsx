@@ -66,7 +66,7 @@ function EventReplayContent({
     return (
       <ErrorBoundary mini>
         <LazyLoad
-          component={ReplayOnboardingPanel}
+          LazyComponent={ReplayOnboardingPanel}
           platform={platform}
           projectId={projectId}
         />

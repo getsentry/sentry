@@ -1,5 +1,5 @@
 import type {ErrorInfo} from 'react';
-import {Component, lazy, Suspense, useMemo} from 'react';
+import {Component, Suspense} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -7,15 +7,12 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
-import retryableImport from 'sentry/utils/retryableImport';
 
-type ComponentType = React.ComponentType<any>;
-
-type Props<C extends ComponentType> = React.ComponentProps<C> & {
+type Props<C extends React.LazyExoticComponent<any>> = React.ComponentProps<C> & {
   /**
    * Wrap the component with lazy() before passing it to LazyLoad.
    */
-  LazyComponent: React.LazyExoticComponent<C>;
+  LazyComponent: C;
 
   /**
    * Override the default fallback component.
@@ -34,20 +31,11 @@ type Props<C extends ComponentType> = React.ComponentProps<C> & {
  *
  * <LazyLoad LazyComponent={LazyComponent} someComponentProps={...} />
  */
-function LazyLoad<C extends ComponentType>({
-  component,
-  loadingFallback,
+function LazyLoad<C extends React.LazyExoticComponent<any>>({
   LazyComponent,
+  loadingFallback,
   ...props
 }: Props<C>) {
-  const LazyLoadedComponent = useMemo(() => {
-    if (LazyComponent) {
-      return LazyComponent;
-    }
-
-    return lazy<C>(() => retryableImport(component));
-  }, [component, LazyComponent]);
-
   return (
     <ErrorBoundary>
       <Suspense
@@ -59,7 +47,7 @@ function LazyLoad<C extends ComponentType>({
           )
         }
       >
-        <LazyLoadedComponent {...(props as React.ComponentProps<C>)} />
+        <LazyComponent {...(props as any)} />
       </Suspense>
     </ErrorBoundary>
   );
