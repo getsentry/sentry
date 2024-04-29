@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 from rest_framework.request import Request
 
 
-class CodebaseIndexStatus(str, enum.Enum):
+class CodebaseIndexStatus(enum.StrEnum):
     UP_TO_DATE = "up_to_date"
     INDEXING = "indexing"
     NOT_INDEXED = "not_indexed"
