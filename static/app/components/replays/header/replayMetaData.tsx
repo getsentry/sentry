@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
+import Link from 'sentry/components/links/link';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import {IconCursorArrow} from 'sentry/icons';
