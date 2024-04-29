@@ -779,10 +779,10 @@ class MetricsQueryBuilder(QueryBuilder):
             return env_conditions[0]
 
     def _evaluate_metric_matches_function(
-        self, metric_id: int | None, expected_prefix: set[str] | str
+        self, metric_id: int | None, allowed_prefixes: set[str] | str
     ):
-        if type(expected_prefix) is str:
-            expected_prefix = {expected_prefix}
+        if type(allowed_prefixes) is str:
+            allowed_prefixes = {allowed_prefixes}
 
         if metric_id is None or metric_id == -1:
             return True
@@ -791,12 +791,12 @@ class MetricsQueryBuilder(QueryBuilder):
         metric_prefix = primary_metric.split(":")[0] if primary_metric else None
 
         is_requested_metric_matching_function = (
-            metric_prefix is not None and metric_prefix in expected_prefix
+            metric_prefix is not None and metric_prefix in allowed_prefixes
         )
         is_compatible_measurement = (
             metric_prefix is not None
             and metric_prefix.startswith("measurements")
-            and "measurements" in expected_prefix
+            and "measurements" in allowed_prefixes
         )
 
         return is_requested_metric_matching_function or is_compatible_measurement
