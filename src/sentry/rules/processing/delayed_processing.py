@@ -174,6 +174,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
 
 @instrumented_task(
     name="sentry.delayed_processing.tasks.apply_delayed",
+    queue="delayed_rules",
     default_retry_delay=5,
     max_retries=5,
     soft_time_limit=50,
