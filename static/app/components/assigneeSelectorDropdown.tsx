@@ -182,21 +182,21 @@ function AssigneeSelectorDropdown({
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const {mutate} = useMutation<AssignableEntity, RequestError, AssignableEntity>({
-    mutationFn: (newAssignee: AssignableEntity): Promise<AssignableEntity> => {
-      assignToActor({
+    mutationFn: async (newAssignee: AssignableEntity): Promise<AssignableEntity> => {
+      await assignToActor({
         id: group.id,
         orgSlug: organization.slug,
         actor: {id: newAssignee.id, type: newAssignee.type},
         assignedBy: 'assignee_selector',
       });
-      return Promise.resolve(newAssignee);
+      return await Promise.resolve(newAssignee);
     },
-    onSuccess: (newAssignee: AssignableEntity) => {
+    onSuccess: async (newAssignee: AssignableEntity) => {
       if (onAssign) {
         const suggestedAssignee = getSuggestedAssignees().find(
           actor => actor.type === newAssignee.type && actor.id === newAssignee.id
         );
-        onAssign(newAssignee.type, newAssignee.assignee, suggestedAssignee);
+        await onAssign(newAssignee.type, newAssignee.assignee, suggestedAssignee);
       }
     },
     onError: () => {
@@ -300,7 +300,9 @@ function AssigneeSelectorDropdown({
   const handleSelect = async (selectedOption: SelectOption<string> | null) => {
     // selectedOption is falsey when the option selected is already selected
     if (!selectedOption) {
+      setIsLoading(true);
       await handleClear();
+      setIsLoading(false);
       return;
     }
     // See makeMemberOption and makeTeamOption for how the value is formatted
@@ -311,7 +313,9 @@ function AssigneeSelectorDropdown({
         : selectedOption.value.split('TEAM_')[1];
 
     if (group.assignedTo && assigneeId === group.assignedTo?.id) {
+      setIsLoading(true);
       await handleClear();
+      setIsLoading(false);
       return;
     }
 
@@ -330,6 +334,7 @@ function AssigneeSelectorDropdown({
   };
 
   const handleClear = async () => {
+    // TODO(msun): Move this to useMutate
     await clearAssignment(group.id, organization.slug, 'assignee_selector');
 
     if (onClear) {
@@ -346,6 +351,7 @@ function AssigneeSelectorDropdown({
     return {
       label: (
         <IdBadge
+          data-test-id="assignee-option"
           actor={{
             id: userId,
             name: `${userDisplay}${isCurrentUser ? ' (You)' : ''}`,
@@ -360,7 +366,7 @@ function AssigneeSelectorDropdown({
   };
 
   const makeTeamOption = (assignableTeam: AssignableTeam): SelectOption<string> => ({
-    label: <IdBadge team={assignableTeam.team} />,
+    label: <IdBadge data-test-id="assignee-option" team={assignableTeam.team} />,
     value: `TEAM_${assignableTeam.team.id}`,
     textValue: assignableTeam.team.slug,
   });
@@ -372,6 +378,7 @@ function AssigneeSelectorDropdown({
       return {
         label: (
           <IdBadge
+            data-test-id="assignee-option"
             actor={{
               id: assignee.id,
               name: assignee.name,
