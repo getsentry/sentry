@@ -3965,7 +3965,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-relays-details",
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
-    "sentry-error-page-embed",
     "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",
