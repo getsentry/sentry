@@ -34,6 +34,7 @@ type Data = EntryRequest['data']['data'];
 
 export function Request({event}: {event: EventTransaction}) {
   const [view, setView] = useState<View>('formatted');
+
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.REQUEST);
   if (entryIndex === -1) {
     return null;
