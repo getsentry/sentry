@@ -114,7 +114,7 @@ class EventAttributeCondition(EventCondition):
                 return value
             return [value]
 
-        elif len(path) != 2:
+        elif len(path) < 2 or len(path) > 3:
             return []
 
         elif path[0] == "exception":
