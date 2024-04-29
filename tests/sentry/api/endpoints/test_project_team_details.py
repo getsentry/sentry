@@ -95,18 +95,14 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         another_project = self.create_project(teams=[team])
 
         # Associate rules with the team that also get deleted:
-        # self.create_rule(name="test_rule", owner=f"team:{team.id}")
-        r1 = Rule.objects.create(
-            label="test rule", project=project, owner=team.actor, owner_team=team
-        )
+        r1 = Rule.objects.create(label="test rule", project=project, owner_team=team)
         r2 = Rule.objects.create(
-            label="another test rule", project=another_project, owner=team.actor, owner_team=team
+            label="another test rule", project=another_project, owner_team=team
         )
         r3 = Rule.objects.create(
             label="another test rule",
             project=another_project,
-            owner=another_team.actor,
-            owner_team=team,
+            owner_team=another_team,
         )
         ar1 = self.create_alert_rule(
             name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
@@ -122,8 +118,8 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
             projects=[another_project],
         )
 
-        assert r1.owner == r2.owner == ar1.owner == ar2.owner == team.actor
-        assert r3.owner == ar3.owner == another_team.actor
+        assert r1.owner_team == r2.owner_team == ar1.team == ar2.team == team
+        assert r3.owner_team == ar3.team == another_team
 
         self.get_success_response(
             project.organization.slug,
@@ -138,8 +134,8 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         ar1.refresh_from_db()
         ar2.refresh_from_db()
 
-        assert r1.owner == ar1.owner is None
-        assert r2.owner == ar2.owner == team.actor
+        assert r1.owner_team == ar1.team is None
+        assert r2.owner_team == ar2.team == team
 
         self.get_success_response(
             project.organization.slug,
@@ -153,7 +149,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         ar1.refresh_from_db()
         ar2.refresh_from_db()
 
-        assert r1.owner == r2.owner == ar1.owner == ar2.owner is None
+        assert r1.owner_team == r2.owner_team == ar1.team == ar2.team is None
 
         self.get_success_response(
             another_project.organization.slug,
@@ -164,7 +160,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
 
         r3.refresh_from_db()
         ar3.refresh_from_db()
-        assert r3.owner == ar3.owner is None
+        assert r3.owner_team == ar3.team is None
 
     def test_remove_team_not_found(self):
         project = self.create_project()

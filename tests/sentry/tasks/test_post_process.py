@@ -69,7 +69,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -2356,7 +2356,6 @@ class PostProcessGroupErrorTest(
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     CorePostProcessGroupTestMixin,
     InboxTestMixin,
     RuleProcessorTestMixin,
@@ -2399,7 +2398,8 @@ class PostProcessGroupPerformanceTest(
         generic_metrics_backend_mock,
     ):
         min_ago = before_now(minutes=1)
-        event = self.store_transaction(
+        event = store_transaction(
+            test_case=self,
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
             fingerprint=[],
@@ -2475,7 +2475,6 @@ class PostProcessGroupPerformanceTest(
 class PostProcessGroupAggregateEventTest(
     TestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     CorePostProcessGroupTestMixin,
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
@@ -2720,6 +2719,7 @@ class PostProcessGroupFeedbackTest(
         group_event.occurrence = occurrence
         return group_event
 
+    @override_options({"feedback.spam-detection-actions": True})
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
@@ -2735,6 +2735,7 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_option_disabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
@@ -2760,6 +2761,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_spam(self):
         event = self.create_event(
             data={},
@@ -2785,6 +2787,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_project_option_enabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", True)
 
@@ -2811,6 +2814,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_setting_option_epoch_0(self):
         self.project.update_option("sentry:option-epoch", 1)
         event = self.create_event(
@@ -2836,6 +2840,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_default_on_new_projects(self):
         event = self.create_event(
             data={},
@@ -2860,6 +2865,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
             data={},

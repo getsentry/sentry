@@ -11,7 +11,6 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -19,7 +18,6 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 class GroupSnoozeTest(
     TestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     SearchIssueTestMixin,
     PerformanceIssueTestCase,
 ):

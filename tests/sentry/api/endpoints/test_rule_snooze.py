@@ -17,7 +17,6 @@ class BaseRuleSnoozeTest(APITestCase):
         self.issue_alert_rule = Rule.objects.create(
             label="test rule",
             project=self.project,
-            owner=self.team.actor,
             owner_team_id=self.team.id,
         )
         self.metric_alert_rule = self.create_alert_rule(
@@ -221,7 +220,6 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         other_issue_alert_rule = Rule.objects.create(
             label="test rule",
             project=self.project,
-            owner=other_team.actor,
             owner_team_id=other_team.id,
         )
         data = {"target": "me"}
@@ -237,7 +235,8 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
     def test_user_can_mute_unassigned_issue_alert(self):
         """Test that if an issue alert rule's owner is unassigned, the user can mute it."""
         other_issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=None
+            label="test rule",
+            project=self.project,
         )
         data = {"target": "me"}
         response = self.get_response(

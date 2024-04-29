@@ -14,7 +14,7 @@ from django.conf import settings
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.monitors.clock_dispatch import try_monitor_tasks_trigger
+from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.arroyo_producer import SingletonProducer
@@ -65,7 +65,7 @@ def clock_pulse(current_datetime=None):
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # Directly trigger try_monitor_tasks_trigger in dev
         for partition in _get_partitions().values():
-            try_monitor_tasks_trigger(current_datetime, partition.id)
+            try_monitor_clock_tick(current_datetime, partition.id)
         return
 
     message: ClockPulse = {
