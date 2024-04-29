@@ -55,6 +55,7 @@ import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -70,6 +71,22 @@ import {TraceMetadataHeader} from './traceMetadataHeader';
 import {TraceReducer, type TraceReducerState} from './traceState';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
+
+function logTraceType(type: TraceType, organization: Organization) {
+  switch (type) {
+    case TraceType.BROKEN_SUBTRACES:
+    case TraceType.EMPTY_TRACE:
+    case TraceType.MULTIPLE_ROOTS:
+    case TraceType.ONE_ROOT:
+    case TraceType.NO_ROOT:
+    case TraceType.ONLY_ERRORS:
+      traceAnalytics.trackTraceShape(type, organization);
+      break;
+    default: {
+      Sentry.captureMessage('Unknown trace type');
+    }
+  }
+}
 
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
@@ -719,6 +736,17 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
+  // Memoized because it requires tree traversal
+  const shape = useMemo(() => tree.shape, [tree]);
+
+  useEffect(() => {
+    if (tree.type !== 'trace') {
+      return;
+    }
+
+    logTraceType(shape, organization);
+  }, [tree, shape, organization]);
+
   return (
     <TraceExternalLayout>
       <TraceUXChangeAlert />
@@ -772,6 +800,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
             traces={props.trace}
@@ -934,6 +963,11 @@ function TraceLoading() {
 function TraceError() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
+
+  useEffect(() => {
+    traceAnalytics.trackFailedToFetchTraceState();
+  }, []);
+
   return (
     <LoadingContainer animate error>
       <div>{t('Ughhhhh, we failed to load your trace...')}</div>
@@ -956,6 +990,11 @@ function TraceError() {
 function TraceEmpty() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
+
+  useEffect(() => {
+    traceAnalytics.trackEmptyTraceState();
+  }, []);
+
   return (
     <LoadingContainer animate>
       <div>{t('This trace does not contain any data?!')}</div>

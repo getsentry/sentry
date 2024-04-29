@@ -42,6 +42,7 @@ import {
   getTraceTabTitle,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {
   makeTraceNodeBarColor,
@@ -62,6 +63,7 @@ type TraceDrawerProps = {
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
+  traceType: TraceType;
   trace_dispatch: React.Dispatch<TraceReducerAction>;
   trace_state: TraceReducerState;
   traces: TraceSplitResults<TraceFullDetailed> | null;
@@ -433,6 +435,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
             {props.trace_state.tabs.current_tab ? (
               props.trace_state.tabs.current_tab.node === 'trace' ? (
                 <TraceDetails
+                  traceType={props.traceType}
                   tree={props.trace}
                   node={props.trace.root.children[0]}
                   rootEventResults={props.rootEventResults}

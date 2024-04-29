@@ -15,6 +15,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import Tags from 'sentry/views/discover/tags';
 import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
+import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {isTraceNode} from '../../guards';
 import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
@@ -25,6 +26,7 @@ type TraceDetailsProps = {
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tagsQueryResults: UseApiQueryResult<Tag[], RequestError>;
   traceEventView: EventView;
+  traceType: TraceType;
   traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
 };
@@ -52,7 +54,7 @@ export function TraceDetails(props: TraceDetailsProps) {
 
   return (
     <Fragment>
-      {props.tree.type === 'trace' ? <TraceWarnings type={props.tree.shape} /> : null}
+      {props.tree.type === 'trace' ? <TraceWarnings type={props.traceType} /> : null}
       <IssueList issues={issues} node={props.node} organization={organization} />
       {rootEvent ? (
         <Tags
