@@ -1548,6 +1548,21 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert "transaction.status" not in trace_transaction
         assert "tags" not in trace_transaction
 
+    def test_split_by_char_optimization(self):
+        self.load_trace()
+        # This changes the span_id condition so its a split on a string instead of an array
+        options.set("performance.traces.span_query_minimum_spans", 1)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
 
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-meta"

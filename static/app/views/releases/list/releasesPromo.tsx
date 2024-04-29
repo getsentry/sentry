@@ -13,6 +13,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
 import Panel from 'sentry/components/panels/panel';
@@ -28,8 +29,8 @@ import type {
   SentryApp,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import useApiRequests from 'sentry/utils/useApiRequests';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -94,28 +95,24 @@ type Props = {
   project: Project;
 };
 
-const ReleasesPromo = ({organization, project}: Props) => {
-  const {data, renderComponent, isLoading} = useApiRequests<{
-    internalIntegrations: SentryApp[];
-  }>({
-    endpoints: [
-      [
-        'internalIntegrations',
-        `/organizations/${organization.slug}/sentry-apps/`,
-        {query: {status: 'internal'}},
-      ],
-    ],
-  });
+function ReleasesPromo({organization, project}: Props) {
+  const {data, isLoading} = useApiQuery<SentryApp[]>(
+    [`/organizations/${organization.slug}/sentry-apps/`, {query: {status: 'internal'}}],
+    {
+      staleTime: 0,
+    }
+  );
+
   const api = useApi();
   const [token, setToken] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState<SentryApp[]>([]);
   const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
 
   useEffect(() => {
-    if (!isLoading && data.internalIntegrations) {
-      setIntegrations(data.internalIntegrations);
+    if (!isLoading && data) {
+      setIntegrations(data);
     }
-  }, [isLoading, data.internalIntegrations]);
+  }, [isLoading, data]);
   useEffect(() => {
     trackAnalytics('releases.quickstart_viewed', {
       organization,
@@ -200,7 +197,11 @@ sentry-cli releases finalize "$VERSION"`,
     [token, selectedItem, organization.slug, project.slug]
   );
 
-  return renderComponent(
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  return (
     <Panel>
       <Container>
         <ContainerHeader>
@@ -290,7 +291,7 @@ sentry-cli releases finalize "$VERSION"`,
                         >
                           <MenuItemFooterWrapper>
                             <IconContainer>
-                              <IconAdd color="activeText" isCircled legacySize="14px" />
+                              <IconAdd color="activeText" isCircled size="sm" />
                             </IconContainer>
                             <Label>{t('Create New Integration')}</Label>
                           </MenuItemFooterWrapper>
@@ -311,7 +312,7 @@ sentry-cli releases finalize "$VERSION"`,
       </Container>
     </Panel>
   );
-};
+}
 
 const Container = styled('div')`
   padding: ${space(3)};

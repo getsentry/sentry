@@ -1,6 +1,6 @@
 import dataclasses
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from datetime import datetime, timedelta
 from typing import Any, Literal, TypedDict, cast
 
@@ -18,7 +18,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -35,7 +35,10 @@ class TraceInterval(TypedDict):
 
 class TraceResult(TypedDict):
     trace: str
+    numErrors: int
+    numOccurrences: int
     numSpans: int
+    project: str | None
     name: str | None
     duration: int
     start: int
@@ -120,13 +123,25 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             all_projects_params["projects_objects"] = all_projects_snuba_params.projects
             all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
 
-            breakdowns_query = self.get_breakdown_query(
+            traces_breakdowns_query = self.get_traces_breakdowns_query(
                 cast(ParamsType, all_projects_params),
                 all_projects_snuba_params,
                 trace_ids,
             )
 
-            traces_meta_query = self.get_traces_meta_query(
+            traces_metas_query = self.get_traces_metas_query(
+                cast(ParamsType, all_projects_params),
+                all_projects_snuba_params,
+                trace_ids,
+            )
+
+            traces_errors_query = self.get_traces_errors_query(
+                cast(ParamsType, all_projects_params),
+                all_projects_snuba_params,
+                trace_ids,
+            )
+
+            traces_occurrences_query = self.get_traces_occurrences_query(
                 cast(ParamsType, all_projects_params),
                 all_projects_snuba_params,
                 trace_ids,
@@ -146,8 +161,10 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             queries = [
                 query
                 for query in [
-                    breakdowns_query,
-                    traces_meta_query,
+                    traces_breakdowns_query,
+                    traces_metas_query,
+                    traces_errors_query,
+                    traces_occurrences_query,
                     user_spans_query,
                     suggested_spans_query,
                 ]
@@ -163,15 +180,25 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 all_results = [
                     query.process_results(result) for query, result in zip(queries, results)
                 ]
-                breakdowns_results = all_results[0]
-                traces_meta_results = all_results[1]
-                spans_results = all_results[2]
-                suggested_spans_results = all_results[3] if len(all_results) > 3 else None
+                traces_breakdowns_results = all_results[0]
+                traces_metas_results = all_results[1]
+                traces_errors_results = all_results[2]
+                traces_occurrences_results = all_results[3]
+                spans_results = all_results[4]
+                suggested_spans_results = all_results[5] if len(all_results) > 5 else None
 
             fields = spans_results["meta"].get("fields", {})
             meta = {
                 **spans_results["meta"],
                 "fields": {field: fields[field] for field in serialized["field"]},
+            }
+
+            errors_by_trace: Mapping[str, int] = {
+                row["trace"]: row["count()"] for row in traces_errors_results["data"]
+            }
+
+            occurrences_by_trace: Mapping[str, int] = {
+                row["trace"]: row["count()"] for row in traces_occurrences_results["data"]
             }
 
             spans_by_trace: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
@@ -186,21 +213,31 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             try:
                 traces_range = {
                     row["trace"]: (row["first_seen()"], row["last_seen()"])
-                    for row in traces_meta_results["data"]
+                    for row in traces_metas_results["data"]
                 }
                 breakdowns = process_breakdowns(
-                    breakdowns_results["data"],
+                    traces_breakdowns_results["data"],
                     traces_range,
                 )
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 breakdowns = defaultdict(list)
 
+            names_by_trace: MutableMapping[str, tuple[str, str]] = {}
+            for row in traces_breakdowns_results["data"]:
+                # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
+                # So make sure to handle both in case something changes.
+                if not row["parent_span"] or int(row["parent_span"], 16) == 0:
+                    names_by_trace[row["trace"]] = (row["project"], row["transaction"])
+
             traces: list[TraceResult] = [
                 {
                     "trace": row["trace"],
+                    "numErrors": errors_by_trace.get(row["trace"], 0),
+                    "numOccurrences": occurrences_by_trace.get(row["trace"], 0),
                     "numSpans": row["count()"],
-                    "name": row["trace_name()"],
+                    "project": names_by_trace.get(row["trace"], (None, None))[0],
+                    "name": names_by_trace.get(row["trace"], (None, None))[1],
                     "duration": row["last_seen()"] - row["first_seen()"],
                     "start": row["first_seen()"],
                     "end": row["last_seen()"],
@@ -214,7 +251,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                         for span in suggested_spans_by_trace[row["trace"]]
                     ],
                 }
-                for row in traces_meta_results["data"]
+                for row in traces_metas_results["data"]
             ]
 
             return {"data": traces, "meta": meta}
@@ -307,14 +344,14 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
 
         return trace_ids, min_timestamp, max_timestamp
 
-    def get_breakdown_query(
+    def get_traces_breakdowns_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> SpansIndexedQueryBuilder:
         with handle_query_errors():
-            breakdowns_query = SpansIndexedQueryBuilder(
+            traces_breakdowns_query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params,
                 snuba_params=snuba_params,
@@ -322,31 +359,33 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                 selected_columns=[
                     "trace",
                     "project",
+                    "parent_span",
                     "transaction",
-                    "first_seen()",
-                    "last_seen()",
+                    "precise.start_ts",
+                    "precise.finish_ts",
                 ],
-                orderby=["first_seen()", "last_seen()"],
+                orderby=["precise.start_ts", "precise.finish_ts"],
                 # limit the number of segments we fetch per trace so a single
                 # large trace does not result in the rest being blank
                 limitby=("trace", int(10_000 / len(trace_ids))),
                 limit=10_000,
                 config=QueryBuilderConfig(
-                    functions_acl=["trace_name", "first_seen", "last_seen"],
                     transform_alias_to_input_format=True,
                 ),
             )
-            breakdowns_query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
-        return breakdowns_query
+            traces_breakdowns_query.add_conditions(
+                [Condition(Column("trace_id"), Op.IN, trace_ids)]
+            )
+        return traces_breakdowns_query
 
-    def get_traces_meta_query(
+    def get_traces_metas_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> SpansIndexedQueryBuilder:
         with handle_query_errors():
-            traces_meta_query = SpansIndexedQueryBuilder(
+            traces_metas_query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params,
                 snuba_params=snuba_params,
@@ -355,18 +394,61 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
                     "trace",
                     "count()",
                     # TODO: count if of matching spans
-                    "trace_name()",
                     "first_seen()",
                     "last_seen()",
                 ],
                 limit=len(trace_ids),
                 config=QueryBuilderConfig(
-                    functions_acl=["trace_name", "first_seen", "last_seen"],
+                    functions_acl=["first_seen", "last_seen"],
                     transform_alias_to_input_format=True,
                 ),
             )
-            traces_meta_query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
-        return traces_meta_query
+            traces_metas_query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
+        return traces_metas_query
+
+    def get_traces_errors_query(
+        self,
+        params: ParamsType,
+        snuba_params: SnubaParams,
+        trace_ids: list[str],
+    ) -> QueryBuilder:
+        with handle_query_errors():
+            traces_errors_query = QueryBuilder(
+                Dataset.Events,
+                params,
+                snuba_params=snuba_params,
+                query=None,
+                selected_columns=["trace", "count()"],
+                limit=len(trace_ids),
+                config=QueryBuilderConfig(
+                    transform_alias_to_input_format=True,
+                ),
+            )
+            traces_errors_query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
+        return traces_errors_query
+
+    def get_traces_occurrences_query(
+        self,
+        params: ParamsType,
+        snuba_params: SnubaParams,
+        trace_ids: list[str],
+    ) -> QueryBuilder:
+        with handle_query_errors():
+            traces_occurrences_query = QueryBuilder(
+                Dataset.IssuePlatform,
+                params,
+                snuba_params=snuba_params,
+                query=None,
+                selected_columns=["trace", "count()"],
+                limit=len(trace_ids),
+                config=QueryBuilderConfig(
+                    transform_alias_to_input_format=True,
+                ),
+            )
+            traces_occurrences_query.add_conditions(
+                [Condition(Column("trace_id"), Op.IN, trace_ids)]
+            )
+        return traces_occurrences_query
 
     def get_matching_spans_query(
         self,
@@ -516,10 +598,10 @@ def process_breakdowns(data, traces_range):
         trace = row["trace"]
 
         cur: TraceInterval = {
-            "project": row["project"],
-            "start": row["first_seen()"],
-            "end": row["last_seen()"],
             "kind": "project",
+            "project": row["project"],
+            "start": int(row["precise.start_ts"] * 1000),
+            "end": int(row["precise.finish_ts"] * 1000),
         }
 
         # Clear the stack of any intervals that end before the current interval

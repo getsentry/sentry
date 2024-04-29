@@ -38,7 +38,7 @@ class ProjectMonitorEnvironmentDetailsEndpoint(
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
         responses={
@@ -60,7 +60,7 @@ class ProjectMonitorEnvironmentDetailsEndpoint(
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
         responses={

@@ -848,6 +848,7 @@ CELERY_QUEUES_REGION = [
     Queue("commits", routing_key="commits"),
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
+    Queue("delayed_rules", routing_key="delayed_rules"),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
@@ -1500,7 +1501,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
+    # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1522,15 +1523,11 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enables experimental WIP ddm related features
-    "organizations:ddm-experimental": False,
+    # Enables experimental WIP custom metrics related features
+    "organizations:custom-metrics-experimental": False,
     # Delightful Developer Metrics (DDM):
-    # Enable UI (requires custom-metrics flag as well)
-    "organizations:ddm-ui": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enable the unit normalization in the metrics API
-    "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enables category "metrics" in stats_v2 endpoint
@@ -1582,6 +1579,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
+    # Enable caching group counts in GroupSnooze
+    "organizations:groupsnooze-cached-counts": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -1661,12 +1660,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-meta": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
-    # Enables the usage of the new metrics layer in the metrics API.
-    "organizations:metrics-api-new-metrics-layer": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
-    # Enables the new samples list experience
-    "organizations:metrics-samples-list": False,
     # Enables the search bar for metrics samples list
     "organizations:metrics-samples-list-search": False,
     # Enable Session Stats down to a minute resolution
@@ -2011,6 +2006,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:similarity-embeddings": False,
     # Enable similarity embeddings grouping
     "projects:similarity-embeddings-grouping": False,
+    # Enable adding seer grouping metadata to new groups
+    "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
@@ -2900,12 +2897,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-                if not ARM64
-                # altinity provides clickhouse support to other companies
-                # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-                # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-                else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm"
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:22.8.15.25.altinitystable"
             ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -3974,7 +3966,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-relays-details",
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
-    "sentry-error-page-embed",
     "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",
