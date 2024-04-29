@@ -2578,167 +2578,152 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
 
-        for query in [
-            "assigned_or_suggested:[me]",
-            "assigned_or_suggested:[my_teams]",
-            "assigned_or_suggested:[me, my_teams]",
-            "assigned_or_suggested:[me, my_teams, none]",
-            "assigned_or_suggested:none",
-            "assigned:[me]",
-            "assigned:[my_teams]",
-            "assigned:[me, my_teams]",
-            "assigned:[me, my_teams, none]",
-            "assigned:none",
-            "!assigned_or_suggested:[me]",
-            "!assigned_or_suggested:[my_teams]",
-            "!assigned_or_suggested:[me, my_teams]",
-            "!assigned_or_suggested:[me, my_teams, none]",
-            "!assigned_or_suggested:none",
-            "!assigned:[me]",
-            "!assigned:[my_teams]",
-            "!assigned:[me, my_teams]",
-            "!assigned:[me, my_teams, none]",
-            "!assigned:none",
-        ]:
+        queries_with_expected_ids = [
+            ("assigned_or_suggested:[me]", [event3.group.id, event1.group.id]),
+            ("assigned_or_suggested:[my_teams]", [event4.group.id, event2.group.id]),
+            (
+                "assigned_or_suggested:[me, my_teams]",
+                [event4.group.id, event3.group.id, event2.group.id, event1.group.id],
+            ),
+            (
+                "assigned_or_suggested:[me, my_teams, none]",
+                [
+                    event9.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            ("assigned_or_suggested:none", [event9.group.id]),
+            ("assigned:[me]", [event1.group.id]),
+            ("assigned:[my_teams]", [event2.group.id]),
+            ("assigned:[me, my_teams]", [event2.group.id, event1.group.id]),
+            (
+                "assigned:[me, my_teams, none]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "assigned:none",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event2.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event3.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me, my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me, my_teams, none]",
+                [event8.group.id, event7.group.id, event6.group.id, event5.group.id],
+            ),
+            (
+                "!assigned_or_suggested:none",
+                [
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned:[me]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                ],
+            ),
+            (
+                "!assigned:[my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned:[me, my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                ],
+            ),
+            ("!assigned:[me, my_teams, none]", [event6.group.id, event5.group.id]),
+            (
+                "!assigned:none",
+                [event6.group.id, event5.group.id, event2.group.id, event1.group.id],
+            ),
+        ]
+
+        for query, expected_group_ids in queries_with_expected_ids:
             response = self.get_success_response(
                 sort="new",
                 useGroupSnubaDataset=1,
                 query=query,
             )
-
-            if query == "assigned_or_suggested:[me]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event3.group.id
-                assert int(response.data[1]["id"]) == event1.group.id
-            elif query == "assigned_or_suggested:[my_teams]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event4.group.id
-                assert int(response.data[1]["id"]) == event2.group.id
-            elif query == "assigned_or_suggested:[me, my_teams]":
-                assert len(response.data) == 4
-                assert int(response.data[0]["id"]) == event4.group.id
-                assert int(response.data[1]["id"]) == event3.group.id
-                assert int(response.data[2]["id"]) == event2.group.id
-                assert int(response.data[3]["id"]) == event1.group.id
-            elif query == "assigned_or_suggested:[me, my_teams, none]":
-                assert len(response.data) == 5
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event4.group.id
-                assert int(response.data[2]["id"]) == event3.group.id
-                assert int(response.data[3]["id"]) == event2.group.id
-                assert int(response.data[4]["id"]) == event1.group.id
-            elif query == "assigned_or_suggested:none":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event9.group.id
-            elif query == "assigned:[me]":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event1.group.id
-            elif query == "assigned:[my_teams]":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event2.group.id
-            elif query == "assigned:[me, my_teams]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event2.group.id
-                assert int(response.data[1]["id"]) == event1.group.id
-            elif query == "assigned:[me, my_teams, none]":
-                assert len(response.data) == 7
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event4.group.id
-                assert int(response.data[4]["id"]) == event3.group.id
-                assert int(response.data[5]["id"]) == event2.group.id
-                assert int(response.data[6]["id"]) == event1.group.id
-            elif query == "assigned:none":
-                assert len(response.data) == 5
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event4.group.id
-                assert int(response.data[4]["id"]) == event3.group.id
-            # Negated queries
-            elif query == "!assigned_or_suggested:[me]":
-                assert len(response.data) == 7
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event6.group.id
-                assert int(response.data[4]["id"]) == event5.group.id
-                assert int(response.data[5]["id"]) == event4.group.id
-                assert int(response.data[6]["id"]) == event2.group.id
-            elif query == "!assigned_or_suggested:[my_teams]":
-                assert len(response.data) == 7
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event6.group.id
-                assert int(response.data[4]["id"]) == event5.group.id
-                assert int(response.data[5]["id"]) == event3.group.id
-                assert int(response.data[6]["id"]) == event1.group.id
-            elif query == "!assigned_or_suggested:[me, my_teams]":
-                assert len(response.data) == 5
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event6.group.id
-                assert int(response.data[4]["id"]) == event5.group.id
-            elif query == "!assigned_or_suggested:[me, my_teams, none]":
-                assert len(response.data) == 4
-                assert int(response.data[0]["id"]) == event8.group.id
-                assert int(response.data[1]["id"]) == event7.group.id
-                assert int(response.data[2]["id"]) == event6.group.id
-                assert int(response.data[3]["id"]) == event5.group.id
-            elif query == "!assigned_or_suggested:none":
-                assert len(response.data) == 8
-                assert int(response.data[0]["id"]) == event8.group.id
-                assert int(response.data[1]["id"]) == event7.group.id
-                assert int(response.data[2]["id"]) == event6.group.id
-                assert int(response.data[3]["id"]) == event5.group.id
-                assert int(response.data[4]["id"]) == event4.group.id
-                assert int(response.data[5]["id"]) == event3.group.id
-                assert int(response.data[6]["id"]) == event2.group.id
-                assert int(response.data[7]["id"]) == event1.group.id
-            elif query == "!assigned:[me]":
-                assert len(response.data) == 8
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event6.group.id
-                assert int(response.data[4]["id"]) == event5.group.id
-                assert int(response.data[5]["id"]) == event4.group.id
-                assert int(response.data[6]["id"]) == event3.group.id
-                assert int(response.data[7]["id"]) == event2.group.id
-            elif query == "!assigned:[my_teams]":
-                assert len(response.data) == 8
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event6.group.id
-                assert int(response.data[4]["id"]) == event5.group.id
-                assert int(response.data[5]["id"]) == event4.group.id
-                assert int(response.data[6]["id"]) == event3.group.id
-                assert int(response.data[7]["id"]) == event1.group.id
-            elif query == "!assigned:[me, my_teams]":
-                assert len(response.data) == 7
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event6.group.id
-                assert int(response.data[4]["id"]) == event5.group.id
-                assert int(response.data[5]["id"]) == event4.group.id
-                assert int(response.data[6]["id"]) == event3.group.id
-            elif query == "!assigned:[me, my_teams, none]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event6.group.id
-                assert int(response.data[1]["id"]) == event5.group.id
-            elif query == "!assigned:none":
-                assert len(response.data) == 4
-                assert int(response.data[0]["id"]) == event6.group.id
-                assert int(response.data[1]["id"]) == event5.group.id
-                assert int(response.data[2]["id"]) == event2.group.id
-                assert int(response.data[3]["id"]) == event1.group.id
-            else:
-                assert False, f"Unexpected query {query}"
+            assert [int(row["id"]) for row in response.data] == expected_group_ids
 
     def test_snuba_unsupported_filters(self):
         self.login_as(user=self.user)

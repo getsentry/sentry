@@ -1317,10 +1317,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             conditions = conditions + [ownership_rule_team, codowner_team]
 
-        # if one condition, we just use that
-        if len(conditions) == 1:
-            return conditions[0]
-
         return BooleanCondition(
             op=BooleanOp.AND if search_filter.is_negation else BooleanOp.OR,
             conditions=conditions,
