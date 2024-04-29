@@ -1,4 +1,5 @@
 export type TracingEventParameters = {
+  'trace.shape': {};
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -21,6 +22,7 @@ export type TracingEventParameters = {
 export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
+  'trace.shape': 'Trace Shape',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
