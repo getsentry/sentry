@@ -735,7 +735,6 @@
     "sentry.project"
   ],
   "sentry.rule": [
-    "sentry.actor",
     "sentry.environment",
     "sentry.project",
     "sentry.team",

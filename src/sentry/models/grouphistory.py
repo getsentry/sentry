@@ -149,7 +149,7 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
 
 
 class GroupHistoryManager(BaseManager["GroupHistory"]):
-    def filter_to_team(self, team):
+    def filter_to_team(self, team: "Team"):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.project import Project
 
