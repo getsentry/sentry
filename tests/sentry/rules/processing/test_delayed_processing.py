@@ -22,7 +22,9 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequencyPercentTest):
-    def create_event(self, project_id, timestamp, fingerprint, environment=None) -> Event:
+    def create_event(
+        self, project_id, timestamp, fingerprint, environment=None, user: bool = True
+    ) -> Event:
         data = {
             "timestamp": iso_format(timestamp),
             "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
@@ -280,6 +282,12 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         self.create_event(self.project.id, self.now, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
+        event6 = self.create_event(
+            self.project.id, self.now, "group-6", self.environment.name, user=False
+        )
+        self.create_event(self.project.id, self.now, "group-5", self.environment.name, user=False)
+        group6 = event6.group
+        assert group6
         assert self.group1
         condition_wont_pass_rule = self.create_project_rule(
             project=self.project,
@@ -294,6 +302,10 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             rules = apply_delayed(self.project.id)
             assert self.rule1 in rules
+            assert self.group1.id in rules[self.rule1]
             assert self.rule2 in rules
+            assert self.group2.id in rules[self.rule2]
             assert two_conditions_match_all_rule in rules
+            assert group5.id in rules[two_conditions_match_all_rule]
+            assert group6.id not in rules[two_conditions_match_all_rule]
             assert condition_wont_pass_rule not in rules
