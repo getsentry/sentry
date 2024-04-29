@@ -800,6 +800,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
             traces={props.trace}
