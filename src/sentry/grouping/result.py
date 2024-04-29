@@ -97,9 +97,9 @@ def _write_tree_labels(tree_labels: Sequence[TreeLabel | None], event_data: Node
 
 @dataclass(frozen=True)
 class CalculatedHashes:
-    hashes: Sequence[str]
-    hierarchical_hashes: Sequence[str]
-    tree_labels: Sequence[TreeLabel | None]
+    hashes: list[str]
+    hierarchical_hashes: list[str]
+    tree_labels: list[TreeLabel | None]
     variants: KeyedVariants | None = None
 
     def write_to_event(self, event_data: NodeData) -> None:

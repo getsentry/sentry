@@ -3,8 +3,8 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from sentry.api.endpoints.event_grouping_info import get_grouping_info
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -107,8 +107,8 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         with pytest.raises(ResourceDoesNotExist):
             get_grouping_info("fake-config", self.project, event.event_id)
 
-    @mock.patch("sentry.api.endpoints.event_grouping_info.logger")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.metrics")
+    @mock.patch("sentry.grouping.grouping_info.logger")
+    @mock.patch("sentry.grouping.grouping_info.metrics")
     def test_get_grouping_info_hash_mismatch(self, mock_metrics, mock_logger):
         # Make a Python event
         data = load_data(platform="python")
