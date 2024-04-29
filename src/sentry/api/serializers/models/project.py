@@ -955,6 +955,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "sentry:highlight_context",
                     attrs["highlight_preset"].get("context", {}),
                 ),
+                "highlightPreset": attrs["highlight_preset"],
                 "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
                 "groupingEnhancements": self.get_value_with_default(
                     attrs, "sentry:grouping_enhancements"
@@ -988,6 +989,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "processingIssues": attrs["processing_issues"],
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
+                "relayCustomMetricCardinalityLimit": self.get_custom_metric_cardinality_limit(
+                    attrs
+                ),
                 "builtinSymbolSources": self.get_value_with_default(
                     attrs, "sentry:builtin_symbol_sources"
                 ),
@@ -1018,6 +1022,14 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         )
 
         return data
+
+    def get_custom_metric_cardinality_limit(self, attrs):
+        cardinalityLimits = attrs["options"].get("relay.cardinality-limiter.limits", [])
+        for limit in cardinalityLimits or ():
+            if limit.get("limit", {}).get("id") == "project-override-custom":
+                return limit.get("limit", {}).get("limit", None)
+
+        return None
 
     def get_audit_log_data(self):
         return {

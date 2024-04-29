@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
@@ -29,15 +30,17 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
-    def _make_sessions(self, num: int, environment_name: str | None = None):
+    def _make_sessions(
+        self, num: int, environment_name: str | None = None, project: Project | None = None
+    ):
         received = time.time()
 
         def make_session(i):
             return dict(
                 distinct_id=uuid4().hex,
                 session_id=uuid4().hex,
-                org_id=self.project.organization_id,
-                project_id=self.project.id,
+                org_id=project.organization_id if project else self.project.organization_id,
+                project_id=project.id if project else self.project.id,
                 status="ok",
                 seq=0,
                 release="foo@1.0.0",
@@ -290,43 +293,63 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
             self.assertDoesNotPass(environment_rule, event, is_new=False)
 
     def test_one_minute_with_events(self):
-        data = {"interval": "1m", "value": 6}
+        data = {"interval": "1m", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1, passes=True, add_events=True)
-        data = {"interval": "1m", "value": 16}
+        data = {
+            "interval": "1m",
+            "value": 16,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=1, passes=False)
 
     def test_one_hour_with_events(self):
-        data = {"interval": "1h", "value": 6}
+        data = {"interval": "1h", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=60, passes=True, add_events=True)
-        data = {"interval": "1h", "value": 16}
+        data = {
+            "interval": "1h",
+            "value": 16,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=60, passes=False)
 
     def test_one_day_with_events(self):
-        data = {"interval": "1d", "value": 6}
+        data = {"interval": "1d", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1440, passes=True, add_events=True)
-        data = {"interval": "1d", "value": 16}
+        data = {
+            "interval": "1d",
+            "value": 16,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=1440, passes=False)
 
     def test_one_week_with_events(self):
-        data = {"interval": "1w", "value": 6}
+        data = {"interval": "1w", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=10080, passes=True, add_events=True)
-        data = {"interval": "1w", "value": 16}
+        data = {
+            "interval": "1w",
+            "value": 16,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=10080, passes=False)
 
     def test_one_minute_no_events(self):
-        data = {"interval": "1m", "value": 6}
+        data = {"interval": "1m", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1, passes=False)
 
     def test_one_hour_no_events(self):
-        data = {"interval": "1h", "value": 6}
+        data = {"interval": "1h", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=60, passes=False)
 
     def test_one_day_no_events(self):
-        data = {"interval": "1d", "value": 6}
+        data = {"interval": "1d", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1440, passes=False)
 
     def test_one_week_no_events(self):
-        data = {"interval": "1w", "value": 6}
+        data = {"interval": "1w", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=10080, passes=False)
 
     def test_comparison(self):
@@ -516,57 +539,117 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_five_minutes_with_events(self):
         self._make_sessions(60)
-        data = {"interval": "5m", "value": 39}
+        data = {
+            "interval": "5m",
+            "value": 39,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=5, passes=True, add_events=True)
-        data = {"interval": "5m", "value": 41}
+        data = {
+            "interval": "5m",
+            "value": 41,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=5, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_ten_minutes_with_events(self):
         self._make_sessions(60)
-        data = {"interval": "10m", "value": 49}
+        data = {
+            "interval": "10m",
+            "value": 49,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=10, passes=True, add_events=True)
-        data = {"interval": "10m", "value": 51}
+        data = {
+            "interval": "10m",
+            "value": 51,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=10, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_thirty_minutes_with_events(self):
         self._make_sessions(60)
-        data = {"interval": "30m", "value": 49}
+        data = {
+            "interval": "30m",
+            "value": 49,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=30, passes=True, add_events=True)
-        data = {"interval": "30m", "value": 51}
+        data = {
+            "interval": "30m",
+            "value": 51,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=30, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_one_hour_with_events(self):
         self._make_sessions(60)
-        data = {"interval": "1h", "value": 49}
+        data = {
+            "interval": "1h",
+            "value": 49,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=60, add_events=True, passes=True)
-        data = {"interval": "1h", "value": 51}
+        data = {
+            "interval": "1h",
+            "value": 51,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=60, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_five_minutes_no_events(self):
         self._make_sessions(60)
-        data = {"interval": "5m", "value": 39}
+        data = {
+            "interval": "5m",
+            "value": 39,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=5, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_ten_minutes_no_events(self):
         self._make_sessions(60)
-        data = {"interval": "10m", "value": 49}
+        data = {
+            "interval": "10m",
+            "value": 49,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=10, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_thirty_minutes_no_events(self):
         self._make_sessions(60)
-        data = {"interval": "30m", "value": 49}
+        data = {
+            "interval": "30m",
+            "value": 49,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=30, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_one_hour_no_events(self):
         self._make_sessions(60)
-        data = {"interval": "1h", "value": 49}
+        data = {
+            "interval": "1h",
+            "value": 49,
+            "comparisonType": "count",
+            "comparisonInterval": "5m",
+        }
         self._run_test(data=data, minutes=60, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)

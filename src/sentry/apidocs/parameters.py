@@ -32,9 +32,9 @@ class GlobalParams:
         type=str,
         location="path",
     )
-    TEAM_SLUG = OpenApiParameter(
-        name="team_slug",
-        description="The slug of the team the resource belongs to.",
+    TEAM_ID_OR_SLUG = OpenApiParameter(
+        name="team_id_or_slug",
+        description="The id or slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",
@@ -196,12 +196,12 @@ class CursorQueryParam(serializers.Serializer):
 
 
 class MonitorParams:
-    MONITOR_SLUG = OpenApiParameter(
-        name="monitor_slug",
+    MONITOR_ID_OR_SLUG = OpenApiParameter(
+        name="monitor_id_or_slug",
         location="path",
         required=True,
         type=str,
-        description="The slug of the monitor.",
+        description="The id or slug of the monitor.",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",

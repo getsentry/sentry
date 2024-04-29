@@ -23,7 +23,6 @@ from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.hybrid_cloud.integration import RpcIntegration
@@ -64,7 +63,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         )
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
@@ -97,7 +96,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             if payload_blocks := blocks.get("blocks"):
                 payload = {
                     "text": blocks.get("text"),
-                    "blocks": json.dumps(payload_blocks),
+                    "blocks": json.dumps_experimental(
+                        "integrations.slack.enable-orjson", payload_blocks
+                    ),
                     "channel": channel,
                     "unfurl_links": False,
                     "unfurl_media": False,
@@ -180,7 +181,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "channel_name": self.get_option("channel"),
                 }
                 # temporarily log the payload so we can debug message failures
-                log_params["payload"] = json.dumps(payload)
+                log_params["payload"] = json.dumps_experimental(
+                    "integrations.slack.enable-orjson", payload
+                )
 
                 self.logger.info(
                     "rule.fail.slack_post",
@@ -250,7 +253,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
+            "blocks": json.dumps_experimental(
+                "integrations.slack.enable-orjson", blocks.get("blocks")
+            ),
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,

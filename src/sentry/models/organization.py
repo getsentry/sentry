@@ -341,7 +341,7 @@ class Organization(
         org_ids_to_query: list[int] = []
         for org in organizations:
             default_owner = getattr(org, "_default_owner", None)
-            if default_owner:
+            if default_owner and default_owner.id is not None:
                 owner_id_table[org.id] = default_owner.id
             else:
                 org_ids_to_query.append(org.id)
@@ -355,7 +355,7 @@ class Organization(
                 # An org may have multiple owners. Here we mimic the behavior of
                 # `get_default_owner`, which is to use the first one in the query
                 # result's iteration order.
-                if org_id not in owner_id_table:
+                if (user_id is not None) and (org_id not in owner_id_table):
                     owner_id_table[org_id] = user_id
 
         return owner_id_table

@@ -1,5 +1,5 @@
 ---
-created: '2024-04-22T16:37:52.501407+00:00'
+created: '2024-04-25T21:22:27.808553+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -460,6 +460,9 @@ source: tests/sentry/backup/test_comparators.py
     - doc_integration
   model_name: sentry.docintegrationavatar
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
   - class: EmailObfuscatingComparator
     fields:
     - email
@@ -597,6 +600,8 @@ source: tests/sentry/backup/test_comparators.py
     - organization
     - project
     - release
+    - team
+    - user_id
   model_name: sentry.grouphistory
 - comparators:
   - class: ForeignKeyComparator
@@ -705,6 +710,7 @@ source: tests/sentry/backup/test_comparators.py
     - date_started
   - class: ForeignKeyComparator
     fields:
+    - activation
     - alert_rule
     - organization
   model_name: sentry.incident
@@ -1332,7 +1338,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - environment_id
-    - owner
     - owner_team
     - owner_user_id
     - project

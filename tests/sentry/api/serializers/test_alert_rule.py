@@ -65,8 +65,10 @@ class BaseAlertRuleSerializerTest:
         else:
             assert result["environment"] is None
 
-        if alert_rule.owner:
-            assert result["owner"] == alert_rule.owner.get_actor_identifier()
+        if alert_rule.user_id or alert_rule.team_id:
+            owner = ActorTuple.from_id(user_id=alert_rule.user_id, team_id=alert_rule.team_id)
+            assert owner
+            assert result["owner"] == owner.identifier
         else:
             assert result["owner"] is None
 
@@ -108,7 +110,6 @@ class BaseAlertRuleSerializerTest:
             # TODO(mark) This will need to change when Actor is removed.
             actor = ActorTuple.from_actor_identifier(data["owner"]).resolve_to_actor()
             assert actor, "Should not be None"
-            rule.owner_id = actor.id
             rule.owner_user_id = actor.user_id
             rule.owner_team_id = actor.team_id
 
@@ -203,6 +204,8 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
+        assert alert_rule.team_id == self.team.id
+        assert alert_rule.user_id is None
         assert alert_rule.owner == self.team.actor
 
     def test_comparison_delta_above(self):

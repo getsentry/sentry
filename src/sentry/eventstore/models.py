@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
@@ -89,6 +89,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def data(self, value: NodeData | Mapping[str, Any]):
         pass
+
+    @property
+    def trace_id(self) -> str | None:
+        ret_value = None
+        if self.data:
+            ret_value = self.data.get("contexts", {}).get("trace", {}).get("trace_id")
+        return ret_value
 
     @property
     def platform(self) -> str | None:
@@ -518,7 +525,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def size(self) -> int:
-        return len(json.dumps(dict(self.data)))
+        return len(json.dumps_experimental("eventstore.enable-orjson", dict(self.data)))
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
@@ -703,13 +710,6 @@ class Event(BaseEvent):
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
-    def build_group_events(self) -> Generator[GroupEvent, None, None]:
-        """
-        Yields a GroupEvent for each Group associated with this Event.
-        """
-        for group in self.groups:
-            yield GroupEvent.from_event(self, group)
-
     def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)
 
@@ -723,7 +723,7 @@ class GroupEvent(BaseEvent):
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
         occurrence: IssueOccurrence | None = None,
-    ):
+    ) -> None:
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data

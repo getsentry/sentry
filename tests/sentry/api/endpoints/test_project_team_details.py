@@ -4,6 +4,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 
 
 class ProjectTeamDetailsTest(APITestCase):
@@ -17,6 +18,7 @@ class ProjectTeamDetailsTest(APITestCase):
 class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     method = "post"
 
+    @override_options({"api.id-or-slug-enabled": True})
     def test_add_team(self):
         project = self.create_project()
         team = self.create_team()
@@ -25,6 +27,15 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
             project.organization.slug,
             project.slug,
             team.slug,
+            status_code=status.HTTP_201_CREATED,
+        )
+
+        team = self.create_team()
+
+        self.get_success_response(
+            project.organization.slug,
+            project.slug,
+            team.id,
             status_code=status.HTTP_201_CREATED,
         )
 
@@ -76,18 +87,22 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
 class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     method = "delete"
 
+    @override_options({"api.id-or-slug-enabled": True})
     def test_remove_team(self):
         team = self.create_team(members=[self.user])
+        another_team = self.create_team(members=[self.user])
         project = self.create_project(teams=[team])
         another_project = self.create_project(teams=[team])
 
         # Associate rules with the team that also get deleted:
-        # self.create_rule(name="test_rule", owner=f"team:{team.id}")
-        r1 = Rule.objects.create(
-            label="test rule", project=project, owner=team.actor, owner_team=team
-        )
+        r1 = Rule.objects.create(label="test rule", project=project, owner_team=team)
         r2 = Rule.objects.create(
-            label="another test rule", project=another_project, owner=team.actor, owner_team=team
+            label="another test rule", project=another_project, owner_team=team
+        )
+        r3 = Rule.objects.create(
+            label="another test rule",
+            project=another_project,
+            owner_team=another_team,
         )
         ar1 = self.create_alert_rule(
             name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
@@ -97,8 +112,14 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
             owner=team.actor.get_actor_tuple(),
             projects=[another_project],
         )
+        ar3 = self.create_alert_rule(
+            name="another test alert rule",
+            owner=another_team.actor.get_actor_tuple(),
+            projects=[another_project],
+        )
 
-        assert r1.owner == r2.owner == ar1.owner == ar2.owner == team.actor
+        assert r1.owner_team == r2.owner_team == ar1.team == ar2.team == team
+        assert r3.owner_team == ar3.team == another_team
 
         self.get_success_response(
             project.organization.slug,
@@ -113,8 +134,8 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         ar1.refresh_from_db()
         ar2.refresh_from_db()
 
-        assert r1.owner == ar1.owner is None
-        assert r2.owner == ar2.owner == team.actor
+        assert r1.owner_team == ar1.team is None
+        assert r2.owner_team == ar2.team == team
 
         self.get_success_response(
             project.organization.slug,
@@ -128,7 +149,18 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         ar1.refresh_from_db()
         ar2.refresh_from_db()
 
-        assert r1.owner == r2.owner == ar1.owner == ar2.owner is None
+        assert r1.owner_team == r2.owner_team == ar1.team == ar2.team is None
+
+        self.get_success_response(
+            another_project.organization.slug,
+            another_project.slug,
+            another_team.id,
+            status_code=status.HTTP_200_OK,
+        )
+
+        r3.refresh_from_db()
+        ar3.refresh_from_db()
+        assert r3.owner_team == ar3.team is None
 
     def test_remove_team_not_found(self):
         project = self.create_project()

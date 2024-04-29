@@ -1,12 +1,51 @@
-import type {QueryBuilderFocusState} from 'sentry/components/searchQueryBuilder/types';
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
+  type ParseResult,
+  type ParseResultToken,
   type TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {escapeDoubleQuotes} from 'sentry/utils';
+
+export function makeTokenKey(token: TokenResult<Token>) {
+  return `${token.type}:${token.location.start.offset}`;
+}
+
+const isSimpleTextToken = (
+  token: ParseResultToken
+): token is TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES> => {
+  return [Token.FREE_TEXT, Token.SPACES].includes(token.type);
+};
+
+/**
+ * Collapse adjacent FREE_TEXT and SPACES tokens into a single token.
+ * This is useful for rendering the minimum number of inputs in the UI.
+ */
+export function collapseTextTokens(tokens: ParseResult | null) {
+  if (!tokens) {
+    return null;
+  }
+
+  return tokens.reduce<ParseResult>((acc, token) => {
+    if (acc.length === 0) {
+      return [token];
+    }
+
+    const lastToken = acc[acc.length - 1];
+
+    if (isSimpleTextToken(token) && isSimpleTextToken(lastToken)) {
+      lastToken.value += token.value;
+      lastToken.text += token.value;
+      lastToken.location.end = token.location.end;
+      lastToken.type = Token.FREE_TEXT;
+      return acc;
+    }
+
+    return [...acc, token];
+  }, []);
+}
 
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
@@ -28,20 +67,6 @@ export function getValidOpsForFilter(
   );
 
   return [...validOps];
-}
-
-export function focusIsWithinToken(
-  focus: QueryBuilderFocusState | null,
-  token: TokenResult<Token>
-) {
-  if (!focus) {
-    return false;
-  }
-
-  return (
-    focus.range.start >= token.location.start.offset &&
-    focus.range.end <= token.location.end.offset
-  );
 }
 
 export function escapeTagValue(value: string): string {

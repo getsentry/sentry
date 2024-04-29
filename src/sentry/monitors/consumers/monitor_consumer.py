@@ -18,6 +18,9 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import ValidationError
+from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import quotas, ratelimits
@@ -26,7 +29,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.monitors.clock_dispatch import try_monitor_tasks_trigger
+from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
@@ -40,7 +43,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.types import CheckinItem, CheckinMessage, ClockPulseMessage
+from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
@@ -55,6 +58,8 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
+
+MONITOR_CODEC = get_codec("ingest-monitors")
 
 CHECKIN_QUOTA_LIMIT = 6
 CHECKIN_QUOTA_WINDOW = 60
@@ -859,7 +864,11 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
         assert isinstance(item, BrokerValue)
 
         try:
-            wrapper: CheckinMessage | ClockPulseMessage = msgpack.unpackb(item.payload.value)
+            try:
+                wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(item.payload.value)
+            except ValidationError:
+                wrapper = msgpack.unpackb(item.payload.value)
+                logger.exception("Failed to unpack message payload via sentry_kafka_schemas")
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue
@@ -896,7 +905,7 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
     # Attempt to trigger monitor tasks across processed partitions
     for partition, ts in latest_partition_ts.items():
         try:
-            try_monitor_tasks_trigger(ts, partition)
+            try_monitor_clock_tick(ts, partition)
         except Exception:
             logger.exception("Failed to trigger monitor tasks")
 
@@ -904,12 +913,17 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
 def process_single(message: Message[KafkaPayload]):
     assert isinstance(message.value, BrokerValue)
     try:
-        wrapper = msgpack.unpackb(message.payload.value)
+        try:
+            wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(message.payload.value)
+        except ValidationError:
+            logger.exception("Failed to unpack message payload via sentry_kafka_schemas")
+            wrapper = msgpack.unpackb(message.payload.value)
+
         ts = message.value.timestamp
         partition = message.value.partition.index
 
         try:
-            try_monitor_tasks_trigger(ts, partition)
+            try_monitor_clock_tick(ts, partition)
         except Exception:
             logger.exception("Failed to trigger monitor tasks")
 

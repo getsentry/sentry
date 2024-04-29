@@ -34,7 +34,7 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
         resolutions.
 
         :pparam string organization_slug: the slug of the organization.
-        :pparam string team_slug: the slug of the team.
+        :pparam string team_id_or_slug: the id or slug of the team.
         :qparam string stat: the name of the stat to query (``"received"``,
                              ``"rejected"``)
         :qparam timestamp since: a timestamp to set the start of the query

@@ -254,6 +254,17 @@ class FeatureManagerTest(TestCase):
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
 
+    def test_batch_has_no_entity_multiple_projects(self):
+        manager = features.FeatureManager()
+        manager.add("projects:feature", ProjectFeature)
+        manager.add_handler(MockBatchHandler())
+        projects = [self.project, self.create_project()]
+
+        result = manager.batch_has(["projects:feature"], actor=self.user, projects=projects)
+        assert result is not None
+        for project in projects:
+            assert result[f"project:{project.id}"]["projects:feature"]
+
     def test_has(self):
         manager = features.FeatureManager()
         manager.add("auth:register")
