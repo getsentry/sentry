@@ -1157,43 +1157,80 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
         return query_builder.default_filter_converter(search_filter)
 
-    def get_assigned(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
+    def get_assigned(
+        self, search_filter: SearchFilter, joined_entity: Entity, check_none=True
+    ) -> Condition:
         """
         Returns the assigned lookup for a search filter.
         """
         attr_entity = self.entities["attrs"]
         user_ids = [user.id for user in search_filter.value.raw_value if isinstance(user, RpcUser)]
         team_ids = [team.id for team in search_filter.value.raw_value if isinstance(team, Team)]
+        operator = Op.NOT_IN if search_filter.is_negation else Op.IN
+        # only used when we check for none
+        null_check_operator = Op.IS_NULL if search_filter.is_negation else Op.IS_NOT_NULL
+        check_for_none = check_none and None in search_filter.value.raw_value
 
         conditions = []
         if user_ids:
-            assigned_to_user = Condition(Column("assignee_user_id", attr_entity), Op.IN, user_ids)
+            assigned_to_user = Condition(
+                Column("assignee_user_id", attr_entity), operator, user_ids
+            )
+            if search_filter.is_negation:
+                # need to explicitly allow for null values
+                assigned_to_user = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        assigned_to_user,
+                        Condition(Column("assignee_user_id", attr_entity), null_check_operator),
+                    ],
+                )
             conditions.append(assigned_to_user)
 
         if team_ids:
-            assigned_to_team = Condition(Column("assignee_team_id", attr_entity), Op.IN, team_ids)
-            conditions.append(assigned_to_team)
-        # asking for unassigned issues
-        if None in search_filter.value.raw_value:
-            # neither assigned to team or user
-            assigned_to_none_user = Condition(
-                Column("assignee_user_id", attr_entity), Op.IS_NULL, None
+            assigned_to_team = Condition(
+                Column("assignee_team_id", attr_entity), operator, team_ids
             )
-            assigned_to_none_team = Condition(
-                Column("assignee_team_id", attr_entity), Op.IS_NULL, None
-            )
-            conditions.append(
-                BooleanCondition(
-                    op=BooleanOp.AND, conditions=[assigned_to_none_user, assigned_to_none_team]
+            # need to explicitly allow for null values
+            if search_filter.is_negation:
+                assigned_to_team = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        assigned_to_team,
+                        Condition(Column("assignee_team_id", attr_entity), null_check_operator),
+                    ],
                 )
-            )
 
+            conditions.append(assigned_to_team)
+
+        # asking for unassigned issues
+        if check_for_none:
+            conditions.append(self.get_unassigned(search_filter.is_negation))
+
+        # if one condition, we just use that
         if len(conditions) == 1:
             return conditions[0]
 
-        return BooleanCondition(op=BooleanOp.OR, conditions=conditions)
+        operator = BooleanOp.AND if search_filter.is_negation else BooleanOp.OR
+        return BooleanCondition(op=operator, conditions=conditions)
 
-    def get_suggested(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
+    def get_unassigned(self, in_negation: bool = False) -> Condition:
+        """
+        Returns the unassigned lookup for a search filter.
+        """
+        attr_entity = self.entities["attrs"]
+        inner_operator = Op.IS_NOT_NULL if in_negation else Op.IS_NULL
+        return BooleanCondition(
+            op=BooleanOp.OR if in_negation else BooleanOp.AND,
+            conditions=[
+                Condition(Column("assignee_user_id", attr_entity), inner_operator),
+                Condition(Column("assignee_team_id", attr_entity), inner_operator),
+            ],
+        )
+
+    def get_suggested(
+        self, search_filter: SearchFilter, joined_entity: Entity, check_none=True
+    ) -> Condition:
         """
         Returns the suggested lookup for a search filter.
         """
@@ -1203,75 +1240,163 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         teams = filter(lambda x: isinstance(x, Team), search_filter.value.raw_value)
         team_ids = [team.id for team in teams]
 
+        operator = Op.NOT_IN if search_filter.is_negation else Op.IN
+        null_check_operator = Op.IS_NULL if search_filter.is_negation else Op.IS_NOT_NULL
+        check_for_none = check_none and None in search_filter.value.raw_value
+
         conditions = []
         if user_ids:
             suspect_commit_user = Condition(
-                Column("owner_suspect_commit_user_id", attr_entity), Op.IN, user_ids
+                Column("owner_suspect_commit_user_id", attr_entity), operator, user_ids
             )
             ownership_rule_user = Condition(
-                Column("owner_ownership_rule_user_id", attr_entity), Op.IN, user_ids
+                Column("owner_ownership_rule_user_id", attr_entity), operator, user_ids
             )
             codeowner_user = Condition(
-                Column("owner_codeowners_user_id", attr_entity), Op.IN, user_ids
+                Column("owner_codeowners_user_id", attr_entity), operator, user_ids
             )
+
+            # need to explicitly alllow for null values if we are negating
+            if search_filter.is_negation:
+                suspect_commit_user = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        suspect_commit_user,
+                        Condition(
+                            Column("owner_suspect_commit_user_id", attr_entity), null_check_operator
+                        ),
+                    ],
+                )
+                ownership_rule_user = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        ownership_rule_user,
+                        Condition(
+                            Column("owner_ownership_rule_user_id", attr_entity), null_check_operator
+                        ),
+                    ],
+                )
+                codeowner_user = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        codeowner_user,
+                        Condition(
+                            Column("owner_codeowners_user_id", attr_entity), null_check_operator
+                        ),
+                    ],
+                )
             conditions = conditions + [suspect_commit_user, ownership_rule_user, codeowner_user]
 
         if team_ids:
             ownership_rule_team = Condition(
-                Column("owner_ownership_rule_team_id", attr_entity), Op.IN, team_ids
+                Column("owner_ownership_rule_team_id", attr_entity), operator, team_ids
             )
             codowner_team = Condition(
-                Column("owner_codeowners_team_id", attr_entity), Op.IN, team_ids
+                Column("owner_codeowners_team_id", attr_entity), operator, team_ids
             )
-            conditions = conditions + [ownership_rule_team, codowner_team]
-
-        if None in search_filter.value.raw_value:
-            # neither assigned to team or user
-            suspect_commit_user = Condition(
-                Column("owner_suspect_commit_user_id", attr_entity), Op.IS_NULL, None
-            )
-            ownership_rule_user = Condition(
-                Column("owner_ownership_rule_user_id", attr_entity), Op.IS_NULL, None
-            )
-            ownership_rule_team = Condition(
-                Column("owner_ownership_rule_team_id", attr_entity), Op.IS_NULL, None
-            )
-            codeowner_user = Condition(
-                Column("owner_codeowners_user_id", attr_entity), Op.IS_NULL, None
-            )
-            codowner_team = Condition(
-                Column("owner_codeowners_team_id", attr_entity), Op.IS_NULL, None
-            )
-            conditions.append(
-                BooleanCondition(
-                    op=BooleanOp.AND,
+            # need to explicitly alllow for null values if we are negating
+            if search_filter.is_negation:
+                ownership_rule_team = BooleanCondition(
+                    op=BooleanOp.OR,
                     conditions=[
-                        suspect_commit_user,
-                        ownership_rule_user,
                         ownership_rule_team,
-                        codeowner_user,
-                        codowner_team,
+                        Condition(
+                            Column("owner_ownership_rule_team_id", attr_entity),
+                            null_check_operator,
+                            None,
+                        ),
                     ],
                 )
-            )
+                codowner_team = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        codowner_team,
+                        Condition(
+                            Column("owner_codeowners_team_id", attr_entity),
+                            null_check_operator,
+                            None,
+                        ),
+                    ],
+                )
+            conditions = conditions + [ownership_rule_team, codowner_team]
 
+        # need to check for unsuggested issues if we are checking for none
+        if check_for_none:
+            conditions.append(self.get_unsuggested(search_filter.is_negation))
+
+        # if one condition, we just use that
         if len(conditions) == 1:
             return conditions[0]
 
         return BooleanCondition(
-            op=BooleanOp.OR,
+            op=BooleanOp.AND if search_filter.is_negation else BooleanOp.OR,
             conditions=conditions,
+        )
+
+    def get_unsuggested(self, in_negation: bool = False) -> Condition:
+        attr_entity = self.entities["attrs"]
+        inner_operator = Op.IS_NOT_NULL if in_negation else Op.IS_NULL
+        # neither assigned to team or user
+        suspect_commit_user = Condition(
+            Column("owner_suspect_commit_user_id", attr_entity), inner_operator
+        )
+        ownership_rule_user = Condition(
+            Column("owner_ownership_rule_user_id", attr_entity), inner_operator
+        )
+        ownership_rule_team = Condition(
+            Column("owner_ownership_rule_team_id", attr_entity), inner_operator
+        )
+        codeowner_user = Condition(Column("owner_codeowners_user_id", attr_entity), inner_operator)
+        codowner_team = Condition(Column("owner_codeowners_team_id", attr_entity), inner_operator)
+        return BooleanCondition(
+            op=BooleanOp.OR if in_negation else BooleanOp.AND,
+            conditions=[
+                suspect_commit_user,
+                ownership_rule_user,
+                ownership_rule_team,
+                codeowner_user,
+                codowner_team,
+            ],
         )
 
     def get_assigned_or_suggested(
         self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
+        # we or the conditions when they are not none
+        top_level_conditions = []
+
+        # if we are looking for things other than just none
+        if search_filter.value.raw_value != [None]:
+            condition_assigned_not_none = self.get_assigned(
+                search_filter, joined_entity, check_none=False
+            )
+            condition_suggested_not_none = self.get_suggested(
+                search_filter, joined_entity, check_none=False
+            )
+
+            condition_assigned_or_suggested_not_none = BooleanCondition(
+                op=BooleanOp.AND if search_filter.is_negation else BooleanOp.OR,
+                conditions=[condition_assigned_not_none, condition_suggested_not_none],
+            )
+            top_level_conditions.append(condition_assigned_or_suggested_not_none)
+
+        if None in search_filter.value.raw_value:
+            # for the none case, we need to make sure its not assigned OR suggested
+            condition_assigned_none = self.get_unassigned(search_filter.is_negation)
+            condition_suggested_none = self.get_unsuggested(search_filter.is_negation)
+            condition_assigned_or_suggested_none = BooleanCondition(
+                op=BooleanOp.OR if search_filter.is_negation else BooleanOp.AND,
+                conditions=[condition_assigned_none, condition_suggested_none],
+            )
+            top_level_conditions.append(condition_assigned_or_suggested_none)
+
+        # if one conditoin, we just use that
+        if len(top_level_conditions) == 1:
+            return top_level_conditions[0]
+
         return BooleanCondition(
-            op=BooleanOp.OR,
-            conditions=[
-                self.get_assigned(search_filter, joined_entity),
-                self.get_suggested(search_filter, joined_entity),
-            ],
+            op=BooleanOp.AND if search_filter.is_negation else BooleanOp.OR,
+            conditions=top_level_conditions,
         )
 
     def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
