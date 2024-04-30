@@ -59,6 +59,45 @@ export class WrapperReplayer {
       durationMs,
     });
 
+    // Create a mock full snapshot event, in order to render rrweb gestures properly
+    // The hardcoded data.node.id here should match the ID of the data being sent
+    // in the `positions` arrays
+    const fullSnapshotEvent = {
+      type: 2,
+      data: {
+        node: {
+          type: 0,
+          childNodes: [
+            {
+              type: 1,
+              name: 'html',
+              publicId: '',
+              systemId: '',
+              id: 1,
+            },
+            {
+              type: 2,
+              tagName: 'html',
+              attributes: {
+                lang: 'en',
+              },
+              childNodes: [],
+              id: 2,
+            },
+          ],
+          id: 0,
+        },
+        initialOffset: {
+          left: 0,
+          top: 0,
+        },
+      },
+      timestamp: 100, // this shouldn't matter
+    };
+
+    // Insert after the first meta event
+    events.splice(events.findIndex(e => e.type === 4) + 1, 0, fullSnapshotEvent);
+
     this.rrwebInst = new Replayer(events, {
       root: root as Element,
       blockClass: 'sentry-block',
