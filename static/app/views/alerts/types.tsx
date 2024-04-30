@@ -29,6 +29,7 @@ export type Incident = {
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
   title: string;
+  activation?: AlertRuleActivation;
   activities?: ActivityType[];
 };
 
@@ -102,3 +103,15 @@ export interface MetricAlert extends MetricRule {
 }
 
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
+
+export type AlertRuleActivation = {
+  activator: string;
+  alertRuleId: string;
+  conditionType: string;
+  dateCreated: string;
+  finishedAt: string;
+  id: string;
+  isComplete: boolean;
+  querySubscriptionId: string;
+  metricValue?: number;
+};
