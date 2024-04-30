@@ -28,7 +28,10 @@ import {IndexRoute, Route} from './components/route';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
-const SafeLazyLoad = errorHandler(LazyLoad);
+// LazyExoticComponent Props get crazy when wrapped in an additional layer
+const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<
+  typeof LazyLoad
+>;
 
 // NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
 // pirvate routing tree.
@@ -1619,6 +1622,11 @@ function buildRoutes() {
             )}
           />
         </Route>
+        <Route path="ui/">
+          <IndexRoute
+            component={make(() => import('sentry/views/performance/mobile/ui'))}
+          />
+        </Route>
       </Route>
       <Route path="traces/">
         <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
@@ -1722,13 +1730,6 @@ function buildRoutes() {
           path="spans/"
           component={make(
             () => import('sentry/views/performance/mobile/appStarts/screenSummary')
-          )}
-        />
-      </Route>
-      <Route path="responsiveness/">
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/modules/mobile/responsiveness')
           )}
         />
       </Route>

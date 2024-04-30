@@ -19,7 +19,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -36,7 +36,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -54,7 +54,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -72,7 +72,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -92,7 +92,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -110,7 +110,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -128,7 +128,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -145,7 +145,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -162,7 +162,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -183,7 +183,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -281,7 +281,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -302,7 +302,7 @@ class UpdateProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -326,7 +326,7 @@ class DeleteProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )
@@ -343,7 +343,7 @@ class DeleteProjectKeyTest(APITestCase):
             "sentry-api-0-project-key-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
         )

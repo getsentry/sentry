@@ -2867,6 +2867,11 @@
   "sentry.incident": {
     "dangling": false,
     "foreign_keys": {
+      "activation": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertruleactivations",
+        "nullable": true
+      },
       "alert_rule": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.alertrule",
@@ -5314,11 +5319,6 @@
       "environment_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.environment",
-        "nullable": true
-      },
-      "owner": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
         "nullable": true
       },
       "owner_team": {

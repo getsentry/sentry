@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.manager import BaseManager
+from sentry.models.releases.constants import DB_VERSION_LENGTH
 
 if TYPE_CHECKING:
     from sentry.incidents.models.alert_rule import AlertRule
@@ -23,7 +24,7 @@ class AlertRuleActivationCondition(Model):
     This model represents the activation condition for an activated AlertRule
 
     label is an optional identifier for an activation condition
-    condition_type is AlertRuleActivationConditionType
+    condition_type is AlertRuleActivationConditionType (Release creation / Deploy creation)
     TODO: implement extra query params for advanced conditional rules (eg. +10m after event occurs)
     """
 
@@ -73,6 +74,10 @@ class AlertRuleActivations(Model):
     query_subscription = FlexibleForeignKey(
         "sentry.QuerySubscription", null=True, on_delete=models.SET_NULL
     )
+    # condition_type is AlertRuleActivationConditionType (Release creation / Deploy creation)
+    condition_type = models.SmallIntegerField(default=0)
+    # The activator is the identifier for the specific triggered instance (eg. release/deploy version)
+    activator = models.CharField(max_length=DB_VERSION_LENGTH, default="default_activator")
 
     class Meta:
         app_label = "sentry"
@@ -85,10 +90,17 @@ class AlertRuleActivations(Model):
     def get_triggers(self):
         """
         Alert Rule triggers represent the thresholds required to trigger an activation
+
+        NOTE: AlertRule attr's may change and may not be reliable indicators of incident trigger reasons
         """
         return self.alert_rule.alertruletrigger_set.get()
 
     def get_window(self):
+        """
+        Window represents the monitor window
+
+        NOTE: AlertRule attr's may change and may not be a reliable indicator of window periods for past activations
+        """
         return {
             "start": self.date_added,
             "expected_end": self.date_added + self.alert_rule.snuba_query.time_window,

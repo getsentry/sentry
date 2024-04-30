@@ -30,7 +30,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         When paginated can return at most 1000 values.
 
         :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :pparam string key: the tag key to look up.
         :auth: required
         """

@@ -1,9 +1,14 @@
 from datetime import timedelta
 from unittest import mock
 
+from arroyo import Topic
+from arroyo.backends.kafka import KafkaPayload
+from django.test.utils import override_settings
 from django.utils import timezone
 
-from sentry.monitors.clock_dispatch import try_monitor_clock_tick
+from sentry.monitors.clock_dispatch import _dispatch_tick, try_monitor_clock_tick
+from sentry.testutils.helpers.options import override_options
+from sentry.utils import json
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
@@ -141,3 +146,17 @@ def test_monitor_task_trigger_partition_tick_skip(dispatch_tick):
 
     assert dispatch_tick.call_count == 2
     assert dispatch_tick.mock_calls[1] == mock.call(now + timedelta(minutes=2))
+
+
+@override_settings(KAFKA_TOPIC_OVERRIDES={"monitors-clock-tick": "clock-tick-test-topic"})
+@override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+@override_options({"crons.use_clock_pulse_consumer": True})
+@mock.patch("sentry.monitors.clock_dispatch._clock_tick_producer")
+def test_dispatch_to_kafka(clock_tick_producer_mock):
+    now = timezone.now().replace(second=0, microsecond=0)
+    _dispatch_tick(now)
+
+    clock_tick_producer_mock.produce.assert_called_with(
+        Topic("clock-tick-test-topic"),
+        KafkaPayload(None, json.dumps({"ts": now.timestamp()}).encode("utf-8"), []),
+    )

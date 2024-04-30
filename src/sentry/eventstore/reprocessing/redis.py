@@ -161,8 +161,9 @@ class RedisReprocessingStore(ReprocessingStore):
         self.redis.setex(
             _get_info_reprocessed_key(group_id),
             settings.SENTRY_REPROCESSING_SYNC_TTL,
-            json.dumps(
-                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count}
+            json.dumps_experimental(
+                "eventstore.enable-orjson",
+                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count},
             ),
         )
 
@@ -176,4 +177,4 @@ class RedisReprocessingStore(ReprocessingStore):
         info = self.redis.get(_get_info_reprocessed_key(group_id))
         if info is None:
             return None
-        return json.loads(info)
+        return json.loads_experimental("eventstore.enable-orjson", info)

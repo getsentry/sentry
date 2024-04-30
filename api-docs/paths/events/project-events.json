@@ -14,9 +14,9 @@
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the events belong to.",
+        "description": "The id or slug of the project the events belong to.",
         "required": true,
         "schema": {
           "type": "string"
