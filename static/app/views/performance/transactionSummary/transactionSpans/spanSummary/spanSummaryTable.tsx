@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -25,6 +25,9 @@ import {
 } from 'sentry/views/starfish/types';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {browserHistory} from 'react-router';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 type DataRowKeys =
   | SpanIndexedField.ID
@@ -79,6 +82,7 @@ export default function SpanSummaryTable() {
 
   const location = useLocation();
   const {transaction} = location.query;
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -87,7 +91,6 @@ export default function SpanSummaryTable() {
   };
 
   const sort = useSpanSummarySort();
-  console.dir(sort);
 
   const {data, pageLinks, isLoading, isError} = useIndexedSpans({
     fields: [
@@ -101,6 +104,7 @@ export default function SpanSummaryTable() {
     limit: LIMIT,
     referrer: 'api.performance.span-summary-table',
     sorts: [sort],
+    cursor,
   });
 
   if (!data) {
@@ -131,6 +135,13 @@ export default function SpanSummaryTable() {
   //     spans: example.spans,
   //   }));
 
+  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: cursor},
+    });
+  };
+
   return (
     <Fragment>
       <VisuallyCompleteWithData
@@ -160,7 +171,7 @@ export default function SpanSummaryTable() {
           location={location}
         />
       </VisuallyCompleteWithData>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }

@@ -7,11 +7,13 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 export default function SpanSummaryHeader() {
   // const {spanSlug, suspectSpan, totalCount} = props;
@@ -21,6 +23,7 @@ export default function SpanSummaryHeader() {
 
   const location = useLocation();
   const {transaction} = location.query;
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -36,6 +39,7 @@ export default function SpanSummaryHeader() {
     search: MutableSearch.fromQueryObject(filters),
     fields: ['span.description', 'avg(span.self_time)', 'sum(span.self_time)', 'count()'],
     enabled: Boolean(groupId),
+    cursor,
     referrer: 'api.starfish.span-summary-page',
   });
 

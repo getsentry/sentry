@@ -76,35 +76,14 @@ export default function SpanSummaryContentWrapper(props: Props) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <DiscoverQuery
-            eventView={getTotalsView(eventView)}
-            orgSlug={organization.slug}
+          <SpanSummaryContent
             location={location}
-            referrer="api.performance.transaction-spans"
-            cursor="0:0:1"
-            noPagination
-          >
-            {({tableData}) => {
-              const totalCount: number | null =
-                (tableData?.data?.[0]?.['count()'] as number) ?? null;
-
-              if (totalCount) {
-                setGroupedEntityTag('spans.totalCount', 1000, totalCount);
-              }
-
-              return (
-                <SpanSummaryContent
-                  location={location}
-                  organization={organization}
-                  project={project}
-                  eventView={eventView}
-                  spanSlug={spanSlug}
-                  transactionName={transactionName}
-                  totalCount={totalCount}
-                />
-              );
-            }}
-          </DiscoverQuery>
+            organization={organization}
+            project={project}
+            eventView={eventView}
+            spanSlug={spanSlug}
+            transactionName={transactionName}
+          />
         </Layout.Main>
       </Layout.Body>
     </Fragment>
@@ -117,12 +96,10 @@ type ContentProps = {
   organization: Organization;
   project: Project | undefined;
   spanSlug: SpanSlug;
-  totalCount: number;
-  transactionName: string;
 };
 
 function SpanSummaryContent(props: ContentProps) {
-  const {location, organization, eventView, project, transactionName} = props;
+  const {location, organization, eventView, project} = props;
 
   return (
     <Fragment>
