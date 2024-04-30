@@ -1326,10 +1326,15 @@ class MetricsQueryBuilder(QueryBuilder):
     def _get_metric_prefix(
         self, snql_function: fields.MetricsFunction, column: str | None
     ) -> str | None:
-        if self.use_metrics_layer or self.use_case_id not in {
-            UseCaseID.SPANS,
-            UseCaseID.TRANSACTIONS,
-        }:
+        if (
+            column is None
+            or self.use_metrics_layer
+            or self.use_case_id
+            not in {
+                UseCaseID.SPANS,
+                UseCaseID.TRANSACTIONS,
+            }
+        ):
             return None
 
         prefix_to_function_map = {
@@ -1344,10 +1349,10 @@ class MetricsQueryBuilder(QueryBuilder):
             UseCaseID.TRANSACTIONS: constants.METRICS_MAP,
         }
 
-        prefix = None
-        primary_metric = metrics_map[self.use_case_id].get(column)
-        prefix = primary_metric.split(":")[0] if primary_metric else None
-        if prefix is not None and prefix_to_function_map.get(prefix) is None:
+        primary_metric = metrics_map[self.use_case_id].get(column, column)
+        # Custom measurements are prefixed with "measurements." and always map to distributions
+        prefix = "d" if primary_metric.startswith("measurements.") else primary_metric.split(":")[0]
+        if prefix not in prefix_to_function_map or prefix_to_function_map.get(prefix) is None:
             raise IncompatibleMetricsQuery(
                 "The functions provided do not match the requested metric type"
             )
