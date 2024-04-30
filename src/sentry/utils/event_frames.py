@@ -155,9 +155,12 @@ def munged_filename_and_frames(
 
 
 def get_crashing_thread(
-    thread_frames: Sequence[Mapping[str, Any]] | None
+    thread_frames: Sequence[Mapping[str, Any]] | Mapping[str, None] | None
 ) -> Mapping[str, Any] | None:
-    if not thread_frames:
+    # Handles edge case where {"values": None} is passed in
+    if not thread_frames or (
+        isinstance(thread_frames, Mapping) and not thread_frames.get("values")
+    ):
         return None
     if len(thread_frames) == 1:
         return thread_frames[0]
