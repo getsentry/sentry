@@ -37,7 +37,8 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
 
-  if (props.organization.features.includes('starfish-browser-resource-module-ui')) {
+  if (props.organization.features.includes('spans-first-ui')) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
   }
 

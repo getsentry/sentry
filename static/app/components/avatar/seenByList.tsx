@@ -7,7 +7,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {AvatarUser, User} from 'sentry/types';
+import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 
 type Props = {

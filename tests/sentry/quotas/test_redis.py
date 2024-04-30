@@ -7,10 +7,7 @@ import pytest
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope, build_metric_abuse_quotas
 from sentry.quotas.redis import RedisQuota, is_rate_limited
-from sentry.sentry_metrics.use_case_id_registry import (
-    USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-    UseCaseID,
-)
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES, UseCaseID
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import clusters
 
@@ -162,10 +159,10 @@ class RedisQuotaTest(TestCase):
             (QuotaScope.GLOBAL, "g"),
         ]:
             expected_quotas[(scope, None)] = f"{prefix}amb"
-            for use_case in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
+            for use_case in CARDINALITY_LIMIT_USE_CASES:
                 expected_quotas[(scope, use_case)] = f"{prefix}amb_{use_case.value}"
 
-        for ((expected_scope, expected_use_case), id) in expected_quotas.items():
+        for (expected_scope, expected_use_case), id in expected_quotas.items():
             quota = next(x for x in quotas if x.id == id)
             assert quota is not None
 

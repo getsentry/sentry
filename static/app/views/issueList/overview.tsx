@@ -105,7 +105,7 @@ type Props = {
   selectedSearchId: string;
   selection: PageFilters;
   tags: TagCollection;
-} & RouteComponentProps<{searchId?: string}, {}> &
+} & RouteComponentProps<{}, {searchId?: string}> &
   WithRouteAnalyticsProps;
 
 type State = {
@@ -586,26 +586,14 @@ class IssueListOverview extends Component<Props, State> {
     const {organization} = this.props;
     const query = this.getQuery();
 
-    if (!this.state.realtimeActive) {
-      if (!this.actionTaken && !this.undo) {
-        GroupStore.loadInitialData([]);
+    if (this.state.realtimeActive || (!this.actionTaken && !this.undo)) {
+      GroupStore.loadInitialData([]);
 
-        this.setState({
-          issuesLoading: true,
-          queryCount: 0,
-          error: null,
-        });
-      }
-    } else {
-      if (!isForReviewQuery(query)) {
-        GroupStore.loadInitialData([]);
-
-        this.setState({
-          issuesLoading: true,
-          queryCount: 0,
-          error: null,
-        });
-      }
+      this.setState({
+        issuesLoading: true,
+        queryCount: 0,
+        error: null,
+      });
     }
 
     const transaction = getCurrentSentryReactTransaction();

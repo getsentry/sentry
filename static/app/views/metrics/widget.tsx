@@ -33,13 +33,14 @@ import {
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
-import type {
-  FocusedMetricsSeries,
-  MetricDisplayType,
-  MetricSeriesFilterUpdateType,
-  MetricsQueryWidget,
-  MetricsWidget,
-  SortState,
+import {
+  type FocusedMetricsSeries,
+  MetricChartOverlayType,
+  type MetricDisplayType,
+  type MetricSeriesFilterUpdateType,
+  type MetricsQueryWidget,
+  type MetricsWidget,
+  type SortState,
 } from 'sentry/utils/metrics/types';
 import {
   isMetricFormula,
@@ -53,15 +54,16 @@ import {getIngestionSeriesId, MetricChart} from 'sentry/views/metrics/chart/char
 import type {Series} from 'sentry/views/metrics/chart/types';
 import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
+import {useReleaseSeries} from 'sentry/views/metrics/chart/useMetricReleases';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
+import {EquationFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useMetricsIntervalParam} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 
-import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
+import {METRIC_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
   displayType: MetricDisplayType;
@@ -80,6 +82,7 @@ type MetricWidgetProps = {
   metricsSamples?: MetricsSamplesResults<Field>['data'];
   onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
   onSelect?: (index: number) => void;
+  overlays?: MetricChartOverlayType[];
   queryId?: number;
   showQuerySymbols?: boolean;
   tableSort?: SortState;
@@ -104,7 +107,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     if (isMetricFormula(firstQuery)) {
       return (
         <Fragment>
-          <FormularFormatter formula={unescapeMetricsFormula(firstQuery.formula)} />
+          <EquationFormatter equation={unescapeMetricsFormula(firstQuery.formula)} />
         </Fragment>
       );
     }
@@ -139,6 +142,7 @@ export const MetricWidget = memo(
     chartHeight = 300,
     focusedSeries,
     metricsSamples,
+    overlays,
   }: MetricWidgetProps) => {
     const firstQuery = queries
       .filter(isNotQueryOnly)
@@ -161,6 +165,19 @@ export const MetricWidget = memo(
     const handleDisplayTypeChange = ({value}: SelectOption<MetricDisplayType>) => {
       Sentry.metrics.increment('ddm.widget.display');
       onChange(index, {displayType: value});
+    };
+
+    const handleOverlayChange = (options: SelectOption<MetricChartOverlayType>[]) => {
+      const values = options.map(({value}) => value);
+
+      Sentry.metrics.increment('ddm.widget.overlay', 1, {
+        tags: {
+          releases: values.includes(MetricChartOverlayType.RELEASES),
+          samples: values.includes(MetricChartOverlayType.SAMPLES),
+        },
+      });
+
+      onChange(index, {overlays: values});
     };
 
     const samples = useMemo(() => {
@@ -213,6 +230,23 @@ export const MetricWidget = memo(
               options={metricDisplayTypeOptions}
               onChange={handleDisplayTypeChange}
             />
+            <CompactSelect
+              size="xs"
+              triggerProps={{prefix: t('Overlay')}}
+              multiple
+              value={overlays}
+              options={[
+                {
+                  label: t('Samples'),
+                  value: MetricChartOverlayType.SAMPLES,
+                },
+                {
+                  label: t('Releases'),
+                  value: MetricChartOverlayType.RELEASES,
+                },
+              ]}
+              onChange={handleOverlayChange}
+            />
           </MetricWidgetHeader>
           <MetricWidgetBodyWrapper>
             {queriesAreComplete ? (
@@ -225,12 +259,13 @@ export const MetricWidget = memo(
                   focusAreaProps={focusAreaProps}
                   samples={isSelected ? samples : undefined}
                   chartHeight={chartHeight}
-                  chartGroup={DDM_CHART_GROUP}
+                  chartGroup={METRIC_CHART_GROUP}
                   queries={queries}
                   filters={filters}
                   displayType={displayType}
                   tableSort={tableSort}
                   focusedSeries={focusedSeries}
+                  overlays={overlays}
                 />
               </ErrorBoundary>
             ) : (
@@ -261,6 +296,7 @@ interface MetricWidgetBodyProps {
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   onChange?: (data: Partial<MetricsWidget>) => void;
   onQueryChange?: (queryIndex: number, data: Partial<MetricsQueryWidget>) => void;
+  overlays?: MetricChartOverlayType[];
   samples?: SamplesProps;
   tableSort?: SortState;
 }
@@ -288,6 +324,7 @@ const MetricWidgetBody = memo(
     samples,
     filters,
     queries,
+    overlays,
   }: MetricWidgetBodyProps) => {
     const router = useRouter();
     const {interval} = useMetricsIntervalParam();
@@ -338,7 +375,7 @@ const MetricWidgetBody = memo(
         : [];
     }, [timeseriesData, queries, getChartPalette, focusedSeries]);
 
-    const samplesProp = useMetricChartSamples({
+    const chartSamples = useMetricChartSamples({
       samples: samples?.data,
       highlightedSampleId: samples?.higlightedId,
       operation: samples?.operation,
@@ -346,6 +383,22 @@ const MetricWidgetBody = memo(
       timeseries: chartSeries,
       unit: samples?.unit,
     });
+
+    const samplesProp = useMemo(() => {
+      if (!overlays?.includes(MetricChartOverlayType.SAMPLES)) {
+        return undefined;
+      }
+      return chartSamples;
+    }, [chartSamples, overlays]);
+
+    const releaseSeries = useReleaseSeries();
+
+    const releasesProp = useMemo(() => {
+      if (!overlays?.includes(MetricChartOverlayType.RELEASES)) {
+        return undefined;
+      }
+      return releaseSeries;
+    }, [releaseSeries, overlays]);
 
     const handleZoom = useCallback(
       (range: DateTimeObject) => {
@@ -367,7 +420,7 @@ const MetricWidgetBody = memo(
         }
 
         if (isMetricFormula(queryToUpdate)) {
-          // TODO(ddm): filtering on an equation series should extend all conditions of all queries in the equation
+          // TODO(metrics): filtering on an equation series should extend all conditions of all queries in the equation
           return;
         }
 
@@ -497,6 +550,7 @@ const MetricWidgetBody = memo(
           height={chartHeight}
           samples={samplesProp}
           focusArea={focusArea}
+          releases={releasesProp}
           group={chartGroup}
         />
         <SummaryTable
@@ -517,11 +571,11 @@ export function getChartTimeseries(
   data: MetricsQueryApiResponse,
   queries: MetricsQueryApiQueryParams[],
   {
-    getChartPalette,
+    getChartPalette = createChartPalette,
     focusedSeries,
   }: {
-    getChartPalette: (seriesNames: string[]) => Record<string, string>;
     focusedSeries?: Set<string>;
+    getChartPalette?: (seriesNames: string[]) => Record<string, string>;
     showQuerySymbol?: boolean;
   }
 ) {

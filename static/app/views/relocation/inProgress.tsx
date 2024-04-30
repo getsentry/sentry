@@ -23,7 +23,7 @@ export function InProgress(props: StepProps) {
       >
         <p>
           {`Your relocation is currently being processed - we\'ll email the latest updates to ${userIdentity.email}. If you don't hear back from us in 24 hours, please `}
-          <a href="https://help.sentry.io">contact support</a>.
+          <a href="https://sentry.zendesk.com/hc/en-us">contact support</a>.
         </p>
         <hr />
         <p>

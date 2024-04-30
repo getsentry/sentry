@@ -1,5 +1,5 @@
 ---
-created: '2024-04-12T19:46:00.491186+00:00'
+created: '2024-04-25T21:22:27.808553+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -182,12 +182,12 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: HashObfuscatingComparator
     fields:
-    - hashed_refresh_token
-    - hashed_token
     - refresh_token
     - token
   - class: IgnoredComparator
     fields:
+    - hashed_refresh_token
+    - hashed_token
     - token_last_characters
   - class: UnorderedListComparator
     fields:
@@ -458,9 +458,11 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - control_file_id
     - doc_integration
-    - file_id
   model_name: sentry.docintegrationavatar
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
   - class: EmailObfuscatingComparator
     fields:
     - email
@@ -598,6 +600,8 @@ source: tests/sentry/backup/test_comparators.py
     - organization
     - project
     - release
+    - team
+    - user_id
   model_name: sentry.grouphistory
 - comparators:
   - class: ForeignKeyComparator
@@ -706,6 +710,7 @@ source: tests/sentry/backup/test_comparators.py
     - date_started
   - class: ForeignKeyComparator
     fields:
+    - activation
     - alert_rule
     - organization
   model_name: sentry.incident
@@ -1333,7 +1338,8 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - environment_id
-    - owner
+    - owner_team
+    - owner_user_id
     - project
   model_name: sentry.rule
 - comparators:
@@ -1390,7 +1396,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - control_file_id
-    - file_id
     - sentry_app
   model_name: sentry.sentryappavatar
 - comparators:
@@ -1530,7 +1535,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - control_file_id
-    - file_id
     - user
   model_name: sentry.useravatar
 - comparators:

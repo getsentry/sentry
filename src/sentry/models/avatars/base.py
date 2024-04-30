@@ -13,10 +13,9 @@ from PIL import Image
 from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -37,8 +36,6 @@ class AvatarBase(Model):
     FILE_TYPE: ClassVar[str]
 
     ident = models.CharField(max_length=32, unique=True, db_index=True)
-    # Deprecated, will be moved to OrganizationAvatar soon
-    file_id = BoundedBigIntegerField(unique=True, null=True)
 
     class Meta:
         abstract = True

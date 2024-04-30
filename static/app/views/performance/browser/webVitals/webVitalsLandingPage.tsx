@@ -6,7 +6,8 @@ import moment from 'moment';
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -70,7 +71,7 @@ export default function WebVitalsLandingPage() {
     <ModulePageProviders
       title={[t('Performance'), t('Web Vitals')].join(' — ')}
       baseURL="/performance/browser/pageloads"
-      features="starfish-browser-webvitals"
+      features="spans-first-ui"
     >
       <Layout.Header>
         <Layout.HeaderContent>
@@ -89,10 +90,14 @@ export default function WebVitalsLandingPage() {
 
           <Layout.Title>{t('Web Vitals')}</Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
-        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <TopMenuContainer>
             <PageFilterBar condensed>

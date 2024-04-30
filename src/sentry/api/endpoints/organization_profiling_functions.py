@@ -25,7 +25,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import bulk_snql_query
+from sentry.utils.snuba import bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -138,7 +138,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 )
                 for chunk in chunks
             ]
-            bulk_results = bulk_snql_query(
+            bulk_results = bulk_snuba_queries(
                 [builder.get_snql_query() for builder in builders],
                 Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
             )

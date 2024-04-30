@@ -6,7 +6,6 @@ import responses
 from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
@@ -112,7 +111,6 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert channel == self.identity.external_id
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_assignment_block(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
@@ -139,7 +137,6 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @with_feature("organizations:slack-block-kit")
     def test_assignment_generic_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is assigned
@@ -169,7 +166,6 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @with_feature("organizations:slack-block-kit")
     def test_assignment_performance_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is assigned

@@ -13,7 +13,7 @@ from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 
 

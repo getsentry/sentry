@@ -653,9 +653,10 @@ describe('Results', function () {
         'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
       );
 
+      // NOTE: This uses a legacy redirect for project event to the issue group event link
       expect(screen.getByRole('link', {name: 'deadbeef'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/project-slug:deadbeef/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-user.display&statsPeriod=24h&topEvents=5&yAxis=count%28%29'
+        '/org-slug/project-slug/events/deadbeef/?referrer=discover-events-table?id=1&statsPeriod=24h'
       );
 
       expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(

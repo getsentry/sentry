@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from collections.abc import MutableMapping
 from typing import Any, cast
 
@@ -10,6 +11,7 @@ from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
@@ -64,7 +66,14 @@ def produce_occurrence_to_kafka(
     if payload_data is None:
         return
 
-    payload = KafkaPayload(None, json.dumps(payload_data).encode("utf-8"), [])
+    partition_key = None
+    if (
+        options.get("issue_platform.use_kafka_partition_key.rollout") >= random.random()
+        and occurrence
+        and occurrence.fingerprint
+    ):
+        partition_key = bytes(occurrence.fingerprint[0], "utf-8")
+    payload = KafkaPayload(partition_key, json.dumps(payload_data).encode("utf-8"), [])
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev.
         # Skip producing to Kafka and just process the message directly

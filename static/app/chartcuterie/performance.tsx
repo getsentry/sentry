@@ -1,3 +1,4 @@
+import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData, {
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
@@ -13,11 +14,12 @@ performanceCharts.push({
   key: ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
   getOption: (data: EventBreakpointChartData) => {
     const {chartOptions, series} = getBreakpointChartOptionsFromData(data, theme);
+    const transformedSeries = transformToLineSeries({series});
 
     return {
       ...chartOptions,
       backgroundColor: theme.background,
-      series: series,
+      series: transformedSeries,
       grid: slackChartDefaults.grid,
     };
   },

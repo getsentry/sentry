@@ -6,14 +6,10 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import type {
-  Actor,
-  AvatarProject,
-  AvatarSentryApp,
-  DocIntegration,
-  OrganizationSummary,
-  Team,
-} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {AvatarSentryApp, DocIntegration} from 'sentry/types/integrations';
+import type {OrganizationSummary, Team} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
 
 import ActorAvatar from './actorAvatar';
 

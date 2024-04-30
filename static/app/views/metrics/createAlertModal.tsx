@@ -20,8 +20,8 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters, Project} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {
-  getDDMInterval,
   getFieldFromMetricsQuery as getAlertAggregate,
+  getMetricsInterval,
 } from 'sentry/utils/metrics';
 import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
@@ -96,7 +96,7 @@ export function getAlertInterval(
   period: TimePeriod
 ) {
   const useCase = getUseCaseFromMRI(metricsQuery.mri) ?? 'custom';
-  const interval = getDDMInterval(datetime, useCase);
+  const interval = getMetricsInterval(datetime, useCase);
   const inMinutes = parsePeriodToHours(interval) * 60;
 
   function toInterval(timeWindow: TimeWindow) {

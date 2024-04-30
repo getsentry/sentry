@@ -8,9 +8,9 @@ export const ALLOWED_WILDCARD_FIELDS = [
 export const EMPTY_OPTION_VALUE = '(empty)' as const;
 
 export enum TokenType {
-  OPERATOR,
-  FILTER,
-  FREE_TEXT,
+  OPERATOR = 0,
+  FILTER = 1,
+  FREE_TEXT = 2,
 }
 
 export type Token = {
@@ -51,7 +51,7 @@ export class MutableSearch {
    * @returns {MutableSearch}
    */
   static fromQueryObject(params: {
-    [key: string]: string | number | undefined;
+    [key: string]: string[] | string | number | undefined;
   }): MutableSearch {
     const query = new MutableSearch('');
 
@@ -62,6 +62,8 @@ export class MutableSearch {
 
       if (value === EMPTY_OPTION_VALUE) {
         query.addFilterValue('!has', key);
+      } else if (Array.isArray(value)) {
+        query.addFilterValues(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
       } else {
         query.addFilterValue(
           key,

@@ -141,9 +141,11 @@ def build_metrics_query(
     )
 
     request = Request(
-        dataset=Dataset.Metrics.value
-        if use_case_id == UseCaseID.SESSIONS
-        else Dataset.PerformanceMetrics.value,
+        dataset=(
+            Dataset.Metrics.value
+            if use_case_id == UseCaseID.SESSIONS
+            else Dataset.PerformanceMetrics.value
+        ),
         app_id="metrics",
         query=query,
         tenant_ids={"organization_id": org_id, "use_case_id": use_case_id.value},
@@ -246,8 +248,6 @@ def _get_entity_of_metric_mri(
         )
     elif use_case_id is UseCaseID.ESCALATING_ISSUES:
         entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
-    elif use_case_id is UseCaseID.BUNDLE_ANALYSIS:
-        entity_keys_set = frozenset({EntityKey.GenericMetricsDistributions})
     elif use_case_id is UseCaseID.CUSTOM:
         entity_keys_set = frozenset(
             {
@@ -480,7 +480,6 @@ class RawOp(MetricOperation):
             UseCaseID.SPANS,
             UseCaseID.CUSTOM,
             UseCaseID.ESCALATING_ISSUES,
-            UseCaseID.BUNDLE_ANALYSIS,
         ]:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:

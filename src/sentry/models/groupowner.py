@@ -96,7 +96,7 @@ class GroupOwner(Model):
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.models.actor import ActorTuple
+        from sentry.utils.actor import ActorTuple
 
         if not self.owner_id():
             return None

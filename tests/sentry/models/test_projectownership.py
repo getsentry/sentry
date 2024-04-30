@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from sentry.models.actor import ActorTuple
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
@@ -14,6 +13,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.actor import ActorTuple
 
 pytestmark = requires_snuba
 

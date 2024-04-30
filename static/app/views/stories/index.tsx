@@ -1,9 +1,10 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import EmptyStory from 'sentry/views/stories/emptyStory';
 import ErrorStory from 'sentry/views/stories/errorStory';
@@ -19,6 +20,9 @@ type Props = RouteComponentProps<{}, {}, any, StoriesQuery>;
 export default function Stories({location}: Props) {
   const story = useStoriesLoader({filename: location.query.name});
   const [searchTerm, setSearchTerm] = useState('');
+  const searchInput = useRef<HTMLInputElement>(null);
+
+  useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
 
   return (
     <OrganizationContainer>
@@ -27,6 +31,7 @@ export default function Stories({location}: Props) {
 
         <Sidebar style={{gridArea: 'aside'}}>
           <Input
+            ref={searchInput}
             placeholder="Search files by name"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
           />

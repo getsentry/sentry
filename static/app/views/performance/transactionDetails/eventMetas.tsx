@@ -24,6 +24,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import theme from 'sentry/utils/theme';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
@@ -95,7 +96,7 @@ class EventMetas extends Component<Props, State> {
     const hasReplay =
       organization.features.includes('session-replay') &&
       Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
-      Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+      Boolean(getReplayIdFromEvent(event));
 
     const type = isTransaction(event) ? 'transaction' : 'event';
 

@@ -98,6 +98,7 @@ class Referrer(Enum):
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
+    API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
@@ -164,6 +165,7 @@ class Referrer(Enum):
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
+    API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
     )
@@ -425,6 +427,7 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_RELEASE_SELECTOR = "api.starfish.mobile-release-selector"
     API_STARFISH_MOBILE_DEVICE_BREAKDOWN = "api.starfish.mobile-device-breakdown"
     API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
+    API_STARFISH_MOBILE_PLATFORM_COMPATIBILITY = "api.starfish.mobile-platform-compatibility"
     API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
     API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
     API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE = "api.starfish.mobile-startup-screen-table"
@@ -436,6 +439,44 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
     API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
+
+    # Performance Requests Module
+    API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"
+    API_PERFORMANCE_HTTP_LANDING_DURATION_CHART = "api.performance.http.landing-duration-chart"
+    API_PERFORMANCE_HTTP_LANDING_RESPONSE_CODE_CHART = (
+        "api.performance.http.landing-response-code-chart"
+    )
+    API_PERFORMANCE_HTTP_LANDING_THROUGHPUT_CHART = "api.performance.http.landing-throughput-chart"
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_DURATION_CHART = (
+        "api.performance.http.domain-summary-duration-chart"
+    )
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON = (
+        "api.performance.http.domain-summary-metrics-ribbon"
+    )
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_RESPONSE_CODE_CHART = (
+        "api.performance.http.domain-summary-response-code-chart"
+    )
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_THROUGHPUT_CHART = (
+        "api.performance.http.domain-summary-throughput-chart"
+    )
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST = (
+        "api.performance.http.domain-summary-transactions-list"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_CHART = (
+        "api.performance.http.samples-panel-duration-chart"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_SAMPLES = (
+        "api.performance.http.samples-panel-duration-samples"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_METRICS_RIBBON = (
+        "api.performance.http.samples-panel-metrics-ribbon"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_CHART = (
+        "api.performance.http.samples-panel-response-code-chart"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES = (
+        "api.performance.http.samples-panel-response-code-samples"
+    )
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -689,6 +730,14 @@ class Referrer(Enum):
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_OPEN_PR_COMMENT = (
+        "tagstore.get_groups_user_counts.open_pr_comment"
+    )
+    TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED = "tagstore.get_groups_user_counts.ignored"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION = (
+        "tagstore.get_groups_user_counts.slack_issue_notification"
+    )
     TAGSTORE_GET_GENERIC_GROUP_LIST_TAG_VALUE = "tagstore.get_generic_group_list_tag_value"
     TAGSTORE_GET_GENERIC_GROUPS_USER_COUNTS = "tagstore.get_generic_groups_user_counts"
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"

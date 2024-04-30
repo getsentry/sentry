@@ -1,4 +1,6 @@
 ---
+created: '2024-04-30T11:46:28.288534+00:00'
+creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -83,7 +85,7 @@ config:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
       - 'ChunkLoadError: Loading chunk *'
-      - 'Uncaught *: ChunkLoadError: Loading chunk *'
+      - '*Uncaught *: ChunkLoadError: Loading chunk *'
     ignoreTransactions:
       isEnabled: true
       patterns:
@@ -292,6 +294,8 @@ config:
         - '@ip'
         - '@mac'
         type: multiple
+  sessionMetrics:
+    version: 1
   trustedRelays: []
 disabled: false
 slug: bar

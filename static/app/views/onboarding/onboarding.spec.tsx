@@ -12,7 +12,7 @@ import {
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import type {PlatformKey, Project} from 'sentry/types';
-import {OnboardingProjectStatus} from 'sentry/types';
+import {OnboardingProjectStatus} from 'sentry/types/onboarding';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {

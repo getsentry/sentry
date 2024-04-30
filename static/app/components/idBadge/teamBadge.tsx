@@ -1,12 +1,11 @@
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
 
 import BadgeDisplayName from './badgeDisplayName';
-import BaseBadge, {type BaseBadgeProps} from './baseBadge';
+import {BaseBadge, type BaseBadgeProps} from './baseBadge';
 
-export interface TeamBadgeProps
-  extends Partial<Omit<BaseBadgeProps, 'project' | 'organization' | 'team'>> {
+export interface TeamBadgeProps extends BaseBadgeProps {
   team: Team;
   /**
    * When true will default max-width, or specify one as a string
