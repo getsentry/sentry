@@ -146,9 +146,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
         if latest_event.data.get("exception"):
-            grouping_info = get_grouping_info(
-                None, project=group.project, event_id=latest_event.event_id
-            )
+            grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
         if stacktrace_string == "":

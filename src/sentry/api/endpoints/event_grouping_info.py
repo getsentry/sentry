@@ -1,9 +1,11 @@
 from django.http import HttpRequest, HttpResponse
 
+from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.utils import json
 
@@ -23,6 +25,10 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         This endpoint returns a JSON dump of the metadata that went into the
         grouping algorithm.
         """
-        grouping_info = get_grouping_info(request.GET.get("config", None), project, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
+        if event is None:
+            raise ResourceDoesNotExist
+
+        grouping_info = get_grouping_info(request.GET.get("config", None), project, event)
 
         return HttpResponse(json.dumps(grouping_info), content_type="application/json")

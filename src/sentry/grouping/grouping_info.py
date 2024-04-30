@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-from sentry import eventstore
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfigNotFound
@@ -14,12 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_grouping_info(
-    config_name: str | None, project: Project, event_id: str
+    config_name: str | None, project: Project, event: Event
 ) -> dict[str, dict[str, Any]]:
-    event = eventstore.backend.get_event_by_id(project.id, event_id)
-    if event is None:
-        raise ResourceDoesNotExist
-
     # We always fetch the stored hashes here.  The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
     # produced hashes that would normally also appear in the event.
