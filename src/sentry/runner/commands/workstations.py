@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from string import Template
+from typing import Any, TextIO
 
 import click
 
@@ -19,12 +20,12 @@ GCLOUD = "gcloud"
 POLLING_INTERVAL = 30
 TIMEOUT = 12000
 
-NAME_ARG_ATTRS = {
+NAME_ARG_ATTRS: dict[str, Any] = {
     "metavar": "WORKSTATION_NAME",
     "type": click.STRING,
     "required": True,
 }
-CONFIG_OPT_ATTRS = {
+CONFIG_OPT_ATTRS: dict[str, Any] = {
     "help": """The remote config to be applied to this workstation at creation time. Inherits the
                value of the `SENTRY_WORKSTATION_CONFIG` environment variable.""",
     "envvar": "SENTRY_WORKSTATION_CONFIG",
@@ -32,7 +33,7 @@ CONFIG_OPT_ATTRS = {
     "type": click.STRING,
     "required": True,
 }
-PROJECT_OPT_ATTRS = {
+PROJECT_OPT_ATTRS: dict[str, Any] = {
     "help": """The GCP project this command is affecting. Inherits the value of the
                `SENTRY_WORKSTATION_PROJECT` environment variable.""",
     "envvar": "SENTRY_WORKSTATION_PROJECT",
@@ -125,7 +126,7 @@ def _sync_gcloud_workstation_cmd(
     passthrough: list[str] | None = None,
     timeout: int | None = None,
     silence_stderr: bool = False,
-) -> subprocess.CompletedProcess:
+) -> subprocess.CompletedProcess[str]:
     """
     Runs a `gcloud ...` command synchronously, returning when the command completes.
 
@@ -180,12 +181,12 @@ def _sync_gcloud_workstation_cmd(
     stdout = ""
     stderr = ""
 
-    def capture_stdout(pipe):
+    def capture_stdout(pipe: TextIO) -> None:
         for line in iter(pipe.readline, ""):
             nonlocal stdout
             stdout += line
 
-    def capture_stderr(pipe):
+    def capture_stderr(pipe: TextIO) -> None:
         for line in iter(pipe.readline, ""):
             nonlocal stderr, proc, silence_stderr
             stderr += line
@@ -239,7 +240,7 @@ def _check_gcloud_setup(project: str) -> GCPAccount:
             timeout=10,
         )
     except subprocess.CalledProcessError as e:
-        raise WorkstationsException(ERR_LOGGED_OUT(e=e))
+        raise WorkstationsException(ERR_LOGGED_OUT.substitute(e=e))
     except subprocess.TimeoutExpired:
         click.echo(message=ERR_TIMEOUT, err=True)
 
@@ -342,7 +343,7 @@ def gcloud_manager(ctx: click.Context, project: str) -> Generator[None, None, No
 
 
 @click.group()
-def workstations():
+def workstations() -> None:
     """
     Create a bespoke Google Cloud Workstation instance.
 

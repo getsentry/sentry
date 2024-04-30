@@ -31,11 +31,11 @@ class FakePopenFactory:
 
 
 def raise_error(*args, **kwargs):
-    raise subprocess.CalledProcessError()
+    raise subprocess.CalledProcessError(returncode=123, cmd="foo")
 
 
 def raise_timeout(*args, **kwargs):
-    raise subprocess.TimeoutExpired("Fake gcloud timeout")
+    raise subprocess.TimeoutExpired("Fake gcloud timeout", timeout=123)
 
 
 class WorkstationsTestCase(CliTestCase):
