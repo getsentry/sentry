@@ -78,8 +78,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:grouping-suppress-unnecessary-secondary-hash", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:grouping-tree-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:groupsnooze-cached-counts", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    manager.add("organizations:groupsnooze-cached-rates", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:integrations-custom-alert-priorities", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
