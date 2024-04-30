@@ -154,6 +154,12 @@ describe('Related Issues View', function () {
     expect(
       await screen.findByText('No trace-connected related issues were found.')
     ).toBeInTheDocument();
+    const linkButton = screen.getByRole('button', {name: /open in issues/i});
+    expect(linkButton).toHaveAttribute(
+      'href',
+      // Opening in Issues needs to include the group we are currently viewing
+      `/issues/?query=issue.id:[${groupId},${group1},${group2}]`
+    );
   });
 
   it('renders with trace connected issues', async function () {
@@ -189,6 +195,12 @@ describe('Related Issues View', function () {
     expect(linkElement).toHaveAttribute(
       'href',
       '/performance/trace/1234/?node=error-abcd'
+    );
+    const linkButton = screen.getByRole('button', {name: /open in issues/i});
+    expect(linkButton).toHaveAttribute(
+      'href',
+      // Opening in Issues needs to include the group we are currently viewing
+      `/issues/?query=issue.id:[${groupId},${group1},${group2}]`
     );
   });
 });

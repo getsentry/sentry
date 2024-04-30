@@ -4,6 +4,7 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {LinkButton} from 'sentry/components/button';
 import GroupList from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -61,10 +62,7 @@ function GroupRelatedIssues({params}: Props) {
       if (item.type === 'trace_connected') {
         traceMeta = {...item.meta};
       }
-      // If the group we're looking related issues for shows up in the table,
-      // it will trigger a bug in getGroupReprocessingStatus because activites would be empty,
-      // thus, we excude it from the list of related issues
-      const issuesList = item.data.filter(id => id.toString() !== groupId);
+      const issuesList = item.data;
       mapping[item.type] = issuesList;
       return mapping;
     },
@@ -94,12 +92,25 @@ function GroupRelatedIssues({params}: Props) {
               <HeaderWrapper>
                 <Title>{t('Issues caused by the same root cause')}</Title>
                 {sameRootCauseIssues.length > 0 ? (
-                  <GroupList
-                    orgSlug={orgSlug}
-                    query={`issue.id:[${sameRootCauseIssues}]`}
-                    source="related-issues-tab"
-                    withColumns={['event', 'assignee']}
-                  />
+                  <div>
+                    <TextButtonWrapper>
+                      <div />
+                      <LinkButton
+                        href={`/issues/?query=issue.id:[${groupId},${sameRootCauseIssues}]`}
+                        size="xs"
+                        external
+                      >
+                        {t('Open in Issues')}
+                      </LinkButton>
+                    </TextButtonWrapper>
+                    <GroupList
+                      orgSlug={orgSlug}
+                      // Exclude the current group from the list of related issues
+                      query={`issue.id:[${sameRootCauseIssues.filter(id => id !== groupId)}]`}
+                      source="related-issues-tab"
+                      withColumns={['event', 'assignee']}
+                    />
+                  </div>
                 ) : (
                   <small>{t('No same-root-cause related issues were found.')}</small>
                 )}
@@ -110,17 +121,27 @@ function GroupRelatedIssues({params}: Props) {
                 <Title>{t('Trace connected issues')}</Title>
                 {traceConnectedIssues.length > 0 ? (
                   <div>
-                    <small>
-                      {t('These are the issues belonging to ')}
-                      <Link
-                        to={`/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
+                    <TextButtonWrapper>
+                      <small>
+                        {t('These are the issues belonging to ')}
+                        <Link
+                          to={`/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
+                        >
+                          {t('this trace')}
+                        </Link>
+                      </small>
+                      <LinkButton
+                        href={`/issues/?query=issue.id:[${groupId},${traceConnectedIssues}]`}
+                        size="xs"
+                        external
                       >
-                        {t('this trace')}
-                      </Link>
-                    </small>
+                        {t('Open in Issues')}
+                      </LinkButton>
+                    </TextButtonWrapper>
                     <GroupList
                       orgSlug={orgSlug}
-                      query={`issue.id:[${traceConnectedIssues}]`}
+                      // Exclude the current group from the list of related issues
+                      query={`issue.id:[${traceConnectedIssues.filter(id => id !== groupId)}]`}
                       source="related-issues-tab"
                       withColumns={['event', 'assignee']}
                     />
@@ -159,4 +180,10 @@ const HeaderWrapper = styled('div')`
   small {
     color: ${p => p.theme.subText};
   }
+`;
+
+const TextButtonWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
 `;
