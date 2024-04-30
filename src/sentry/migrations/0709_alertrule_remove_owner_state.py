@@ -26,7 +26,23 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                    ALTER TABLE "sentry_alertrule" DROP CONSTRAINT IF EXISTS "sentry_alertrule_owner_id_477ec831_fk_sentry_actor_id"
+                    """,
+                    reverse_sql="",
+                    hints={"tables": ["sentry_alertrule"]},
+                ),
+                # Follow up from 0708
+                migrations.RunSQL(
+                    sql="""
+                    ALTER TABLE "sentry_rule" DROP CONSTRAINT IF EXISTS "sentry_rule_owner_id_aa4e908b_fk_sentry_actor_id"
+                    """,
+                    reverse_sql="",
+                    hints={"tables": ["sentry_rule"]},
+                ),
+            ],
             state_operations=[
                 migrations.RemoveField(
                     model_name="alertrule",
