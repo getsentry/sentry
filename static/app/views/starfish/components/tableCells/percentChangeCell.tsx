@@ -4,12 +4,21 @@ import {NumberContainer} from 'sentry/utils/discover/styles';
 type PercentChangeCellProps = {
   deltaValue: number;
   colorize?: boolean;
+  preferredPolarity?: '+' | '-';
 };
 
-export function PercentChangeCell({deltaValue, colorize = true}: PercentChangeCellProps) {
+export function PercentChangeCell({
+  deltaValue,
+  preferredPolarity,
+  colorize = true,
+}: PercentChangeCellProps) {
   return (
     <NumberContainer>
-      <PercentChange value={deltaValue} colorize={colorize} />
+      <PercentChange
+        value={deltaValue}
+        colorize={colorize}
+        preferredPolarity={preferredPolarity}
+      />
     </NumberContainer>
   );
 }
