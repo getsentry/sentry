@@ -270,7 +270,7 @@ def get_region_for_organization(organization_id_or_slug: str) -> Region:
 
     if (
         id_or_slug_path_params_enabled(organization_slug=organization_id_or_slug)
-        and organization_id_or_slug.isdigit()
+        and organization_id_or_slug.isdecimal()
     ):
         mapping = OrganizationMapping.objects.filter(
             organization_id=organization_id_or_slug

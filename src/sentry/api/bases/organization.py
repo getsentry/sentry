@@ -256,7 +256,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
         if (
             id_or_slug_path_params_enabled(self.convert_args.__qualname__, str(organization_slug))
-            and str(organization_slug).isdigit()
+            and str(organization_slug).isdecimal()
         ):
             # It is ok that `get_organization_by_id` doesn't check for visibility as we
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
@@ -557,7 +557,7 @@ class OrganizationEndpoint(Endpoint):
                 id_or_slug_path_params_enabled(
                     self.convert_args.__qualname__, str(organization_slug)
                 )
-                and str(organization_slug).isdigit()
+                and str(organization_slug).isdecimal()
             ):
                 organization = Organization.objects.get_from_cache(id=organization_slug)
             else:

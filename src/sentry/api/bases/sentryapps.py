@@ -279,7 +279,7 @@ class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     ):
         if (
             id_or_slug_path_params_enabled(self.convert_args.__qualname__)
-            and str(sentry_app_id_or_slug).isdigit()
+            and str(sentry_app_id_or_slug).isdecimal()
         ):
             sentry_app = app_service.get_sentry_app_by_id(id=int(sentry_app_id_or_slug))
         else:
@@ -333,7 +333,7 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
 
         if (
             id_or_slug_path_params_enabled(self.convert_args.__qualname__, str(organization_slug))
-            and str(organization_slug).isdigit()
+            and str(organization_slug).isdecimal()
         ):
             organization = organization_service.get_org_by_id(
                 id=int(organization_slug), **extra_args

@@ -87,7 +87,7 @@ def get_invite_state(
                 convert_args_class=AcceptOrganizationInvite,
                 organization_slug=str(organization_id_or_slug),
             )
-            and str(organization_id_or_slug).isdigit()
+            and str(organization_id_or_slug).isdecimal()
         ):
             invite_context = organization_service.get_invite_by_id(
                 organization_id=organization_id_or_slug,
