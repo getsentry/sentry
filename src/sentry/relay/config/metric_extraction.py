@@ -74,16 +74,11 @@ class HighCardinalityWidgetException(Exception):
     pass
 
 
-class GlobalGroupOverride(TypedDict):
-    isEnabled: bool
-
-
 class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
     metrics: list[MetricSpec]
-    globalGroups: dict[str, GlobalGroupOverride]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
