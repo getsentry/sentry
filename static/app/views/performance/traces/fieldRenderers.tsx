@@ -113,7 +113,14 @@ export function SpanBreakdownSliceRenderer({
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset = toPercent(relativeSliceStart / traceDuration);
   return (
-    <div style={{width: slicePercent, left: sliceOffset, position: 'absolute'}}>
+    <div
+      style={{
+        width: `max(2px, ${slicePercent})`,
+        left: sliceOffset,
+        position: 'absolute',
+        ...(sliceName ? {} : {zIndex: -1}),
+      }}
+    >
       <Tooltip
         title={
           <div>

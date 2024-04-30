@@ -19,7 +19,7 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
