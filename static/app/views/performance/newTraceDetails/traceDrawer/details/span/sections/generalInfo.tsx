@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
@@ -13,11 +12,7 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
-import {
-  CardContentSubject,
-  type SectionCardKeyValueList,
-  TraceDrawerComponents,
-} from '../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 import {getSpanAncestryAndGroupingItems} from './ancestry';
 
@@ -132,19 +127,10 @@ export function GeneralInfo(props: GeneralnfoProps) {
   items = [...items, ...ancestryAndGroupingItems];
 
   return (
-    <Wrapper>
-      <TraceDrawerComponents.SectionCard
-        disableTruncate
-        items={items}
-        title={t('General')}
-      />
-    </Wrapper>
+    <TraceDrawerComponents.SectionCard
+      disableTruncate
+      items={items}
+      title={t('General')}
+    />
   );
 }
-
-const Wrapper = styled('div')`
-  ${CardContentSubject} {
-    display: flex;
-    align-items: center;
-  }
-`;

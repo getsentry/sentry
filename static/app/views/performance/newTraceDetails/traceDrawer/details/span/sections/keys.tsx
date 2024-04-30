@@ -127,7 +127,6 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
         </TraceDrawerComponents.FlexBox>
       ),
       value: getPerformanceDuration(Number(timing.duration) * 1000),
-      // prefix: <RowTimingPrefix timing={timing} />
     });
   });
 

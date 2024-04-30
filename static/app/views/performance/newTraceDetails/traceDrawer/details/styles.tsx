@@ -647,6 +647,10 @@ function SectionCard({
   const [showingAll, setShowingAll] = useState(disableTruncate ?? false);
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <Card>
       <CardContentTitle>{title}</CardContentTitle>
