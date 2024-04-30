@@ -1613,13 +1613,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
         },
     )
-    @mock.patch(
+    @mock.patch.dict(
         "sentry.search.events.builder.metrics.constants.METRICS_MAP",
-        return_value={"mocked_gauge": "g:mocked_gauge@none"},
+        {"mocked_gauge": "g:mock/mocked_gauge@none"},
     )
-    def test_missing_function_implementation_for_metric_type(
-        self, _mocked_metrics_map, _mocked_function_converter
-    ):
+    def test_missing_function_implementation_for_metric_type(self, _mocked_function_converter):
         # Mocks count_unique to allow the mocked_gauge column
         # but the metric type does not have a gauge implementation
         with pytest.raises(IncompatibleMetricsQuery) as err:
