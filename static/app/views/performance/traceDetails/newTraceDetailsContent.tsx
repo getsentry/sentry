@@ -24,8 +24,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
 import type {
   TraceError,
   TraceFullDetailed,

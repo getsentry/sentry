@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {
   getStatusBodyText,

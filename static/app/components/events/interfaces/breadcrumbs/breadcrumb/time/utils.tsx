@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 
 const timeFormat = 'HH:mm:ss';
 const timeDateFormat = `ll ${timeFormat}`;

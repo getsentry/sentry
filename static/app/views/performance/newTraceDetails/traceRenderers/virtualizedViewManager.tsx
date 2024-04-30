@@ -1,6 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {

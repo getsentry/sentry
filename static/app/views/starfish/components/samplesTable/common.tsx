@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 type Props = {

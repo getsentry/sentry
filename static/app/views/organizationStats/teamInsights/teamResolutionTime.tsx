@@ -8,7 +8,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {barAxisLabel, sortSeriesByDay} from './utils';

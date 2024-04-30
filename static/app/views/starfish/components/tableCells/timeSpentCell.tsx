@@ -5,11 +5,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {
-  formatPercentage,
-  formatSpanOperation,
-  getDuration,
-} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage, formatSpanOperation} from 'sentry/utils/formatters';
 
 interface Props {
   containerProps?: React.DetailedHTMLProps<

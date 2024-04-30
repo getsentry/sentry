@@ -10,8 +10,8 @@ import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
 import type {
   TraceFullDetailed,
   TraceMeta,

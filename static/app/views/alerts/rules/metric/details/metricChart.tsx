@@ -43,7 +43,7 @@ import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {formatMRIField} from 'sentry/utils/metrics/mri';

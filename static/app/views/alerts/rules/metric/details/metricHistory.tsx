@@ -12,7 +12,7 @@ import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useOrganization from 'sentry/utils/useOrganization';

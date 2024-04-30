@@ -6,7 +6,7 @@ import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 

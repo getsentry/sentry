@@ -15,8 +15,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {OrganizationSummary} from 'sentry/types';
 import type {Event, EventTransaction} from 'sentry/types/event';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
   QuickTraceQueryChildrenProps,
