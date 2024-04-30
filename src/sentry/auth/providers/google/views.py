@@ -34,7 +34,7 @@ class FetchUser(AuthView):
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
-            payload = json.loads(payload)
+            payload = json.loads_experimental("auth.enable-orjson", payload)
         except Exception as exc:
             logger.exception("Unable to decode id_token payload: %s", exc)
             return helper.error(ERR_INVALID_RESPONSE)

@@ -4,7 +4,7 @@ import io
 import os
 import tarfile
 import tempfile
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
@@ -31,8 +31,6 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
-from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
@@ -57,7 +55,6 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.rule import Rule
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -69,9 +66,7 @@ from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
 from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.subscriptions import create_snuba_query
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers import override_options
@@ -2180,154 +2175,6 @@ class CustomImportBehaviorTests(ImportTestCase):
     down (think on the order of 5-10 seconds per test case), we encourage combining model test cases
     as much as reasonably possible.
     """
-
-    # TODO(hybrid-cloud): actor refactor. Remove this test case when done.
-    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Actor, AlertRule, Rule)
-    def test_alert_rule_and_rule_with_owner_id(self, expected_models: list[type[Model]]):
-        user = self.create_user()
-        org = self.create_organization(name="test-org", owner=user)
-        proj = self.create_project(name="test-proj")
-        team = self.create_team(name="test-team", organization=org)
-
-        def create_fake_snuba_query() -> SnubaQuery:
-            return create_snuba_query(
-                query_type=SnubaQuery.Type.ERROR,
-                dataset=Dataset.Events,
-                query="level:error",
-                aggregate="count()",
-                time_window=timedelta(minutes=10),
-                resolution=timedelta(minutes=1),
-                environment=None,
-                event_types=[SnubaQueryEventType.EventType.ERROR],
-            )
-
-        # Create four `AlertRule`. Both of them fell through the `owner_id` migration, and therefore
-        # DO have an `owner_id`, but have NEITHER a `team_id` nor `user_id`.
-        #
-        # For the first two `AlertRule` rules, we'll include an `Actor` model with the correct data,
-        # meaning we just have to do a DB lookup, but the model import should go ahead as if the
-        # migration had been successful. For the third `AlertRule`, the `Actor` will also have both
-        # `team` and `user` set to null. Finally, the last instance will have no `Actor` at all.
-        #
-        # The expected result is that the first two instances succeed, while the last two are
-        # ignored.]
-        user_actor = Actor.objects.create(user_id=user.id, type=ACTOR_TYPES["user"])
-        team_actor = Actor.objects.get(team=team, type=ACTOR_TYPES["team"])
-        null_actor = Actor.objects.create(team=None, user_id=None, type=ACTOR_TYPES["team"])
-        common_alert_rule_args = {
-            "organization": org,
-            "threshold_type": AlertRuleThresholdType.ABOVE.value,
-            "resolve_threshold": 10,
-            "threshold_period": 1,
-            "include_all_projects": False,
-            "comparison_delta": None,
-        }
-
-        # Use `bulk_create` to avoid the `.save()` checks that catch some otherwise invalid data -
-        # the whole point of this test is to ensure we gracefully recover when importing such data!
-        AlertRule.objects.bulk_create(
-            [
-                AlertRule(
-                    name="user-alert-rule",
-                    owner=user_actor,
-                    snuba_query=create_fake_snuba_query(),
-                    **common_alert_rule_args,
-                ),
-                AlertRule(
-                    name="team-alert-rule",
-                    owner=team_actor,
-                    snuba_query=create_fake_snuba_query(),
-                    **common_alert_rule_args,
-                ),
-                AlertRule(
-                    name="null-alert-rule",
-                    owner=null_actor,
-                    snuba_query=create_fake_snuba_query(),
-                    **common_alert_rule_args,
-                ),
-                AlertRule(
-                    name="unowned-alert-rule",
-                    owner=None,
-                    snuba_query=create_fake_snuba_query(),
-                    **common_alert_rule_args,
-                ),
-            ]
-        )
-
-        # Repeat with `Rule`.
-        Rule.objects.bulk_create(
-            [
-                Rule(
-                    label="user-rule",
-                    owner=user_actor,
-                    project=proj,
-                ),
-                Rule(
-                    label="team-rule",
-                    owner=team_actor,
-                    project=proj,
-                ),
-                Rule(
-                    label="null-rule",
-                    owner=null_actor,
-                    project=proj,
-                ),
-                Rule(
-                    label="unowned-rule",
-                    owner=None,
-                    project=proj,
-                ),
-            ]
-        )
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_organization_scope(
-                    tmp_file,
-                    printer=NOOP_PRINTER,
-                )
-
-            user_alert_rule: AlertRule = AlertRule.objects.get(name="user-alert-rule")
-            user_actor = Actor.objects.get(id=user_alert_rule.owner_id)
-            assert user_alert_rule.owner is not None
-            assert user_alert_rule.user_id == user_actor.user_id
-            assert user_alert_rule.team is None
-            assert user_actor.team is None
-
-            team_alert_rule: AlertRule = AlertRule.objects.get(name="team-alert-rule")
-            team_actor = Actor.objects.get(id=team_alert_rule.owner_id)
-            assert team_alert_rule.owner is not None
-            assert team_alert_rule.team == team_actor.team
-            assert team_alert_rule.user_id is None
-            assert team_actor.user_id is None
-
-            null_alert_rule: AlertRule = AlertRule.objects.get(name="null-alert-rule")
-            unowned_alert_rule: AlertRule = AlertRule.objects.get(name="unowned-alert-rule")
-            assert null_alert_rule.owner is None
-            assert unowned_alert_rule.owner is None
-
-            user_rule: Rule = Rule.objects.get(label="user-rule")
-            user_actor = Actor.objects.get(id=user_rule.owner_id)
-            assert user_rule.owner is not None
-            assert user_rule.owner_user_id == user_actor.user_id
-            assert user_rule.owner_team is None
-            assert user_actor.team is None
-
-            team_rule: Rule = Rule.objects.get(label="team-rule")
-            team_actor = Actor.objects.get(id=team_rule.owner_id)
-            assert team_rule.owner is not None
-            assert team_rule.owner_team == team_actor.team
-            assert team_rule.owner_user_id is None
-            assert team_actor.user_id is None
-
-            null_rule: Rule = Rule.objects.get(label="null-rule")
-            unowned_rule: Rule = Rule.objects.get(label="unowned-rule")
-            assert null_rule.owner is None
-            assert unowned_rule.owner is None
-
-            with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
     def test_organization_member_inviter_id(self, expected_models: list[type[Model]]):

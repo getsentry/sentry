@@ -64,7 +64,7 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
         operation_id="Retrieve a Group Firing History for an Issue Alert",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         responses={

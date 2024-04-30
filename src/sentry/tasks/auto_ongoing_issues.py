@@ -6,7 +6,7 @@ import sentry_sdk
 from django.db.models import Max
 
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
-from sentry.issues.ongoing import bulk_transition_group_to_ongoing
+from sentry.issues.ongoing import TRANSITION_AFTER_DAYS, bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
@@ -19,7 +19,6 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
-TRANSITION_AFTER_DAYS = 7
 ITERATOR_CHUNK = 100
 CHILD_TASK_COUNT = 250
 
