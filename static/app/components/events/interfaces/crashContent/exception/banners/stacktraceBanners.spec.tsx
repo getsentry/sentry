@@ -1,6 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
-import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -92,7 +91,7 @@ describe('StacktraceBanners', () => {
       `/organizations/${org.slug}/prompts-activity/`,
       expect.objectContaining({
         query: {
-          feature: ['stacktrace_link', 'codecov_stacktrace_prompt'],
+          feature: 'stacktrace_link',
           organization_id: org.id,
           project_id: project.id,
         },
@@ -109,72 +108,6 @@ describe('StacktraceBanners', () => {
       expect.objectContaining({
         data: {
           feature: 'stacktrace_link',
-          organization_id: org.id,
-          project_id: project.id,
-          status: 'dismissed',
-        },
-      })
-    );
-  });
-
-  it('renders add codecov and allows dismissing', async () => {
-    const stacktraceLinkMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config: {
-          provider: {
-            key: 'github',
-          },
-        },
-        sourceUrl: null,
-        integrations: [GitHubIntegrationFixture()],
-      },
-    });
-    const {container} = render(
-      <StacktraceBanners stacktrace={stacktrace} event={event} />,
-      {
-        organization: org,
-      }
-    );
-    expect(
-      await screen.findByText('View Test Coverage with CodeCov')
-    ).toBeInTheDocument();
-    expect(stacktraceLinkMock).toHaveBeenCalledTimes(1);
-    expect(stacktraceLinkMock).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      expect.objectContaining({
-        query: {
-          file: inAppFrame.filename,
-          absPath: inAppFrame.absPath,
-          commitId: event.release?.lastCommit?.id,
-          lineNo: inAppFrame.lineNo,
-          module: inAppFrame.module,
-          platform: undefined,
-          groupId: event.groupID,
-        },
-      })
-    );
-    expect(promptActivity).toHaveBeenCalledTimes(1);
-    expect(promptActivity).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/prompts-activity/`,
-      expect.objectContaining({
-        query: {
-          feature: ['stacktrace_link', 'codecov_stacktrace_prompt'],
-          organization_id: org.id,
-          project_id: project.id,
-        },
-      })
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
-    expect(container).toBeEmptyDOMElement();
-
-    expect(promptsUpdateMock).toHaveBeenCalledTimes(1);
-    expect(promptsUpdateMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/prompts-activity/',
-      expect.objectContaining({
-        data: {
-          feature: 'codecov_stacktrace_prompt',
           organization_id: org.id,
           project_id: project.id,
           status: 'dismissed',
