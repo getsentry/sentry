@@ -1350,12 +1350,21 @@ class MetricsQueryBuilder(QueryBuilder):
         }
 
         primary_metric = metrics_map[self.use_case_id].get(column, column)
-        if not is_mri(primary_metric) and not primary_metric.startswith("measurements."):
-            return None
 
         # Custom measurements are prefixed with "measurements." and always map to distributions
         prefix = "d" if primary_metric.startswith("measurements.") else primary_metric.split(":")[0]
-        if prefix not in prefix_to_function_map or prefix_to_function_map.get(prefix) is None:
+
+        # Return early and allow default behaviour if the column isn't
+        # a metric (in the case of any() functions) or if the prefix
+        # doesn't have a function mapping defined
+        if (
+            not is_mri(primary_metric)
+            and not primary_metric.startswith("measurements.")
+            or prefix not in prefix_to_function_map
+        ):
+            return None
+
+        if prefix_to_function_map.get(prefix) is None:
             raise IncompatibleMetricsQuery(
                 "The functions provided do not match the requested metric type"
             )
