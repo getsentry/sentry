@@ -2504,7 +2504,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             group=event3.group,
             project=event3.group.project,
             organization=event3.group.project.organization,
-            type=0,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
             team_id=None,
             user_id=self.user.id,
         )
@@ -2519,7 +2519,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             group=event4.group,
             project=event4.group.project,
             organization=event4.group.project.organization,
-            type=1,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
             team_id=self.team.id,
             user_id=None,
         )
@@ -2550,7 +2550,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             group=event7.group,
             project=event7.group.project,
             organization=event7.group.project.organization,
-            type=0,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
             team_id=None,
             user_id=self.create_user().id,
         )
@@ -2564,7 +2564,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             group=event8.group,
             project=event8.group.project,
             organization=event8.group.project.organization,
-            type=0,
+            type=GroupOwnerType.CODEOWNERS.value,
             team_id=self.create_team().id,
             user_id=None,
         )
@@ -2578,77 +2578,152 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
 
-        for query in [
-            "assigned_or_suggested:[me]",
-            "assigned_or_suggested:[my_teams]",
-            "assigned_or_suggested:[me, my_teams]",
-            "assigned_or_suggested:[me, my_teams, none]",
-            "assigned_or_suggested:none",
-            "assigned:[me]",
-            "assigned:[my_teams]",
-            "assigned:[me, my_teams]",
-            "assigned:[me, my_teams, none]",
-            "assigned:none",
-        ]:
+        queries_with_expected_ids = [
+            ("assigned_or_suggested:[me]", [event3.group.id, event1.group.id]),
+            ("assigned_or_suggested:[my_teams]", [event4.group.id, event2.group.id]),
+            (
+                "assigned_or_suggested:[me, my_teams]",
+                [event4.group.id, event3.group.id, event2.group.id, event1.group.id],
+            ),
+            (
+                "assigned_or_suggested:[me, my_teams, none]",
+                [
+                    event9.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            ("assigned_or_suggested:none", [event9.group.id]),
+            ("assigned:[me]", [event1.group.id]),
+            ("assigned:[my_teams]", [event2.group.id]),
+            ("assigned:[me, my_teams]", [event2.group.id, event1.group.id]),
+            (
+                "assigned:[me, my_teams, none]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "assigned:none",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event2.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event3.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me, my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me, my_teams, none]",
+                [event8.group.id, event7.group.id, event6.group.id, event5.group.id],
+            ),
+            (
+                "!assigned_or_suggested:none",
+                [
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned:[me]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                ],
+            ),
+            (
+                "!assigned:[my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned:[me, my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                ],
+            ),
+            ("!assigned:[me, my_teams, none]", [event6.group.id, event5.group.id]),
+            (
+                "!assigned:none",
+                [event6.group.id, event5.group.id, event2.group.id, event1.group.id],
+            ),
+        ]
+
+        for query, expected_group_ids in queries_with_expected_ids:
             response = self.get_success_response(
                 sort="new",
                 useGroupSnubaDataset=1,
                 query=query,
             )
-
-            if query == "assigned_or_suggested:[me]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event3.group.id
-                assert int(response.data[1]["id"]) == event1.group.id
-            elif query == "assigned_or_suggested:[my_teams]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event4.group.id
-                assert int(response.data[1]["id"]) == event2.group.id
-            elif query == "assigned_or_suggested:[me, my_teams]":
-                assert len(response.data) == 4
-                assert int(response.data[0]["id"]) == event4.group.id
-                assert int(response.data[1]["id"]) == event3.group.id
-                assert int(response.data[2]["id"]) == event2.group.id
-                assert int(response.data[3]["id"]) == event1.group.id
-            elif query == "assigned_or_suggested:[me, my_teams, none]":
-                assert len(response.data) == 5
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event4.group.id
-                assert int(response.data[2]["id"]) == event3.group.id
-                assert int(response.data[3]["id"]) == event2.group.id
-                assert int(response.data[4]["id"]) == event1.group.id
-
-            elif query == "assigned_or_suggested:none":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event9.group.id
-            elif query == "assigned:[me]":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event1.group.id
-            elif query == "assigned:[my_teams]":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event2.group.id
-            elif query == "assigned:[me, my_teams]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event2.group.id
-                assert int(response.data[1]["id"]) == event1.group.id
-            elif query == "assigned:[me, my_teams, none]":
-                assert len(response.data) == 7
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event4.group.id
-                assert int(response.data[4]["id"]) == event3.group.id
-                assert int(response.data[5]["id"]) == event2.group.id
-                assert int(response.data[6]["id"]) == event1.group.id
-            elif query == "assigned:none":
-                assert len(response.data) == 5
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event4.group.id
-                assert int(response.data[4]["id"]) == event3.group.id
-            else:
-                assert False, f"Unexpected query {query}"
+            assert [int(row["id"]) for row in response.data] == expected_group_ids
 
     def test_snuba_unsupported_filters(self):
         self.login_as(user=self.user)
@@ -2758,6 +2833,97 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             str(error_event.group.id),
         }
         assert mock_query.call_count == 1
+
+    @patch("sentry.issues.ingest.should_create_group", return_value=True)
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @with_feature("organizations:issue-platform")
+    @with_feature(PerformanceRenderBlockingAssetSpanGroupType.build_visible_feature_name())
+    @with_feature(PerformanceNPlusOneGroupType.build_visible_feature_name())
+    def test_snuba_type_and_category(self, mock_query, mock_should_create_group):
+        self.project = self.create_project(organization=self.organization)
+        # create a render blocking issue
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            2,
+            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
+            event_data={
+                "type": "transaction",
+                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            override_occurrence_data={
+                "type": PerformanceRenderBlockingAssetSpanGroupType.type_id,
+            },
+        )
+        # make mypy happy
+        blocking_asset_group_id = group_info.group.id if group_info else None
+
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            2,
+            [f"{PerformanceNPlusOneGroupType.type_id}-group2"],
+            event_data={
+                "type": "transaction",
+                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            override_occurrence_data={
+                "type": PerformanceNPlusOneGroupType.type_id,
+            },
+        )
+        # make mypy happy
+        np1_group_id = group_info.group.id if group_info else None
+
+        # create an error issue
+        self.store_event(
+            data={
+                "fingerprint": ["error-issue"],
+                "event_id": "e" * 32,
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        assert Group.objects.filter(id=np1_group_id).exists()
+
+        # first test just the category
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.category:performance",
+        )
+        assert len(response.data) == 2
+        assert {r["id"] for r in response.data} == {
+            str(blocking_asset_group_id),
+            str(np1_group_id),
+        }
+        assert mock_query.call_count == 1
+
+        # now ask for the type
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.type:performance_n_plus_one_db_queries",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {
+            str(np1_group_id),
+        }
+
+        # now ask for the type and category in a way that should return no results
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.category:replay issue.type:performance_n_plus_one_db_queries",
+        )
+        assert len(response.data) == 0
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
