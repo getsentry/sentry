@@ -18,7 +18,7 @@ import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {useQueueByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
+import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -77,19 +77,18 @@ interface Props {
   domain?: string;
   error?: Error | null;
   meta?: EventsMetaType;
-  pageLinks?: string;
 }
 
-export function QueuesTable({error, pageLinks}: Props) {
+export function QueuesTable({error}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {data, isLoading, meta} = useQueueByTransactionQuery({});
+  const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({});
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
+      query: {...query, [QueryParameterNames.DESTINATIONS_CURSOR]: newCursor},
     });
   };
 

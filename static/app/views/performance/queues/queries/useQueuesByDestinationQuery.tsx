@@ -6,23 +6,18 @@ import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Props = {
-  destination?: string;
   enabled?: boolean;
 };
 
-export function useQueuesByTransactionQuery({destination, enabled}: Props) {
+export function useQueuesByDestinationQuery({enabled}: Props) {
   const location = useLocation();
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.DESTINATIONS_CURSOR]);
 
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
-  if (destination) {
-    // TODO: This should filter by destination, not transaction.
-    // We are using transaction for now as a proxy to demo some functionality until destination becomes a filterable tag.
-    mutableSearch.addFilterValue('transaction', destination);
-  }
   const response = useSpanMetrics({
     search: mutableSearch,
     fields: [
+      //  TODO: Return destination instead of transaction
       'transaction',
       'count()',
       'count_op(queue.submit.celery)',
