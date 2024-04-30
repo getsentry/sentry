@@ -17,7 +17,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types';
+import type {KeyValueListDataItem} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {defined, formatBytesBase10} from 'sentry/utils';
 import {getDuration} from 'sentry/utils/formatters';
@@ -579,8 +579,14 @@ interface SectionCardContentConfig {
   includeAliasInSubject?: boolean;
 }
 
-export interface SectionCardContentProps {
-  item: KeyValueListDataItem;
+type SectionCardKeyValue = Omit<KeyValueListDataItem, 'subject'> & {
+  subject: React.ReactNode;
+};
+
+export type SectionCardKeyValueList = SectionCardKeyValue[];
+
+interface SectionCardContentProps {
+  item: SectionCardKeyValue;
   meta: Record<string, any>;
   alias?: string;
   config?: SectionCardContentConfig;
@@ -616,7 +622,7 @@ function SectionCardContent({
     : null;
 
   return (
-    <ContextContent {...props}>
+    <ContentContainer {...props}>
       {contextSubject ? <CardContentSubject>{contextSubject}</CardContentSubject> : null}
       <CardContentValueWrapper className="ctx-row-value">
         {defined(action?.link) ? (
@@ -625,11 +631,17 @@ function SectionCardContent({
           dataComponent
         )}
       </CardContentValueWrapper>
-    </ContextContent>
+    </ContentContainer>
   );
 }
 
-function SectionCard({items, title}: {items: KeyValueListData; title: React.ReactNode}) {
+function SectionCard({
+  items,
+  title,
+}: {
+  items: SectionCardKeyValueList;
+  title: React.ReactNode;
+}) {
   const [showingAll, setShowingAll] = useState(false);
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
@@ -664,7 +676,7 @@ const CardContentTitle = styled('p')`
   font-weight: bold;
 `;
 
-const ContextContent = styled('div')`
+const ContentContainer = styled('div')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: span 3;

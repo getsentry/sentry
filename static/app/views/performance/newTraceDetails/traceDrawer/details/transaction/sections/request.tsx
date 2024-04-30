@@ -21,12 +21,11 @@ import {
   type EntryRequest,
   EntryType,
   type EventTransaction,
-  type KeyValueListData,
   type Meta,
 } from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 
-import {TraceDrawerComponents} from '../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 type View = 'formatted' | 'curl';
 
@@ -92,7 +91,7 @@ export function Request({event}: {event: EventTransaction}) {
     </Fragment>
   );
 
-  const curlItems: KeyValueListData = [
+  const curlItems: SectionCardKeyValueList = [
     {
       key: 'curl',
       subject: t('Command'),
@@ -102,6 +101,7 @@ export function Request({event}: {event: EventTransaction}) {
 
   return (
     <EventDataSection
+      showPermalink={false}
       type={EntryType.REQUEST}
       title={title}
       actions={actions}
@@ -215,7 +215,7 @@ function RequestBodySection({
       );
     case 'application/x-www-form-urlencoded':
     case 'multipart/form-data': {
-      const transformedData: KeyValueListData = getTransformedData(
+      const transformedData: SectionCardKeyValueList = getTransformedData(
         bodyData,
         metaData
       ).map(d => {
@@ -263,7 +263,7 @@ function RequestBodySection({
 
 function getRequestSectionItems(data: Data, meta: Meta) {
   const transformedData = getTransformedData(data, meta);
-  const items: KeyValueListData = transformedData
+  const items: SectionCardKeyValueList = transformedData
     .map(d => {
       const [key, value] = d.data;
       return {

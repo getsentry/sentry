@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction, KeyValueListData, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
@@ -19,7 +19,11 @@ import {
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {CardContentSubject, TraceDrawerComponents} from '../../styles';
+import {
+  CardContentSubject,
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from '../../styles';
 
 type MeasurementsProps = {
   event: EventTransaction;
@@ -54,7 +58,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
     return null;
   }
 
-  const items: KeyValueListData = [];
+  const items: SectionCardKeyValueList = [];
 
   for (const name of measurementNames) {
     const {value, unit} = event.measurements?.[name] ?? {};

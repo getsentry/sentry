@@ -5,10 +5,10 @@ import {getKnownData} from 'sentry/components/events/contexts/utils';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import type {EventTransaction, KeyValueListData} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
-import {TraceDrawerComponents} from '../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 enum EventExtraDataType {
   CRASHED_PROCESS = 'crashed_process',
@@ -57,7 +57,7 @@ export function AdditionalData({event}: {event: EventTransaction}) {
     meta: event._meta?.context,
     onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
   });
-  const formattedDataItems: KeyValueListData = raw
+  const formattedDataItems: SectionCardKeyValueList = raw
     ? knownData
     : knownData.map(data => {
         return {

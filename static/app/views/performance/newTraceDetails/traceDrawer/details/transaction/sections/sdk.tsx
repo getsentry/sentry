@@ -1,9 +1,9 @@
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import type {EventTransaction, KeyValueListData} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 
-import {TraceDrawerComponents} from '../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 export function Sdk({event}: {event: EventTransaction}) {
   if (!event.sdk || objectIsEmpty(event.sdk)) {
@@ -11,7 +11,7 @@ export function Sdk({event}: {event: EventTransaction}) {
   }
 
   const meta = event._meta?.sdk;
-  const items: KeyValueListData = [
+  const items: SectionCardKeyValueList = [
     {
       key: 'name',
       subject: 'Name',

@@ -4,9 +4,10 @@ import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Link from 'sentry/components/links/link';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {EventTransaction, KeyValueListData, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
 import type {
   TraceTree,
@@ -15,7 +16,7 @@ import type {
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {TraceDrawerComponents} from '../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 import {OpsBreakdown} from './opsBreakDown';
 
@@ -52,7 +53,7 @@ function GeneralInfo({
 
   const parentTransaction = node.parent_transaction;
 
-  const items: KeyValueListData = [
+  const items: SectionCardKeyValueList = [
     {
       key: 'duration',
       subject: t('Duration'),
@@ -113,7 +114,15 @@ function GeneralInfo({
 
   items.push({
     key: 'ops_breakdown',
-    subject: t('Ops Breakdown'),
+    subject: (
+      <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
+        {t('Ops Breakdown')}
+        <QuestionTooltip
+          title={t('Applicable to the children of this event only')}
+          size="xs"
+        />
+      </TraceDrawerComponents.FlexBox>
+    ),
     value: <OpsBreakdown event={event} />,
   });
 
