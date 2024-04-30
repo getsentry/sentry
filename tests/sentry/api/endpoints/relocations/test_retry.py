@@ -110,6 +110,8 @@ class RetryRelocationTest(APITestCase):
         assert response.data["latestUnclaimedEmailsSentAt"] is None
         assert response.data["scheduledPauseAtStep"] is None
         assert response.data["wantUsernames"] is None
+        assert response.data["importedUserIds"] == []
+        assert response.data["importedOrgIds"] == []
 
         assert (
             Relocation.objects.filter(owner_id=self.owner.id)

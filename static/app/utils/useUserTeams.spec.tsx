@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -45,13 +45,13 @@ describe('useUserTeams', () => {
       body: userTeams,
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useUserTeams, {wrapper});
+    const {result} = renderHook(useUserTeams, {wrapper});
     const {teams} = result.current;
     expect(teams.length).toBe(0);
 
     expect(TeamStore.getState().loading).toBe(true);
     expect(mockapi).toHaveBeenCalledTimes(0);
-    reactHooks.act(() => TeamStore.loadInitialData(nonUserTeams, true, null));
+    act(() => TeamStore.loadInitialData(nonUserTeams, true, null));
     expect(TeamStore.getState().loading).toBe(false);
     expect(TeamStore.getState().loadedUserTeams).toBe(false);
 
@@ -67,7 +67,7 @@ describe('useUserTeams', () => {
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
     expect(TeamStore.getState().loadedUserTeams).toBe(true);
 
-    const {result} = reactHooks.renderHook(useUserTeams, {wrapper});
+    const {result} = renderHook(useUserTeams, {wrapper});
     const {teams} = result.current;
 
     expect(teams.length).toBe(1);
@@ -83,7 +83,7 @@ describe('useUserTeams', () => {
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
     expect(TeamStore.getState().loadedUserTeams).toBe(true);
 
-    const {result} = reactHooks.renderHook(useUserTeams, {wrapper});
+    const {result} = renderHook(useUserTeams, {wrapper});
     const {teams} = result.current;
 
     expect(teams.length).toBe(2);
@@ -102,7 +102,7 @@ describe('useUserTeams', () => {
     });
     OrganizationStore.onUpdate(organization, {replace: true});
 
-    const {result} = reactHooks.renderHook(() => useUserTeams(), {wrapper});
+    const {result} = renderHook(() => useUserTeams(), {wrapper});
     const {teams} = result.current;
 
     expect(teams.length).toBe(2);

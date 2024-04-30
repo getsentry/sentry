@@ -8,7 +8,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalModal from 'sentry/components/globalModal';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -154,42 +154,6 @@ instrumentUserEvent(globalSentry?.getCurrentHub.bind(globalSentry));
 
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
-
-/**
- * makes waitFor available again
- */
-interface PatchRenderHookResult<Result, Props>
-  extends rtl.RenderHookResult<Result, Props> {
-  waitFor: typeof rtl.waitFor;
-}
-
-/**
- * TODO(react18): Remove wrapper and migrate waitFor
- * `import {waitFor} from 'sentry-test/reactTestingLibrary';`
- *
- * @deprecated
- */
-const renderHookWrapper = <Result, Props>(
-  ...args: Parameters<typeof rtl.renderHook<Result, Props>>
-): PatchRenderHookResult<Result, Props> => {
-  const result = rtl.renderHook(...args) as PatchRenderHookResult<Result, Props>;
-  result.waitFor = rtl.waitFor;
-  return result;
-};
-
-/**
- * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
- */
-export const reactHooks = {
-  /**
-   * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
-   */
-  renderHook: renderHookWrapper,
-  /**
-   * @deprecated use `import {act} from 'sentry-test/reactTestingLibrary';` instead
-   */
-  act: rtl.act,
-};
 
 // eslint-disable-next-line import/export
 export {render, renderGlobalModal, userEvent, fireEvent};

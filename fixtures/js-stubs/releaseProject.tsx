@@ -1,4 +1,4 @@
-import {ReleaseProject} from 'sentry/types';
+import type {ReleaseProject} from 'sentry/types/release';
 
 export function ReleaseProjectFixture(
   params: Partial<ReleaseProject> = {}

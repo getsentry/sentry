@@ -1,4 +1,4 @@
-import type {SessionApiResponse} from 'sentry/types';
+import type {SessionApiResponse} from 'sentry/types/organization';
 
 export function SessionsFieldFixture(field: string): SessionApiResponse {
   return {

@@ -1,4 +1,4 @@
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote
 
 import responses
 
@@ -10,7 +10,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
@@ -128,6 +128,23 @@ def get_blocks_and_fallback_text(index=0):
     blocks = json.loads(data["blocks"][0])
     fallback_text = data["text"][0]
     return blocks, fallback_text
+
+
+def get_block_kit_preview_url(index=0) -> str:
+    assert len(responses.calls) >= 1
+    data = parse_qs(responses.calls[index].request.body)
+    assert "blocks" in data
+    assert data["blocks"][0]
+
+    stringified_blocks = data["blocks"][0]
+    blocks = json.loads(data["blocks"][0])
+    stringified_blocks = json.dumps({"blocks": blocks})
+
+    encoded_blocks = quote(stringified_blocks)
+    base_url = "https://app.slack.com/block-kit-builder/#"
+
+    preview_url = f"{base_url}{encoded_blocks}"
+    return preview_url
 
 
 def setup_slack_with_identities(organization, user):

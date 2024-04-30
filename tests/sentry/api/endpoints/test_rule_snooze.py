@@ -4,18 +4,20 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sentry import audit_log
-from sentry.models.actor import ActorTuple
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils.actor import ActorTuple
 
 
 class BaseRuleSnoozeTest(APITestCase):
     def setUp(self):
         self.issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=self.team.actor
+            label="test rule",
+            project=self.project,
+            owner_team_id=self.team.id,
         )
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]
@@ -216,7 +218,9 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         """Test that if a user doesn't belong to the team that can edit an issue alert rule, they can still mute it for just themselves."""
         other_team = self.create_team()
         other_issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=other_team.actor
+            label="test rule",
+            project=self.project,
+            owner_team_id=other_team.id,
         )
         data = {"target": "me"}
         response = self.get_response(
@@ -231,7 +235,8 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
     def test_user_can_mute_unassigned_issue_alert(self):
         """Test that if an issue alert rule's owner is unassigned, the user can mute it."""
         other_issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=None
+            label="test rule",
+            project=self.project,
         )
         data = {"target": "me"}
         response = self.get_response(

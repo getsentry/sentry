@@ -3,8 +3,8 @@ import {Fragment} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge';
-import FeatureBadge from 'sentry/components/featureBadge';
+import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';

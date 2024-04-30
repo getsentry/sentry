@@ -166,6 +166,8 @@ function Segment<Value extends string>({
           transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
           priority={priority}
           aria-hidden
+          // Prevent animations until the user has made a change
+          layoutDependency={isSelected}
         />
       )}
 
@@ -311,7 +313,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
       ? `
     background: ${p.theme.active};
     border-radius: ${p.theme.borderRadius};
-    input.focus-visible ~ & {
+    input:focus-visible ~ & {
       box-shadow: 0 0 0 3px ${p.theme.focus};
     }
 
@@ -328,7 +330,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
     background: ${p.theme.backgroundElevated};
     border-radius: calc(${p.theme.borderRadius} - 1px);
     box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-    input.focus-visible ~ & {
+    input:focus-visible ~ & {
       box-shadow: 0 0 0 2px ${p.theme.focusBorder};
     }
   `}

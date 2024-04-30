@@ -30,6 +30,8 @@ OPTION_KEYS = frozenset(
         "sentry:builtin_symbol_sources",
         "sentry:symbol_sources",
         "sentry:sensitive_fields",
+        "sentry:highlight_tags",
+        "sentry:highlight_context",
         "sentry:csp_ignored_sources_defaults",
         "sentry:csp_ignored_sources",
         "sentry:default_environment",
@@ -66,6 +68,7 @@ OPTION_KEYS = frozenset(
         "mail:subject_template",
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
+        "relay.cardinality-limiter.limits",
     ]
 )
 

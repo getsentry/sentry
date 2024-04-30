@@ -28,7 +28,7 @@ class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project associated with the release.
+        :pparam string project_id_or_slug: the id or slug of the project associated with the release.
         :pparam string version: the version identifier of the release.
         :auth: required
         """

@@ -72,9 +72,9 @@ function getRelocationOnboardingSteps(): StepDescriptor[] {
 }
 
 enum LoadingState {
-  FETCHED,
-  FETCHING,
-  ERROR,
+  FETCHED = 0,
+  FETCHING = 1,
+  ERROR = 2,
 }
 
 function RelocationOnboarding(props: Props) {
@@ -270,7 +270,7 @@ function RelocationOnboarding(props: Props) {
   const contentView = isLoading ? (
     <LoadingIndicator />
   ) : (
-    <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+    <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
       <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
         {stepObj.Component && (
           <stepObj.Component

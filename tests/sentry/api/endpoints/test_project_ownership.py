@@ -6,7 +6,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.projectownership import ProjectOwnership
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.outbox import outbox_runner
@@ -38,7 +38,10 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
         self.path = reverse(
             "sentry-api-0-project-ownership",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
 
     def python_event_data(self):

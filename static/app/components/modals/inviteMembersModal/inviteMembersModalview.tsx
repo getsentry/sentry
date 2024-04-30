@@ -19,7 +19,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member} from 'sentry/types';
+import type {Member} from 'sentry/types/organization';
 
 interface Props {
   Footer: ModalRenderProps['Footer'];

@@ -328,10 +328,10 @@ def cron(**options: Any) -> None:
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
 )
 @click.option(
-    "--enable-dlq",
+    "--enable-dlq/--disable-dlq",
     help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
     is_flag=True,
-    default=False,
+    default=True,
 )
 @click.option(
     "--log-level",

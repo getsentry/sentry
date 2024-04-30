@@ -1,5 +1,5 @@
 import logging
-from functools import partial, update_wrapper
+from functools import partial
 
 from django.contrib import messages
 from django.contrib.auth import authenticate
@@ -177,6 +177,8 @@ def relocate_reclaim(request, user_id):
 @set_referrer_policy("strict-origin-when-cross-origin")
 @control_silo_function
 def recover_confirm(request, user_id, hash, mode="recover"):
+    from sentry import ratelimits as ratelimiter
+
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
         if not password_hash.is_valid():
@@ -185,6 +187,24 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         user = password_hash.user
     except LostPasswordHash.DoesNotExist:
         return render_to_response(get_template(mode, "failure"), {"user_id": user_id}, request)
+
+    extra = {
+        "ip_address": request.META["REMOTE_ADDR"],
+        "user_agent": request.META.get("HTTP_USER_AGENT"),
+    }
+
+    if request.method == "POST" and ratelimiter.backend.is_limited(
+        "accounts:confirm:{}".format(extra["ip_address"]),
+        limit=5,
+        window=60,  # 5 per minute should be enough for anyone
+    ):
+        logger.warning("confirm.rate-limited", extra=extra)
+
+        return HttpResponse(
+            "You have made too many attempts. Please try again later.",
+            content_type="text/plain",
+            status=429,
+        )
 
     # TODO(getsentry/team-ospo#190): Clean up ternary logic and only show relocation form if user is unclaimed
     form_cls = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
@@ -253,12 +273,10 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
 # Set password variation of password recovery
 set_password_confirm = partial(recover_confirm, mode="set_password")
-set_password_confirm = update_wrapper(set_password_confirm, recover)
 
 
 # Relocation variation of password recovery
 relocate_confirm = partial(recover_confirm, mode="relocate")
-relocate_confirm = update_wrapper(relocate_confirm, recover)
 
 
 @login_required

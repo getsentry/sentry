@@ -17,7 +17,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Group, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -111,7 +112,7 @@ function ActionsBarPriority({
         </ActionsCheckbox>
       )}
       {!displayReprocessingActions && (
-        <AnimatePresence initial={false} exitBeforeEnter>
+        <AnimatePresence initial={false} mode="wait">
           {shouldDisplayActions && (
             <HeaderButtonsWrapper key="actions" {...animationProps}>
               <ActionSet
@@ -138,7 +139,7 @@ function ActionsBarPriority({
           )}
         </AnimatePresence>
       )}
-      <AnimatePresence initial={false} exitBeforeEnter>
+      <AnimatePresence initial={false} mode="wait">
         {!anySelected ? (
           <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
             <Headers

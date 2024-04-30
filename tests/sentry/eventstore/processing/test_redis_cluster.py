@@ -1,7 +1,16 @@
 from datetime import datetime
 
+import pytest
+
 from sentry.eventstore.reprocessing.redis import RedisReprocessingStore
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"eventstore.enable-orjson": 0.0}):
+        yield
 
 
 @use_redis_cluster()

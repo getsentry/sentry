@@ -50,6 +50,7 @@ ElementResponseType = TypedDict(
         "alt": str,
         "aria_label": str,
         "class": list[str],
+        "component_name": str,
         "id": str,
         "role": str,
         "tag": str,
@@ -65,7 +66,6 @@ class ReplaySelectorResponseData(TypedDict, total=False):
     dom_element: str
     element: ElementResponseType
     project_id: str
-    component_name: str
 
 
 class ReplaySelectorResponse(TypedDict):
@@ -318,6 +318,8 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
             selector = selector + f'[aria="{row["click_aria_label"]}"]'
         if row["click_title"]:
             selector = selector + f'[title="{row["click_title"]}"]'
+        if row["click_component_name"]:
+            selector = selector + f'[component_name="{row["click_component_name"]}"]'
 
         return selector
 
@@ -336,9 +338,9 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
                 "tag": row["click_tag"],
                 "testid": row["click_testid"],
                 "title": row["click_title"],
+                "component_name": row["click_component_name"],
             },
             "project_id": row["project_id"],
-            "component_name": row["click_component_name"],
         }
         for row in response
     ]

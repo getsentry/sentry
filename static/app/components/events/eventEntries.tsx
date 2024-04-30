@@ -16,7 +16,7 @@ import type {
   Project,
   SharedViewOrganization,
 } from 'sentry/types';
-import {EntryType, EventOrGroupType} from 'sentry/types';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
@@ -124,6 +124,7 @@ function EventEntries({
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
         <CustomMetricsEventData
+          projectId={event.projectID}
           metricsSummary={event._metrics_summary}
           startTimestamp={event.startTimestamp}
         />
@@ -149,7 +150,7 @@ function EventEntries({
 // Because replays are not an interface, we need to manually insert the replay section
 // into the array of entries. The long-term solution here is to move the ordering
 // logic to this component, similar to how GroupEventDetailsContent works.
-function partitionEntriesForReplay(entries: Entry[]) {
+export function partitionEntriesForReplay(entries: Entry[]) {
   let replayIndex = 0;
 
   for (const [i, entry] of entries.entries()) {

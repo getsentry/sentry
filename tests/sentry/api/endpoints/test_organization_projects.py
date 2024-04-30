@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models.apikey import ApiKey
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba

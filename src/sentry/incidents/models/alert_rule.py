@@ -146,7 +146,8 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         project: Project,
         activation_condition: AlertRuleActivationConditionType,
         query_extra: str,
-        trigger: str,
+        origin: str,
+        activator: str,
     ) -> list[QuerySubscription]:
         """
         Subscribes a project to an alert rule given activation condition
@@ -167,7 +168,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     logger.info(
                         "Attempt subscribe project to activated alert rule",
                         extra={
-                            "trigger": trigger,
+                            "origin": origin,
                             "query_extra": query_extra,
                             "condition": activation_condition,
                         },
@@ -178,6 +179,8 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                             projects=[project],
                             monitor_type=AlertRuleMonitorType.ACTIVATED,
                             query_extra=query_extra,
+                            activation_condition=activation_condition,
+                            activator=activator,
                         )
                     )
             return created_subscriptions
@@ -185,7 +188,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
             logger.exception(
                 "Failed to subscribe project to activated alert rule",
                 extra={
-                    "trigger": trigger,
+                    "origin": origin,
                     "exception": e,
                 },
             )
@@ -249,6 +252,7 @@ class AlertRule(Model):
         "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
     )
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
+    # Deprecated use user_id or team_id instead.
     owner = FlexibleForeignKey(
         "sentry.Actor",
         null=True,
@@ -256,6 +260,7 @@ class AlertRule(Model):
     )
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
+
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )  # NOTE: This feature is not currently utilized.
@@ -286,7 +291,7 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     def _validate_actor(self):
-        # TODO: Remove once owner is fully removed.
+        # TODO(mark): Remove once owner is fully removed.
         if self.owner_id is not None and self.team_id is None and self.user_id is None:
             raise ValueError("AlertRule with owner requires either team_id or user_id")
 
@@ -338,6 +343,8 @@ class AlertRule(Model):
         projects: list[Project],
         monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
         query_extra: str | None = None,
+        activation_condition: AlertRuleActivationConditionType | None = None,
+        activator: str | None = None,
     ) -> list[QuerySubscription]:
         """
         Subscribes a list of projects to the alert rule instance
@@ -365,11 +372,18 @@ class AlertRule(Model):
             )
             if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
                 # NOTE: Activated Alert Rules are conditionally subscribed
-                # Meaning at time of subscription, the rule has been activated
+                # Meaning at time of subscription, the rule must have been activated
+                if not activator or activation_condition is None:
+                    raise Exception(
+                        "Alert activations require an activation condition and activator reference"
+                    )
+
                 for subscription in created_subscriptions:
                     AlertRuleActivations.objects.create(
                         alert_rule=self,
                         query_subscription=subscription,
+                        condition_type=activation_condition.value,
+                        activator=activator,
                     )
 
         return created_subscriptions

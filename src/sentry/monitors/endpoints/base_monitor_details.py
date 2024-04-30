@@ -17,6 +17,8 @@ from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -94,7 +96,13 @@ class MonitorDetailsMixin(BaseEndpointMixin):
         if "is_muted" in result:
             params["is_muted"] = result["is_muted"]
         if "owner" in result:
-            params["owner_actor_id"] = result["owner"].id if result["owner"] else None
+            owner = result["owner"]
+            params["owner_user_id"] = None
+            params["owner_team_id"] = None
+            if owner and owner.type == User:
+                params["owner_user_id"] = owner.id
+            elif owner and owner.type == Team:
+                params["owner_team_id"] = owner.id
         if "config" in result:
             params["config"] = result["config"]
 
@@ -248,7 +256,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             for monitor_object in monitor_objects_list:
                 # randomize slug on monitor deletion to prevent re-creation side effects
                 if isinstance(monitor_object, Monitor):
-                    monitor_object.update(slug=get_random_string(length=24))
+                    new_slug = get_random_string(length=24)
+                    quotas.backend.update_monitor_slug(monitor.slug, new_slug, monitor.project_id)
+                    monitor_object.update(slug=new_slug)
 
                 schedule = RegionScheduledDeletion.schedule(
                     monitor_object, days=0, actor=request.user

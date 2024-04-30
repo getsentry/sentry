@@ -84,10 +84,12 @@ redis_buffer_registry = BufferHookRegistry()
 
 
 class RedisOperation(Enum):
-    SET_ADD = "sadd"
-    SET_GET = "smembers"
+    SORTED_SET_ADD = "zadd"
+    SORTED_SET_GET_RANGE = "zrange"
+    SORTED_SET_DELETE_RANGE = "zremrangebyscore"
     HASH_ADD = "hset"
     HASH_GET_ALL = "hgetall"
+    HASH_DELETE = "hdel"
 
 
 class PendingBuffer:
@@ -263,19 +265,43 @@ class RedisBuffer(Buffer):
         pipe = conn.pipeline(transaction=transaction)
         return pipe
 
-    def _execute_redis_operation(self, key: str, operation: RedisOperation, *args: Any) -> Any:
+    def _execute_redis_operation(
+        self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
+    ) -> Any:
         pending_key = self._make_pending_key_from_key(key)
         pipe = self.get_redis_connection(pending_key)
-        getattr(pipe, operation.value)(key, *args)
+        getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:
             pipe.expire(key, self.key_expire)
-        return pipe.execute()
+        return pipe.execute()[0]
 
-    def push_to_set(self, key: str, value: list[int] | int) -> None:
-        self._execute_redis_operation(key, RedisOperation.SET_ADD, value)
+    def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
 
-    def get_set(self, key: str) -> list[set[int]]:
-        return self._execute_redis_operation(key, RedisOperation.SET_GET)
+    def get_set(self, key: str) -> list[tuple[int, datetime]]:
+        redis_set = self._execute_redis_operation(
+            key, RedisOperation.SORTED_SET_GET_RANGE, start=0, end=-1, withscores=True
+        )
+        decoded_set = []
+        for items in redis_set:
+            item = items[0]
+            if isinstance(item, bytes):
+                item = item.decode("utf-8")
+            data_and_timestamp = (int(item), items[1])
+            decoded_set.append(data_and_timestamp)
+        return decoded_set
+
+    def delete_key(self, key: str, min: int, max: int) -> None:
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
+
+    def delete_hash(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        field: str,
+    ) -> None:
+        key = self._make_key(model, filters)
+        self._execute_redis_operation(key, RedisOperation.HASH_DELETE, field)
 
     def push_to_hash(
         self,
@@ -291,7 +317,16 @@ class RedisBuffer(Buffer):
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
     ) -> dict[str, str]:
         key = self._make_key(model, field)
-        return self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+        redis_hash = self._execute_redis_operation(key, RedisOperation.HASH_GET_ALL)
+        decoded_hash = {}
+        for k, v in redis_hash.items():
+            if isinstance(k, bytes):
+                k = k.decode("utf-8")
+            if isinstance(v, bytes):
+                v = v.decode("utf-8")
+            decoded_hash[k] = v
+
+        return decoded_hash
 
     def handle_pending_partitions(self, partition: int | None) -> None:
         if partition is None and self.pending_partitions > 1:

@@ -4,7 +4,7 @@ import ErrorLevel from 'sentry/components/events/errorLevel';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventOrGroupType, type Level} from 'sentry/types';
+import {EventOrGroupType, type Level} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
