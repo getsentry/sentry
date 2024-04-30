@@ -94,6 +94,11 @@ export const TagFilterData = {
     'url',
   ]),
   [TagFilter.OTHER]: new Set([
+    /* Monitors */
+    'monitor.slug',
+    'monitor.incident',
+    'monitor.id',
+    'monitor.status',
     /* SDK (maybe?) */
     'handled',
     'level',
