@@ -2036,6 +2036,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             group=group,
             transition_type="automatic",
             sender="handle_regression",
+            new_substatus=GroupSubStatus.REGRESSED,
         )
         if not options.get("groups.enable-post-update-signal"):
             post_save.send(
