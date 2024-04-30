@@ -1581,6 +1581,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-tree-ui": False,
     # Enable caching group counts in GroupSnooze
     "organizations:groupsnooze-cached-counts": False,
+    # Enable caching group frequency rates in GroupSnooze
+    "organizations:groupsnooze-cached-rates": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
