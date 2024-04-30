@@ -1,4 +1,4 @@
-import {Frame} from 'sentry/types';
+import {Frame} from 'sentry/types/event';
 
 export function EventStacktraceFrameFixture(params = {}): Frame {
   return {

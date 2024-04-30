@@ -652,7 +652,7 @@ export interface ResponseContext {
   type: 'response';
 }
 
-type EventContexts = {
+export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;

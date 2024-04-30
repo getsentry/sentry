@@ -1,5 +1,5 @@
-import type {Organization} from 'sentry/types';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
+import type {Organization} from 'sentry/types/organization';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 import {
   isMissingInstrumentationNode,
@@ -10,21 +10,21 @@ import {
   isTraceErrorNode,
   isTransactionNode,
 } from '../../guards';
-import type {TraceTree, TraceTreeNode} from '../../traceTree';
+import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
 import {NoDataDetails} from '../details/noData';
 import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
 import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
-import {SpanNodeDetails} from '../details/span';
-import {TransactionNodeDetails} from '../details/transaction';
+import {SpanNodeDetails} from '../details/span/index';
+import {TransactionNodeDetails} from '../details/transaction/index';
 
 export interface TraceTreeNodeDetailsProps<T> {
   manager: VirtualizedViewManager;
   node: T;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
-  scrollToNode: (node: T) => void;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {

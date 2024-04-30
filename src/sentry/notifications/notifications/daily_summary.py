@@ -55,9 +55,7 @@ class DailySummaryNotification(BaseNotification):
         return ""
 
     def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
-        return (
-            f"Daily Summary for Your {self.organization.slug.title()} Projects (internal only!!!)"
-        )
+        return f"Daily Summary for Your {self.organization.slug.title()} Projects"
 
     def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None

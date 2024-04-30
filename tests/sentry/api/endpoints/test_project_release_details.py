@@ -1,6 +1,7 @@
 import unittest
 from datetime import UTC, datetime
 
+import pytest
 from django.urls import reverse
 
 from sentry.api.serializers.rest_framework.release import ReleaseSerializer
@@ -16,7 +17,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
-pytestmark = [requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -36,7 +37,7 @@ class ReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -62,7 +63,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -88,7 +89,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -119,7 +120,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -149,7 +150,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -187,7 +188,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -224,7 +225,7 @@ class ReleaseDeleteTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -248,7 +249,7 @@ class ReleaseDeleteTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )

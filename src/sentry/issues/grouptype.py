@@ -31,7 +31,11 @@ class GroupCategory(Enum):
     FEEDBACK = 6
 
 
-GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+GROUP_CATEGORIES_CUSTOM_EMAIL = (
+    GroupCategory.ERROR,
+    GroupCategory.PERFORMANCE,
+    GroupCategory.FEEDBACK,
+)
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
 DEFAULT_IGNORE_LIMIT: int = 3
@@ -577,7 +581,6 @@ class FeedbackGroup(GroupType):
     notification_config = NotificationConfig(context=[])
 
 
-@metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
     grouptype: type[GroupType],
     client: RedisCluster | StrictRedis,

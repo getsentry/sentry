@@ -10,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
@@ -20,7 +20,6 @@ import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
@@ -54,8 +53,6 @@ export function PageOverviewSidebar({
     end: doubledPeriod.end ?? null,
     utc,
   };
-
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
@@ -122,8 +119,8 @@ export function PageOverviewSidebar({
     ? {
         lcp: projectScore.lcpWeight,
         fcp: projectScore.fcpWeight,
-        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
-        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        fid: 0,
+        inp: projectScore.inpWeight,
         cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
       }
@@ -201,69 +198,51 @@ export function PageOverviewSidebar({
           />
         )}
       </ChartZoom>
-      {!shouldReplaceFidWithInp && (
-        <Fragment>
-          <SidebarSpacer />
-          <SectionHeading>
-            {t('Aggregate Spans')}
-            <QuestionTooltip
-              size="sm"
-              title={t('A synthesized span waterfall for this page.')}
-            />
-          </SectionHeading>
-        </Fragment>
-      )}
       <MiniAggregateWaterfallContainer>
         <MiniAggregateWaterfall transaction={transaction} />
       </MiniAggregateWaterfallContainer>
       <SidebarSpacer />
-      {shouldReplaceFidWithInp ? (
-        <Fragment>
-          <SidebarSpacer />
-          <SectionHeading>
-            {t('Interactions')}
-            <QuestionTooltip
-              size="sm"
-              title={t(
-                'The total number of times that users performed an INP on this page.'
-              )}
-            />
-          </SectionHeading>
-          <ChartValue>
-            {currentInpCount ? formatAbbreviatedNumber(currentInpCount) : null}
-          </ChartValue>
-          {initialInpCount && currentInpCount && inpCountDiff && shouldDoublePeriod ? (
-            <ChartSubText color={diffToColor(inpCountDiff)}>
-              {getChartSubText(
-                inpCountDiff,
-                formatAbbreviatedNumber(initialInpCount),
-                formatAbbreviatedNumber(currentInpCount)
-              )}
-            </ChartSubText>
-          ) : null}
-          <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
-            {zoomRenderProps => (
-              <LineChart
-                {...zoomRenderProps}
-                height={CHART_HEIGHTS}
-                series={inpThroughtputData}
-                xAxis={{show: false}}
-                grid={{
-                  left: 0,
-                  right: 15,
-                  top: 10,
-                  bottom: -10,
-                }}
-                yAxis={{
-                  axisLabel: {formatter: number => formatAbbreviatedNumber(number)},
-                }}
-                tooltip={{valueFormatter: number => formatAbbreviatedNumber(number)}}
-              />
-            )}
-          </ChartZoom>
-          <SidebarSpacer />
-        </Fragment>
+      <SidebarSpacer />
+      <SectionHeading>
+        {t('Interactions')}
+        <QuestionTooltip
+          size="sm"
+          title={t('The total number of times that users performed an INP on this page.')}
+        />
+      </SectionHeading>
+      <ChartValue>
+        {currentInpCount ? formatAbbreviatedNumber(currentInpCount) : null}
+      </ChartValue>
+      {initialInpCount && currentInpCount && inpCountDiff && shouldDoublePeriod ? (
+        <ChartSubText color={diffToColor(inpCountDiff)}>
+          {getChartSubText(
+            inpCountDiff,
+            formatAbbreviatedNumber(initialInpCount),
+            formatAbbreviatedNumber(currentInpCount)
+          )}
+        </ChartSubText>
       ) : null}
+      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+        {zoomRenderProps => (
+          <LineChart
+            {...zoomRenderProps}
+            height={CHART_HEIGHTS}
+            series={inpThroughtputData}
+            xAxis={{show: false}}
+            grid={{
+              left: 0,
+              right: 15,
+              top: 10,
+              bottom: -10,
+            }}
+            yAxis={{
+              axisLabel: {formatter: number => formatAbbreviatedNumber(number)},
+            }}
+            tooltip={{valueFormatter: number => formatAbbreviatedNumber(number)}}
+          />
+        )}
+      </ChartZoom>
+      <SidebarSpacer />
     </Fragment>
   );
 }

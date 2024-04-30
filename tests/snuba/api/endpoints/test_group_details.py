@@ -221,20 +221,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["priority"] == "low"
         assert response.data["priorityLockedAt"] is None
 
-    def test_group_get_priority_no_ff(self):
-        self.login_as(user=self.user)
-        group = self.create_group(
-            project=self.project,
-            status=GroupStatus.IGNORED,
-            priority=PriorityLevel.LOW,
-        )
-
-        url = f"/api/0/issues/{group.id}/"
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200, response.content
-        assert "priority" not in response.data
-        assert "priorityLockedAt" not in response.data
-
     @with_feature("projects:issue-priority")
     def test_group_post_priority(self):
         self.login_as(user=self.user)
@@ -264,29 +250,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert get_response_after.status_code == 200, get_response_after.content
         assert get_response_after.data["priority"] == "high"
         assert get_response_after.data["priorityLockedAt"] is not None
-
-    def test_group_post_priority_no_ff(self):
-        self.login_as(user=self.user)
-        group = self.create_group(
-            project=self.project,
-            status=GroupStatus.IGNORED,
-            priority=PriorityLevel.LOW,
-        )
-        url = f"/api/0/issues/{group.id}/"
-
-        get_response_before = self.client.get(url, format="json")
-        assert get_response_before.status_code == 200, get_response_before.content
-
-        response = self.client.put(url, {"priority": "high"}, format="json")
-        assert response.status_code == 200, response.content
-
-        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
-        assert len(act_for_group) == 1
-        assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
-
-        get_response_after = self.client.get(url, format="json")
-        assert get_response_after.status_code == 200, get_response_after.content
-        assert get_response_after.content == get_response_before.content
 
     def test_assigned_to_unknown(self):
         self.login_as(user=self.user)

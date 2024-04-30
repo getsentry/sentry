@@ -7,7 +7,7 @@ from sentry.new_migrations.migrations import CheckedMigration
 
 class Migration(CheckedMigration):
     # not dangerous, just testing the post-deploy-migrations pipeline
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0604_remove_dangerous_but_trivial_index"),

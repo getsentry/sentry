@@ -1,16 +1,20 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {type Change, diffWords} from 'diff';
 
+import {Button} from 'sentry/components/button';
 import {
-  type AutofixResult,
   type DiffLine,
   DiffLineType,
+  type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type AutofixDiffProps = {
-  fix: AutofixResult;
+  diff: FilePatch[];
 };
 
 interface DiffLineWithChanges extends DiffLine {
@@ -112,28 +116,48 @@ function DiffHunkContent({lines, header}: {header: string; lines: DiffLine[]}) {
   );
 }
 
-export function AutofixDiff({fix}: AutofixDiffProps) {
-  if (!fix.diff) {
+function FileDiff({file}: {file: FilePatch}) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  return (
+    <FileDiffWrapper>
+      <FileHeader onClick={() => setIsExpanded(value => !value)}>
+        <InteractionStateLayer />
+        <FileAddedRemoved>
+          <FileAdded>+{file.added}</FileAdded>
+          <FileRemoved>-{file.removed}</FileRemoved>
+        </FileAddedRemoved>
+        <FileName>{file.path}</FileName>
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+          aria-label={t('Toggle file diff')}
+          aria-expanded={isExpanded}
+          size="zero"
+          borderless
+        />
+      </FileHeader>
+      {isExpanded && (
+        <DiffContainer>
+          {file.hunks.map(({section_header, source_start, lines}) => {
+            return (
+              <DiffHunkContent key={source_start} lines={lines} header={section_header} />
+            );
+          })}
+        </DiffContainer>
+      )}
+    </FileDiffWrapper>
+  );
+}
+
+export function AutofixDiff({diff}: AutofixDiffProps) {
+  if (!diff || !diff.length) {
     return null;
   }
 
   return (
     <DiffsColumn>
-      {fix.diff.map((file, i) => (
-        <FileDiffWrapper key={i}>
-          <FileName>{file.path}</FileName>
-          <DiffContainer>
-            {file.hunks.map(({section_header, source_start, lines}) => {
-              return (
-                <DiffHunkContent
-                  key={source_start}
-                  lines={lines}
-                  header={section_header}
-                />
-              );
-            })}
-          </DiffContainer>
-        </FileDiffWrapper>
+      {diff.map(file => (
+        <FileDiff key={file.path} file={file} />
       ))}
     </DiffsColumn>
   );
@@ -146,20 +170,44 @@ const DiffsColumn = styled('div')`
 `;
 
 const FileDiffWrapper = styled('div')`
-  margin: 0 -${space(2)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 20px;
   vertical-align: middle;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
 `;
 
-const FileName = styled('div')`
-  padding: 0 ${space(2)} ${space(1)} ${space(2)};
+const FileHeader = styled('div')`
+  position: relative;
+  display: grid;
+  align-items: center;
+  grid-template-columns: minmax(60px, auto) 1fr auto;
+  gap: ${space(2)};
+  background-color: ${p => p.theme.backgroundSecondary};
+  padding: ${space(1)} ${space(2)};
+  cursor: pointer;
 `;
+
+const FileAddedRemoved = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const FileAdded = styled('div')`
+  color: ${p => p.theme.successText};
+`;
+
+const FileRemoved = styled('div')`
+  color: ${p => p.theme.errorText};
+`;
+
+const FileName = styled('div')``;
 
 const DiffContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   display: grid;
   grid-template-columns: auto auto 1fr;
 `;

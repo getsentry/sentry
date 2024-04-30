@@ -1,5 +1,6 @@
 import functools
 from datetime import UTC, datetime, timedelta
+from time import sleep
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
@@ -8,7 +9,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group, GroupStatus
@@ -44,7 +49,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -54,9 +59,10 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-class GroupListTest(APITestCase, SnubaTestCase):
+class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-group-index"
 
     def setUp(self):
@@ -2643,6 +2649,115 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 assert int(response.data[4]["id"]) == event3.group.id
             else:
                 assert False, f"Unexpected query {query}"
+
+    def test_snuba_unsupported_filters(self):
+        self.login_as(user=self.user)
+        for query in [
+            "bookmarks:me",
+            "is:linked",
+            "is:unlinked",
+            "subscribed:me",
+            "regressed_in_release:latest",
+            "issue.priority:high",
+        ]:
+            with patch(
+                "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+                side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+            ) as mock_query:
+                self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query=query,
+                )
+                assert mock_query.call_count == 0
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_title(self, mock_query):
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"fingerprint": ["group-2"], "message": "AnotherMessage"},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="title:MyMessage",
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event1.group.id
+        assert mock_query.call_count == 1
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @with_feature("organizations:issue-platform")
+    def test_snuba_perf_issue(self, mock_query):
+        self.project = self.create_project(organization=self.organization)
+        # create a performance issue
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            233,
+            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
+            user={"email": "myemail@example.com"},
+            event_data={
+                "type": "transaction",
+                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+        )
+
+        # make mypy happy
+        perf_group_id = group_info.group.id if group_info else None
+
+        # create an error issue with the same tag
+        error_event = self.store_event(
+            data={
+                "fingerprint": ["error-issue"],
+                "event_id": "e" * 32,
+                "user": {"email": "myemail@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        # another error issue with a different tag
+        self.store_event(
+            data={
+                "fingerprint": ["error-issue-2"],
+                "event_id": "e" * 32,
+                "user": {"email": "different@example.com"},
+            },
+            project_id=self.project.id,
+        )
+
+        assert Group.objects.filter(id=perf_group_id).exists()
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="user.email:myemail@example.com",
+        )
+        assert len(response.data) == 2
+        assert {r["id"] for r in response.data} == {
+            str(perf_group_id),
+            str(error_event.group.id),
+        }
+        assert mock_query.call_count == 1
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

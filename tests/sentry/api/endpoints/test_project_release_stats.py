@@ -1,12 +1,13 @@
 from datetime import UTC, datetime
 
+import pytest
 from django.urls import reverse
 
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class ProjectReleaseStatsTest(APITestCase):
@@ -26,7 +27,7 @@ class ProjectReleaseStatsTest(APITestCase):
             "sentry-api-0-project-release-stats",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": "1",
             },
         )

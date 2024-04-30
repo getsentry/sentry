@@ -166,6 +166,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user, superuser=False)
 
+        self.create_useremail(user, "new@example.com", is_verified=True)
         self.get_success_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
@@ -179,12 +180,26 @@ class UserDetailsUpdateTest(UserDetailsTest):
         user = self.create_user(email="c@example.com", username="c@example.com")
         self.login_as(user=user)
 
+        self.create_useremail(user, "new@example.com", is_verified=True)
         self.get_success_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
 
         assert user.email == "new@example.com"
         assert user.username == "new@example.com"
+
+    def test_cannot_change_username_to_non_verified(self):
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.login_as(user=user)
+
+        self.create_useremail(user, "new@example.com", is_verified=False)
+        resp = self.get_error_response("me", username="new@example.com", status_code=400)
+        assert resp.data["detail"] == "Verified email address is not found."
+
+        user = User.objects.get(id=user.id)
+
+        assert user.email == "c@example.com"
+        assert user.username == "c@example.com"
 
 
 @control_silo_test

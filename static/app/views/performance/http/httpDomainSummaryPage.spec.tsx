@@ -46,6 +46,8 @@ describe('HTTPSummaryPage', function () {
   jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
+    jest.clearAllMocks();
+
     domainTransactionsListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -92,7 +94,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
+          referrer: 'api.performance.http.domain-summary-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
@@ -117,7 +119,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.starfish.http-module-domain-summary-duration-chart',
+          referrer: 'api.performance.http.domain-summary-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -142,7 +144,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
+          referrer: 'api.performance.http.domain-summary-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: [
@@ -174,7 +176,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
+          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
           statsPeriod: '10d',
         },
       })
@@ -205,7 +207,7 @@ describe('HTTPSummaryPage', function () {
           cursor: '0:20:0',
           query: 'span.module:http span.domain:"\\*.sentry.dev"',
           sort: '-time_spent_percentage()',
-          referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+          referrer: 'api.performance.http.domain-summary-transactions-list',
           statsPeriod: '10d',
         },
       })
@@ -221,7 +223,7 @@ describe('HTTPSummaryPage', function () {
 
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+          referrer: 'api.performance.http.domain-summary-transactions-list',
         }),
       ],
       body: {

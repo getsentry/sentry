@@ -4,6 +4,7 @@ import contextlib
 import http
 import json  # noqa
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -24,9 +25,8 @@ CI = os.environ.get("CI") is not None
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
-COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 
-USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 USE_ORBSTACK = (
     os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
 )
@@ -166,7 +166,7 @@ def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple
     return rv
 
 
-def ensure_docker_cli_context(context: str):
+def ensure_docker_cli_context(context: str) -> None:
     # this is faster than running docker context use ...
     config_file = os.path.expanduser("~/.docker/config.json")
     config = {}

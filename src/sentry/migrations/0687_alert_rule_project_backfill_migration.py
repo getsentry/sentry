@@ -3,6 +3,8 @@
 import logging
 
 from django.db import migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapper
@@ -10,7 +12,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger(__name__)
 
 
-def _backfill_alert_rule_projects(apps, schema_editor):
+def _backfill_alert_rule_projects(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     QuerySubscriptions = apps.get_model("sentry", "QuerySubscription")
     AlertRuleProjects = apps.get_model("sentry", "AlertRuleProjects")
 
@@ -25,7 +27,28 @@ def _backfill_alert_rule_projects(apps, schema_editor):
             )
             continue
 
-        alert_rule = snuba_query.alertrule_set.get()
+        alert_rule_set = list(snuba_query.alertrule_set.all())
+        if not len(alert_rule_set):
+            logger.warning(
+                "QuerySubscription + SnubaQuery found with no alert_rule",
+                extra={
+                    "query_subscription_id": subscription.id,
+                    "snuba_query_id": snuba_query.id,
+                },
+            )
+            continue
+        elif len(alert_rule_set) > 1:
+            logger.warning(
+                "QuerySubscription + SnubaQuery found with multiple alert_rules",
+                extra={
+                    "query_subscription_id": subscription.id,
+                    "snuba_query_id": snuba_query.id,
+                    "alert_rule_ids": [alert_rule.id for alert_rule in alert_rule_set],
+                },
+            )
+
+        # Default to the first alert rule
+        alert_rule = alert_rule_set[0]
 
         existing_alert_rule_projects = list(AlertRuleProjects.objects.filter(alert_rule=alert_rule))
         should_create_new = True
@@ -54,7 +77,7 @@ def _backfill_alert_rule_projects(apps, schema_editor):
 
 
 class Migration(CheckedMigration):
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0686_remove_config_from_checkin_state_operation"),

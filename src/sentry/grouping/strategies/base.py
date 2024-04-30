@@ -2,8 +2,6 @@ import inspect
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Generic, Protocol, TypeVar
 
-import sentry_sdk
-
 from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
@@ -124,10 +122,7 @@ class GroupingContext:
 
         kwargs["context"] = self
         kwargs["event"] = event
-        with sentry_sdk.start_span(
-            op="sentry.grouping.GroupingContext.get_grouping_component", description=path
-        ):
-            rv = strategy(interface, **kwargs)
+        rv = strategy(interface, **kwargs)
         assert isinstance(rv, dict)
 
         if self["variant"] is not None:
@@ -222,7 +217,7 @@ class Strategy(Generic[ConcreteInterface]):
         prevent_contribution = None
 
         for variant, component in variants.items():
-            is_mandatory = variant[:1] == "!"
+            is_mandatory = variant.startswith("!")
             variant = variant.lstrip("!")
 
             if is_mandatory:
@@ -257,8 +252,8 @@ class Strategy(Generic[ConcreteInterface]):
                     ),
                 )
             else:
-                hash = component.get_hash()
-                duplicate_of = mandatory_contributing_hashes.get(hash)
+                hash_value = component.get_hash()
+                duplicate_of = mandatory_contributing_hashes.get(hash_value)
                 if duplicate_of is not None:
                     component.update(
                         contributes=False,

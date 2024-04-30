@@ -24,10 +24,32 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 type Params = DocsParams;
 
 const getInstallSnippetPackageManager = (params: Params) => `
-Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+Install-Package Sentry -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet',
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
+)}`;
 
 const getInstallSnippetCoreCli = (params: Params) => `
-dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+dotnet add package Sentry -v ${getPackageVersion(
+  params,
+  'sentry.dotnet',
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
+)}`;
+
+const getInstallProfilingSnippetPackageManager = (params: Params) => `
+Install-Package Sentry.Profiling -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet.profiling',
+  '4.3.0'
+)}`;
+
+const getInstallProfilingSnippetCoreCli = (params: Params) => `
+dotnet add package Sentry.Profiling -v ${getPackageVersion(
+  params,
+  'sentry.dotnet.profiling',
+  '4.3.0'
+)}`;
 
 const getConfigureSnippet = (params: Params) => `
 using System.Windows.Threading;
@@ -44,10 +66,31 @@ public partial class App : Application
             // Tells which project in Sentry to send events to:
             o.Dsn = "${params.dsn}";
             // When configuring for the first time, to see what the SDK is doing:
-            o.Debug = true;
+            o.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
-            o.TracesSampleRate = 1.0;
+            o.TracesSampleRate = 1.0;`
+                : ''
+            }${
+              params.isProfilingSelected
+                ? `
+            // Sample rate for profiling, applied on top of othe TracesSampleRate,
+            // e.g. 0.2 means we want to profile 20 % of the captured transactions.
+            // We recommend adjusting this value in production.
+            o.ProfilesSampleRate = 1.0;
+            // Requires NuGet package: Sentry.Profiling
+            // Note: By default, the profiler is initialized asynchronously. This can
+            // be tuned by passing a desired initialization timeout to the constructor.
+            o.AddIntegration(new ProfilingIntegration(
+                // During startup, wait up to 500ms to profile the app startup code.
+                // This could make launching the app a bit slower so comment it out if you
+                // prefer profiling to start asynchronously
+                TimeSpan.FromMilliseconds(500)
+            ));`
+                : ''
+            }
         });
     }
 
@@ -101,15 +144,40 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: tct(
+                  'Additionally, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                  {
+                    sentryProfilingPackage: <code />,
+                  }
+                ),
+                code: [
+                  {
+                    language: 'shell',
+                    label: 'Package Manager',
+                    value: 'packageManager',
+                    code: getInstallProfilingSnippetPackageManager(params),
+                  },
+                  {
+                    language: 'shell',
+                    label: '.NET Core CLI',
+                    value: 'coreCli',
+                    code: getInstallProfilingSnippetCoreCli(params),
+                  },
+                ],
+              },
+              {
+                description: (
+                  <AlertWithoutMarginBottom type="info">
+                    {t('Profiling for .NET Framework is not supported.')}
+                  </AlertWithoutMarginBottom>
+                ),
+              },
+            ]
+          : []),
       ],
-      additionalInfo: (
-        <AlertWithoutMarginBottom type="info">
-          {tct(
-            '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
-            {strong: <strong />}
-          )}
-        </AlertWithoutMarginBottom>
-      ),
     },
   ],
   configure: params => [
@@ -129,7 +197,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: t('To verify your set up, you can capture a message with the SDK:'),
@@ -140,37 +208,41 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance Monitoring'),
-      description: t(
-        'You can measure the performance of your code by capturing transactions and spans.'
-      ),
-      configurations: [
-        {
-          language: 'csharp',
-          code: getPerformanceInstrumentationSnippet(),
-        },
-      ],
-      additionalInfo: tct(
-        'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
-          ),
-        }
-      ),
-    },
-    {
-      title: t('Documentation'),
-      description: tct(
-        "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete WPF docs].",
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/wpf/" />
-          ),
-        }
-      ),
-    },
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Performance Monitoring'),
+            description: t(
+              'You can measure the performance of your code by capturing transactions and spans.'
+            ),
+            configurations: [
+              {
+                language: 'csharp',
+                code: getPerformanceInstrumentationSnippet(),
+              },
+            ],
+            additionalInfo: tct(
+              'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
+                ),
+              }
+            ),
+          },
+          {
+            title: t('Documentation'),
+            description: tct(
+              "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete WPF docs].",
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/wpf/" />
+                ),
+              }
+            ),
+          },
+        ]
+      : []),
     {
       title: t('Samples'),
       description: (

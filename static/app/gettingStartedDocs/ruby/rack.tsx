@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -10,11 +11,16 @@ import {tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+const getInstallSnippet = (params: Params) =>
+  `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"`;
+
 const getConfigureSnippet = (params: Params) => `
 require 'sentry-ruby'
 
 Sentry.init do |config|
-  config.dsn = '${params.dsn}'
+  config.dsn = '${params.dsn}'${
+    params.isPerformanceSelected
+      ? `
 
   # Set traces_sample_rate to 1.0 to capture 100%
   # of transactions for performance monitoring.
@@ -23,13 +29,23 @@ Sentry.init do |config|
   # or
   config.traces_sampler = lambda do |context|
     true
-  end
+  end`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  # Set profiles_sample_rate to profile 100%
+  # of sampled transactions.
+  # We recommend adjusting this value in production.
+  config.profiles_sample_rate = 1.0`
+      : ''
+  }
 end
 
 use Sentry::Rack::CaptureExceptions`;
 
 const onboarding: OnboardingConfig = {
-  install: () => [
+  install: params => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -40,8 +56,20 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? tct(
+                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [stackprofCode:stackprof] is loaded before [sentryRubyCode:sentry-ruby].',
+                {
+                  stackprofLink: (
+                    <ExternalLink href="https://github.com/tmm1/stackprof" />
+                  ),
+                  stackprofCode: <code />,
+                  sentryRubyCode: <code />,
+                }
+              )
+            : undefined,
           language: 'ruby',
-          code: `gem "sentry-ruby"`,
+          code: getInstallSnippet(params),
         },
       ],
     },

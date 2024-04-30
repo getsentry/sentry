@@ -49,6 +49,10 @@ class CodeMapping(NamedTuple):
     source_path: str
 
 
+class UnexpectedPathException(Exception):
+    pass
+
+
 class UnsupportedFrameFilename(Exception):
     pass
 
@@ -58,7 +62,7 @@ class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
         self.raw_path = frame_file_path
         if frame_file_path[0] == "/":
-            frame_file_path = frame_file_path.replace("/", "", 1)
+            frame_file_path = frame_file_path[1:]
 
         # Using regexes would be better but this is easier to understand
         if (
@@ -75,7 +79,9 @@ class FrameFilename:
         if not self.extension:
             raise UnsupportedFrameFilename("It needs an extension.")
 
-        start_at_index = self._get_straight_path_prefix_end_index(frame_file_path)
+        start_at_index = get_straight_path_prefix_end_index(frame_file_path)
+        self.straight_path_prefix = frame_file_path[:start_at_index]
+        self.normalized_path = frame_file_path[start_at_index:]
         if start_at_index == 0:
             self.root = frame_file_path.split("/")[0]
         else:
@@ -83,19 +89,6 @@ class FrameFilename:
             self.root = frame_file_path[0:slash_index]
 
         self.file_name = frame_file_path.split("/")[-1]
-
-    def _get_straight_path_prefix_end_index(self, file_path: str) -> int:
-        """
-        Get the index where the straight path prefix ends in the file path.
-        This is  used for Node projects where the file path can start with
-        "app:///", "../", or "./"
-        """
-        index = 0
-        for prefix in FILE_PATH_PREFIX_LENGTH:
-            while file_path.startswith(prefix):
-                index += FILE_PATH_PREFIX_LENGTH[prefix]
-                file_path = file_path[FILE_PATH_PREFIX_LENGTH[prefix] :]
-        return index
 
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
@@ -140,16 +133,38 @@ class CodeMappingTreesHelper:
             ]
 
             for file in matches:
-                stacktrace_root, source_path = find_roots(frame_filename.raw_path, file)
-                file_matches.append(
-                    {
-                        "filename": file,
-                        "repo_name": repo_tree.repo.name,
-                        "repo_branch": repo_tree.repo.branch,
-                        "stacktrace_root": stacktrace_root,
-                        "source_path": source_path,
-                    }
-                )
+                stack_path = frame_filename.raw_path
+                source_path = file
+
+                try:
+                    stack_root, source_root = find_roots(stack_path, source_path)
+                except UnexpectedPathException:
+                    logger.info(
+                        "Unexpected format for stack_path or source_path",
+                        extra={"stack_path": stack_path, "source_path": source_path},
+                    )
+                    continue
+
+                if stack_path.replace(stack_root, source_root, 1) != source_path:
+                    logger.info(
+                        "Unexpected stack_path/source_path found. A code mapping was not generated.",
+                        extra={
+                            "stack_path": stack_path,
+                            "source_path": source_path,
+                            "stack_root": stack_root,
+                            "source_root": source_root,
+                        },
+                    )
+                else:
+                    file_matches.append(
+                        {
+                            "filename": file,
+                            "repo_name": repo_tree.repo.name,
+                            "repo_branch": repo_tree.repo.branch,
+                            "stacktrace_root": stack_root,
+                            "source_path": source_root,
+                        }
+                    )
         return file_matches
 
     def _stacktrace_buckets(self, stacktraces: list[str]) -> dict[str, list[FrameFilename]]:
@@ -234,7 +249,15 @@ class CodeMappingTreesHelper:
 
         stack_path = frame_filename.raw_path
         source_path = matched_files[0]
-        stack_root, source_root = find_roots(stack_path, source_path)
+
+        try:
+            stack_root, source_root = find_roots(stack_path, source_path)
+        except UnexpectedPathException:
+            logger.info(
+                "Unexpected format for stack_path or source_path",
+                extra={"stack_path": stack_path, "source_path": source_path},
+            )
+            return []
 
         if stack_path.replace(stack_root, source_root, 1) != source_path:
             logger.info(
@@ -261,19 +284,33 @@ class CodeMappingTreesHelper:
         Tries to see if the stacktrace without the root matches the file from the
         source code. Use existing code mappings to exclude some source files
         """
+
+        def _list_endswith(l1: list[str], l2: list[str]) -> bool:
+            if len(l2) > len(l1):
+                l1, l2 = l2, l1
+            l1_idx = len(l1) - 1
+            l2_idx = len(l2) - 1
+
+            while l2_idx >= 0:
+                if l2[l2_idx] != l1[l1_idx]:
+                    return False
+                l1_idx -= 1
+                l2_idx -= 1
+            return True
+
         # Exit early because we should not be processing source files for existing code maps
         if self._matches_existing_code_mappings(src_file):
             return False
 
         src_file_items = src_file.split("/")
-        frame_items = frame_filename.full_path.split("/")
-        if len(src_file_items) > len(frame_items):
-            return src_file.endswith(frame_filename.full_path)
-        else:
-            num_relevant_items = max(1, len(src_file_items) - 1)
-            relevant_items = frame_items[(len(frame_items) - num_relevant_items) :]
-            relevant_path = "/".join(relevant_items)
-            return src_file.endswith(relevant_path)
+        frame_items = frame_filename.normalized_path.split("/")
+
+        if len(src_file_items) > len(frame_items):  # Mono repos
+            return _list_endswith(src_file_items, frame_items)
+        elif len(frame_items) > len(src_file_items):  # Absolute paths
+            return _list_endswith(frame_items, src_file_items)
+        else:  # exact match
+            return src_file == frame_filename.normalized_path
 
     def _matches_existing_code_mappings(self, src_file: str) -> bool:
         """Check if the source file is already covered by an existing code mapping"""
@@ -448,6 +485,20 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     return sorted_configs
 
 
+def get_straight_path_prefix_end_index(file_path: str) -> int:
+    """
+    Get the index where the straight path prefix ends in the file path.
+    This is  used for Node projects where the file path can start with
+    "app:///", "../", or "./"
+    """
+    index = 0
+    for prefix in FILE_PATH_PREFIX_LENGTH:
+        while file_path.startswith(prefix):
+            index += FILE_PATH_PREFIX_LENGTH[prefix]
+            file_path = file_path[FILE_PATH_PREFIX_LENGTH[prefix] :]
+    return index
+
+
 def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     """
     Returns a tuple containing the stack_root, and the source_root.
@@ -471,25 +522,28 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     stack_path_delim = SLASH if SLASH in stack_path else BACKSLASH
     if stack_path_delim == BACKSLASH:
         stack_path = stack_path.replace(BACKSLASH, SLASH)
+    if (straight_path_idx := get_straight_path_prefix_end_index(stack_path)) > 0:
+        stack_root += stack_path[:straight_path_idx]
+        stack_path = stack_path[straight_path_idx:]
 
-    idx = 0
-    while idx < len(stack_path):
-        if source_path.endswith(overlap := stack_path[idx:]):
+    overlap_to_check: list[str] = stack_path.split(SLASH)
+    stack_root_items: list[str] = []
+
+    while overlap_to_check:
+        if (overlap := SLASH.join(overlap_to_check)) and source_path.endswith(overlap):
             source_root = source_path.rpartition(overlap)[0]
+            stack_root += stack_path_delim.join(stack_root_items)
 
-            if stack_root:  # append trailing slash
+            if stack_root and stack_root[-1] != SLASH:  # append trailing slash
                 stack_root = f"{stack_root}{stack_path_delim}"
             if source_root and source_root[-1] != SLASH:
                 source_root = f"{source_root}{SLASH}"
-            if stack_path_delim == BACKSLASH:
-                stack_root = stack_root.replace(SLASH, BACKSLASH)
 
             return (stack_root, source_root)
 
         # increase stack root specificity, decrease overlap specifity
-        stack_root += stack_path[idx]
-        idx += 1
+        stack_root_items.append(overlap_to_check.pop(0))
 
     # validate_source_url should have ensured the file names match
     # so if we get here something went wrong and there is a bug
-    raise Exception("Could not find common root from paths")
+    raise UnexpectedPathException("Could not find common root from paths")

@@ -407,7 +407,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "sentry-api-0-dsym-files",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -938,7 +938,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "sentry-api-0-dsym-files",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -1560,3 +1560,132 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     def test_source_lookup_with_proguard_symbolicator(self):
         with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
             self.test_source_lookup_with_proguard()
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_invalid_exception(self):
+        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
+            event_data = {
+                "user": {"ip_address": "31.172.207.97"},
+                "extra": {},
+                "project": self.project.id,
+                "platform": "java",
+                "debug_meta": {},
+                "exception": {
+                    "values": [
+                        {"type": "PlatformException"},
+                        {"type": "SecurityException", "module": "java.lang"},
+                        {"type": "RemoteException", "module": "android.os"},
+                    ]
+                },
+                "timestamp": iso_format(before_now(seconds=1)),
+            }
+
+            event = self.post_and_retrieve_event(event_data)
+            expected = [
+                {"type": e.get("type", None), "module": e.get("module", None)}
+                for e in event_data["exception"]["values"]
+            ]
+            received = [
+                {"type": e.type, "module": e.module} for e in event.interfaces["exception"].values
+            ]
+
+            assert received == expected
+
+    def test_is_jvm_event(self):
+        from sentry.lang.java.utils import is_jvm_event
+        from sentry.stacktraces.processing import find_stacktraces_in_data
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "jvm", "debug_id": PROGUARD_INLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+        stacktraces = find_stacktraces_in_data(event)
+        assert is_jvm_event(event, stacktraces)
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "debug_meta": {"images": [{"type": "jvm", "debug_id": PROGUARD_INLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+        stacktraces = find_stacktraces_in_data(event)
+        # has no platform
+        assert not is_jvm_event(event, stacktraces)
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+        stacktraces = find_stacktraces_in_data(event)
+        # has no modules
+        assert not is_jvm_event(event, stacktraces)

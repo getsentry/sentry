@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import os
 import sys
 from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
@@ -17,6 +18,7 @@ from sentry_sdk import Scope, capture_exception, capture_message, configure_scop
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
+from sentry_sdk.types import Event, Hint
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -24,7 +26,6 @@ from sentry.conf.types.sdk_config import SdkConfig
 from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
-from sentry.utils.openai_sdk_integration import OpenAiIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -78,7 +79,7 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.mark_checkin_timeout": 0.05,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
@@ -200,7 +201,7 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-def before_send_transaction(event, _):
+def before_send_transaction(event: Event, _: Hint) -> Event | None:
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
     if (
@@ -211,14 +212,14 @@ def before_send_transaction(event, _):
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
-    event["tags"]["spans_over_limit"] = num_of_spans >= 1000
+    event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
     event["measurements"]["num_of_spans"] = {"value": num_of_spans}
     return event
 
 
-def before_send(event, _):
+def before_send(event: Event, _: Hint) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
@@ -271,8 +272,6 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
-    assert sentry_sdk.Hub.main.client is None
-
     sdk_options, dsns = _get_sdk_options()
 
     internal_project_key = get_project_key()
@@ -453,6 +452,8 @@ def configure_sdk():
         should_summarize_metric=minimetrics.should_summarize_metric,
     )
 
+    enable_cache_spans = os.getenv("SENTRY_URL_PREFIX") == "sentry.my.sentry.io"
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
@@ -460,7 +461,7 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(signals_spans=False),
+            DjangoIntegration(signals_spans=False, cache_spans=enable_cache_spans),
             CeleryIntegration(monitor_beat_tasks=True, exclude_beat_tasks=exclude_beat_tasks),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
@@ -470,7 +471,6 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
-            OpenAiIntegration(capture_prompts=True),
         ],
         spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
@@ -568,21 +568,20 @@ def check_current_scope_transaction(
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
     been set maunually.
     """
+    scope = sentry_sdk.Scope.get_current_scope()
+    transaction_from_request = get_transaction_name_from_request(request)
 
-    with configure_scope() as scope:
-        transaction_from_request = get_transaction_name_from_request(request)
-
-        if (
-            scope._transaction is not None
-            and scope._transaction != transaction_from_request
-            and scope._transaction_info.get("source") != "custom"
-        ):
-            return {
-                "scope_transaction": scope._transaction,
-                "request_transaction": transaction_from_request,
-            }
-        else:
-            return None
+    if (
+        scope._transaction is not None
+        and scope._transaction != transaction_from_request
+        and scope._transaction_info.get("source") != "custom"
+    ):
+        return {
+            "scope_transaction": scope._transaction,
+            "request_transaction": transaction_from_request,
+        }
+    else:
+        return None
 
 
 def capture_exception_with_scope_check(
@@ -681,7 +680,7 @@ def bind_ambiguous_org_context(
 
 def set_measurement(measurement_name, value, unit=None):
     try:
-        transaction = sentry_sdk.Hub.current.scope.transaction
+        transaction = sentry_sdk.Scope.get_current_scope().transaction
         if transaction is not None:
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:

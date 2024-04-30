@@ -20,7 +20,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MissingMember, Organization, OrgRole} from 'sentry/types';
+import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
@@ -130,9 +130,11 @@ export function InviteMissingMembersModal({
       return (
         <StatusMessage status="success">
           <IconCheckmark size="sm" />
-          {errorCount > 0
-            ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-            : tct('Sent [invites]', tctComponents)}
+          <span>
+            {errorCount > 0
+              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+              : tct('Sent [invites]', tctComponents)}
+          </span>
         </StatusMessage>
       );
     }

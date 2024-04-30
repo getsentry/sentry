@@ -64,6 +64,48 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Length") == str(self.segment_data_size)
             assert response.get("Content-Type") == "application/octet-stream"
 
+    def test_get_replay_video_range(self):
+        self.save_video(0, self.segment_data)
+        self.login_as(user=self.user)
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url, headers={"Range": "bytes=0-5"})
+
+            assert response.status_code == 206
+            assert close_streaming_response(response) == b"hello,"
+            assert response.get("Content-Disposition") == f'attachment; filename="{self.filename}"'
+            assert response.get("Content-Length") == "6"
+            assert response.get("Content-Type") == "application/octet-stream"
+            assert response.get("Content-Range") == "bytes 0-5/13"
+
+    def test_get_replay_video_multi_range(self):
+        self.save_video(0, self.segment_data)
+        self.login_as(user=self.user)
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url, headers={"Range": "bytes=0-5, 6-7"})
+
+            assert response.status_code == 416
+            assert response.content == b""
+            assert response.get("Content-Disposition") == f'attachment; filename="{self.filename}"'
+            assert response.get("Content-Length") == "0"
+            assert response.get("Content-Type") == "application/octet-stream"
+            assert response.get("Content-Range") == "bytes */13"
+
+    def test_get_replay_video_invalid_range(self):
+        self.save_video(0, self.segment_data)
+        self.login_as(user=self.user)
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url, headers={"Range": "bytes=13-14"})
+
+            assert response.status_code == 416
+            assert response.content == b""
+            assert response.get("Content-Disposition") == f'attachment; filename="{self.filename}"'
+            assert response.get("Content-Length") == "0"
+            assert response.get("Content-Type") == "application/octet-stream"
+            assert response.get("Content-Range") == "bytes */13"
+
     def test_get_replay_video_segment_not_found(self):
         self.login_as(user=self.user)
 

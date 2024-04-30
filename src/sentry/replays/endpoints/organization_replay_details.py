@@ -73,6 +73,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
             start=filter_params["start"],
             end=filter_params["end"],
             organization=organization,
+            request_user_id=request.user.id,
         )
 
         response = process_raw_response(

@@ -17,7 +17,12 @@ from sentry.utils.geo import geo_by_addr
 
 @control_silo_only_model
 class UserIP(Model):
-    __relocation_scope__ = RelocationScope.User
+    # There is an absolutely massive number of `UserIP` models in any sufficiently long-lived
+    # install of Sentry. So while it would probably make semantic sense to have this be
+    # `RelocationScope.User`, only someone interested in backing up every bit of data could want
+    # this (we certainly don't need it on prod for relocation). Thus, this gets moved into the
+    # `Global` scope instead.
+    __relocation_scope__ = RelocationScope.Global
     __relocation_custom_ordinal__ = ["user", "ip_address"]
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)

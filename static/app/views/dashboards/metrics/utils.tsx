@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
@@ -18,7 +18,7 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol copy';
+import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
 
@@ -46,7 +46,7 @@ function getReleaseQuery(dashboardFilters: DashboardFilters) {
   return `release:[${release.join(',')}]`;
 }
 
-export function isMetricsFormula(
+export function isMetricsEquation(
   query: DashboardMetricsExpression
 ): query is DashboardMetricsEquation {
   return query.type === MetricExpressionType.EQUATION;
@@ -109,6 +109,7 @@ export function getMetricQueries(
       groupBy: query.columns,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
       isHidden: !!query.isHidden,
+      alias: query.fieldAliases?.[0],
     };
   });
 
@@ -139,6 +140,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
         type: MetricExpressionType.EQUATION,
         formula: query.aggregates[0].slice(9),
         isHidden: !!query.isHidden,
+        alias: query.fieldAliases?.[0],
       } satisfies DashboardMetricsEquation;
     }
   );
@@ -168,8 +170,9 @@ export function expressionsToApiQueries(
   return expressions
     .filter(e => !(e.type === MetricExpressionType.EQUATION && e.isHidden))
     .map(e =>
-      isMetricsFormula(e)
+      isMetricsEquation(e)
         ? {
+            alias: e.alias,
             formula: e.formula,
             name: getEquationSymbol(e.id),
           }
@@ -195,6 +198,7 @@ function getWidgetQuery(metricsQuery: DashboardMetricsQuery): WidgetQuery {
     conditions: metricsQuery.query ?? '',
     orderby: metricsQuery.orderBy ?? '',
     isHidden: metricsQuery.isHidden,
+    fieldAliases: metricsQuery.alias ? [metricsQuery.alias] : [],
   };
 }
 
@@ -204,27 +208,28 @@ function getWidgetEquation(metricsEquation: DashboardMetricsEquation): WidgetQue
     aggregates: [`equation|${metricsEquation.formula}`],
     columns: [],
     fields: [`equation|${metricsEquation.formula}`],
+    isHidden: metricsEquation.isHidden,
+    fieldAliases: metricsEquation.alias ? [metricsEquation.alias] : [],
     // Not used for equations
     conditions: '',
     orderby: '',
-    isHidden: metricsEquation.isHidden,
   };
 }
 
 export function expressionsToWidget(
   expressions: DashboardMetricsExpression[],
   title: string,
-  displayType: DisplayType
+  displayType: DisplayType,
+  interval = '5m'
 ): Widget {
   return {
     title,
-    // The interval has no effect on metrics widgets but the BE requires it
-    interval: '5m',
+    interval,
     displayType: displayType,
     widgetType: WidgetType.METRICS,
     limit: 10,
     queries: expressions.map(e => {
-      if (isMetricsFormula(e)) {
+      if (isMetricsEquation(e)) {
         return getWidgetEquation(e);
       }
       return getWidgetQuery(e);
@@ -233,13 +238,16 @@ export function expressionsToWidget(
 }
 
 export function getMetricWidgetTitle(queries: DashboardMetricsExpression[]) {
-  return queries
-    .map(q =>
-      isMetricsFormula(q)
-        ? unescapeMetricsFormula(q.formula)
-        : formatMRIField(MRIToField(q.mri, q.op))
-    )
-    .join(', ');
+  return queries.map(getMetricQueryName).join(', ');
+}
+
+export function getMetricQueryName(query: DashboardMetricsExpression): string {
+  return (
+    query.alias ??
+    (isMetricsEquation(query)
+      ? unescapeMetricsFormula(query.formula)
+      : formatMRIField(MRIToField(query.mri, query.op)))
+  );
 }
 
 export function defaultMetricWidget(): Widget {

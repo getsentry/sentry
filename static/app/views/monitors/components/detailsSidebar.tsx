@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Text from 'sentry/components/text';
@@ -98,6 +99,16 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
         {schedule_type === ScheduleType.CRONTAB && (
           <KeyValueTableRow keyName={t('Timezone')} value={timezone} />
         )}
+        <KeyValueTableRow
+          keyName={t('Owner')}
+          value={
+            monitor.owner ? (
+              <ActorAvatar size={24} actor={monitor.owner} />
+            ) : (
+              t('Unassigned')
+            )
+          }
+        />
         <KeyValueTableRow
           keyName={t('Date created')}
           value={getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}

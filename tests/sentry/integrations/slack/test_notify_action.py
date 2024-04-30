@@ -9,18 +9,15 @@ from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+from tests.sentry.integrations.slack.test_notifications import (
+    additional_attachment_generator_block_kit,
+)
 
 pytestmark = [requires_snuba]
-
-
-def additional_attachment_generator(integration, organization):
-    # nonsense to make sure we pass in the right fields
-    return {"title": organization.slug, "text": integration.id}
 
 
 class SlackNotifyActionTest(RuleTestCase):
@@ -52,7 +49,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -67,28 +64,11 @@ class SlackNotifyActionTest(RuleTestCase):
         results[0].callback(event, futures=[])
         data = parse_qs(responses.calls[0].request.body)
 
-        assert "attachments" in data
-        attachments = json.loads(data["attachments"][0])
+        assert "blocks" in data
+        blocks = json.loads(data["blocks"][0])
 
-        assert len(attachments) == 1
-        assert event.title in attachments[0]["text"]
+        assert event.title in blocks[0]["text"]["text"]
 
-    def test_render_label(self):
-        rule = self.get_rule(
-            data={
-                "workspace": self.integration.id,
-                "channel": "#my-channel",
-                "channel_id": "",
-                "tags": "one, two",
-            }
-        )
-
-        assert (
-            rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
-        )
-
-    @with_feature("organizations:slack-block-kit")
     def test_render_label_with_notes(self):
         rule = self.get_rule(
             data={
@@ -121,7 +101,7 @@ class SlackNotifyActionTest(RuleTestCase):
         label = rule.render_label()
         assert (
             label
-            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] in notification"
+            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] and notes  in notification"
         )
 
     @responses.activate
@@ -380,7 +360,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 0
 
     @responses.activate
@@ -388,7 +368,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_additional_attachment(self, mock_record):
         with mock.patch.dict(
             manager.attachment_generators,
-            {ExternalProviders.SLACK: additional_attachment_generator},
+            {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
         ):
             event = self.get_event()
 
@@ -401,9 +381,7 @@ class SlackNotifyActionTest(RuleTestCase):
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
-            results = list(
-                rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
-            )
+            results = list(rule.after(event=event, notification_uuid=notification_uuid))
             assert len(results) == 1
 
             responses.add(
@@ -418,13 +396,12 @@ class SlackNotifyActionTest(RuleTestCase):
             results[0].callback(event, futures=[])
             data = parse_qs(responses.calls[0].request.body)
 
-            assert "attachments" in data
-            attachments = json.loads(data["attachments"][0])
+            assert "blocks" in data
+            blocks = json.loads(data["blocks"][0])
 
-            assert len(attachments) == 2
-            assert event.title in attachments[0]["text"]
-            assert attachments[-1]["title"] == self.organization.slug
-            assert attachments[1]["text"] == self.integration.id
+            assert event.title in blocks[0]["text"]["text"]
+            assert blocks[-2]["text"]["text"] == self.organization.slug
+            assert blocks[-1]["text"]["text"] == self.integration.id
             mock_record.assert_called_with(
                 "alert.sent",
                 provider="slack",
@@ -454,5 +431,5 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1

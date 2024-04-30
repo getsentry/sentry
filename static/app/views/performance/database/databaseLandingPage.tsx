@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,8 +14,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {fromSorts} from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,7 +49,7 @@ export function DatabaseLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
-  let sort = fromSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
     sort = DEFAULT_SORT;
   }
@@ -148,6 +148,11 @@ export function DatabaseLandingPage() {
 
           <Layout.Title>{t('Queries')}</Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
@@ -161,8 +166,6 @@ export function DatabaseLandingPage() {
                 />
               </ModuleLayout.Full>
             )}
-
-            <FloatingFeedbackWidget />
 
             <ModuleLayout.Full>
               <PageFilterBar condensed>
@@ -189,7 +192,7 @@ export function DatabaseLandingPage() {
 
                 <ModuleLayout.Half>
                   <DurationChart
-                    series={durationData[`${selectedAggregate}(span.self_time)`]}
+                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
                   />
@@ -261,7 +264,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), t('Database')].join(' — ')}
       baseURL="/performance/database"
-      features="performance-database-view"
+      features="spans-first-ui"
     >
       <DatabaseLandingPage />
     </ModulePageProviders>

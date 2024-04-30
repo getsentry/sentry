@@ -914,10 +914,19 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
             tags={"release": "bar"},
         )
+        self.store_span_metric(
+            300,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.op": "queue.task.celery"},
+        )
 
         response = self.do_request(
             {
-                "field": ["avg_if(span.self_time, release, foo)"],
+                "field": [
+                    "avg_if(span.self_time, release, foo)",
+                    "avg_if(span.self_time, span.op, queue.task.celery)",
+                ],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
@@ -930,9 +939,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert len(data) == 1
         assert data[0]["avg_if(span.self_time, release, foo)"] == 150
+        assert data[0]["avg_if(span.self_time, span.op, queue.task.celery)"] == 300
 
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["avg_if(span.self_time, release, foo)"] == "duration"
+        assert meta["fields"]["avg_if(span.self_time, span.op, queue.task.celery)"] == "duration"
 
     def test_device_class(self):
         self.store_span_metric(
@@ -1019,6 +1030,76 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 1
         assert data[0]["device.class"] == "Unknown"
         assert meta["fields"]["device.class"] == "string"
+
+    def test_cache_hit_rate(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "true"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        response = self.do_request(
+            {
+                "field": ["cache_hit_rate()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["cache_hit_rate()"] == 0.5
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["cache_hit_rate()"] == "percentage"
+
+    def test_cache_miss_rate(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "true"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        response = self.do_request(
+            {
+                "field": ["cache_miss_rate()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["cache_miss_rate()"] == 0.75
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["cache_miss_rate()"] == "percentage"
 
     def test_http_response_rate(self):
         self.store_span_metric(
@@ -1279,6 +1360,125 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             == "avg_by_timestamp: condition argument invalid: string must be one of ['greater', 'less']"
         )
 
+    def test_epm_by_timestamp(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={},
+        )
+
+        # More events occur after the timestamp
+        for _ in range(3):
+            self.store_span_metric(
+                3,
+                internal_metric=constants.SELF_TIME_LIGHT,
+                timestamp=self.min_ago,
+                tags={},
+            )
+
+        response = self.do_request(
+            {
+                "field": [
+                    f"epm_by_timestamp(less,{int(self.two_min_ago.timestamp())})",
+                    f"epm_by_timestamp(greater,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0][f"epm_by_timestamp(less,{int(self.two_min_ago.timestamp())})"] < 1.0
+        assert data[0][f"epm_by_timestamp(greater,{int(self.two_min_ago.timestamp())})"] > 1.0
+
+    def test_epm_by_timestamp_invalid_condition(self):
+        response = self.do_request(
+            {
+                "field": [
+                    f"epm_by_timestamp(INVALID_ARG,{int(self.two_min_ago.timestamp())})",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "epm_by_timestamp: condition argument invalid: string must be one of ['greater', 'less']"
+        )
+
+    def test_any_function(self):
+        for char in "abc":
+            for transaction in ["foo", "bar"]:
+                self.store_span_metric(
+                    1,
+                    internal_metric=constants.SELF_TIME_LIGHT,
+                    timestamp=self.six_min_ago,
+                    tags={"span.description": char, "transaction": transaction},
+                )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "any(span.description)",
+                ],
+                "query": "",
+                "orderby": ["transaction"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"transaction": "bar", "any(span.description)": "a"},
+            {"transaction": "foo", "any(span.description)": "a"},
+        ]
+
+    def test_count_op(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.submit.celery"},
+        )
+
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.op": "queue.task.celery"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count_op(queue.submit.celery)",
+                    "count_op(queue.task.celery)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {"count_op(queue.submit.celery)": 1, "count_op(queue.task.celery)": 1},
+        ]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -1346,3 +1546,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_device_class(self):
         super().test_device_class()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_op(self):
+        super().test_count_op()

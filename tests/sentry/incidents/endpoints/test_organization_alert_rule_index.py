@@ -17,12 +17,13 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
@@ -81,6 +82,7 @@ class AlertRuleBase(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
+            "activations": [],
         }
 
 
@@ -120,6 +122,19 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         assert serialize([alert_rule2]) not in resp.data
         assert resp.data == serialize([alert_rule1])
 
+    def test_simple_with_activation(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+        self.create_alert_rule_activation(
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+        )
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data == serialize([alert_rule])
+
 
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
@@ -157,6 +172,37 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_monitor_type_with_condition(self):
+        data = {
+            **self.alert_rule_dict,
+            "monitorType": AlertRuleMonitorType.ACTIVATED.value,
+            "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
+        }
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents"]),
+        ):
+            err_resp = self.get_error_response(
+                self.organization.slug,
+                method=responses.POST,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                **data,
+            ).json()
+        assert err_resp == {"monitorType": ["Invalid monitor type"]}
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
 
     def test_multiple_projects(self):
         new_project = self.create_project()
@@ -959,7 +1005,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "dataset": "sessions",
+            "dataset": "metrics",
             "eventTypes": [],
         }
 

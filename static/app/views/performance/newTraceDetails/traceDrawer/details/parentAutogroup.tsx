@@ -1,14 +1,16 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceTabs';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {Row} from 'sentry/views/performance/traceDetails/styles';
 
-import {makeTraceNodeBarColor, type ParentAutogroupNode} from '../../traceTree';
+import {
+  makeTraceNodeBarColor,
+  type ParentAutogroupNode,
+} from '../../traceModels/traceTree';
 
 import {IssueList} from './issues/issues';
 import {TraceDrawerComponents} from './styles';
@@ -17,7 +19,7 @@ export function ParentAutogroupNodeDetails({
   node,
   organization,
   onParentClick,
-  scrollToNode,
+  onTabScrollToNode,
 }: TraceTreeNodeDetailsProps<ParentAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
@@ -39,11 +41,11 @@ export function ParentAutogroupNodeDetails({
             <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
-        <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => scrollToNode(node)}>
-            {t('Show in view')}
-          </Button>
-        </TraceDrawerComponents.Actions>
+        <TraceDrawerComponents.NodeActions
+          organization={organization}
+          node={node}
+          onTabScrollToNode={onTabScrollToNode}
+        />
       </TraceDrawerComponents.HeaderContainer>
 
       <IssueList issues={issues} node={node} organization={organization} />
@@ -53,7 +55,7 @@ export function ParentAutogroupNodeDetails({
           {parentTransaction ? (
             <Row title="Parent Transaction">
               <td className="value">
-                <a href="#" onClick={() => onParentClick(parentTransaction)}>
+                <a onClick={() => onParentClick(parentTransaction)}>
                   {getTraceTabTitle(parentTransaction)}
                 </a>
               </td>

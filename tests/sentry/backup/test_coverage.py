@@ -8,6 +8,7 @@ from tests.sentry.backup.test_exhaustive import EXHAUSTIVELY_TESTED, UNIQUENESS_
 from tests.sentry.backup.test_imports import COLLISION_TESTED
 from tests.sentry.backup.test_models import DYNAMIC_RELOCATION_SCOPE_TESTED
 from tests.sentry.backup.test_releases import RELEASE_TESTED
+from tests.sentry.backup.test_sanitize import SANITIZATION_TESTED
 
 ALL_EXPORTABLE_MODELS = {get_model_name(c) for c in get_exportable_sentry_models()}
 
@@ -75,6 +76,11 @@ def test_exportable_final_derivations_of_sentry_model_are_exhaustively_tested():
 
 def test_exportable_final_derivations_of_sentry_model_are_release_tested_at_head():
     untested = ALL_EXPORTABLE_MODELS - RELEASE_TESTED
+    assert not {str(u) for u in untested}
+
+
+def test_exportable_final_derivations_of_sentry_model_are_sanitization_tested_at_head():
+    untested = ALL_EXPORTABLE_MODELS - SANITIZATION_TESTED
     assert not {str(u) for u in untested}
 
 

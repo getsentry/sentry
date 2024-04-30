@@ -60,7 +60,7 @@ export function AnnotatedTextErrors({errors = []}: {errors: Array<MetaError>}) {
         )
       }
     >
-      <StyledIconWarning color="errorText" />
+      <StyledIconWarning color="errorText" data-test-id="annotated-text-error-icon" />
     </StyledTooltip>
   );
 }

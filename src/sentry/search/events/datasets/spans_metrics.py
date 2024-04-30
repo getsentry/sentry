@@ -177,7 +177,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                         fields.MetricArg(
                             "if_col",
-                            allowed_columns=["release"],
+                            allowed_columns=["release", "span.op"],
                         ),
                         fields.SnQLStringArg(
                             "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
@@ -333,6 +333,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
+                    "ai_total_tokens_used",
+                    optional_args=[
+                        fields.with_default(
+                            "c:spans/ai.total_tokens.used@none",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["c:spans/ai.total_tokens.used@none"],
+                                allow_custom_measurements=False,
+                                allow_mri=True,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_counter=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
                     "http_response_rate",
                     required_args=[
                         SnQLStringArg("code"),
@@ -352,6 +375,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                                 ),
                             ],
                         ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "cache_hit_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_hit_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "cache_miss_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_miss_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
                         alias,
                     ),
                     default_result_type="percentage",
@@ -507,6 +548,40 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="duration",
                 ),
+                fields.MetricsFunction(
+                    "epm_by_timestamp",
+                    required_args=[
+                        fields.SnQLStringArg("condition", allowed_strings=["greater", "less"]),
+                        fields.TimestampArg("timestamp"),
+                    ],
+                    snql_distribution=lambda args, alias: self._resolve_epm_condition(
+                        args, args["condition"], alias
+                    ),
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
+                    "any",
+                    required_args=[fields.MetricArg("column")],
+                    # Not actually using `any` so that this function returns consistent results
+                    snql_distribution=lambda args, alias: Function(
+                        "min",
+                        [self.builder.column(args["column"])],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="string",
+                    redundant_grouping=True,
+                ),
+                fields.MetricsFunction(
+                    "count_op",
+                    required_args=[
+                        SnQLStringArg(
+                            "op", allowed_strings=["queue.task.celery", "queue.submit.celery"]
+                        ),
+                    ],
+                    snql_distribution=self._resolve_count_op,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -648,6 +723,80 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             total_time,
+            alias,
+        )
+
+    def _resolve_cache_hit_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("true"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("false"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_hit_and_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        statuses = [self.builder.resolve_tag_value(status) for status in constants.CACHE_HIT_STATUS]
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "in",
+                [
+                    self.builder.column("cache.hit"),
+                    list(status for status in statuses if status is not None),
+                ],
+            ),
             alias,
         )
 
@@ -829,9 +978,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         condition,
                     ],
                 ),
-                args["interval"]
-                if interval is None
-                else Function("divide", [args["interval"], interval]),
+                (
+                    args["interval"]
+                    if interval is None
+                    else Function("divide", [args["interval"], interval])
+                ),
             ],
             alias,
         )
@@ -866,6 +1017,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
         args: Mapping[str, str | Column | SelectType | int | float | datetime],
         condition: str,
+        alias: str | None = None,
     ) -> SelectType:
         if condition == "greater":
             interval = (self.builder.params.end - args["timestamp"]).total_seconds()
@@ -891,6 +1043,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 Function("divide", [interval, 60]),
             ],
+            alias,
         )
 
     def _resolve_avg_condition(
@@ -928,6 +1081,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_count_op(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("span.op"),
+                    self.builder.resolve_tag_value(args["op"]),
+                ],
+            ),
+            alias,
+        )
+
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
         return {}
@@ -940,7 +1116,7 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
         self.builder = builder
         self.total_span_duration: float | None = None
 
-    def resolve_mri(self, value) -> Column:
+    def resolve_mri(self, value: str) -> Column:
         """Given the public facing column name resolve it to the MRI and return a Column"""
         # If the query builder has not detected a transaction use the light self time metric to get a performance boost
         if value == "span.self_time" and not self.builder.has_transaction:

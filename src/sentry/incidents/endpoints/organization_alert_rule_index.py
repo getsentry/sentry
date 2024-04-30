@@ -60,9 +60,9 @@ class AlertRuleIndexMixin(Endpoint):
         if not project:
             projects = self.get_projects(request, organization)
             alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-
         else:
             alert_rules = AlertRule.objects.fetch_for_project(project)
+
         if not features.has("organizations:performance-view", organization):
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
@@ -123,7 +123,7 @@ class AlertRuleIndexMixin(Endpoint):
                     alert_rule_created.send_robust(
                         user=request.user,
                         project=sub.project,
-                        rule=alert_rule,
+                        rule_id=alert_rule.id,
                         rule_type="metric",
                         sender=self,
                         referrer=referrer,
@@ -170,16 +170,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, project_ids=set(project_ids))
 
         teams = request.GET.getlist("team", [])
-        team_filter_query = None
+        teams_query = None
+        unassigned = None
         if len(teams) > 0:
             try:
                 teams_query, unassigned = parse_team_params(request, organization, teams)
             except InvalidParams as err:
                 return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
-
-            team_filter_query = Q(owner_id__in=teams_query.values_list("actor_id", flat=True))
-            if unassigned:
-                team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
 
@@ -208,9 +205,15 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             alert_rules = alert_rules.filter(Q(name__icontains=name))
             issue_rules = issue_rules.filter(Q(label__icontains=name))
 
-        if team_filter_query:
-            alert_rules = alert_rules.filter(team_filter_query)
-            issue_rules = issue_rules.filter(team_filter_query)
+        if teams_query is not None:
+            team_ids = teams_query.values_list("id", flat=True)
+            team_rule_condition = Q(owner_team_id__in=team_ids)
+            team_alert_condition = Q(team_id__in=team_ids)
+            if unassigned:
+                team_alert_condition = team_alert_condition | Q(team_id__isnull=True)
+                team_rule_condition = team_rule_condition | Q(owner_team_id__isnull=True)
+            alert_rules = alert_rules.filter(team_alert_condition)
+            issue_rules = issue_rules.filter(team_rule_condition)
 
         expand = request.GET.getlist("expand", [])
         if "latestIncident" in expand:
@@ -387,6 +390,17 @@ Metric alert rule trigger actions follow the following structure:
         child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    monitorType = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
+    )
+    activationCondition = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        help_text="Optional int that represents a trigger condition for when to start monitoring",
+    )
 
 
 @extend_schema(tags=["Alerts"])

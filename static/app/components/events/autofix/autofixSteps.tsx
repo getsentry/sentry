@@ -1,25 +1,44 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
-import type {
-  AutofixData,
-  AutofixProgressItem,
-  AutofixStep,
+import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
+import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
+import {
+  type AutofixData,
+  type AutofixProgressItem,
+  type AutofixStep,
+  AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {IconCheckmark, IconChevron, IconClose, IconFatal} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconChevron,
+  IconClose,
+  IconCode,
+  IconFatal,
+  IconQuestion,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import usePrevious from 'sentry/utils/usePrevious';
 
-interface StepIconProps {
-  status: AutofixStep['status'];
-}
+function StepIcon({step}: {step: AutofixStep}) {
+  if (step.type === AutofixStepType.CHANGES) {
+    return <IconCode size="sm" color="gray300" />;
+  }
 
-function StepIcon({status}: StepIconProps) {
-  switch (status) {
+  if (step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
+    return step.selection ? (
+      <IconCheckmark size="sm" color="green300" isCircled />
+    ) : (
+      <IconQuestion size="sm" color="gray300" />
+    );
+  }
+
+  switch (step.status) {
     case 'PROCESSING':
       return <ProcessingStatusIndicator size={14} mini hideMessage />;
     case 'CANCELLED':
@@ -33,7 +52,22 @@ function StepIcon({status}: StepIconProps) {
   }
 }
 
+function stepShouldBeginExpanded(step: AutofixStep) {
+  if (step.type === AutofixStepType.CHANGES) {
+    return true;
+  }
+
+  if (step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
+    return step.selection ? false : true;
+  }
+
+  return step.status !== 'COMPLETED';
+}
+
 interface StepProps {
+  groupId: string;
+  onRetry: () => void;
+  runId: string;
   step: AutofixStep;
   isChild?: boolean;
   stepNumber?: number;
@@ -41,6 +75,9 @@ interface StepProps {
 
 interface AutofixStepsProps {
   data: AutofixData;
+  groupId: string;
+  onRetry: () => void;
+  runId: string;
 }
 
 function isProgressLog(
@@ -49,7 +86,17 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
-function Progress({progress}: {progress: AutofixProgressItem | AutofixStep}) {
+function Progress({
+  progress,
+  groupId,
+  runId,
+  onRetry,
+}: {
+  groupId: string;
+  onRetry: () => void;
+  progress: AutofixProgressItem | AutofixStep;
+  runId: string;
+}) {
   if (isProgressLog(progress)) {
     return (
       <Fragment>
@@ -61,34 +108,49 @@ function Progress({progress}: {progress: AutofixProgressItem | AutofixStep}) {
 
   return (
     <ProgressStepContainer>
-      <Step step={progress} isChild />
+      <Step step={progress} isChild groupId={groupId} runId={runId} onRetry={onRetry} />
     </ProgressStepContainer>
   );
 }
 
-export function Step({step, isChild}: StepProps) {
+export function Step({step, isChild, groupId, runId, onRetry}: StepProps) {
+  const previousStepStatus = usePrevious(step.status);
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(() => stepShouldBeginExpanded(step));
 
-  const logs = step.progress?.filter(isProgressLog) ?? [];
+  useEffect(() => {
+    if (
+      previousStepStatus &&
+      previousStepStatus !== step.status &&
+      step.status === 'COMPLETED'
+    ) {
+      setIsExpanded(false);
+    }
+  }, [previousStepStatus, step.status]);
 
+  const logs: AutofixProgressItem[] = step.progress?.filter(isProgressLog) ?? [];
   const activeLog = step.completedMessage ?? logs.at(-1)?.message ?? null;
-  const hasContent = step.completedMessage || step.progress?.length;
+  const hasContent = Boolean(
+    step.completedMessage ||
+      step.progress?.length ||
+      step.type !== AutofixStepType.DEFAULT
+  );
+  const canToggle = Boolean(isActive && hasContent);
 
   return (
     <StepCard active={isActive}>
       <StepHeader
-        isActive={isActive}
+        canToggle={canToggle}
         isChild={isChild}
         onClick={() => {
-          if (isActive && hasContent) {
+          if (canToggle) {
             setIsExpanded(value => !value);
           }
         }}
       >
         <StepHeaderLeft>
           <StepIconContainer>
-            <StepIcon status={step.status} />
+            <StepIcon step={step} />
           </StepIconContainer>
           <StepTitle>{step.title}</StepTitle>
           {activeLog && !isExpanded && (
@@ -96,7 +158,7 @@ export function Step({step, isChild}: StepProps) {
           )}
         </StepHeaderLeft>
         <StepHeaderRight>
-          {isActive && hasContent ? (
+          {canToggle ? (
             <Button
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               aria-label={t('Toggle step details')}
@@ -113,21 +175,45 @@ export function Step({step, isChild}: StepProps) {
           {step.progress && step.progress.length > 0 ? (
             <ProgressContainer>
               {step.progress.map((progress, i) => (
-                <Progress progress={progress} key={i} />
+                <Progress
+                  progress={progress}
+                  key={i}
+                  groupId={groupId}
+                  runId={runId}
+                  onRetry={onRetry}
+                />
               ))}
             </ProgressContainer>
           ) : null}
+          {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
+            <AutofixRootCause
+              groupId={groupId}
+              runId={runId}
+              causes={step.causes}
+              rootCauseSelection={step.selection}
+            />
+          )}
+          {step.type === AutofixStepType.CHANGES && (
+            <AutofixChanges step={step} groupId={groupId} onRetry={onRetry} />
+          )}
         </Fragment>
       )}
     </StepCard>
   );
 }
 
-export function AutofixSteps({data}: AutofixStepsProps) {
+export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps) {
   return (
     <div>
       {data.steps?.map((step, index) => (
-        <Step step={step} key={step.id} stepNumber={index + 1} />
+        <Step
+          step={step}
+          key={step.id}
+          stepNumber={index + 1}
+          groupId={groupId}
+          runId={runId}
+          onRetry={onRetry}
+        />
       ))}
     </div>
   );
@@ -142,14 +228,15 @@ const StepCard = styled(Panel)<{active?: boolean}>`
   }
 `;
 
-const StepHeader = styled('div')<{isActive: boolean; isChild?: boolean}>`
+const StepHeader = styled('div')<{canToggle: boolean; isChild?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: ${space(2)};
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   font-family: ${p => p.theme.text.family};
-  cursor: ${p => (p.isActive ? 'pointer' : 'default')};
+  cursor: ${p => (p.canToggle ? 'pointer' : 'default')};
 
   &:last-child {
     padding-bottom: ${space(2)};

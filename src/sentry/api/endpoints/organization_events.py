@@ -8,7 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -21,7 +21,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
@@ -46,6 +45,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_STATUS_BREAKDOWN.value,
     Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
     Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
+    Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS.value,
     Referrer.API_PROFILING_LANDING_TABLE.value,
     Referrer.API_PROFILING_LANDING_FUNCTIONS_CARD.value,
     Referrer.API_PROFILING_PROFILE_SUMMARY_TOTALS.value,
@@ -80,6 +80,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_RELEASE_SELECTOR.value,
     Referrer.API_STARFISH_MOBILE_DEVICE_BREAKDOWN.value,
     Referrer.API_STARFISH_MOBILE_EVENT_SAMPLES.value,
+    Referrer.API_STARFISH_MOBILE_PLATFORM_COMPATIBILITY.value,
     Referrer.API_STARFISH_MOBILE_SCREEN_TOTALS.value,
     Referrer.API_STARFISH_MOBILE_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE.value,
@@ -89,55 +90,87 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_STARTUP_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_TOTALS.value,
-    Referrer.API_TRACE_EXPLORER_TABLE.value,
+    Referrer.API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST.value,
+    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON.value,
+    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST.value,
+    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_SAMPLES.value,
+    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_METRICS_RIBBON.value,
+    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES.value,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
-RATE_LIMIT = 30
-RATE_LIMIT_WINDOW = 1
-CONCURRENT_RATE_LIMIT = 15
-
-DEFAULT_RATE_LIMIT = 50
-DEFAULT_RATE_LIMIT_WINDOW = 1
-DEFAULT_CONCURRENT_RATE_LIMIT = 50
-
-DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
-    "GET": {
-        RateLimitCategory.IP: RateLimit(
-            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
-        ),
-        RateLimitCategory.USER: RateLimit(
-            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
-        ),
-        RateLimitCategory.ORGANIZATION: RateLimit(
-            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
-        ),
-    }
-}
+LEGACY_RATE_LIMIT = dict(limit=30, window=1, concurrent_limit=15)
+# reduced limit will be the future default for all organizations not explicitly on increased limit
+DEFAULT_REDUCED_RATE_LIMIT = dict(
+    limit=1000, window=300, concurrent_limit=15  # 1000 requests per 5 minutes
+)
+DEFAULT_INCREASED_RATE_LIMIT = dict(limit=50, window=1, concurrent_limit=50)
 
 
-def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
+def rate_limit_events(
+    request: Request, organization_slug: str | None = None, *args, **kwargs
+) -> dict[str, dict[RateLimitCategory, RateLimit]]:
+    """
+    Decision tree for rate limiting for organization events endpoint.
+    ```mermaid
+     flowchart TD
+         A[Get organization] --> B{Organization\nexists}
+         B -->|No| C[Return legacy rate limit]
+         B -->|Yes| D{Organization\nin increased\nrate limit}
+         D -->|Yes| E[Return increased rate limit]
+         D -->|No| F{Organization in\nreduced limit\nroll-out}
+         F -->|Yes| G[Return reduced rate limit]
+         F -->|No| H[Return legacy rate limit]
+     ```
+    """
+
+    def _config_for_limit(limit: RateLimit) -> dict[str, dict[RateLimitCategory, RateLimit]]:
+        return {
+            "GET": {
+                RateLimitCategory.IP: limit,
+                RateLimitCategory.USER: limit,
+                RateLimitCategory.ORGANIZATION: limit,
+            }
+        }
+
+    def _validated_limits(limits: dict[str, Any], fallback: dict[str, Any]) -> RateLimit:
+        """
+        Validate the rate limit configuration has required values of correct type.
+        """
+        try:
+            # dataclass doesn't check types, so forcing int which will raise if not int or numeric string
+            limits = {k: int(v) for k, v in limits.items()}
+            return RateLimit(**limits)
+        except Exception:
+            logger.exception("invalid rate limit config", extra={"limits": limits})
+            return RateLimit(**fallback)
+
+    rate_limit = RateLimit(**LEGACY_RATE_LIMIT)
+
     try:
         organization = Organization.objects.get_from_cache(slug=organization_slug)
     except Organization.DoesNotExist:
-        return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
-    # Check for feature flag to enforce rate limit otherwise use default rate limit
-    if features.has("organizations:discover-events-rate-limit", organization, actor=request.user):
-        return {
-            "GET": {
-                RateLimitCategory.IP: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-                RateLimitCategory.USER: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-                RateLimitCategory.ORGANIZATION: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-            }
-        }
-    return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
+        logger.warning("organization.slug.invalid", extra={"organization_slug": organization_slug})
+        return _config_for_limit(rate_limit)
+
+    if organization.id in options.get("api.organization_events.rate-limit-increased.orgs", []):
+        rate_limit = _validated_limits(
+            options.get("api.organization_events.rate-limit-increased.limits"),
+            DEFAULT_INCREASED_RATE_LIMIT,
+        )
+
+    elif features.has(
+        "organizations:api-organization_events-rate-limit-reduced-rollout",
+        organization=organization,
+    ):
+
+        rate_limit = _validated_limits(
+            options.get("api.organization_events.rate-limit-reduced.limits"),
+            DEFAULT_REDUCED_RATE_LIMIT,
+        )
+
+    return _config_for_limit(rate_limit)
 
 
 @extend_schema(tags=["Discover"])
@@ -149,7 +182,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
     enforce_rate_limit = True
 
-    def rate_limits(*args, **kwargs) -> RateLimitConfig:
+    def rate_limits(*args, **kwargs) -> dict[str, dict[RateLimitCategory, RateLimit]]:
         return rate_limit_events(*args, **kwargs)
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:

@@ -24,7 +24,6 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "ErrorsMRI",
-    "BundleAnalysisMRI",
     "parse_mri",
     "get_available_operations",
     "is_mri_field",
@@ -53,24 +52,7 @@ from sentry.snuba.metrics.utils import (
     MetricUnit,
 )
 
-
-def _build_namespace_regex() -> str:
-    """
-    Builds a namespace regex for matching MRIs based on the declared use case ids in the
-    product.
-    """
-    use_case_ids = []
-    for use_case_id in UseCaseID:
-        use_case_ids.append(use_case_id.value)
-
-    return rf"({'|'.join(use_case_ids)})"
-
-
-MRI_METRIC_TYPE_REGEX = r"(c|s|d|g|e)"
-MRI_NAMESPACE_REGEX = _build_namespace_regex()
-MRI_NAME_REGEX = r"([a-zA-Z0-9_/.]+)"
-MRI_UNIT_REGEX = r"[\s\S\r\n]*"
-MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{MRI_METRIC_TYPE_REGEX}):(?P<namespace>{MRI_NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>{MRI_UNIT_REGEX})"
+MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
@@ -151,6 +133,7 @@ class TransactionMRI(Enum):
 
     # Derived
     ALL = "e:transactions/all@none"
+    ALL_DURATION = "e:transactions/all_duration@none"
     FAILURE_COUNT = "e:transactions/failure_count@none"
     FAILURE_RATE = "e:transactions/failure_rate@ratio"
     SATISFIED = "e:transactions/satisfied@none"
@@ -184,6 +167,7 @@ class SpanMRI(Enum):
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
     RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+    CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
     RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
 
     # Derived
@@ -197,10 +181,6 @@ class SpanMRI(Enum):
 
 class ErrorsMRI(Enum):
     EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
-
-
-class BundleAnalysisMRI(Enum):
-    BUNDLE_SIZE = "d:bundle_analysis/bundle_size@byte"
 
 
 @dataclass
@@ -271,7 +251,6 @@ def format_mri_field_value(field: str, value: str) -> str:
     it will be returned as 1 minute.
 
     """
-
     try:
         parsed_mri_field = parse_mri_field(field)
         if parsed_mri_field is None:

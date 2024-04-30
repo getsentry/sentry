@@ -8,7 +8,7 @@ import moment from 'moment-timezone';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -33,6 +33,7 @@ import {
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -237,7 +238,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
   const organization = useOrganization();
 
-  const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+  const hasReplay = Boolean(getReplayIdFromEvent(event));
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(group.project);

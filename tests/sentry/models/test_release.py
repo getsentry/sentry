@@ -1240,6 +1240,30 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is False
         )
 
+    def test_follows_semver_check_with_archived_non_semver_releases(self):
+        """
+        Test that ensures that when a project has a mix of archived non-semver releases and active semver releases,
+        then we consider the project to be following semver.
+        """
+        proj = self.create_project(organization=self.org)
+
+        # Create semver releases that are not archived
+        for i in range(4):
+            self.create_release(version=f"{self.fake_package}@1.0.{i}", project=proj)
+
+        # Create non-semver releases and archive them
+        for i in range(6):
+            release = self.create_release(version=f"notsemver-{i}", project=proj)
+            release.update(status=ReleaseStatus.ARCHIVED)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=proj.id,
+            )
+            is True
+        )
+
 
 class ClearCommitsTestCase(TestCase):
     @receivers_raise_on_send()

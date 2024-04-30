@@ -14,7 +14,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Integration, IntegrationProvider, Organization} from 'sentry/types';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
@@ -179,7 +180,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     return organization?.access.includes('org:integrations');
   };
 
-  // used with Github to redirect to the the integration detail
+  // used with Github to redirect to the integration detail
   onInstallWithInstallationId = (data: Integration) => {
     const {organization} = this.state;
     const orgId = organization?.slug;

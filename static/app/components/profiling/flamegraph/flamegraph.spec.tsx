@@ -2,8 +2,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   findAllByTestId,
-  reactHooks,
   render,
   screen,
   userEvent,
@@ -117,7 +117,7 @@ Object.defineProperty(window, 'matchMedia', {
 describe('Flamegraph', function () {
   beforeEach(() => {
     const project = ProjectFixture({slug: 'foo-project'});
-    reactHooks.act(() => void ProjectsStore.loadInitialData([project]));
+    act(() => void ProjectsStore.loadInitialData([project]));
   });
   it('renders a missing profile', async function () {
     MockApiClient.addMockResponse({

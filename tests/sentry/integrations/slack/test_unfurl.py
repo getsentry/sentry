@@ -21,7 +21,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
@@ -212,7 +212,7 @@ class UnfurlTest(TestCase):
         assert (
             unfurls[links[1].url]
             == SlackIssuesMessageBuilder(
-                group2, next(iter(event.build_group_events())), link_to_event=True
+                group2, event.for_group(group2), link_to_event=True
             ).build()
         )
 
@@ -242,10 +242,11 @@ class UnfurlTest(TestCase):
         assert (
             unfurls[links[1].url]
             == SlackIssuesMessageBuilder(
-                group2, next(iter(event.build_group_events())), link_to_event=True
+                group2, event.for_group(group2), link_to_event=True
             ).build()
         )
 
+    @with_feature({"organizations:slack-block-kit": False})
     def test_escape_issue(self):
         # wraps text in markdown code block
         escape_text = "<https://example.com/|*Click Here*>"
@@ -412,7 +413,7 @@ class UnfurlTest(TestCase):
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=Dataset.Metrics,
             time_window=60,
             resolve_threshold=10,
             threshold_period=1,

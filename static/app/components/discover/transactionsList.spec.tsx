@@ -72,10 +72,10 @@ describe('TransactionsList', function () {
         },
       ];
       generateLink = {
-        transaction: (org, row, query) => ({
+        transaction: (org, row) => ({
           pathname: `/${org.slug}`,
           query: {
-            ...query,
+            ...location.query,
             transaction: row.transaction,
             count: row.count,
             'count()': row['count()'],

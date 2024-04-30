@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
-import type {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types/user';
 
 type Props = {
   type: 'system' | 'user';
@@ -56,7 +56,3 @@ const SystemAvatar = styled('span')<SystemAvatarProps>`
 const StyledIconSentry = styled(IconSentry)`
   padding-bottom: 3px;
 `;
-
-const DO_NOT_USE_ACTIVITY_AVATAR = ActivityAvatar;
-
-export default DO_NOT_USE_ACTIVITY_AVATAR;

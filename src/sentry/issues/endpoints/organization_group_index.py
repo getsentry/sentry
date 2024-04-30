@@ -3,6 +3,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
@@ -47,6 +48,17 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
 
 
+# these filters are currently not supported in the snuba only search
+# and will use PostgresSnubaQueryExecutor instead of GroupAttributesPostgresSnubaQueryExecutor
+UNSUPPORTED_SNUBA_FILTERS = [
+    "bookmarked_by",
+    "linked",
+    "subscribed_by",
+    "regressed_in_release",
+    "issue.priority",
+]
+
+
 def inbox_search(
     projects: Sequence[Project],
     environments: Sequence[Environment] | None = None,
@@ -80,9 +92,11 @@ def inbox_search(
         return Paginator(Group.objects.none()).get_result()
 
     # Make sure search terms are valid
-    invalid_search_terms = [
-        str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms
-    ]
+    invalid_search_terms = (
+        [str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms]
+        if search_filters
+        else []
+    )
     if invalid_search_terms:
         raise InvalidSearchQuery(f"Invalid search terms for 'inbox' search: {invalid_search_terms}")
 
@@ -165,12 +179,34 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
-                query_kwargs["referrer"] = "search.group_index"
-                # optional argument to use the group snuba dataset that intentially does not support trends
-                if request.GET.get("useGroupSnubaDataset") and query_kwargs["sort_by"] != "trends":
-                    query_kwargs["use_group_snuba_dataset"] = True
 
-                result = search.query(**query_kwargs)
+                def use_group_snuba_dataset():
+                    # if useGroupSnubaDataset we consider using the snuba dataset
+                    if not request.GET.get("useGroupSnubaDataset"):
+                        return False
+                    # haven't migrated trends
+                    if query_kwargs["sort_by"] == "trends":
+                        return False
+                    # check for unsupported snuba filters
+                    return (
+                        len(
+                            list(
+                                filter(
+                                    lambda x: x.key.name in UNSUPPORTED_SNUBA_FILTERS,
+                                    query_kwargs.get("search_filters", []),
+                                )
+                            )
+                        )
+                        == 0
+                    )
+
+                query_kwargs["referrer"] = "search.group_index"
+                query_kwargs["use_group_snuba_dataset"] = use_group_snuba_dataset()
+                sentry_sdk.set_tag(
+                    "search.use_group_snuba_dataset", query_kwargs["use_group_snuba_dataset"]
+                )
+
+                result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
     @track_slo_response("workflow")
@@ -298,7 +334,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 if groups:
                     return Response(serialize(groups, request.user, serializer(), request=request))
 
-            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup"), query)
+            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup") or "0", query)
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):
@@ -450,9 +486,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        return update_groups(
-            request, request.GET.getlist("id"), projects, organization.id, search_fn
-        )
+        ids = [int(id) for id in request.GET.getlist("id")]
+        return update_groups(request, ids, projects, organization.id, search_fn)
 
     @track_slo_response("workflow")
     def delete(self, request: Request, organization) -> Response:

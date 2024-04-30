@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import configparser
 import os
+import shlex
 import subprocess
 
 from devenv import constants
-from devenv.lib import venv  # type: ignore[attr-defined]
-from devenv.lib import colima, config, limactl, proc, volta
+from devenv.lib import colima, config, limactl, proc, venv, volta
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -34,8 +34,8 @@ def run_procs(
                         **constants.user_environ,
                         **proc.base_env,
                         "VIRTUAL_ENV": venv_path,
-                        "VOLTA_HOME": constants.VOLTA_HOME,
-                        "PATH": f"{venv_path}/bin:{proc.base_path}",
+                        "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
+                        "PATH": f"{venv_path}/bin:{reporoot}/.devenv/bin:{proc.base_path}",
                     },
                     cwd=reporoot,
                 ),
@@ -47,16 +47,15 @@ def run_procs(
         out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
-            out_str = "" if out is None else out.decode()
             print(
                 f"""
 ❌ {name}
 
 failed command (code p.returncode):
-    {proc.quote(final_cmd)}
+    {shlex.join(final_cmd)}
 
 Output:
-{out_str}
+{out.decode()}
 
 """
             )
@@ -70,32 +69,35 @@ def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
 
+    FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
+
+    # venv's still needed for frontend because repo-local devenv and pre-commit
+    # exist inside it
     venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
     url, sha256 = config.get_python(reporoot, python_version)
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    # This is for engineers with existing dev environments transitioning over.
-    # Bootstrap will set devenv-managed volta up but they won't be running
-    # devenv bootstrap, just installing devenv then running devenv sync.
-    # make install-js-dev will fail since our run_procs expects devenv-managed
-    # volta.
-    volta.install()
+    # TODO: move volta version into per-repo config
+    try:
+        volta.install(reporoot)
+    except TypeError:
+        # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
+        volta.install()
 
     if constants.DARWIN:
         repo_config = configparser.ConfigParser()
         repo_config.read(f"{reporoot}/devenv/config.ini")
 
-        # we don't officially support colima on linux yet
-        if constants.CI:
-            # colima 0.6.8 doesn't work with macos-13,
-            # but integration coverage is still handy
+        try:
             colima.install(
-                "v0.6.2",
-                "https://github.com/abiosoft/colima/releases/download/v0.6.2/colima-Darwin-x86_64",
-                "43ef3fc80a8347d51b8ec1706f9caf8863bd8727a6f7532caf1ccd20497d8485",
+                repo_config["colima"]["version"],
+                repo_config["colima"][constants.SYSTEM_MACHINE],
+                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                reporoot,
             )
-        else:
+        except TypeError:
+            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
             colima.install(
                 repo_config["colima"]["version"],
                 repo_config["colima"][constants.SYSTEM_MACHINE],
@@ -103,7 +105,11 @@ def main(context: dict[str, str]) -> int:
             )
 
         # TODO: move limactl version into per-repo config
-        limactl.install()
+        try:
+            limactl.install(reporoot)
+        except TypeError:
+            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
+            limactl.install()
 
     if not run_procs(
         repo,
@@ -111,6 +117,8 @@ def main(context: dict[str, str]) -> int:
         venv_dir,
         (
             ("javascript dependencies", ("make", "install-js-dev")),
+            # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
+            # and pre-commit were moved to inside devenv and not the sentry venv
             ("python dependencies", ("make", "install-py-dev")),
         ),
     ):
@@ -123,7 +131,7 @@ def main(context: dict[str, str]) -> int:
         (
             (
                 "git and precommit",
-                # this can't be done in paralell with python dependencies
+                # this can't be done in parallel with python dependencies
                 # as multiple pips cannot act on the same venv
                 ("make", "setup-git"),
             ),
@@ -136,6 +144,12 @@ def main(context: dict[str, str]) -> int:
     ):
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 
+    # Frontend engineers don't necessarily always have devservices running and
+    # can configure to skip them to save on local resources
+    if FRONTEND_ONLY:
+        print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
+        return 0
+
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
         (
@@ -145,6 +159,7 @@ def main(context: dict[str, str]) -> int:
             "redis",
             "postgres",
         ),
+        pathprepend=f"{reporoot}/.devenv/bin",
         exit=True,
     )
 

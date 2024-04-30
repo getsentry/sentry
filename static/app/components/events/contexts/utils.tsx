@@ -7,24 +7,74 @@ import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
-import type {Event, KeyValueListData} from 'sentry/types';
-import {defined} from 'sentry/utils';
+import type {
+  Event,
+  KeyValueListData,
+  KeyValueListDataItem,
+  Organization,
+  Project,
+} from 'sentry/types';
+import {defined, toTitleCase} from 'sentry/utils';
 
-import {AppEventContext} from './app';
-import {BrowserEventContext} from './browser';
-import {DefaultContext} from './default';
-import {DeviceEventContext} from './device';
-import {GPUEventContext} from './gpu';
-import {MemoryInfoEventContext} from './memoryInfo';
-import {OperatingSystemEventContext} from './operatingSystem';
-import {ProfileEventContext} from './profile';
-import {ReduxContext} from './redux';
-import {RuntimeEventContext} from './runtime';
-import {StateEventContext} from './state';
-import {ThreadPoolInfoEventContext} from './threadPoolInfo';
-import {TraceEventContext} from './trace';
-import {UnityEventContext} from './unity';
-import {UserEventContext} from './user';
+import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
+import {
+  BrowserEventContext,
+  getKnownBrowserContextData,
+  getUnknownBrowserContextData,
+} from './browser';
+import {DefaultContext, getDefaultContextData} from './default';
+import {
+  DeviceEventContext,
+  getKnownDeviceContextData,
+  getUnknownDeviceContextData,
+} from './device';
+import {getKnownGpuContextData, getUnknownGpuContextData, GPUEventContext} from './gpu';
+import {
+  getKnownMemoryInfoContextData,
+  getUnknownMemoryInfoContextData,
+  MemoryInfoEventContext,
+} from './memoryInfo';
+import {
+  getKnownOperatingSystemContextData,
+  getUnknownOperatingSystemContextData,
+  OperatingSystemEventContext,
+} from './operatingSystem';
+import {
+  getKnownProfileContextData,
+  getUnknownProfileContextData,
+  ProfileEventContext,
+} from './profile';
+import {getReduxContextData, ReduxContext} from './redux';
+import {
+  getKnownRuntimeContextData,
+  getUnknownRuntimeContextData,
+  RuntimeEventContext,
+} from './runtime';
+import {
+  getKnownStateContextData,
+  getUnknownStateContextData,
+  StateEventContext,
+} from './state';
+import {
+  getKnownThreadPoolInfoContextData,
+  getUnknownThreadPoolInfoContextData,
+  ThreadPoolInfoEventContext,
+} from './threadPoolInfo';
+import {
+  getKnownTraceContextData,
+  getUnknownTraceContextData,
+  TraceEventContext,
+} from './trace';
+import {
+  getKnownUnityContextData,
+  getUnknownUnityContextData,
+  UnityEventContext,
+} from './unity';
+import {
+  getKnownUserContextData,
+  getUnknownUserContextData,
+  UserEventContext,
+} from './user';
 
 const CONTEXT_TYPES = {
   default: DefaultContext,
@@ -99,23 +149,18 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
+export type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
+
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
-  meta,
-  raw,
   onGetKnownDataDetails,
+  meta,
 }: {
   data: Data;
   knownDataTypes: string[];
-  onGetKnownDataDetails: (props: {data: Data; type: DataType}) =>
-    | {
-        subject: string;
-        value?: React.ReactNode;
-      }
-    | undefined;
+  onGetKnownDataDetails: (props: {data: Data; type: DataType}) => KnownDataDetails;
   meta?: Record<any, any>;
-  raw?: boolean;
 }): KeyValueListData {
   const filteredTypes = knownDataTypes.filter(knownDataType => {
     if (
@@ -142,18 +187,22 @@ export function getKnownData<Data, DataType>({
       return {
         key: type,
         ...knownDataDetails,
-        value: raw ? (
-          knownDataDetails.value
-        ) : (
-          <StructuredEventData
-            data={knownDataDetails.value}
-            meta={meta?.[type]}
-            withAnnotatedText
-          />
-        ),
+        value: knownDataDetails.value,
       };
     })
     .filter(defined);
+}
+
+export function getKnownStructuredData(
+  knownData: KeyValueListData,
+  meta: Record<string, any>
+): KeyValueListData {
+  return knownData.map(kd => ({
+    ...kd,
+    value: (
+      <StructuredEventData data={kd.value} meta={meta?.[kd.key]} withAnnotatedText />
+    ),
+  }));
 }
 
 export function getUnknownData({
@@ -179,6 +228,164 @@ export function getUnknownData({
       subject: startCase(key),
       meta: meta?.[key]?.[''],
     }));
+}
+
+export function getContextTitle({
+  alias,
+  type,
+  value = {},
+}: {
+  alias: string;
+  type: string;
+  value?: Record<string, any>;
+}) {
+  if (defined(value.title) && typeof value.title !== 'object') {
+    return value.title;
+  }
+
+  if (!defined(type)) {
+    return toTitleCase(alias);
+  }
+
+  switch (type) {
+    case 'app':
+      return t('App');
+    case 'device':
+      return t('Device');
+    case 'os':
+      return t('Operating System');
+    case 'user':
+      return t('User');
+    case 'gpu':
+      return t('Graphics Processing Unit');
+    case 'runtime':
+      return t('Runtime');
+    case 'trace':
+      return t('Trace Details');
+    case 'otel':
+      return t('OpenTelemetry');
+    case 'unity':
+      return t('Unity');
+    case 'memory_info': // Current value for memory info
+    case 'Memory Info': // Legacy for memory info
+      return t('Memory Info');
+    case 'threadpool_info': // Current value for thread pool info
+    case 'ThreadPool Info': // Legacy value for thread pool info
+      return t('Thread Pool Info');
+    case 'default':
+      if (alias === 'state') {
+        return t('Application State');
+      }
+      return toTitleCase(alias);
+    default:
+      return toTitleCase(type);
+  }
+}
+
+export function getContextMeta(event: Event, contextType: string): Record<string, any> {
+  const defaultMeta = event._meta?.contexts?.[contextType] ?? {};
+  switch (contextType) {
+    case 'memory_info': // Current
+    case 'Memory Info': // Legacy
+      return event._meta?.contexts?.['Memory Info'] ?? defaultMeta;
+    case 'threadpool_info': // Current
+    case 'ThreadPool Info': // Legacy
+      return event._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
+    case 'user':
+      return event._meta?.user ?? defaultMeta;
+    default:
+      return defaultMeta;
+  }
+}
+
+export function getFormattedContextData({
+  event,
+  contextType,
+  contextValue,
+  organization,
+  project,
+}: {
+  contextType: string;
+  contextValue: any;
+  event: Event;
+  organization: Organization;
+  project?: Project;
+}): KeyValueListData {
+  const meta = getContextMeta(event, contextType);
+
+  switch (contextType) {
+    case 'app':
+      return [
+        ...getKnownAppContextData({data: contextValue, event, meta}),
+        ...getUnknownAppContextData({data: contextValue, meta}),
+      ];
+    case 'device':
+      return [
+        ...getKnownDeviceContextData({data: contextValue, event, meta}),
+        ...getUnknownDeviceContextData({data: contextValue, meta}),
+      ];
+    case 'memory_info': // Current
+    case 'Memory Info': // Legacy
+      return [
+        ...getKnownMemoryInfoContextData({data: contextValue, event, meta}),
+        ...getUnknownMemoryInfoContextData({data: contextValue, meta}),
+      ];
+    case 'browser':
+      return [
+        ...getKnownBrowserContextData({data: contextValue, meta}),
+        ...getUnknownBrowserContextData({data: contextValue, meta}),
+      ];
+    case 'os':
+      return [
+        ...getKnownOperatingSystemContextData({data: contextValue, meta}),
+        ...getUnknownOperatingSystemContextData({data: contextValue, meta}),
+      ];
+    case 'unity':
+      return [
+        ...getKnownUnityContextData({data: contextValue, meta}),
+        ...getUnknownUnityContextData({data: contextValue, meta}),
+      ];
+    case 'runtime':
+      return [
+        ...getKnownRuntimeContextData({data: contextValue, meta}),
+        ...getUnknownRuntimeContextData({data: contextValue, meta}),
+      ];
+    case 'user':
+      return [
+        ...getKnownUserContextData({data: contextValue, meta}),
+        ...getUnknownUserContextData({data: contextValue, meta}),
+      ];
+    case 'gpu':
+      return [
+        ...getKnownGpuContextData({data: contextValue, meta}),
+        ...getUnknownGpuContextData({data: contextValue, meta}),
+      ];
+    case 'trace':
+      return [
+        ...getKnownTraceContextData({data: contextValue, event, meta, organization}),
+        ...getUnknownTraceContextData({data: contextValue, meta}),
+      ];
+    case 'threadpool_info': // Current
+    case 'ThreadPool Info': // Legacy
+      return [
+        ...getKnownThreadPoolInfoContextData({data: contextValue, event, meta}),
+        ...getUnknownThreadPoolInfoContextData({data: contextValue, meta}),
+      ];
+    case 'redux.state':
+      return getReduxContextData({data: contextValue});
+    case 'state':
+      return [
+        ...getKnownStateContextData({data: contextValue, meta}),
+        ...getUnknownStateContextData({data: contextValue, meta}),
+      ];
+    case 'profile':
+      return [
+        ...getKnownProfileContextData({data: contextValue, meta, organization, project}),
+        ...getUnknownProfileContextData({data: contextValue, meta}),
+      ];
+    default:
+      return getDefaultContextData(contextValue);
+  }
 }
 
 const RelativeTime = styled('span')`

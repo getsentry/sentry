@@ -10,6 +10,7 @@ from django.http import QueryDict
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.tasks.common import TimedIterator, to_context_iterator
 from sentry.dynamic_sampling.tasks.constants import MAX_TASK_SECONDS
+from sentry.dynamic_sampling.tasks.logging import log_custom_rule_progress
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
@@ -17,7 +18,7 @@ from sentry.dynamic_sampling.tasks.utils import (
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
@@ -97,7 +98,16 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         referrer="dynamic_sampling.tasks.custom_rule_notifications",
     )
 
-    return result["data"][0]["count"]
+    samples_count = result["data"][0]["count"]
+    log_custom_rule_progress(
+        org_id=rule.organization.id,
+        project_ids=[project.id for project in projects],
+        rule_id=rule.id,
+        samples_count=samples_count,
+        min_samples_count=MIN_SAMPLES_FOR_NOTIFICATION,
+    )
+
+    return samples_count
 
 
 def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None:

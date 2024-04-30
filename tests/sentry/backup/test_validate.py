@@ -792,3 +792,202 @@ def test_good_user_custom_ordinal():
     findings = out.findings
 
     assert len(findings) == 0
+
+
+def test_good_user_option_custom_ordinal():
+    left = json.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "first@example.com",
+                        "name": "",
+                        "email": "first@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.user",
+                    "pk": 2,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "second@example.com",
+                        "name": "",
+                        "email": "second@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 1,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "1"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 2,
+                    "fields": {
+                        "user": 2,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                }
+            ]
+        """
+    )
+
+    # Note that the `user`s of the `useroption` models here are reversed.
+    right = json.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "first@example.com",
+                        "name": "",
+                        "email": "first@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.user",
+                    "pk": 2,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "second@example.com",
+                        "name": "",
+                        "email": "second@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 1,
+                    "fields": {
+                        "user": 2,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 2,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "1"
+                    }
+                }
+            ]
+        """
+    )
+    out = validate(left, right)
+    findings = out.findings
+
+    assert len(findings) == 0
+
+
+# This tests for a prod-only check that is not enumerated in Django: that there can only be one copy
+# of a global option (no org_id/project_id) per key per user.
+def test_good_user_option_duplicate_globals():
+    left = json.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "testing@example.com",
+                        "name": "",
+                        "email": "testing@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 3,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "1"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 5,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 8,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "4"
+                    }
+                }
+            ]
+        """
+    )
+
+    right = json.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "testing@example.com",
+                        "name": "",
+                        "email": "testing@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 11,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 21,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "3"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 22,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "4"
+                    }
+                }
+            ]
+        """
+    )
+    out = validate(left, right)
+    findings = out.findings
+
+    assert len(findings) == 0

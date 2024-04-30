@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Role} from 'sentry/components/acl/role';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
@@ -9,7 +10,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -23,7 +24,7 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
   return (
     <Fragment>
       <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
-        <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
+        <FeedbackItemUsername feedbackIssue={feedbackItem} />
 
         <StyledTimeSince
           date={feedbackItem.firstSeen}
@@ -37,12 +38,19 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
       </Flex>
       <Blockquote>
         <pre>{feedbackItem.metadata.message}</pre>
+
         {eventData && (
-          <ScreenshotSection
-            event={eventData}
-            organization={organization}
-            projectSlug={feedbackItem.project.slug}
-          />
+          <Role organization={organization} role={organization.attachmentsRole}>
+            {({hasRole}) =>
+              hasRole ? (
+                <ScreenshotSection
+                  event={eventData}
+                  organization={organization}
+                  projectSlug={feedbackItem.project.slug}
+                />
+              ) : null
+            }
+          </Role>
         )}
       </Blockquote>
       <Flex justify="flex-end">

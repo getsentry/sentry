@@ -23,7 +23,7 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags, Printer
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
-from sentry.models.files.utils import get_relocation_storage, get_storage
+from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import (
     ControlImportChunk,
     ControlImportChunkReplica,
@@ -98,6 +98,17 @@ class FakeCloudBuildClient:
 class RelocationTaskTestCase(TestCase):
     def setUp(self):
         super().setUp()
+
+        # Create a collision with the org slug we'll be requesting.
+        self.requested_org_slug = "testing"
+        self.existing_org_owner = self.create_user(
+            email="existing_org_owner@example.com",
+            is_superuser=False,
+            is_staff=False,
+            is_active=True,
+        )
+        self.existing_org = self.create_organization(name=self.requested_org_slug)
+
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
@@ -675,12 +686,13 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         # Do a snapshot test of the cloudbuild config.
         cb_conf["steps"][0]["args"][2] = "gs://<BUCKET>/runs/<UUID>/in"
         cb_conf["artifacts"]["objects"]["location"] = "gs://<BUCKET>/runs/<UUID>/findings/"
-        cb_conf["steps"][12]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
+        cb_conf["steps"][11]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
         self.insta_snapshot(cb_conf)
 
         (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
-        assert len(files) == 2
+        assert len(files) == 3
         assert "kms-config.json" in files
+        assert "filter-usernames.txt" in files
         assert "raw-relocation-data.tar" in files
 
         kms_file = self.relocation_storage.open(f"runs/{self.uuid}/in/kms-config.json")
@@ -967,6 +979,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
 
         self.relocation_storage.save(f"runs/{self.uuid}/conf/cloudbuild.yaml", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/conf/cloudbuild.zip", BytesIO())
+        self.relocation_storage.save(f"runs/{self.uuid}/in/filter-usernames.txt", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/kms-config.json", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/raw-relocation-data.tar", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/baseline-config.tar", BytesIO())
@@ -1041,6 +1054,26 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
     ):
         self.relocation_storage.delete(f"runs/{self.uuid}/conf/cloudbuild.zip")
+        self.mock_message_builder(fake_message_builder)
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            preprocessing_complete(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert validating_start_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
+        assert not relocation.failure_reason
+
+    def test_fail_missing_filter_usernames_file(
+        self,
+        validating_start_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation_storage.delete(f"runs/{self.uuid}/in/filter-usernames.txt")
         self.mock_message_builder(fake_message_builder)
 
         # An exception being raised will trigger a retry in celery.
@@ -1469,7 +1502,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
             )
         )
 
-        self.storage = get_storage()
+        self.storage = get_relocation_storage()
         self.storage.save(
             f"runs/{self.uuid}/findings/artifacts-prefixes-are-ignored.json",
             BytesIO(b"invalid-json"),
@@ -1859,11 +1892,20 @@ class NotifyingUsersTest(RelocationTaskTestCase):
                 printer=Printer(),
             )
 
-        self.imported_users = ControlImportChunkReplica.objects.get(
-            import_uuid=self.uuid, model="sentry.user"
+        self.imported_orgs = sorted(
+            RegionImportChunk.objects.get(
+                import_uuid=self.uuid, model="sentry.organization"
+            ).inserted_identifiers.values()
         )
-
-        assert len(self.imported_users.inserted_map) == 2
+        assert len(self.imported_orgs) == 1
+        assert (
+            len(
+                ControlImportChunkReplica.objects.get(
+                    import_uuid=self.uuid, model="sentry.user"
+                ).inserted_map
+            )
+            == 2
+        )
 
     def test_success(
         self,
@@ -1881,8 +1923,8 @@ class NotifyingUsersTest(RelocationTaskTestCase):
                 mock_relocation_email.call_args_list[0][0][0].username,
                 mock_relocation_email.call_args_list[1][0][0].username,
             ]
-            assert mock_relocation_email.call_args_list[0][0][2] == ["testing"]
-            assert mock_relocation_email.call_args_list[1][0][2] == ["testing"]
+            assert sorted(mock_relocation_email.call_args_list[0][0][2]) == self.imported_orgs
+            assert sorted(mock_relocation_email.call_args_list[1][0][2]) == self.imported_orgs
             assert "admin@example.com" in email_targets
             assert "member@example.com" in email_targets
 
@@ -1969,6 +2011,18 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         self.relocation.latest_task = OrderedTask.NOTIFYING_USERS.name
         self.relocation.save()
 
+        RegionImportChunk.objects.create(
+            import_uuid=self.relocation.uuid,
+            model="sentry.organization",
+            min_ordinal=0,
+            max_ordinal=0,
+            min_source_pk=1,
+            max_source_pk=1,
+            inserted_map={1: 1234},
+            inserted_identifiers={1: "testing-ab"},
+        )
+        self.imported_orgs = ["testing-ab"]
+
     def test_success_admin_assisted_relocation(
         self,
         completed_mock: Mock,
@@ -1980,6 +2034,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.succeeded"
+        assert fake_message_builder.call_args.kwargs["context"]["orgs"] == self.imported_orgs
         fake_message_builder.return_value.send_async.assert_called_once_with(
             to=[self.owner.email, self.superuser.email]
         )
@@ -2002,6 +2057,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.succeeded"
+        assert fake_message_builder.call_args.kwargs["context"]["orgs"] == self.imported_orgs
         fake_message_builder.return_value.send_async.assert_called_once_with(to=[self.owner.email])
 
         assert completed_mock.call_count == 1
@@ -2092,7 +2148,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
 
-        self.storage = get_storage()
+        self.storage = get_relocation_storage()
         files = [
             "null.json",
             "import-baseline-config.json",

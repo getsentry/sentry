@@ -15,7 +15,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.models.apikey import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options

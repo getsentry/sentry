@@ -23,7 +23,7 @@ class Buffer(Service):
     keep up with the updates.
     """
 
-    __all__ = ("get", "incr", "process", "process_pending", "validate")
+    __all__ = ("get", "incr", "process", "process_pending", "process_batch", "validate")
 
     def get(
         self,
@@ -35,6 +35,14 @@ class Buffer(Service):
         We can't fetch values from Celery, so just assume buffer values are all 0 here.
         """
         return {col: 0 for col in columns}
+
+    def get_hash(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> dict[str, str]:
+        return {}
+
+    def get_set(self, key: str) -> list[tuple[int, datetime]]:
+        return []
 
     def incr(
         self,
@@ -62,6 +70,9 @@ class Buffer(Service):
         )
 
     def process_pending(self, partition: int | None = None) -> None:
+        return
+
+    def process_batch(self, partition: int | None = None) -> None:
         return
 
     def process(

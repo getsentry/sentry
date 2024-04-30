@@ -12,6 +12,7 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.relay.config.experimental import TimeChecker
 from sentry.relay.config.metric_extraction import (
+    _set_bulk_cached_query_chunk,
     get_current_widget_specs,
     get_metric_extraction_config,
 )
@@ -760,6 +761,29 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Pr
                 ],
             }
         ]
+
+
+@django_db_all
+def test_get_metric_extraction_config_uses_cache_for_widgets(default_project: Project) -> None:
+    # widgets should be skipped if the feature is off
+    original_set_bulk_cached_query = _set_bulk_cached_query_chunk
+
+    with (
+        Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}),
+        override_options({"on_demand_metrics.cache_should_use_on_demand": 1.0}),
+        mock.patch(
+            "sentry.relay.config.metric_extraction._set_bulk_cached_query_chunk"
+        ) as mock_set_cache_chunk_spy,
+    ):
+        mock_set_cache_chunk_spy.side_effect = original_set_bulk_cached_query
+        create_widget(["count()"], "transaction.duration:>=1000", default_project)
+
+        get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+
+        assert mock_set_cache_chunk_spy.call_count == 6  # One for each chunk
+
+        get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+        assert mock_set_cache_chunk_spy.call_count == 6
 
 
 @django_db_all

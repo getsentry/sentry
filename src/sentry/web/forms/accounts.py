@@ -361,6 +361,8 @@ class RelocationForm(forms.Form):
         value = re.sub(r"[ \n\t\r\0]*", "", value)
         if not value:
             return
+        if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
+            raise forms.ValidationError(_("An account is already registered with that username."))
         return value.lower()
 
     def clean_password(self):

@@ -250,6 +250,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=118,
+        name="INTEGRATION_ROTATE_CLIENT_SECRET",
+        api_name="integration.rotate-client-secret",
+        template="rotated a client secret for {status} integration {sentry_app}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=120, name="MONITOR_ADD", api_name="monitor.add", template="Monitor added"
     )
 )
@@ -456,5 +464,13 @@ default_manager.add(
         name="METRIC_TAGS_UNBLOCK",
         api_name="metric.tags.unblock",
         template="unblocked {tags} tags of metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=186,
+        name="ISSUE_DELETE",
+        api_name="issue.delete",
+        template="Deleted issue {issue_id} for project {project_slug}",
     )
 )

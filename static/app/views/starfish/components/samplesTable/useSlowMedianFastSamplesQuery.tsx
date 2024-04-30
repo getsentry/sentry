@@ -6,7 +6,22 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {DataRow} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
+
+type DataRow = {
+  'http.status_code': number;
+  id: string;
+  profile_id: string;
+  project: string;
+  'spans.browser': number;
+  'spans.db': number;
+  'spans.http': number;
+  'spans.resource': number;
+  'spans.ui': number;
+  timestamp: string;
+  trace: string;
+  'transaction.duration': number;
+  'transaction.status': string;
+};
 
 const LIMIT_PER_POPULATION = 2;
 
@@ -29,6 +44,10 @@ export default function useSlowMedianFastSamplesQuery(
   const organization = useOrganization();
 
   const commonColumns: QueryFieldValue[] = [
+    {
+      field: 'trace',
+      kind: 'field',
+    },
     {
       field: 'transaction.duration',
       kind: 'field',

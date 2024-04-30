@@ -72,8 +72,10 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start
+from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
+    UnqualifiedQueryError,
     is_duration_measurement,
     is_measurement,
     is_numeric_measurement,
@@ -88,8 +90,11 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
+    free_text_key = "message"
+    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
+    entity: Entity | None = None
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -194,11 +199,16 @@ class BaseQueryBuilder:
         turbo: bool = False,
         sample_rate: float | None = None,
         array_join: str | None = None,
+        entity: Entity | None = None,
     ):
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
+        if self.builder_config.parser_config_overrides is None:
+            self.builder_config.parser_config_overrides = {}
+        self.builder_config.parser_config_overrides["free_text_key"] = self.free_text_key
+
         self.dataset = dataset
 
         # filter params is the older style params, shouldn't be used anymore
@@ -280,6 +290,7 @@ class BaseQueryBuilder:
             equations=equations,
             orderby=orderby,
         )
+        self.entity = entity
 
     def are_columns_resolved(self) -> bool:
         return self.columns and isinstance(self.columns[0], Function)
@@ -299,13 +310,11 @@ class BaseQueryBuilder:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
         column_name = column_resolver(col)
-
         # If the original column was passed in as tag[X], then there won't be a conflict
         # and there's no need to prefix the tag
         if not col.startswith("tags[") and column_name.startswith("tags["):
             self.prefixed_to_tag_map[f"tags_{col}"] = col
             self.tag_to_prefixed_map[col] = f"tags_{col}"
-
         return column_name
 
     def resolve_query(
@@ -577,13 +586,25 @@ class BaseQueryBuilder:
         if self.end:
             conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
-        conditions.append(
-            Condition(
-                self.column("project_id"),
-                Op.IN,
-                self.params.project_ids,
+        # project_ids is a required column for most datasets, however, Snuba does not
+        # complain on an empty list which results on no data being returned.
+        # This change will prevent calling Snuba when no projects are selected.
+        # Snuba will complain with UnqualifiedQueryError: validation failed for entity...
+        if not self.params.project_ids:
+            # TODO: Fix the tests and always raise the error
+            # In development, we will let Snuba complain about the lack of projects
+            # so the developer can write their tests with a non-empty project list
+            # In production, we will raise an error
+            if not in_test_environment():
+                raise UnqualifiedQueryError("You need to specify at least one project.")
+        else:
+            conditions.append(
+                Condition(
+                    self.column("project_id"),
+                    Op.IN,
+                    self.params.project_ids,
+                )
             )
-        )
 
         if len(self.params.environments) > 0:
             term = event_search.SearchFilter(
@@ -1083,7 +1104,6 @@ class BaseQueryBuilder:
         :param name: The unresolved sentry name.
         :param alias: The expected alias in the result.
         """
-
         # TODO: This method should use an aliased column from the SDK once
         # that is available to skip these hacks that we currently have to
         # do aliasing.
@@ -1109,6 +1129,8 @@ class BaseQueryBuilder:
         :param name: The unresolved sentry name.
         """
         resolved_column = self.resolve_column_name(name)
+        if self.entity:
+            return Column(resolved_column, entity=self.entity)
         return Column(resolved_column)
 
     # Query filter helper methods
@@ -1568,7 +1590,7 @@ class QueryBuilder(BaseQueryBuilder):
                 raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
 
         # Validate event ids, trace ids, and profile ids are uuids
-        if name in {"id", "trace", "profile.id"}:
+        if name in self.uuid_fields:
             if search_filter.value.is_wildcard():
                 raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
@@ -1576,6 +1598,8 @@ class QueryBuilder(BaseQueryBuilder):
                     label = "Filter Trace ID"
                 elif name == "profile.id":
                     label = "Filter Profile ID"
+                elif name == "replay.id":
+                    label = "Filter Replay ID"
                 else:
                     label = "Filter ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))

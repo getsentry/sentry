@@ -1,13 +1,10 @@
-import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   DEFAULT_SORT,
   SORTABLE_FIELDS,
-  SORTABLE_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
 export function useWebVitalsSort({
   sortName = 'sort',
@@ -19,14 +16,11 @@ export function useWebVitalsSort({
   sortableFields?: string[];
 } = {}) {
   const location = useLocation();
-  const shouldUseStoredScores = useStoredScoresSetting();
-  const filteredSortableFields = shouldUseStoredScores
-    ? sortableFields
-    : sortableFields.filter(field => !SORTABLE_SCORE_FIELDS.includes(field));
+  const filteredSortableFields = sortableFields;
 
   const sort =
-    fromSorts(decodeScalar(location.query[sortName])).filter(s =>
-      (filteredSortableFields as unknown as string[]).includes(s.field)
+    decodeSorts(location.query[sortName]).filter(s =>
+      filteredSortableFields.includes(s.field)
     )[0] ?? defaultSort;
 
   return sort;

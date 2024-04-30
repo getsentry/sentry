@@ -1,6 +1,6 @@
-import {Link} from 'react-router';
 import * as qs from 'query-string';
 
+import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -47,7 +47,7 @@ export function SpanDescriptionLink({
           to={normalizeUrl(
             `/organizations/${organization.slug}${routingContext.baseURL}/${
               extractRoute(location) ?? 'spans'
-            }/span/${group}?${qs.stringify(queryString)}`
+            }/span/${group}/?${qs.stringify(queryString)}`
           )}
         >
           {description}

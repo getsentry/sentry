@@ -32,9 +32,10 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
-from sentry.rules.processor import is_condition_slow
+from sentry.rules.processing.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
@@ -372,12 +373,14 @@ A list of actions that take place when all required conditions and filters for t
 - `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
 - `channel_id` (optional) - The ID of the channel to send the notification to.
 - `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `notes` - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
 ```json
 {
     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
     "workspace": 293854098,
     "channel": "#warning",
     "tags": "environment,level"
+    "notes": "Please <http://example.com|click here> for triage information"
 }
 ```
 
@@ -678,7 +681,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="List a Project's Issue Alert Rules",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
@@ -713,7 +716,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         operation_id="Create an Issue Alert Rule for a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectRulesPostSerializer,
         responses={
@@ -822,7 +825,12 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         owner = data.get("owner")
         if owner:
             try:
-                kwargs["owner"] = owner.resolve_to_actor().id
+                kwargs["owner_user_id"] = None
+                kwargs["owner_team_id"] = None
+                if owner.type == User:
+                    kwargs["owner_user_id"] = owner.id
+                if owner.type == Team:
+                    kwargs["owner_team_id"] = owner.id
             except (User.DoesNotExist, Team.DoesNotExist):
                 return Response(
                     "Could not resolve owner",
@@ -857,7 +865,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         alert_rule_created.send_robust(
             user=request.user,
             project=project,
-            rule=rule,
+            rule_id=rule.id,
             rule_type="issue",
             sender=self,
             is_api_token=request.auth is not None,
@@ -869,5 +877,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "organizations:rule-create-edit-confirm-notification", project.organization
         ):
             send_confirmation_notification(rule=rule, new=True)
+            metrics.incr(
+                "rule_confirmation.create.notification.sent",
+                skip_internal=False,
+            )
 
         return Response(serialize(rule, request.user))

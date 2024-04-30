@@ -75,6 +75,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert isinstance(result, RpcImportOk)
@@ -135,6 +136,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert isinstance(result, RpcImportOk)
@@ -171,16 +173,17 @@ class RpcImportRetryTests(TestCase):
 
         # First call returns `None`, but then, by the time we get around to trying to commit the
         # atomic transaction, another mocked concurrent process has written the same chunk. We
-        # should handle this gracefully by going and getting
+        # should handle this gracefully by going and getting that chunk instead.
         def wrapped_get_existing_import_chunk(
             model_name: NormalizedModelName,
             flags: ImportFlags,
             import_chunk_type: type[models.base.Model],
+            min_ordinal: int,
         ) -> RpcImportOk | None:
             nonlocal mock_call_count
             mock_call_count += 1
             if mock_call_count > 1:
-                return get_existing_import_chunk(model_name, flags, import_chunk_type)
+                return get_existing_import_chunk(model_name, flags, import_chunk_type, min_ordinal)
 
             return None
 
@@ -201,11 +204,7 @@ class RpcImportRetryTests(TestCase):
                     max_source_pk=9,
                     min_inserted_pk=123,
                     max_inserted_pk=123,
-                    inserted_map={
-                        "sentry.controloption": {
-                            9: 123,
-                        },
-                    },
+                    inserted_map={9: 123},
                 )
 
             result = import_export_service.import_by_model(
@@ -228,6 +227,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert get_existing_import_chunk_mock.call_count == 2
@@ -272,6 +272,20 @@ class RpcImportErrorTests(TestCase):
     def json_of_exhaustive_user_with_minimum_privileges(self) -> json.JSONData:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
+    def test_bad_invalid_min_ordinal(self):
+        result = import_export_service.import_by_model(
+            model_name=str(USER_MODEL_NAME),
+            scope=RpcImportScope.Global,
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
+            filter_by=[],
+            pk_map=RpcPrimaryKeyMap(),
+            json_data="[]",
+            min_ordinal=0,
+        )
+
+        assert isinstance(result, RpcImportError)
+        assert result.get_kind() == RpcImportErrorKind.InvalidMinOrdinal
+
     def test_bad_unknown_model(self):
         result = import_export_service.import_by_model(
             model_name="sentry.doesnotexist",
@@ -280,6 +294,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -294,6 +309,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -306,6 +322,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -319,6 +336,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -332,6 +350,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="_",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -353,6 +372,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data=json_data,
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -368,6 +388,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data=json_data,
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)

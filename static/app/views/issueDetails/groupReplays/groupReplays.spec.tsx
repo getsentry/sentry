@@ -55,6 +55,7 @@ const mockEventTimestampMs = mockEventTimestamp.getTime();
 // Get replay data with the mocked replay reader params
 const mockReplay = ReplayReader.factory({
   replayRecord: ReplayRecordFixture({
+    id: REPLAY_ID_1,
     browser: {
       name: 'Chrome',
       version: '110.0.0',
@@ -83,7 +84,7 @@ mockUseReplayReader.mockImplementation(() => {
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: REPLAY_ID_1,
-    replayRecord: ReplayRecordFixture(),
+    replayRecord: ReplayRecordFixture({id: REPLAY_ID_1}),
   };
 });
 
@@ -182,7 +183,7 @@ describe('GroupReplays', () => {
               returnIds: true,
               data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
-              statsPeriod: '14d',
+              statsPeriod: '90d',
               project: -1,
             },
           })
@@ -201,6 +202,7 @@ describe('GroupReplays', () => {
                 'count_rage_clicks',
                 'duration',
                 'finished_at',
+                'has_viewed',
                 'id',
                 'is_archived',
                 'os',
@@ -213,7 +215,7 @@ describe('GroupReplays', () => {
               queryReferrer: 'issueReplays',
               query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
               sort: '-started_at',
-              statsPeriod: '14d',
+              statsPeriod: '90d',
             }),
           })
         );
@@ -369,7 +371,7 @@ describe('GroupReplays', () => {
               count_errors: 1,
               duration: 52346,
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
-              id: '346789a703f6454384f1de473b8b9fcc',
+              id: REPLAY_ID_1,
               started_at: new Date('2022-09-15T06:50:00+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/replays/',
@@ -381,7 +383,7 @@ describe('GroupReplays', () => {
               count_errors: 4,
               duration: 400,
               finished_at: new Date('2022-09-21T21:40:38+00:00'),
-              id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
+              id: REPLAY_ID_2,
               started_at: new Date('2022-09-21T21:30:44+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/organizations/org-slug/replays/?project=2&statsPeriod=24h',
@@ -474,7 +476,7 @@ describe('GroupReplays', () => {
               count_errors: 1,
               duration: 52346,
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
-              id: '346789a703f6454384f1de473b8b9fcc',
+              id: REPLAY_ID_1,
               started_at: new Date('2022-09-15T06:50:00+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/replays/',
@@ -486,7 +488,7 @@ describe('GroupReplays', () => {
               count_errors: 4,
               duration: 400,
               finished_at: new Date('2022-09-21T21:40:38+00:00'),
-              id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
+              id: REPLAY_ID_2,
               started_at: new Date('2022-09-21T21:30:44+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/organizations/org-slug/replays/?project=2&statsPeriod=24h',
@@ -516,7 +518,7 @@ describe('GroupReplays', () => {
             returnIds: true,
             data_source: 'discover',
             query: `issue.id:[${mockGroup.id}]`,
-            statsPeriod: '14d',
+            statsPeriod: '90d',
             project: -1,
           },
         })
@@ -527,9 +529,10 @@ describe('GroupReplays', () => {
     // eslint-disable-next-line jest/no-disabled-tests
     it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
       ({router, organization, routerContext} = init({
-        organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
+        organizationProps: {features: ['session-replay']},
       }));
       const mockGroup = GroupFixture();
+      const mockReplayRecord = mockReplay?.getReplay();
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
         url: mockReplayCountUrl,
@@ -547,7 +550,7 @@ describe('GroupReplays', () => {
               count_errors: 1,
               duration: 52346,
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
-              id: '346789a703f6454384f1de473b8b9fcc',
+              id: REPLAY_ID_1,
               started_at: new Date('2022-09-15T06:50:00+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/replays/',
@@ -559,7 +562,7 @@ describe('GroupReplays', () => {
               count_errors: 4,
               duration: 400,
               finished_at: new Date('2022-09-21T21:40:38+00:00'),
-              id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
+              id: REPLAY_ID_2,
               started_at: new Date('2022-09-21T21:30:44+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/organizations/org-slug/replays/?project=2&statsPeriod=24h',
@@ -573,6 +576,10 @@ describe('GroupReplays', () => {
             finished_at: hydrated.finished_at.toString(),
           })),
         },
+      });
+      MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
       });
 
       render(<GroupReplays group={mockGroup} />, {
@@ -589,7 +596,7 @@ describe('GroupReplays', () => {
               returnIds: true,
               data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
-              statsPeriod: '14d',
+              statsPeriod: '90d',
               project: -1,
             },
           })

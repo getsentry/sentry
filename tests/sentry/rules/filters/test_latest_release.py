@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.rules.filters.latest_release import LatestReleaseFilter, get_project_release_cache_key
@@ -7,7 +9,7 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class LatestReleaseFilterTest(RuleTestCase):

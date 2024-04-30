@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
@@ -38,8 +39,8 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/tags/`,
-          title: t('Tags'),
-          description: t("View and manage a  project's tags"),
+          title: t('Tags & Context'),
+          description: t("View and manage a project's tags and context"),
         },
         {
           path: `${pathPrefix}/environments/`,
@@ -81,15 +82,14 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
+          show: () => {
+            // NOTE: both `project` and `options` are non-null here.
+            return 'sentry:reprocessing_active' in (project?.options ?? {});
+          },
           // eslint-disable-next-line @typescript-eslint/no-shadow
           badge: ({project}) => {
-            if (!project) {
-              return null;
-            }
-            if (project.processingIssues <= 0) {
-              return null;
-            }
-            return project.processingIssues > 99 ? '99+' : project.processingIssues;
+            const issues = project?.processingIssues ?? 0;
+            return issues <= 0 ? null : issues > 99 ? '99+' : issues;
           },
         },
         {
@@ -113,11 +113,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/metrics/`,
           title: t('Metrics'),
-          show: () =>
-            !!(
-              organization?.features?.includes('custom-metrics') &&
-              organization?.features?.includes('ddm-ui')
-            ),
+          show: () => !!organization?.features?.includes('custom-metrics'),
         },
         {
           path: `${pathPrefix}/replays/`,

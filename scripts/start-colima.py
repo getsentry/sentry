@@ -36,7 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     HOME = os.path.expanduser("~")
     rc = subprocess.call(
         (
-            f"{HOME}/.local/share/sentry-devenv/bin/colima",
+            "colima",
             "start",
             f"--mount=/var/folders:w,/private/tmp/colima:w,{HOME}:r",
             *args,

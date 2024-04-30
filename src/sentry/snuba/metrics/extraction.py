@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -47,7 +48,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils import metrics
-from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
@@ -59,6 +59,9 @@ OPS_REQUIRE_FEAT_FLAG = {
     "count_unique": SPEC_VERSION_TWO_FLAG,
     "user_misery": SPEC_VERSION_TWO_FLAG,
 }
+
+# Splits the bulk cache for on-demand resolution into N chunks
+WIDGET_QUERY_CACHE_MAX_CHUNKS = 6
 
 
 # This helps us control the different spec versions
@@ -671,15 +674,22 @@ def should_use_on_demand_metrics(
     query: str | None,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
+    organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
 ) -> bool:
     if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
+        if organization_bulk_query_cache is None:
+            organization_bulk_query_cache = defaultdict(dict)
 
         dataset_str = dataset.value if isinstance(dataset, Enum) else str(dataset or "")
         groupbys_str = ",".join(sorted(groupbys)) if groupbys else ""
-        cache_key = md5_text(
+        local_cache_md5 = md5_text(
             f"{dataset_str}-{aggregate}-{query or ''}-{groupbys_str}-prefilling={prefilling}"
-        ).hexdigest()
-        cached_result = cache.get(cache_key)
+        )
+        local_cache_digest_chunk = local_cache_md5.digest()[0] % WIDGET_QUERY_CACHE_MAX_CHUNKS
+        local_cache_key = local_cache_md5.hexdigest()
+        cached_result = organization_bulk_query_cache.get(local_cache_digest_chunk, {}).get(
+            local_cache_key, None
+        )
         if cached_result:
             metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_hit")
             return cached_result
@@ -687,7 +697,7 @@ def should_use_on_demand_metrics(
             logger.info(
                 "should_use_on_demand_metrics.cache_miss",
                 extra={
-                    "cache_key": cache_key,
+                    "cache_key": local_cache_key,
                 },
             )
             result = _should_use_on_demand_metrics(
@@ -698,7 +708,7 @@ def should_use_on_demand_metrics(
                 prefilling=prefilling,
             )
             metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_miss")
-            cache.set(cache_key, result, timeout=5400)
+            organization_bulk_query_cache[local_cache_digest_chunk][local_cache_key] = result
             return result
 
     return _should_use_on_demand_metrics(

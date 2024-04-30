@@ -75,9 +75,7 @@ export function isBreadcrumbFrame(
   return Boolean(frame && 'category' in frame && frame.category !== 'issue');
 }
 
-export function isFeedbackFrame(
-  frame: ReplayFrame | undefined
-): frame is BreadcrumbFrame {
+export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is FeedbackFrame {
   return Boolean(frame && 'category' in frame && frame.category === 'feedback');
 }
 
@@ -227,6 +225,7 @@ export const BreadcrumbCategories = [
   'navigation',
   'replay.init',
   'replay.mutations',
+  'replay.hydrate-error',
   'ui.blur',
   'ui.click',
   'ui.focus',
@@ -245,7 +244,9 @@ export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
 >;
 export type PaintFrame = HydratedSpan<'paint'>;
-export type RequestFrame = HydratedSpan<'resource.fetch' | 'resource.xhr'>;
+export type RequestFrame = HydratedSpan<
+  'resource.fetch' | 'resource.xhr' | 'resource.http'
+>;
 export type ResourceFrame = HydratedSpan<
   | 'resource.css'
   | 'resource.iframe'
@@ -275,6 +276,7 @@ export const SpanOps = [
   'resource.other',
   'resource.script',
   'resource.xhr',
+  'resource.http',
 ];
 
 /**
@@ -336,4 +338,9 @@ export interface VideoEvent {
   duration: number;
   id: number;
   timestamp: number;
+}
+
+export interface ClipWindow {
+  endTimestampMs: number;
+  startTimestampMs: number;
 }

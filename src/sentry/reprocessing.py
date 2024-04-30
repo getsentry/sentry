@@ -15,7 +15,6 @@ SENT_NOTIFICATION_OPTION = "sentry:sent_failed_event_hint"
 logger = logging.getLogger("sentry.events")
 
 
-@sentry_sdk.tracing.trace
 def event_supports_reprocessing(data):
     """Only events of a certain format support reprocessing."""
     from sentry.lang.native.utils import NATIVE_PLATFORMS
@@ -47,6 +46,7 @@ def mark_notification_sent(project_id: int, value: bool):
     ProjectOption.objects.set_value(project_id, SENT_NOTIFICATION_OPTION, value)
 
 
+@sentry_sdk.tracing.trace
 def get_reprocessing_revision(project, cached=True):
     """Returns the current revision of the projects reprocessing config set."""
     from sentry.models.project import Project

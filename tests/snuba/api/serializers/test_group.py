@@ -16,11 +16,10 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import NotificationSettingsOptionEnum
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
@@ -45,13 +44,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["permalink"] is None
-
-    def test_priority_no_ff(self):
-        outside_user = self.create_user()
-        group = self.create_group()
-        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
-        assert "priority" not in result
-        assert "priorityLockedAt" not in result
 
     @with_feature("projects:issue-priority")
     def test_priority_high(self):
@@ -486,7 +478,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 class PerformanceGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     PerformanceIssueTestCase,
 ):
     def test_perf_seen_stats(self):

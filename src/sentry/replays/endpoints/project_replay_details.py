@@ -57,6 +57,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             start=filter_params["start"],
             end=filter_params["end"],
             organization=project.organization,
+            request_user_id=request.user.id,
         )
 
         response = process_raw_response(
@@ -73,7 +74,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         operation_id="Delete a Replay Instance",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ReplayParams.REPLAY_ID,
         ],
         responses={

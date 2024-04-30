@@ -12,11 +12,11 @@ from typing import cast
 from sentry.exceptions import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_EXPRESSION_REGEX,
-    MRI_SCHEMA_REGEX,
     ErrorsMRI,
     SessionMRI,
     SpanMRI,
     TransactionMRI,
+    parse_mri,
 )
 from sentry.snuba.metrics.naming_layer.public import (
     ErrorsMetricKey,
@@ -99,20 +99,17 @@ def is_private_mri(internal_name: TransactionMRI | SessionMRI | str) -> bool:
 
 
 def _extract_name_from_custom_metric_mri(mri: str) -> str | None:
-    match = MRI_SCHEMA_REGEX.match(mri)
-    if match is None:
+    parsed_mri = parse_mri(mri)
+    if parsed_mri is None:
         return None
 
-    entity = match.group("entity")
-    namespace = match.group("namespace")
-
     # Custom metrics are fully custom metrics that the sdks can emit.
-    is_custom_metric = namespace == "custom"
+    is_custom_metric = parsed_mri.namespace == "custom"
     # Custom measurements are a special kind of custom metrics that are more limited and were existing
     # before fully custom metrics.
-    is_custom_measurement = entity == "d" and namespace == "transactions"
+    is_custom_measurement = parsed_mri.entity == "d" and parsed_mri.namespace == "transactions"
     if is_custom_metric or is_custom_measurement:
-        return match.group("name")
+        return parsed_mri.name
 
     return None
 

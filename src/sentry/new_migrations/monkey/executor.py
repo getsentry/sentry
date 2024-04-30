@@ -118,13 +118,14 @@ class SentryMigrationExecutor(MigrationExecutor):
                 _check_bitfield_flags(migration.name, previous_flags, operation.field.flags)
 
     def _check_fake(self, migration: Migration, fake: bool) -> bool:
-        if os.environ.get("MIGRATION_SKIP_DANGEROUS", "0") == "1" and getattr(
-            migration, "is_dangerous", False
+        if os.environ.get("MIGRATION_SKIP_DANGEROUS", "0") == "1" and (
+            getattr(migration, "is_dangerous", False)
+            or getattr(migration, "is_post_deployment", False)
         ):
             # If we plan to skip migrations we just set `fake` to True here. This causes
             # Django to skip running the migration, but records the row as expected.
             fake = True
-            logger.warning("(too dangerous)")
+            logger.warning("(skipping post deploy migration)")
         return fake
 
     def apply_migration(

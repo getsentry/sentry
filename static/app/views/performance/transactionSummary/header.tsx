@@ -4,16 +4,17 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -77,9 +78,7 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
-  const hasAggregateWaterfall = organization.features.includes(
-    'starfish-aggregate-span-waterfall'
-  );
+  const hasAggregateWaterfall = organization.features.includes('spans-first-ui');
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
@@ -110,7 +109,9 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const {getReplayCountForTransaction} = useReplayCountForTransactions();
+  const {getReplayCountForTransaction} = useReplayCountForTransactions({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForTransaction(transactionName);
 
   const hasTransactionSummaryCleanupFlag = organization.features.includes(

@@ -97,7 +97,7 @@ def test_group_creation_race_new(
     def save_event():
         try:
             with patch(
-                "sentry.grouping.ingest._calculate_event_grouping",
+                "sentry.grouping.ingest.hashing._calculate_event_grouping",
                 return_value=hashes,
             ):
                 with patch(

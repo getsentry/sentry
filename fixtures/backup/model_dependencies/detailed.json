@@ -87,6 +87,22 @@
     "table_name": "hybridcloud_apitokenreplica",
     "uniques": []
   },
+  "hybridcloud.controlcacheversion": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "hybridcloud.controlcacheversion",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "hybridcloud_controlcacheversion",
+    "uniques": [
+      [
+        "key"
+      ]
+    ]
+  },
   "hybridcloud.externalactorreplica": {
     "dangling": false,
     "foreign_keys": {
@@ -1732,11 +1748,6 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.docintegration",
         "nullable": false
-      },
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
       }
     },
     "model": "sentry.docintegrationavatar",
@@ -1749,9 +1760,6 @@
     "uniques": [
       [
         "control_file_id"
-      ],
-      [
-        "file_id"
       ],
       [
         "ident"
@@ -2384,6 +2392,16 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.release",
         "nullable": true
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       }
     },
     "model": "sentry.grouphistory",
@@ -2849,6 +2867,11 @@
   "sentry.incident": {
     "dangling": false,
     "foreign_keys": {
+      "activation": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertruleactivations",
+        "nullable": true
+      },
       "alert_rule": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.alertrule",
@@ -3205,6 +3228,11 @@
         "kind": "ImplicitForeignKey",
         "model": "sentry.organization",
         "nullable": false
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       },
       "project_id": {
         "kind": "ImplicitForeignKey",
@@ -4142,39 +4170,6 @@
     ],
     "table_name": "sentry_projectartifactbundle",
     "uniques": []
-  },
-  "sentry.projectavatar": {
-    "dangling": false,
-    "foreign_keys": {
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
-      },
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.projectavatar",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_projectavatar",
-    "uniques": [
-      [
-        "file_id"
-      ],
-      [
-        "ident"
-      ],
-      [
-        "project"
-      ]
-    ]
   },
   "sentry.projectbookmark": {
     "dangling": false,
@@ -5326,9 +5321,14 @@
         "model": "sentry.environment",
         "nullable": true
       },
-      "owner": {
+      "owner_team": {
         "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
         "nullable": true
       },
       "project": {
@@ -5550,11 +5550,6 @@
         "model": "sentry.controlfile",
         "nullable": true
       },
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
-      },
       "sentry_app": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.sentryapp",
@@ -5571,9 +5566,6 @@
     "uniques": [
       [
         "control_file_id"
-      ],
-      [
-        "file_id"
       ],
       [
         "ident"
@@ -5904,39 +5896,6 @@
       ]
     ]
   },
-  "sentry.teamavatar": {
-    "dangling": false,
-    "foreign_keys": {
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
-      },
-      "team": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.team",
-        "nullable": false
-      }
-    },
-    "model": "sentry.teamavatar",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_teamavatar",
-    "uniques": [
-      [
-        "file_id"
-      ],
-      [
-        "ident"
-      ],
-      [
-        "team"
-      ]
-    ]
-  },
   "sentry.teamkeytransaction": {
     "dangling": false,
     "foreign_keys": {
@@ -6031,11 +5990,6 @@
         "model": "sentry.controlfile",
         "nullable": true
       },
-      "file_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.file",
-        "nullable": true
-      },
       "user": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.user",
@@ -6052,9 +6006,6 @@
     "uniques": [
       [
         "control_file_id"
-      ],
-      [
-        "file_id"
       ],
       [
         "ident"
@@ -6100,7 +6051,7 @@
     },
     "model": "sentry.userip",
     "relocation_dependencies": [],
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ],

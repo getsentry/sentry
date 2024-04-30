@@ -1,13 +1,11 @@
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   DEFAULT_INDEXED_INTERACTION_SORT,
   type InteractionSpanSampleRowWithScore,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
-import {
-  type Filters,
-  useIndexedSpans,
-} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 export function useInpSpanSamplesWebVitalsQuery({
@@ -19,7 +17,7 @@ export function useInpSpanSamplesWebVitalsQuery({
 }: {
   limit: number;
   enabled?: boolean;
-  filters?: Filters;
+  filters?: {[key: string]: string[] | string | number | undefined};
   sortName?: string;
   transaction?: string;
 }) {
@@ -30,14 +28,14 @@ export function useInpSpanSamplesWebVitalsQuery({
     sortableFields: filteredSortableFields as unknown as string[],
   });
   const {data, isLoading, ...rest} = useIndexedSpans({
-    filters: {
+    search: MutableSearch.fromQueryObject({
       'span.op': 'ui.interaction.click',
       'measurements.score.weight.inp': '>0',
       ...(transaction !== undefined
         ? {[SpanIndexedField.ORIGIN_TRANSACTION]: transaction}
         : {}),
       ...filters,
-    },
+    }),
     sorts: [sort],
     fields: [
       SpanIndexedField.INP,

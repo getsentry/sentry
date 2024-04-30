@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
@@ -26,9 +26,8 @@ import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -143,6 +142,7 @@ function EventDisplay({
   durationBaseline,
 }: EventDisplayProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
   const {data, isLoading, isError} = useFetchSampleEvents({
@@ -190,6 +190,15 @@ function EventDisplay({
   }
 
   const waterfallModel = new WaterfallModel(eventData);
+  const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
+  const fullEventTarget = generateLinkToEventInTraceView({
+    eventId: eventData.id,
+    projectSlug: project.slug,
+    traceSlug,
+    timestamp: eventData.endTimestamp,
+    location,
+    organization,
+  });
   return (
     <EventDisplayContainer>
       <div>
@@ -219,10 +228,7 @@ function EventDisplay({
             <LinkButton
               title={t('Full Event Details')}
               size={BUTTON_SIZE}
-              to={getTransactionDetailsUrl(
-                organization.slug,
-                generateEventSlug({project: project.slug, id: eventData.id})
-              )}
+              to={fullEventTarget}
               aria-label={t('Full Event Details')}
               icon={<IconOpen />}
             />
@@ -253,12 +259,7 @@ function EventDisplay({
           </div>
         </StyledControlBar>
         <ComparisonContentWrapper>
-          <Link
-            to={getTransactionDetailsUrl(
-              organization.slug,
-              generateEventSlug({project: project.slug, id: selectedEventId})
-            )}
-          >
+          <Link to={fullEventTarget}>
             <MinimapContainer>
               <MinimapPositioningContainer>
                 <ActualMinimap

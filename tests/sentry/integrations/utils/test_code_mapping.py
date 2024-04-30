@@ -8,6 +8,7 @@ from sentry.integrations.utils.code_mapping import (
     FrameFilename,
     Repo,
     RepoTree,
+    UnexpectedPathException,
     UnsupportedFrameFilename,
     convert_stacktrace_frame_path_to_source_path,
     filter_source_code_files,
@@ -127,6 +128,24 @@ class TestFrameFilename:
         for filepath in UNSUPPORTED_FRAME_FILENAMES:
             with pytest.raises(UnsupportedFrameFilename):
                 FrameFilename(filepath)
+
+    @pytest.mark.parametrize(
+        "files,prefixes",
+        [
+            ("FrameFilename('app:///utils/something.py').straight_path_prefix", "app:///"),
+            ("FrameFilename('./app/utils/something.py').straight_path_prefix", "./"),
+            (
+                "FrameFilename('../../../../../../packages/something.py').straight_path_prefix",
+                "../../../../../../",
+            ),
+            (
+                "FrameFilename('app:///../services/something.py').straight_path_prefix",
+                "app:///../",
+            ),
+        ],
+    )
+    def test_straight_path_prefix(self, files, prefixes):
+        assert eval(files) == prefixes
 
 
 class TestDerivedCodeMappings(TestCase):
@@ -315,6 +334,14 @@ class TestDerivedCodeMappings(TestCase):
         stacktrace_root, source_path = find_roots("app:///../services/", "services/")
         assert stacktrace_root == "app:///../"
         assert source_path == ""
+
+    def test_find_roots_bad_stack_path(self):
+        with pytest.raises(UnexpectedPathException):
+            find_roots("https://yrurlsinyourstackpath.com/", "sentry/something.py")
+
+    def test_find_roots_bad_source_path(self):
+        with pytest.raises(UnexpectedPathException):
+            find_roots("sentry/random.py", "nothing/something.js")
 
 
 class TestConvertStacktraceFramePathToSourcePath(TestCase):

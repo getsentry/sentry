@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 import threading
-import types
 from collections.abc import MutableSequence, Sequence
 from typing import NoReturn
 
@@ -329,6 +328,9 @@ def devserver(
             kafka_consumers.add("ingest-monitors")
             kafka_consumers.add("ingest-feedback-events")
 
+            kafka_consumers.add("monitors-clock-tick")
+            kafka_consumers.add("monitors-clock-tasks")
+
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
 
@@ -443,7 +445,6 @@ Alternatively, run without --workers.
     from subprocess import list2cmdline
 
     from honcho.manager import Manager
-    from honcho.printer import Printer
 
     os.environ["PYTHONUNBUFFERED"] = "true"
 
@@ -459,16 +460,13 @@ Alternatively, run without --workers.
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
-    honcho_printer = Printer(prefix=prefix)
+    from sentry.runner.formatting import get_honcho_printer
 
-    if pretty:
-        from sentry.runner.formatting import monkeypatch_honcho_write
-
-        honcho_printer.write = types.MethodType(monkeypatch_honcho_write, honcho_printer)
+    honcho_printer = get_honcho_printer(prefix=prefix, pretty=pretty)
 
     manager = Manager(honcho_printer)
     for name, cmd in daemons:
-        quiet = (
+        quiet = bool(
             name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
             and settings.DEVSERVER_LOGS_ALLOWLIST
         )
@@ -497,7 +495,7 @@ Alternatively, run without --workers.
         for service in control_services:
             name, cmd = _get_daemon(service)
             name = f"control.{name}"
-            quiet = (
+            quiet = bool(
                 name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
                 and settings.DEVSERVER_LOGS_ALLOWLIST
             )

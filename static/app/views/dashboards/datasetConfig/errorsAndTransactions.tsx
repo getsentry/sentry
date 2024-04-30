@@ -18,6 +18,7 @@ import type {
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -428,7 +429,7 @@ function renderTraceAsLinkable(
     String(data.trace),
     dateSelection,
     {},
-    data.timestamp,
+    getTimeStampFromTableDateField(data.timestamp),
     data.id || data.eventID
   );
 

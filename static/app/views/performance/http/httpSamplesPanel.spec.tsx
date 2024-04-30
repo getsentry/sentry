@@ -1,6 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,7 +19,7 @@ jest.mock('sentry/utils/useOrganization');
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let ribbonRequestMock;
+  let eventsRequestMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -54,19 +59,19 @@ describe('HTTPSamplesPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    ribbonRequestMock = MockApiClient.addMockResponse({
+    eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
+          referrer: 'api.performance.http.samples-panel-metrics-ribbon',
         }),
       ],
       body: {
         data: [
           {
             'project.id': 1,
+            'transaction.id': '',
             'spm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
@@ -93,19 +98,19 @@ describe('HTTPSamplesPanel', () => {
     jest.resetAllMocks();
   });
 
-  describe('status panel', () => {
-    let chartRequestMock;
+  describe('Status panel', () => {
+    let eventsStatsRequestMock, samplesRequestMock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
         pathname: '',
         search: '',
         query: {
-          domain: '*.sentry.dev',
           statsPeriod: '10d',
           transaction: '/api/0/users',
           transactionMethod: 'GET',
           panel: 'status',
+          responseCodeClass: '3',
         },
         hash: '',
         state: undefined,
@@ -113,23 +118,61 @@ describe('HTTPSamplesPanel', () => {
         key: '',
       });
 
-      chartRequestMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/`,
+      eventsStatsRequestMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
         method: 'GET',
-
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+            referrer: 'api.performance.http.samples-panel-response-code-chart',
           }),
         ],
-        body: {},
+        body: {
+          '301': {
+            data: [
+              [1699907700, [{count: 7810.2}]],
+              [1699908000, [{count: 1216.8}]],
+            ],
+          },
+          '304': {
+            data: [
+              [1699907700, [{count: 2701.5}]],
+              [1699908000, [{count: 78.12}]],
+            ],
+          },
+        },
+      });
+
+      samplesRequestMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        match: [
+          MockApiClient.matchQuery({
+            referrer: 'api.performance.http.samples-panel-response-code-samples',
+          }),
+        ],
+        body: {
+          data: [
+            {
+              span_id: 'b1bf1acde131623a',
+              trace: '2b60b2eb415c4bfba3efeaf65c21c605',
+              'span.description':
+                'GET https://sentry.io/api/0/organizations/sentry/info/?projectId=1',
+              project: 'javascript',
+              timestamp: '2024-03-25T20:31:36+00:00',
+              'span.status_code': '200',
+              'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+              'span.self_time': 320.300102,
+            },
+          ],
+          meta: {},
+        },
       });
     });
 
     it('fetches panel data', async () => {
       render(<HTTPSamplesPanel />);
 
-      expect(ribbonRequestMock).toHaveBeenNthCalledWith(
+      expect(eventsRequestMock).toHaveBeenNthCalledWith(
         1,
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
@@ -148,31 +191,62 @@ describe('HTTPSamplesPanel', () => {
             ],
             per_page: 50,
             project: [],
-            query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
-            referrer: 'api.starfish.http-module-samples-panel-metrics-ribbon',
+            query: 'span.module:http !has:span.domain transaction:/api/0/users',
+            referrer: 'api.performance.http.samples-panel-metrics-ribbon',
             statsPeriod: '10d',
           },
         })
       );
 
-      expect(chartRequestMock).toHaveBeenNthCalledWith(
+      expect(eventsStatsRequestMock).toHaveBeenNthCalledWith(
+        1,
+        `/organizations/${organization.slug}/events-stats/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: {
+            cursor: undefined,
+            dataset: 'spansMetrics',
+            environment: [],
+            excludeOther: 0,
+            field: ['span.status_code', 'count()'],
+            interval: '30m',
+            orderby: undefined,
+            partial: 1,
+            per_page: 50,
+            project: [],
+            query:
+              'span.module:http !has:span.domain transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308]',
+            referrer: 'api.performance.http.samples-panel-response-code-chart',
+            statsPeriod: '10d',
+            topEvents: '5',
+            yAxis: 'count()',
+          },
+        })
+      );
+
+      expect(samplesRequestMock).toHaveBeenNthCalledWith(
         1,
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
           method: 'GET',
-          query: {
-            dataset: 'spansMetrics',
-            environment: [],
-            field: ['span.status_code', 'count()'],
-            per_page: 50,
-            sort: 'span.status_code',
-            project: [],
+          query: expect.objectContaining({
+            dataset: 'spansIndexed',
             query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
-            referrer: 'api.starfish.http-module-samples-panel-response-bar-chart',
+              'span.module:http transaction:/api/0/users span.status_code:[300,301,302,303,304,305,307,308] ( !has:span.domain OR span.domain:[""] )',
+            project: [],
+            field: [
+              'project',
+              'trace',
+              'transaction.id',
+              'span_id',
+              'timestamp',
+              'span.description',
+              'span.status_code',
+            ],
+            sort: '-span_id',
+            referrer: 'api.performance.http.samples-panel-response-code-samples',
             statsPeriod: '10d',
-          },
+          }),
         })
       );
 
@@ -231,7 +305,7 @@ describe('HTTPSamplesPanel', () => {
         method: 'GET',
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.starfish.http-module-samples-panel-duration-chart',
+            referrer: 'api.performance.http.samples-panel-duration-chart',
           }),
         ],
         body: {data: [[1711393200, [{count: 900}]]]},
@@ -244,6 +318,7 @@ describe('HTTPSamplesPanel', () => {
           data: [
             {
               span_id: 'b1bf1acde131623a',
+              trace: '2b60b2eb415c4bfba3efeaf65c21c605',
               'span.description':
                 'GET https://sentry.io/api/0/organizations/sentry/info/?projectId=1',
               project: 'javascript',
@@ -275,7 +350,7 @@ describe('HTTPSamplesPanel', () => {
             project: [],
             query:
               'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
-            referrer: 'api.starfish.http-module-samples-panel-duration-chart',
+            referrer: 'api.performance.http.samples-panel-duration-chart',
             statsPeriod: '10d',
             yAxis: 'avg(span.self_time)',
           }),
@@ -289,14 +364,19 @@ describe('HTTPSamplesPanel', () => {
           method: 'GET',
           query: expect.objectContaining({
             query:
-              'span.module:http span.domain:"\\*.sentry.dev" transaction:/api/0/users',
+              'span.module:http transaction:/api/0/users span.domain:"\\*.sentry.dev"',
             project: [],
-            additionalFields: ['transaction.id', 'span.description', 'span.status_code'],
+            additionalFields: [
+              'trace',
+              'transaction.id',
+              'span.description',
+              'span.status_code',
+            ],
             lowerBound: 0,
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),
             upperBound: 1000,
-            referrer: 'api.starfish.http-module-samples-panel-samples',
+            referrer: 'api.performance.http.samples-panel-duration-samples',
             statsPeriod: '10d',
           }),
         })
@@ -331,16 +411,28 @@ describe('HTTPSamplesPanel', () => {
       // Samples table
       expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
 
-      expect(screen.getByRole('columnheader', {name: 'Event ID'})).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', {name: 'Span ID'})).toBeInTheDocument();
       expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();
       expect(screen.getByRole('columnheader', {name: 'URL'})).toBeInTheDocument();
 
-      expect(screen.getByRole('cell', {name: '11c910c9'})).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: '11c910c9'})).toHaveAttribute(
+      expect(screen.getByRole('cell', {name: 'b1bf1acde131623a'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48#span-b1bf1acde131623a'
+        '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET'
       );
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
+    });
+
+    it('re-fetches samples', async () => {
+      render(<HTTPSamplesPanel />);
+
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+      expect(samplesRequestMock).toHaveBeenCalledTimes(1);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Try Different Samples'}));
+
+      expect(samplesRequestMock).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -1,6 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -9,7 +9,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -39,7 +39,7 @@ type Props = {
     (
       organization: Organization,
       tableRow: TableDataRow,
-      query: Query
+      location: Location
     ) => LocationDescriptor
   >;
   handleCellAction?: (
@@ -143,7 +143,7 @@ class TransactionsTable extends PureComponent<Props> {
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
       let rendered = fieldRenderer(row, {organization, location});
 
-      const target = generateLink?.[field]?.(organization, row, location.query);
+      const target = generateLink?.[field]?.(organization, row, location);
 
       if (target && !objectIsEmpty(target)) {
         if (fields[index] === 'replayId') {

@@ -1,11 +1,12 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,6 +23,10 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const search = new MutableSearch([]);
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
@@ -38,8 +43,10 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       query: [
         'transaction.op:[pageload,""]',
         'span.op:[ui.interaction.click,""]',
-        ...(transaction ? [`transaction:"${transaction}"`] : []),
-      ].join(' '),
+        search.formatString(),
+      ]
+        .join(' ')
+        .trim(),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),

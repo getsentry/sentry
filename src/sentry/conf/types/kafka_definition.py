@@ -22,7 +22,6 @@ class Topic(Enum):
     EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
-    SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
@@ -43,12 +42,15 @@ class Topic(Enum):
     INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
     INGEST_OCCURRENCES = "ingest-occurrences"
     INGEST_MONITORS = "ingest-monitors"
+    MONITORS_CLOCK_TICK = "monitors-clock-tick"
+    MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
     GROUP_ATTRIBUTES = "group-attributes"
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_SPANS = "snuba-spans"
     BUFFERED_SEGMENTS = "buffered-segments"
+    BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
 
 
 class ConsumerDefinition(TypedDict, total=False):

@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
 from django.utils import timezone
 
@@ -33,12 +34,12 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import (
     APITestCase,
+    BaseMetricsTestCase,
     ReleaseCommitPatchTest,
     SetRefsTestCase,
-    SnubaTestCase,
     TestCase,
 )
 from sentry.testutils.outbox import outbox_runner
@@ -47,10 +48,10 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
-class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
+class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     endpoint = "sentry-api-0-organization-releases"
 
     def assert_expected_versions(self, response, expected):

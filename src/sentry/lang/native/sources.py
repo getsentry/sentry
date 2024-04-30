@@ -229,7 +229,10 @@ def get_internal_source(project: Project):
         get_internal_url_prefix(),
         reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         ),
     )
 
@@ -258,7 +261,7 @@ def get_internal_artifact_lookup_source_url(project: Project):
             "sentry-api-0-project-artifact-lookup",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
             },
         ),
     )
@@ -268,6 +271,7 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
+    verify_ssl = project.get_option("sentry:verify_ssl", True)
 
     allowed_origins = []
     scraping_headers = {}
@@ -283,6 +287,7 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
         "enabled": allow_scraping,
         "headers": scraping_headers,
         "allowed_origins": allowed_origins,
+        "verify_ssl": verify_ssl,
     }
 
 

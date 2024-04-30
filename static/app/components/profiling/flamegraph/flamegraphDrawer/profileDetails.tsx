@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
@@ -14,12 +14,13 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {DeviceContextKey} from 'sentry/types/event';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatVersion} from 'sentry/utils/formatters';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {UseResizableDrawerOptions} from 'sentry/utils/useResizableDrawer';
@@ -256,12 +257,22 @@ function TransactionEventDetails({
   project: Project | undefined;
   transaction: EventTransaction;
 }) {
+  const location = useLocation();
   const transactionDetails = useMemo(() => {
     const profileMetadata = profileGroup.metadata;
 
+    const traceSlug = transaction.contexts?.trace?.trace_id ?? '';
     const transactionTarget =
       transaction.id && project && organization
-        ? getTransactionDetailsUrl(organization.slug, `${project.slug}:${transaction.id}`)
+        ? generateLinkToEventInTraceView({
+            eventId: transaction.id,
+            traceSlug,
+            timestamp: transaction.endTimestamp,
+            projectSlug: project.slug,
+            location,
+            organization,
+            transactionName: transaction.title,
+          })
         : null;
 
     const details: {
@@ -323,7 +334,7 @@ function TransactionEventDetails({
     ];
 
     return details;
-  }, [organization, project, profileGroup, transaction]);
+  }, [organization, project, profileGroup, transaction, location]);
 
   return (
     <DetailsContainer>
@@ -364,6 +375,8 @@ function ProfileEventDetails({
   project: Project | undefined;
   transaction: EventTransaction | null;
 }) {
+  const location = useLocation();
+  const traceSlug = transaction?.contexts?.trace?.trace_id ?? '';
   return (
     <DetailsContainer>
       {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
@@ -387,10 +400,14 @@ function ProfileEventDetails({
         if (key === 'transactionName') {
           const transactionTarget =
             project?.slug && transaction?.id && organization
-              ? getTransactionDetailsUrl(
-                  organization.slug,
-                  `${project.slug}:${transaction.id}`
-                )
+              ? generateLinkToEventInTraceView({
+                  traceSlug,
+                  projectSlug: project.slug,
+                  eventId: transaction.id,
+                  timestamp: transaction.endTimestamp,
+                  location,
+                  organization,
+                })
               : null;
           if (transactionTarget) {
             return (

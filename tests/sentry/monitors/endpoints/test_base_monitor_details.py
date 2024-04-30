@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 
@@ -23,6 +24,7 @@ from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.outcomes import Outcome
 
 
@@ -38,6 +40,21 @@ class BaseMonitorDetailsTest(MonitorTestCase):
 
         resp = self.get_success_response(self.organization.slug, monitor.slug)
         assert resp.data["slug"] == monitor.slug
+
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_simple_with_id(self):
+        monitor = self._create_monitor()
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["slug"] == monitor.slug
+
+        resp = self.get_success_response(self.organization.slug, monitor.guid)
+        assert resp.data["slug"] == monitor.slug
+
+        self.get_error_response(self.organization.slug, "asdf", status_code=404)
+
+        uuid = UUID("00000000-0000-0000-0000-000000000000")
+        self.get_error_response(self.organization.slug, uuid, status_code=404)
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
@@ -158,6 +175,30 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             "brokenNotice": None,
         }
 
+    def test_owner_user(self):
+        monitor = self._create_monitor()
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+
+        assert resp.data["owner"] == {
+            "type": "user",
+            "id": str(self.user.id),
+            "email": self.user.email,
+            "name": self.user.email,
+        }
+
+    def test_owner_team(self):
+        monitor = self._create_monitor(
+            owner_user_id=None,
+            owner_team_id=self.team.id,
+        )
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+
+        assert resp.data["owner"] == {
+            "type": "team",
+            "id": str(self.team.id),
+            "name": self.team.slug,
+        }
+
 
 @freeze_time()
 class BaseUpdateMonitorTest(MonitorTestCase):
@@ -194,6 +235,54 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
+
+    def test_owner(self):
+        monitor = self._create_monitor()
+        assert monitor.owner_user_id == self.user.id
+        assert monitor.owner_team_id is None
+
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"owner": f"team:{self.team.id}"}
+        )
+        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["owner"]["name"] == self.team.name
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.owner_team_id == self.team.id
+        assert monitor.owner_user_id is None
+
+        # Clear owner
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"owner": None}
+        )
+        assert resp.data["owner"] is None
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id is None
+
+        # Validate error cases
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"owner": "invalid"},
+        )
+        assert (
+            resp.data["owner"][0]
+            == "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
+        )
+
+        new_user = self.create_user()
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"owner": f"user:{new_user.id}"},
+        )
+        assert resp.data["owner"][0] == "User is not a member of this organization"
 
     def test_invalid_numeric_slug(self):
         monitor = self._create_monitor()
@@ -688,6 +777,64 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     @patch("sentry.quotas.backend.check_assign_monitor_seat")
     @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_no_activate_if_already_activated(self, assign_monitor_seat, check_assign_monitor_seat):
+        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
+        assign_monitor_seat.return_value = Outcome.ACCEPTED
+
+        monitor = self._create_monitor()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+        assert not assign_monitor_seat.called
+
+    @patch("sentry.quotas.backend.disable_monitor_seat")
+    def test_no_disable_if_already_disabled(self, disable_monitor_seat):
+        monitor = self._create_monitor()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
+        )
+        monitor.update(status=ObjectStatus.DISABLED)
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.DISABLED
+        assert not disable_monitor_seat.called
+
+    @patch("sentry.quotas.backend.update_monitor_slug")
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_update_slug_sends_right_slug_to_assign(
+        self, assign_monitor_seat, check_assign_monitor_seat, update_monitor_slug
+    ):
+        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
+
+        def dummy_assign(monitor):
+            assert monitor.slug == old_slug
+            return Outcome.ACCEPTED
+
+        assign_monitor_seat.side_effect = dummy_assign
+
+        monitor = self._create_monitor()
+        monitor.update(status=ObjectStatus.DISABLED)
+        old_slug = monitor.slug
+        new_slug = "new_slug"
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{"status": "active", "slug": new_slug},
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+        update_call_args = update_monitor_slug.call_args
+        assert update_call_args[0] == (old_slug, new_slug, monitor.project_id)
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_monitor_seat")
     def test_activate_monitor_invalid(self, assign_monitor_seat, check_assign_monitor_seat):
         result = SeatAssignmentResult(
             assignable=False,
@@ -727,7 +874,8 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         self.login_as(user=self.user)
         super().setUp()
 
-    def test_simple(self):
+    @patch("sentry.quotas.backend.update_monitor_slug")
+    def test_simple(self, update_monitor_slug):
         monitor = self._create_monitor()
         old_slug = monitor.slug
 
@@ -742,6 +890,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor.id, model_name="Monitor"
         ).exists()
+        update_monitor_slug.assert_called_once()
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()

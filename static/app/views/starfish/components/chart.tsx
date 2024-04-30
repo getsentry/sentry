@@ -49,7 +49,7 @@ import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -69,12 +69,15 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH]: {
     outputType: 'size',
   },
+  [SpanIndexedField.CACHE_ITEM_SIZE]: {
+    outputType: 'size',
+  },
 };
 
 export enum ChartType {
-  BAR,
-  LINE,
-  AREA,
+  BAR = 0,
+  LINE = 1,
+  AREA = 2,
 }
 
 type Props = {

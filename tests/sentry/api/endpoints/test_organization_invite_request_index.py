@@ -9,7 +9,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils import json
@@ -197,44 +197,44 @@ class OrganizationInviteRequestCreateTest(
                 status_code=201,
             )
 
-        attachment = get_attachment_no_text()
+        blocks, fallback_text = get_blocks_and_fallback_text()
         assert (
-            attachment["text"]
+            fallback_text
             == f"foo@localhost is requesting to invite eric@localhost into {self.organization.name}"
         )
-        notification_uuid = parse_qs(urlparse(attachment["actions"][2]["url"]).query)[
-            "notification_uuid"
-        ][0]
-        assert attachment["actions"] == [
+        query_params = parse_qs(urlparse(blocks[1]["elements"][0]["text"]).query)
+        notification_uuid = query_params["notification_uuid"][0]
+        notification_uuid = notification_uuid.split("|")[
+            0
+        ]  # remove method of hyperlinking in slack
+        assert blocks[2]["elements"] == [
             {
-                "text": "Approve",
-                "name": "Approve",
-                "style": "primary",
                 "type": "button",
+                "text": {"type": "plain_text", "text": "Approve"},
+                "action_id": "approve_request",
                 "value": "approve_member",
-                "action_id": "approve_request",
             },
             {
-                "text": "Reject",
-                "name": "Reject",
-                "style": "danger",
                 "type": "button",
+                "text": {"type": "plain_text", "text": "Reject"},
+                "action_id": "approve_request",
                 "value": "reject_member",
-                "action_id": "approve_request",
             },
             {
-                "text": "See Members & Requests",
-                "name": "See Members & Requests",
-                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}",
                 "type": "button",
+                "text": {"type": "plain_text", "text": "See Members & Requests"},
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}",
+                "value": "link_clicked",
             },
         ]
+        footer = blocks[1]["elements"][0]["text"]
         assert (
-            attachment["footer"]
+            footer
             == f"You are receiving this notification because you have the scope member:write | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         member = OrganizationMember.objects.get(email="eric@localhost")
-        assert json.loads(attachment["callback_id"]) == {
+        data = parse_qs(responses.calls[0].request.body)
+        assert json.loads(data["callback_id"][0]) == {
             "member_id": member.id,
             "member_email": "eric@localhost",
         }

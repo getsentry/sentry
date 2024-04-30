@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
+from typing import Any
 
 import click
 import sentry_sdk
@@ -21,8 +24,7 @@ version_string = sentry.__semantic_version__
     metavar="PATH",
 )
 @click.version_option(version=version_string)
-@click.pass_context
-def cli(ctx, config):
+def cli(config: str) -> None:
     """Sentry is cross-platform crash reporting built with love.
 
     The configuration file is looked up in the `~/.sentry` config
@@ -71,12 +73,15 @@ for cmd in map(
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
         "sentry.runner.commands.openai.openai",
+        "sentry.runner.commands.llm.llm",
     ),
 ):
     cli.add_command(cmd)
 
 
-def make_django_command(name, django_command=None, help=None):
+def make_django_command(
+    name: str, django_command: str | None = None, help: str | None = None
+) -> click.Command:
     "A wrapper to convert a Django subcommand a Click command"
     if django_command is None:
         django_command = name
@@ -89,7 +94,7 @@ def make_django_command(name, django_command=None, help=None):
     )
     @click.argument("management_args", nargs=-1, type=click.UNPROCESSED)
     @click.pass_context
-    def inner(ctx, management_args):
+    def inner(ctx: click.Context, management_args: tuple[str, ...]) -> None:
         from sentry.runner.commands.django import django
 
         ctx.params["management_args"] = (django_command,) + management_args
@@ -101,7 +106,7 @@ def make_django_command(name, django_command=None, help=None):
 cli.add_command(make_django_command("shell", help="Run a Python interactive interpreter."))
 
 
-def configure(*, skip_service_validation: bool = False):
+def configure(*, skip_service_validation: bool = False) -> None:
     """
     Kick things off and configure all the things.
 
@@ -126,7 +131,7 @@ def configure(*, skip_service_validation: bool = False):
     _configure(ctx, py, yaml, skip_service_validation)
 
 
-def get_prog():
+def get_prog() -> str:
     """
     Extract the proper program executable.
 
@@ -145,7 +150,7 @@ class UnknownCommand(ImportError):
     pass
 
 
-def call_command(name, obj=None, **kwargs):
+def call_command(name: str, obj: object = None, **kwargs: Any) -> None:
     try:
         command = import_string(name)
     except (ImportError, AttributeError):
@@ -159,7 +164,7 @@ def call_command(name, obj=None, **kwargs):
             click.echo("Aborted!", err=True)
 
 
-def main():
+def main() -> None:
     func = cli
     kwargs = {
         "prog_name": get_prog(),

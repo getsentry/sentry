@@ -9,22 +9,22 @@ import {
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {
-  GridLineOverlay,
-  GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
-import {SortSelector} from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
-import {useMonitorTimes} from 'sentry/views/monitors/utils/useMonitorDates';
 
-import {TimelineTableRow} from './timelineTableRow';
-import type {MonitorBucketData} from './types';
+import {DateNavigator} from '../timeline/dateNavigator';
+import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
+import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
+import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
+import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
+
+import {OverviewRow} from './overviewRow';
+import {SortSelector} from './sortSelector';
 
 interface Props {
   monitorList: Monitor[];
@@ -40,25 +40,13 @@ export function OverviewTimeline({monitorList}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const {selectionQuery, timeWindowConfig} = useMonitorTimes({timelineWidth});
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const dateNavigation = useDateNavigation();
 
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
-    [
-      monitorStatsQueryKey,
-      {
-        query: {
-          monitor: monitorList.map(m => m.id),
-          ...selectionQuery,
-          ...location.query,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: timelineWidth > 0,
-    }
-  );
+  const {data: monitorStats, isLoading} = useMonitorStats({
+    monitors: monitorList.map(m => m.id),
+    timeWindowConfig,
+  });
 
   const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
     const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
@@ -135,15 +123,32 @@ export function OverviewTimeline({monitorList}: Props) {
   };
 
   return (
-    <MonitorListPanel>
+    <MonitorListPanel role="region">
       <TimelineWidthTracker ref={elementRef} />
       <Header>
-        <HeaderControls>
+        <HeaderControlsLeft>
           <SortSelector size="xs" />
-        </HeaderControls>
-        <GridLineTimeLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="back"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsLeft>
+        <AlignedGridLineLabels
+          timeWindowConfig={timeWindowConfig}
+          width={timelineWidth}
+        />
+        <HeaderControlsRight>
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="forward"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsRight>
       </Header>
-      <GridLineOverlay
+      <AlignedGridLineOverlay
         stickyCursor
         allowZoom
         showCursor={!isLoading}
@@ -151,28 +156,25 @@ export function OverviewTimeline({monitorList}: Props) {
         width={timelineWidth}
       />
 
-      {monitorList.map(monitor => (
-        <TimelineTableRow
-          key={monitor.id}
-          monitor={monitor}
-          timeWindowConfig={timeWindowConfig}
-          bucketedData={monitorStats?.[monitor.id]}
-          width={timelineWidth}
-          onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
-          onToggleMuteEnvironment={(env, isMuted) =>
-            handleToggleMuteEnvironment(monitor, env, isMuted)
-          }
-          onToggleStatus={handleToggleStatus}
-        />
-      ))}
+      <MonitorRows>
+        {monitorList.map(monitor => (
+          <OverviewRow
+            key={monitor.id}
+            monitor={monitor}
+            timeWindowConfig={timeWindowConfig}
+            bucketedData={monitorStats?.[monitor.id]}
+            width={timelineWidth}
+            onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
+            onToggleMuteEnvironment={(env, isMuted) =>
+              handleToggleMuteEnvironment(monitor, env, isMuted)
+            }
+            onToggleStatus={handleToggleStatus}
+          />
+        ))}
+      </MonitorRows>
     </MonitorListPanel>
   );
 }
-
-const MonitorListPanel = styled(Panel)`
-  display: grid;
-  grid-template-columns: 350px 135px 1fr;
-`;
 
 const Header = styled(Sticky)`
   display: grid;
@@ -193,16 +195,46 @@ const Header = styled(Sticky)`
   }
 `;
 
-const HeaderControls = styled('div')`
-  grid-column: 1/3;
-  display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
-`;
-
 const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
   grid-row: 1;
-  grid-column: 3;
+  grid-column: 3/-1;
+`;
+const AlignedGridLineOverlay = styled(GridLineOverlay)`
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+
+const AlignedGridLineLabels = styled(GridLineLabels)`
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+
+const MonitorListPanel = styled(Panel)`
+  display: grid;
+  grid-template-columns: 350px 135px 1fr max-content;
+`;
+
+const MonitorRows = styled('ul')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const HeaderControlsLeft = styled('div')`
+  grid-column: 1/3;
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(0.5)};
+  padding: ${space(1.5)} ${space(2)};
+`;
+
+const HeaderControlsRight = styled('div')`
+  grid-row: 1;
+  grid-column: -1;
+  padding: ${space(1.5)} ${space(2)};
 `;

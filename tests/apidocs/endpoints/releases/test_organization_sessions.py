@@ -1,8 +1,11 @@
+import pytest
 from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.cases import SnubaTestCase
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):

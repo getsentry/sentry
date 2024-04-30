@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from time import time
 from typing import Any
 
@@ -17,7 +17,7 @@ from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.processing import realtime_metrics
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
@@ -85,7 +85,7 @@ def should_demote_symbolication(
 
 def get_symbolication_function_for_platform(
     platform: SymbolicatorPlatform,
-    data: Any,
+    data: Mapping[str, Any],
     stacktraces: list[StacktraceInfo],
 ) -> Callable[[Symbolicator, Any], Any]:
     """Returns the symbolication function for the given platform
@@ -106,7 +106,7 @@ def get_symbolication_function_for_platform(
 
 
 def get_symbolication_platforms(
-    data: Any, stacktraces: list[StacktraceInfo]
+    data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
 ) -> list[SymbolicatorPlatform]:
     """Returns a list of Symbolicator platforms
     that apply to this event."""
@@ -116,7 +116,7 @@ def get_symbolication_platforms(
 
     platforms = []
 
-    if should_use_symbolicator_for_proguard(data.get("project")) and is_jvm_event(
+    if should_use_symbolicator_for_proguard(int(data["project"])) and is_jvm_event(
         data, stacktraces
     ):
         platforms.append(SymbolicatorPlatform.jvm)
@@ -145,6 +145,18 @@ def _do_symbolicate_event(
     if data is None:
         data = processing.event_processing_store.get(cache_key)
 
+    if data is None:
+        metrics.incr(
+            "events.failed", tags={"reason": "cache", "stage": "symbolicate"}, skip_internal=False
+        )
+        error_logger.error("symbolicate.failed.empty", extra={"cache_key": cache_key})
+        return
+
+    data = CanonicalKeyDict(data)
+    event_id = str(data["event_id"])
+    project_id = data["project"]
+    has_changed = False
+
     stacktraces = find_stacktraces_in_data(data)
 
     # Backwards compatibility: If the current platform is JS, we may need to do
@@ -157,18 +169,6 @@ def _do_symbolicate_event(
             symbolicate_platforms = [SymbolicatorPlatform.native]
         else:
             symbolicate_platforms = []
-
-    if data is None:
-        metrics.incr(
-            "events.failed", tags={"reason": "cache", "stage": "symbolicate"}, skip_internal=False
-        )
-        error_logger.error("symbolicate.failed.empty", extra={"cache_key": cache_key})
-        return
-
-    data = CanonicalKeyDict(data)
-    event_id = str(data["event_id"])
-    project_id = data["project"]
-    has_changed = False
 
     set_current_event_project(project_id)
 

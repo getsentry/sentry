@@ -40,6 +40,8 @@ export const enum IssueAlertConditionType {
   EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
   EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
   HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition',
+  NEW_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.NewIssueCondition',
+  EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingIssueCondition',
 }
 
 export const enum IssueAlertFilterType {
@@ -290,4 +292,9 @@ export enum RuleActionsCategories {
 export enum MonitorType {
   CONTINUOUS = 0,
   ACTIVATED = 1,
+}
+
+export enum ActivationConditionType {
+  RELEASE_CREATION = 0,
+  DEPLOY_CREATION = 1,
 }

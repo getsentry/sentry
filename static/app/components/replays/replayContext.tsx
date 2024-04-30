@@ -68,14 +68,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   fastForwardSpeed: number;
 
   /**
-   * Required to be called with a <div> Ref
-   * Represents the location in the DOM where the iframe video should be mounted
-   *
-   * @param _root
-   */
-  initRoot: (root: RootElem) => void;
-
-  /**
    * Set to true while the library is reconstructing the DOM
    */
   isBuffering: boolean;
@@ -99,6 +91,12 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * Whether fast-forward mode is enabled if RRWeb detects idle moments in the video
    */
   isSkippingInactive: boolean;
+
+  /**
+   * Set to true while the current video is loading (this is used
+   * only for video replays and in lieu of `isBuffering`)
+   */
+  isVideoBuffering: boolean;
 
   /**
    * Whether the replay is considered a video replay
@@ -125,6 +123,14 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * Jump the video to a specific time
    */
   setCurrentTime: (time: number) => void;
+
+  /**
+   * Required to be called with a <div> Ref
+   * Represents the location in the DOM where the iframe video should be mounted
+   *
+   * @param root
+   */
+  setRoot: (root: RootElem) => void;
 
   /**
    * Set speed for normal playback
@@ -168,8 +174,8 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   dimensions: {height: 0, width: 0},
   fastForwardSpeed: 0,
   addHighlight: () => {},
-  initRoot: () => {},
   isBuffering: false,
+  isVideoBuffering: false,
   isFetching: false,
   isFinished: false,
   isPlaying: false,
@@ -180,6 +186,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   restart: () => {},
   setCurrentHoverTime: () => {},
   setCurrentTime: () => {},
+  setRoot: () => {},
   setSpeed: () => {},
   setTimelineScale: () => {},
   speed: 1,
@@ -264,11 +271,14 @@ function ProviderNonMemo({
   const [speed, setSpeedState] = useState(savedReplayConfigRef.current.playbackSpeed);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
+  const [isVideoBuffering, setVideoBuffering] = useState(false);
   const playTimer = useRef<number | undefined>(undefined);
   const didApplyInitialOffset = useRef(false);
   const [timelineScale, setTimelineScale] = useState(1);
+  const [rootEl, setRoot] = useState<HTMLDivElement | null>(null);
 
   const durationMs = replay?.getDurationMs() ?? 0;
+  const clipWindow = replay?.getClipWindow() ?? undefined;
   const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
   const videoEvents = replay?.getVideoEvents();
   const startTimestampMs = replay?.getStartTimestampMs();
@@ -279,9 +289,11 @@ function ProviderNonMemo({
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
   };
-  const onFastForwardStart = (e: {speed: number}) => {
-    setFFSpeed(e.speed);
-  };
+  const onFastForwardStart = useCallback((e: {speed: number}) => {
+    if (savedReplayConfigRef.current.isSkippingInactive) {
+      setFFSpeed(e.speed);
+    }
+  }, []);
   const onFastForwardEnd = () => {
     setFFSpeed(0);
   };
@@ -308,10 +320,12 @@ function ProviderNonMemo({
         return;
       }
 
-      const skipInactive = replayer.config;
+      const skipInactive = replayer.config.skipInactive;
+
       if (skipInactive) {
         // If the replayer is set to skip inactive, we should turn it off before
-        // manually scrubbing, so when the player resumes playing its not stuck
+        // manually scrubbing, so when the player resumes playing it's not stuck
+        // fast-forwarding even through sections with activity
         replayer.setConfig({skipInactive: false});
       }
 
@@ -326,9 +340,9 @@ function ProviderNonMemo({
       if (playTimer.current) {
         window.clearTimeout(playTimer.current);
       }
-      if (skipInactive) {
-        replayer.setConfig({skipInactive: true});
-      }
+
+      replayer.setConfig({skipInactive});
+
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
@@ -404,31 +418,6 @@ function ProviderNonMemo({
         }
       }
 
-      // check if this is a video replay and if we can use the video replayer
-      if (isVideoReplay && videoEvents && startTimestampMs) {
-        const inst = new VideoReplayer(videoEvents, {
-          videoApiPrefix: `/api/0/projects/${
-            organization.slug
-          }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
-          root,
-          start: startTimestampMs,
-          onFinished: setReplayFinished,
-          onLoaded: event => {
-            setDimensions({
-              height: event.target.videoHeight,
-              width: event.target.videoWidth,
-            });
-          },
-        });
-        // `.current` is marked as readonly, but it's safe to set the value from
-        // inside a `useEffect` hook.
-        // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-        // @ts-expect-error
-        replayerRef.current = inst;
-        applyInitialOffset();
-        return;
-      }
-
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
@@ -470,17 +459,75 @@ function ProviderNonMemo({
       events,
       hasNewEvents,
       isFetching,
+      organization.features,
+      setReplayFinished,
+      theme.purple200,
+      startTimeOffsetMs,
+      autoStart,
+      onFastForwardStart,
+    ]
+  );
+
+  const initVideoRoot = useCallback(
+    (root: RootElem) => {
+      if (root === null || isFetching) {
+        return null;
+      }
+
+      // check if this is a video replay and if we can use the video replayer
+      if (!isVideoReplay || !videoEvents || !startTimestampMs) {
+        return null;
+      }
+
+      const inst = new VideoReplayer(videoEvents, {
+        videoApiPrefix: `/api/0/projects/${
+          organization.slug
+        }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
+        root,
+        start: startTimestampMs,
+        onFinished: setReplayFinished,
+        onLoaded: event => {
+          const {videoHeight, videoWidth} = event.target;
+          if (!videoHeight || !videoWidth) {
+            return;
+          }
+          setDimensions({
+            height: videoHeight,
+            width: videoWidth,
+          });
+        },
+        onBuffer: buffering => {
+          setVideoBuffering(buffering);
+        },
+        clipWindow,
+        durationMs,
+      });
+      // `.current` is marked as readonly, but it's safe to set the value from
+      // inside a `useEffect` hook.
+      // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
+      // @ts-expect-error
+      replayerRef.current = inst;
+      applyInitialOffset();
+      if (autoStart) {
+        inst.play(startTimeOffsetMs);
+        setIsPlaying(true);
+      }
+      return inst;
+    },
+    [
+      applyInitialOffset,
+      autoStart,
+      isFetching,
       isVideoReplay,
       videoEvents,
-      organization.features,
       organization.slug,
       projectSlug,
       replay,
       setReplayFinished,
       startTimestampMs,
-      theme.purple200,
       startTimeOffsetMs,
-      autoStart,
+      clipWindow,
+      durationMs,
     ]
   );
 
@@ -536,20 +583,53 @@ function ProviderNonMemo({
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') {
+      if (document.visibilityState !== 'visible' && replayerRef.current) {
         togglePlayPause(false);
       }
     };
 
-    if (replayerRef.current && (events || videoEvents)) {
-      initRoot(replayerRef.current.wrapper.parentElement as RootElem);
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [initRoot, events, videoEvents, togglePlayPause]);
+  }, [togglePlayPause]);
+
+  // Initialize replayer for Video Replays
+  useEffect(() => {
+    const instance =
+      isVideoReplay && rootEl && !replayerRef.current && initVideoRoot(rootEl);
+
+    return () => {
+      if (instance && !rootEl) {
+        instance.destroy();
+      }
+    };
+  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents]);
+
+  // For non-video (e.g. rrweb) replays, initialize the player
+  useEffect(() => {
+    if (!isVideoReplay && events) {
+      if (replayerRef.current) {
+        // If it's already been initialized, we still call initRoot, which
+        // should clear out existing dom element
+        initRoot(replayerRef.current.wrapper.parentElement as RootElem);
+      } else if (rootEl) {
+        initRoot(rootEl);
+      }
+    }
+  }, [rootEl, initRoot, events, isVideoReplay]);
+
+  // Clean-up rrweb replayer when root element is unmounted
+  useEffect(() => {
+    return () => {
+      if (rootEl && replayerRef.current) {
+        replayerRef.current.destroy();
+        // @ts-expect-error Cleaning up
+        replayerRef.current = null;
+      }
+    };
+  }, [rootEl]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
@@ -613,8 +693,9 @@ function ProviderNonMemo({
         dimensions,
         fastForwardSpeed,
         addHighlight,
-        initRoot,
-        isBuffering,
+        setRoot,
+        isBuffering: isBuffering && !isVideoReplay,
+        isVideoBuffering,
         isFetching,
         isVideoReplay,
         isFinished,

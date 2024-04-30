@@ -47,6 +47,7 @@ from sentry.models.grouphistory import record_group_history, record_group_histor
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
@@ -212,7 +213,7 @@ class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
     MOST_HELPFUL = [
-        "-replayId",
+        "-replay.id",
         "-profile.id",
         "num_processing_errors",
         "-trace.sampled",
@@ -436,15 +437,6 @@ class GroupManager(BaseManager["Group"]):
             from_substatus == GroupSubStatus.ESCALATING
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
-        logger.info(
-            "group.update_group_status.should_update_priority",
-            extra={
-                "should_update_priority": should_update_priority,
-                "from_substatus": from_substatus,
-                "activity_type": activity_type,
-                "new_substatus": substatus,
-            },
-        )
 
         updated_priority = {}
         for group in selected_groups:
@@ -455,29 +447,6 @@ class GroupManager(BaseManager["Group"]):
                 if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
-
-                    logger.info(
-                        "group.update_group_status.priority_updated",
-                        extra={
-                            "group_id": group.id,
-                            "from_substatus": from_substatus,
-                            "activity_type": activity_type,
-                            "new_substatus": substatus,
-                            "priority": priority,
-                        },
-                    )
-                else:
-                    logger.info(
-                        "group.update_group_status.priority_not_updated",
-                        extra={
-                            "group_id": group.id,
-                            "from_substatus": from_substatus,
-                            "activity_type": activity_type,
-                            "new_substatus": substatus,
-                            "new_priority": priority,
-                            "current_priority": group.priority,
-                        },
-                    )
 
             modified_groups_list.append(group)
 
@@ -494,14 +463,6 @@ class GroupManager(BaseManager["Group"]):
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
-                logger.info(
-                    "group.update_group_status.priority_updated_activity",
-                    extra={
-                        "group_id": group.id,
-                        "priority": updated_priority[group.id],
-                        "group_priority": group.priority,
-                    },
-                )
                 Activity.objects.create_group_activity(
                     group=group,
                     type=ActivityType.SET_PRIORITY,
@@ -879,8 +840,15 @@ class Group(Model):
 
     @property
     def title(self) -> str:
-        et = eventtypes.get(self.get_event_type())()
-        return et.get_title(self.get_event_metadata())
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return event_type_instance.get_title(self.get_event_metadata())
 
     def location(self):
         et = eventtypes.get(self.get_event_type())()
@@ -912,13 +880,14 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self):
+    def count_users_seen(self, referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
             environment_ids=None,
             start=self.first_seen,
             tenant_ids={"organization_id": self.project.organization_id},
+            referrer=referrer,
         )[self.id]
 
     @classmethod

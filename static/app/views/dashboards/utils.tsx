@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import {browserHistory} from 'react-router';
 import {connect} from 'echarts';
 import type {Location, Query} from 'history';
@@ -414,7 +413,7 @@ export function getWidgetMetricsUrl(
   // ensures that My Projects selection is properly handled
   const project = selection.projects.length ? selection.projects : [0];
 
-  const ddmLocation = getMetricsUrl(organization.slug, {
+  const metricsLocation = getMetricsUrl(organization.slug, {
     ...datetime,
     project,
     environment: selection.environments,
@@ -430,7 +429,7 @@ export function getWidgetMetricsUrl(
     }),
   });
 
-  return ddmLocation;
+  return metricsLocation;
 }
 
 export function flattenErrors(
@@ -668,17 +667,4 @@ export function dashboardFiltersToString(
 
 export function connectDashboardCharts(groupName: string) {
   connect?.(groupName);
-}
-
-export function openWidgetPreviewModal(
-  router: InjectedRouter,
-  location: Location,
-  widget: Widget
-) {
-  router.push({
-    pathname: `${location.pathname}${location.pathname.endsWith('/') ? '' : '/'}widget/${
-      widget.id
-    }/`,
-    query: location.query,
-  });
 }
