@@ -216,10 +216,20 @@ def _get_alert_metric_specs(
 
 
 def _get_global_groups(project: Project) -> dict[str, GlobalGroupOverride]:
-    templates: dict[str, GlobalGroupOverride] = {}
-    if features.has("projects:span-metrics-extraction", project):
-        templates["spans_hardcoded"] = {"isEnabled": True}
-    return templates
+    should_extract_span_metrics = features.has("projects:span-metrics-extraction", project)
+    segment_spans_become_transactions = features.has(
+        "projects:extract-transaction-from-segment-span", project
+    )
+
+    return {
+        "spans_hardcoded": {"isEnabled": should_extract_span_metrics},
+        # For compatibility, the metric `d:transactions/measurements.score.total@ratio`
+        # is also extracted from standalone spans. But if we also double-write segment spans to transactions
+        # (and extract transaction metrics for the generated transaction), this duplication becomes unnecessary.
+        "spans_hardcoded_tx": {
+            "isEnabled": should_extract_span_metrics and not segment_spans_become_transactions
+        },
+    }
 
 
 def _bulk_cache_query_key(project: Project, chunk: int) -> str:
