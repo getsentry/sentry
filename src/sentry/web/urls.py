@@ -707,6 +707,12 @@ urlpatterns += [
         react_page_view,
         name="alerts",
     ),
+    # AI Monitoring
+    re_path(
+        r"^ai-monitoring/",
+        react_page_view,
+        name="ai-monitoring",
+    ),
     # Performance
     re_path(
         r"^performance/",
