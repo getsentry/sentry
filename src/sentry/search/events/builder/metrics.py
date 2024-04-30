@@ -593,14 +593,7 @@ class MetricsQueryBuilder(QueryBuilder):
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-
-        # Only spans metrics support MRI prefixes used to route metrics and functions to the correct table
-        prefix = None
-        if self.use_case_id is UseCaseID.SPANS:
-            primary_metric = indexer.reverse_resolve(
-                self.use_case_id, self.organization_id, arguments.get("metric_id")
-            )
-            prefix = primary_metric.split(":")[0] if primary_metric else None
+        prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
 
         if snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
             resolved_function = snql_function.snql_distribution(arguments, alias)
@@ -1329,6 +1322,30 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+    def _get_metric_prefix(
+        self, snql_function: fields.MetricsFunction, column: str | None
+    ) -> str | None:
+        prefix_to_function_map = {
+            "d": snql_function.snql_distribution,
+            "s": snql_function.snql_set,
+            "c": snql_function.snql_counter,
+            "g": snql_function.snql_gauge,
+        }
+
+        use_case_to_metrics_map = {
+            UseCaseID.SPANS: constants.SPAN_METRICS_MAP,
+            UseCaseID.TRANSACTIONS: constants.METRICS_MAP,
+        }
+
+        prefix = None
+        primary_metric = use_case_to_metrics_map[self.use_case_id].get(column)
+        prefix = primary_metric.split(":")[0] if primary_metric else None
+        if prefix is not None and prefix_to_function_map.get(prefix) is None:
+            raise IncompatibleMetricsQuery(
+                "The functions provided do not match the requested metric type"
+            )
+        return prefix
 
 
 class AlertMetricsQueryBuilder(MetricsQueryBuilder):
