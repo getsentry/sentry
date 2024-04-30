@@ -8,15 +8,12 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {Tags} from 'sentry/views/performance/traceDetails/styles';
 
 import {TraceDrawerComponents} from '../../styles';
 
 export function EventTags({
   node,
-  organization,
   event,
-  location,
 }: {
   event: EventTransaction;
   location: Location;
@@ -25,23 +22,9 @@ export function EventTags({
 }) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
-      {organization.features.includes('event-tags-tree-ui') ? (
-        <TagsWrapper>
-          <NewTagsUI event={event} projectSlug={node.value.project_slug} />
-        </TagsWrapper>
-      ) : (
-        <TraceDrawerComponents.Table className="table key-value">
-          <tbody>
-            <Tags
-              enableHiding
-              location={location}
-              organization={organization}
-              tags={event.tags}
-              event={node.value}
-            />
-          </tbody>
-        </TraceDrawerComponents.Table>
-      )}
+      <TagsWrapper>
+        <NewTagsUI event={event} projectSlug={node.value.project_slug} />
+      </TagsWrapper>
     </LazyRender>
   );
 }

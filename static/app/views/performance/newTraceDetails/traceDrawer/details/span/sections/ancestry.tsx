@@ -12,6 +12,7 @@ import {
   isGapSpan,
   scrollToSpan,
 } from 'sentry/components/events/interfaces/spans/utils';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -28,8 +29,7 @@ import type {
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {TraceDrawerComponents} from '../../../../styles';
-import {ButtonGroup} from '..';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 type TransactionResult = {
   id: string;
@@ -65,7 +65,7 @@ function SpanChild({
     'project.name': transactionResult['project.name'],
   });
 
-  const viewChildButton = (
+  const value = (
     <SpanEntryContext.Consumer>
       {({getViewChildTransactionTarget}) => {
         const to = getViewChildTransactionTarget({
@@ -74,7 +74,7 @@ function SpanChild({
         });
 
         if (!to) {
-          return null;
+          return `${transactionResult.transaction} (${transactionResult['project.name']})`;
         }
 
         const target = transactionSummaryRouteWithQuery({
@@ -85,27 +85,20 @@ function SpanChild({
         });
 
         return (
-          <ButtonGroup>
-            <Button data-test-id="view-child-transaction" size="xs" to={to}>
-              {t('View Transaction')}
-            </Button>
+          <SpanChildValueWrapper>
+            <Link data-test-id="view-child-transaction" to={to}>
+              {`${transactionResult.transaction} (${transactionResult['project.name']})`}
+            </Link>
             <Button size="xs" to={target}>
               {t('View Summary')}
             </Button>
-          </ButtonGroup>
+          </SpanChildValueWrapper>
         );
       }}
     </SpanEntryContext.Consumer>
   );
 
-  return (
-    <TraceDrawerComponents.TableRow
-      title={t('Child Transaction')}
-      extra={viewChildButton}
-    >
-      {`${transactionResult.transaction} (${transactionResult['project.name']})`}
-    </TraceDrawerComponents.TableRow>
-  );
+  return value;
 }
 
 function SpanChildrenTraversalButton({
@@ -166,7 +159,7 @@ function SpanChildrenTraversalButton({
   );
 }
 
-export function AncestryAndGrouping({
+export function getSpanAncestryAndGroupingItems({
   node,
   onParentClick,
   location,
@@ -176,56 +169,74 @@ export function AncestryAndGrouping({
   node: TraceTreeNode<TraceTree.Span>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
-}) {
+}): SectionCardKeyValueList {
   const parentTransaction = node.parent_transaction;
   const span = node.value;
-  return (
-    <Fragment>
-      {parentTransaction ? (
-        <TraceDrawerComponents.TableRow title="Parent Transaction">
-          <td className="value">
-            <a href="#" onClick={() => onParentClick(parentTransaction)}>
-              {getTraceTabTitle(parentTransaction)}
-            </a>
-          </td>
-        </TraceDrawerComponents.TableRow>
-      ) : null}
+  const items: SectionCardKeyValueList = [];
 
-      <TraceDrawerComponents.TableRow
-        title={
-          isGapSpan(span) ? (
-            <SpanIdTitle>Span ID</SpanIdTitle>
-          ) : (
-            <SpanIdTitle
-              onClick={scrollToSpan(span.span_id, () => {}, location, organization)}
-            >
-              Span ID
-            </SpanIdTitle>
-          )
-        }
-        extra={<SpanChildrenTraversalButton node={node} organization={organization} />}
-      >
+  if (parentTransaction) {
+    items.push({
+      key: 'parent_transaction',
+      value: (
+        <a href="#" onClick={() => onParentClick(parentTransaction)}>
+          {getTraceTabTitle(parentTransaction)}
+        </a>
+      ),
+      subject: t('Parent Transaction'),
+    });
+  }
+
+  items.push({
+    key: 'span_id',
+    value: (
+      <Fragment>
         {span.span_id}
         <CopyToClipboardButton borderless size="zero" iconSize="xs" text={span.span_id} />
-      </TraceDrawerComponents.TableRow>
-      <TraceDrawerComponents.TableRow title={t('Origin')}>
-        {span.origin !== undefined ? String(span.origin) : null}
-      </TraceDrawerComponents.TableRow>
+      </Fragment>
+    ),
+    subject: (
+      <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
+        <span onClick={scrollToSpan(span.span_id, () => {}, location, organization)}>
+          Span ID
+        </span>
+        <SpanChildrenTraversalButton node={node} organization={organization} />
+      </TraceDrawerComponents.FlexBox>
+    ),
+  });
 
-      <TraceDrawerComponents.TableRow title="Parent Span ID">
-        {span.parent_span_id || ''}
-      </TraceDrawerComponents.TableRow>
-      <SpanChild node={node} organization={organization} location={location} />
-      <TraceDrawerComponents.TableRow title={t('Same Process as Parent')}>
-        {span.same_process_as_parent !== undefined
-          ? String(span.same_process_as_parent)
-          : null}
-      </TraceDrawerComponents.TableRow>
-      <TraceDrawerComponents.TableRow title={t('Span Group')}>
-        {defined(span.hash) ? String(span.hash) : null}
-      </TraceDrawerComponents.TableRow>
-    </Fragment>
-  );
+  items.push({
+    key: 'origin',
+    value: span.origin !== undefined ? String(span.origin) : null,
+    subject: t('Origin'),
+  });
+
+  items.push({
+    key: 'parent_span_id',
+    value: span.parent_span_id || '',
+    subject: t('Parent Span ID'),
+  });
+
+  items.push({
+    key: 'transaction_name',
+    value: <SpanChild node={node} organization={organization} location={location} />,
+    subject: t('Child Transaction'),
+  });
+
+  if (span.same_process_as_parent) {
+    items.push({
+      key: 'same_process_as_parent',
+      value: String(span.same_process_as_parent),
+      subject: t('Same Process as Parent'),
+    });
+  }
+
+  items.push({
+    key: 'same_group',
+    value: defined(span.hash) ? String(span.hash) : null,
+    subject: t('Span Group'),
+  });
+
+  return items;
 }
 
 const StyledDiscoverButton = styled(DiscoverButton)`
@@ -234,17 +245,14 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   right: ${space(0.5)};
 `;
 
-const SpanIdTitle = styled('a')`
-  display: flex;
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
   height: ${space(2)};
   margin: 0;
+`;
+
+const SpanChildValueWrapper = styled(TraceDrawerComponents.FlexBox)`
+  justify-content: space-between;
+  gap: ${space(0.5)};
 `;

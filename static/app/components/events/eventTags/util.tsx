@@ -156,6 +156,7 @@ export function useHasNewTagsUI() {
   const organization = useOrganization();
   return (
     location.query.tagsTree === '1' ||
+    location.query.traceView === '1' ||
     organization.features.includes('event-tags-tree-ui')
   );
 }

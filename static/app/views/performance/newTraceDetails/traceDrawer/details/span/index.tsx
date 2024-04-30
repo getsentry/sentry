@@ -7,6 +7,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -21,7 +22,11 @@ import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
 
 import Alerts from './sections/alerts';
-import SpanNodeDetailTable from './sections/table/index';
+import {SpanDescription} from './sections/description';
+import {GeneralInfo} from './sections/generalInfo';
+import {SpanHTTPInfo} from './sections/http';
+import {SpanKeys} from './sections/keys';
+import {Tags} from './sections/tags';
 
 function SpanNodeDetailHeader({
   node,
@@ -70,6 +75,7 @@ export function SpanNodeDetails({
   onTabScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
+  const location = useLocation();
   const {projects} = useProjects();
   const {event} = node.value;
   const issues = useMemo(() => {
@@ -103,12 +109,22 @@ export function SpanNodeDetails({
                 {issues.length > 0 ? (
                   <IssueList organization={organization} issues={issues} node={node} />
                 ) : null}
-                <SpanNodeDetailTable
-                  node={node}
-                  openPanel="open"
-                  organization={organization}
-                  onParentClick={onParentClick}
-                />
+                <div>
+                  <SpanDescription
+                    node={node}
+                    organization={organization}
+                    location={location}
+                  />
+                  <GeneralInfo
+                    node={node}
+                    organization={organization}
+                    location={location}
+                    onParentClick={onParentClick}
+                  />
+                  <SpanHTTPInfo span={node.value} />
+                  <Tags span={node.value} />
+                  <SpanKeys node={node} />
+                </div>
                 {node.value._metrics_summary ? (
                   <CustomMetricsEventData
                     projectId={project?.id || ''}
