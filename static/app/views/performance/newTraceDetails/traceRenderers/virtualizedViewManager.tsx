@@ -122,6 +122,19 @@ export class VirtualizedViewManager {
   // Smallest of time that can be displayed across the entire view.
   private readonly MAX_ZOOM_PRECISION = 1;
   private readonly ROW_PADDING_PX = 16;
+  private scrollbar_width: number = 0;
+
+  timers: {
+    onRowIntoView: number | null;
+    onScrollEndSync: {id: number} | null;
+    onWheelEnd: number | null;
+    onZoomIntoSpace: number | null;
+  } = {
+    onZoomIntoSpace: null,
+    onWheelEnd: null,
+    onRowIntoView: null,
+    onScrollEndSync: null,
+  };
 
   // Column configuration
   columns: Record<'list' | 'span_list', ViewColumn>;
@@ -301,7 +314,6 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
-  private scrollbar_width: number = 0;
   onScrollbarWidthChange(width: number) {
     if (width === this.scrollbar_width) {
       return;
@@ -483,7 +495,7 @@ export class VirtualizedViewManager {
   onWheel(event: WheelEvent) {
     if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
-      if (!this.onWheelEndRaf) {
+      if (!this.timers.onWheelEnd) {
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
@@ -512,7 +524,7 @@ export class VirtualizedViewManager {
       });
       this.draw();
     } else {
-      if (!this.onWheelEndRaf) {
+      if (!this.timers.onWheelEnd) {
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
@@ -540,9 +552,9 @@ export class VirtualizedViewManager {
   }
 
   onBringRowIntoView(space: [number, number]) {
-    if (this.zoomIntoSpaceRaf !== null) {
-      window.cancelAnimationFrame(this.zoomIntoSpaceRaf);
-      this.zoomIntoSpaceRaf = null;
+    if (this.timers.onZoomIntoSpace !== null) {
+      window.cancelAnimationFrame(this.timers.onZoomIntoSpace);
+      this.timers.onZoomIntoSpace = null;
     }
 
     if (space[0] - this.to_origin > this.trace_view.x) {
@@ -567,7 +579,6 @@ export class VirtualizedViewManager {
     this.draw();
   }
 
-  zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
     let distance_x = space[0] - this.to_origin - this.trace_view.x;
     let final_x = space[0] - this.to_origin;
@@ -603,25 +614,24 @@ export class VirtualizedViewManager {
       this.draw();
 
       if (progress < 1) {
-        this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
+        this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
       } else {
-        this.zoomIntoSpaceRaf = null;
+        this.timers.onZoomIntoSpace = null;
         this.setTraceView({x: final_x, width: final_width});
         this.draw();
       }
     };
 
-    this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
+    this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
   }
 
   resetZoom() {
     this.onZoomIntoSpace([this.to_origin, this.trace_space.width]);
   }
 
-  onWheelEndRaf: number | null = null;
   enqueueOnWheelEndRaf() {
-    if (this.onWheelEndRaf !== null) {
-      window.cancelAnimationFrame(this.onWheelEndRaf);
+    if (this.timers.onWheelEnd !== null) {
+      window.cancelAnimationFrame(this.timers.onWheelEnd);
     }
 
     const start = performance.now();
@@ -630,11 +640,11 @@ export class VirtualizedViewManager {
       if (elapsed > 200) {
         this.onWheelEnd();
       } else {
-        this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
+        this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
       }
     };
 
-    this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
+    this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
   }
 
   onWheelStart() {
@@ -658,7 +668,7 @@ export class VirtualizedViewManager {
   }
 
   onWheelEnd() {
-    this.onWheelEndRaf = null;
+    this.timers.onWheelEnd = null;
 
     for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
       const span_list = this.columns.span_list.column_refs[i];
@@ -754,7 +764,6 @@ export class VirtualizedViewManager {
     }
   }
 
-  syncedRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
     if (!this.scrolling_source) {
       this.scrolling_source = 'list';
@@ -774,9 +783,9 @@ export class VirtualizedViewManager {
       return;
     }
 
-    if (this.bringRowIntoViewAnimation !== null) {
-      window.cancelAnimationFrame(this.bringRowIntoViewAnimation);
-      this.bringRowIntoViewAnimation = null;
+    if (this.timers.onRowIntoView !== null) {
+      window.cancelAnimationFrame(this.timers.onRowIntoView);
+      this.timers.onRowIntoView = null;
     }
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
@@ -828,22 +837,21 @@ export class VirtualizedViewManager {
     return transform;
   }
 
-  scrollEndSyncRaf: {id: number} | null = null;
   enqueueOnScrollEndOutOfBoundsCheck() {
-    if (this.bringRowIntoViewAnimation !== null) {
+    if (this.timers.onRowIntoView !== null) {
       // Dont enqueue updates while view is scrolling
       return;
     }
 
-    window.cancelAnimationFrame(this.scrollEndSyncRaf?.id ?? 0);
+    window.cancelAnimationFrame(this.timers.onScrollEndSync?.id ?? 0);
 
-    this.scrollEndSyncRaf = requestAnimationTimeout(() => {
+    this.timers.onScrollEndSync = requestAnimationTimeout(() => {
       this.onScrollEndOutOfBoundsCheck();
     }, 300);
   }
 
   onScrollEndOutOfBoundsCheck() {
-    this.scrollEndSyncRaf = null;
+    this.timers.onScrollEndSync = null;
     this.scrolling_source = null;
 
     const translation = this.columns.list.translate[0];
@@ -907,7 +915,6 @@ export class VirtualizedViewManager {
     this.animateScrollColumnTo(newTransform, duration);
   }
 
-  bringRowIntoViewAnimation: number | null = null;
   animateScrollColumnTo(x: number, duration: number) {
     const start = performance.now();
 
@@ -948,9 +955,9 @@ export class VirtualizedViewManager {
 
       if (progress < 1) {
         this.columns.list.translate[0] = pos;
-        this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
+        this.timers.onRowIntoView = window.requestAnimationFrame(animate);
       } else {
-        this.bringRowIntoViewAnimation = null;
+        this.timers.onRowIntoView = null;
         if (this.horizontal_scrollbar_container) {
           this.horizontal_scrollbar_container.scrollLeft = -x;
         }
@@ -960,7 +967,7 @@ export class VirtualizedViewManager {
       dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
     };
 
-    this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
+    this.timers.onRowIntoView = window.requestAnimationFrame(animate);
   }
 
   initialize(container: HTMLElement) {
