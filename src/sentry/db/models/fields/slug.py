@@ -32,7 +32,7 @@ class IdOrSlugLookup(Lookup):
             id_column_quoted = '"id"'
             slug_column_quoted = '"slug"'
 
-        if rhs_params and str(rhs_params[0]).isnumeric():
+        if rhs_params and str(rhs_params[0]).isdigit():
             # If numeric, use the 'id' field for comparison
             if table_name:
                 return f"{table_name_quoted}.{id_column_quoted} = {rhs}", rhs_params
