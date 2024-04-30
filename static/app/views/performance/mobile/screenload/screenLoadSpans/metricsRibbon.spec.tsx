@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
@@ -63,11 +64,11 @@ describe('MetricsRibbon', function () {
           'transaction:test-transaction',
         ]}
         blocks={[
-          {dataKey: 'count()', title: 'Count', type: 'count'},
+          {dataKey: 'count()', title: 'Count', unit: 'count'},
           {
             dataKey: 'avg(duration)',
             title: 'Custom Header',
-            type: 'duration',
+            unit: DurationUnit.MILLISECOND,
           },
         ]}
         fields={['count()', 'avg(duration)']}

@@ -103,7 +103,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 "sentry-api-0-project-rules",
                 kwargs={
                     "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             ),
             format="json",
@@ -164,7 +164,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 "sentry-api-0-project-rules",
                 kwargs={
                     "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             ),
             format="json",

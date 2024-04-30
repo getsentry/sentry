@@ -18,7 +18,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {AverageComparisonChart} from 'sentry/views/performance/mobile/appStarts/screens/averageComparisonChart';
 import {CountChart} from 'sentry/views/performance/mobile/appStarts/screens/countChart';
-import {ScreensTable} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
+import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {
   getFreeTextFromQuery,
@@ -237,7 +237,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
           )
         }
       />
-      <ScreensTable
+      <AppStartScreens
         eventView={tableEventView}
         data={topTransactionsData}
         isLoading={topTransactionsLoading}
