@@ -1478,7 +1478,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data == [
             {"count_op(queue.submit.celery)": 1, "count_op(queue.task.celery)": 1},
         ]
-        
+
     def test_project_mapping(self):
         self.store_span_metric(
             1,
