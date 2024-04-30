@@ -10,13 +10,14 @@ type Props = {
   enabled?: boolean;
 };
 
-export function useQueueByTransactionQuery({destination, enabled}: Props) {
+export function useQueuesByTransactionQuery({destination, enabled}: Props) {
   const location = useLocation();
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
   if (destination) {
-    // TODO: This should filter by destination, not transaction
+    // TODO: This should filter by destination, not transaction.
+    // We are using transaction for now as a proxy to demo some functionality until destination becomes a filterable tag.
     mutableSearch.addFilterValue('transaction', destination);
   }
   const response = useSpanMetrics({

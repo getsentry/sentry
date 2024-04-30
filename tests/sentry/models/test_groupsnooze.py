@@ -209,7 +209,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_distinct_counts_totals.call_count == 1
-            assert cache_spy.set.called_with(cache_key, 95, 3600)
+            cache_spy.set.assert_called_with(cache_key, 95, 3600)
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_distinct_counts_totals.call_count == 1
@@ -227,7 +227,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_distinct_counts_totals.call_count == 2
-            assert cache_spy.set.called_with(cache_key, 98, 3600)
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
             assert cache_spy.get(cache_key) == 98
 
             assert snooze.is_valid(test_rates=True)
@@ -258,21 +258,21 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_distinct_counts_totals.call_count == 1
-            assert cache_spy.set.called_with(cache_key, 98, 3600)
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
 
             # simulate cache expiration
             cache_spy.delete(cache_key)
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_distinct_counts_totals.call_count == 2
-            assert cache_spy.set.called_with(cache_key, 99, 3600)
+            cache_spy.set.assert_called_with(cache_key, 99, 3600)
 
             # simulate cache expiration
             cache_spy.delete(cache_key)
 
             assert not snooze.is_valid(test_rates=True)
             assert mocked_get_distinct_counts_totals.call_count == 3
-            assert cache_spy.set.called_with(cache_key, 100, 3600)
+            cache_spy.set.assert_called_with(cache_key, 100, 3600)
 
     def test_test_user_count_w_cache(self):
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100)
@@ -295,7 +295,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 1
-            assert cache_spy.set.called_with(cache_key, 95, 300)
+            cache_spy.set.assert_called_with(cache_key, 95, 3600)
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 1
@@ -313,7 +313,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 2
-            assert cache_spy.set.called_with(cache_key, 98, 300)
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
             assert cache_spy.get(cache_key) == 98
 
             assert snooze.is_valid(test_rates=True)
@@ -331,7 +331,7 @@ class GroupSnoozeTest(
             mock.patch.object(
                 snooze.group,
                 "count_users_seen",
-                side_effect=[95, 98, 100],
+                side_effect=[98, 99, 100],
             ) as mocked_count_users_seen,
             mock.patch.object(
                 sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
@@ -342,21 +342,21 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 1
-            assert cache_spy.set.called_with(cache_key, 98, 300)
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
 
             # simulate cache expiration
             cache_spy.delete(cache_key)
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 2
-            assert cache_spy.set.called_with(cache_key, 99, 300)
+            cache_spy.set.assert_called_with(cache_key, 99, 3600)
 
             # simulate cache expiration
             cache_spy.delete(cache_key)
 
             assert not snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 3
-            assert cache_spy.set.called_with(cache_key, 100, 300)
+            cache_spy.set.assert_called_with(cache_key, 100, 3600)
 
     def test_test_frequency_rates_w_cache(self):
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
@@ -376,7 +376,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_sums.call_count == 1
-            assert cache_spy.set.called_with(cache_key, 95, 3600)
+            cache_spy.set.assert_called_with(cache_key, 95, 3600)
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_sums.call_count == 1
@@ -394,7 +394,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_sums.call_count == 2
-            assert cache_spy.set.called_with(cache_key, 98, 3600)
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
             assert cache_spy.get(cache_key) == 98
 
             assert snooze.is_valid(test_rates=True)
@@ -421,18 +421,18 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_sums.call_count == 1
-            assert cache_spy.set.called_with(cache_key, 98, 3600)
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
 
             # simulate cache expiration
             cache_spy.delete(cache_key)
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_sums.call_count == 2
-            assert cache_spy.set.called_with(cache_key, 99, 3600)
+            cache_spy.set.assert_called_with(cache_key, 99, 3600)
 
             # simulate cache expiration
             cache_spy.delete(cache_key)
 
             assert not snooze.is_valid(test_rates=True)
             assert mocked_get_sums.call_count == 3
-            assert cache_spy.set.called_with(cache_key, 100, 3600)
+            cache_spy.set.assert_called_with(cache_key, 100, 3600)

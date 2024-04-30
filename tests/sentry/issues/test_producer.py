@@ -17,7 +17,6 @@ from sentry.models.grouphistory import STRING_TO_STATUS_LOOKUP, GroupHistory, Gr
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS, GroupSubStatus
@@ -94,24 +93,6 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     )
     @patch("sentry.issues.producer._occurrence_producer.produce")
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    def test_payload_sent_to_kafka(self, mock_produce, mock_prepare_occurrence_message) -> None:
-        occurrence = self.build_occurrence(project_id=self.project.id)
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
-            event_data={},
-        )
-        mock_produce.assert_called_once_with(
-            ArroyoTopic(name="ingest-occurrences"),
-            KafkaPayload(None, json.dumps({"mock_data": "great"}).encode("utf-8"), []),
-        )
-
-    @patch(
-        "sentry.issues.producer._prepare_occurrence_message", return_value={"mock_data": "great"}
-    )
-    @patch("sentry.issues.producer._occurrence_producer.produce")
-    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    @override_options({"issue_platform.use_kafka_partition_key.rollout": 1.0})
     def test_payload_sent_to_kafka_with_partition_key(
         self, mock_produce, mock_prepare_occurrence_message
     ) -> None:
@@ -135,7 +116,6 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     )
     @patch("sentry.issues.producer._occurrence_producer.produce")
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    @override_options({"issue_platform.use_kafka_partition_key.rollout": 1.0})
     def test_payload_sent_to_kafka_with_partition_key_no_fingerprint(
         self, mock_produce, mock_prepare_occurrence_message
     ) -> None:
@@ -155,7 +135,6 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     )
     @patch("sentry.issues.producer._occurrence_producer.produce")
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    @override_options({"issue_platform.use_kafka_partition_key.rollout": 1.0})
     def test_payload_sent_to_kafka_with_partition_key_no_occurrence(
         self, mock_produce, mock_prepare_occurrence_message
     ) -> None:

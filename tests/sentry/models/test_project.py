@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
-from sentry.models.actor import Actor
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -267,7 +266,6 @@ class ProjectTest(APITestCase, TestCase):
         assert EnvironmentProject.objects.count() == 1
         assert snuba_query.environment != environment
         assert alert_rule.organization_id == to_org.id
-        assert alert_rule.owner is None
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
 
@@ -380,7 +378,7 @@ class ProjectTest(APITestCase, TestCase):
 
         rule = Rule.objects.create(project=self.project, label="issa rule", owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
-            organization=self.organization, owner=Actor.objects.get(team_id=team.id)
+            organization=self.organization, owner=ActorTuple.from_id(user_id=None, team_id=team.id)
         )
         self.project.remove_team(team)
 
@@ -391,7 +389,6 @@ class ProjectTest(APITestCase, TestCase):
         alert_rule.refresh_from_db()
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
-        assert alert_rule.owner_id is None
 
 
 class CopyProjectSettingsTest(TestCase):

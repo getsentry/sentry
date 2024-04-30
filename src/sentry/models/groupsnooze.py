@@ -207,7 +207,7 @@ class GroupSnooze(Model):
 
         threshold = self.user_count + users_seen
 
-        CACHE_TTL = 300  # Redis TTL in seconds
+        CACHE_TTL = 3600  # Redis TTL in seconds
 
         cached_event_count: int | float = float("inf")  # using +inf as a sentinel value
         try:
