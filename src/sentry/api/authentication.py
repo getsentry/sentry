@@ -281,8 +281,8 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 
     def authenticate(self, request: Request):
 
-        client_id = request.data.get("client_id")
-        client_secret = request.data.get("client_secret")
+        client_id = request.POST.get("client_id")
+        client_secret = request.POST.get("client_secret")
 
         invalid_pair_error = AuthenticationFailed("Invalid Client ID / Secret pair")
 
