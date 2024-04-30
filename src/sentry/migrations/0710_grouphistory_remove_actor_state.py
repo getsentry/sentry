@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0708_rule_remove_owner_state"),
+        ("sentry", "0709_alertrule_remove_owner_state"),
     ]
 
     operations = [
