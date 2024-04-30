@@ -523,7 +523,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             assert len(event["errors"]) == 1
             assert event["errors"][0]["event_id"] == error.event_id
             assert event["errors"][0]["issue_id"] == error.group_id
-            assert event["errors"][0]["message"] == error.message
+            assert event["errors"][0]["message"] == error.search_message
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -555,6 +555,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } == response.data["orphan_errors"][0]
 
     def test_with_one_orphan_error(self):
@@ -1114,6 +1115,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         }
         data1 = {
             "event_id": error1.event_id,
@@ -1126,6 +1128,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         }
         assert data in gen1_event["errors"]
         assert data1 in gen1_event["errors"]
@@ -1180,6 +1183,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } == response.data["orphan_errors"][1]
         assert {
             "event_id": error1.event_id,
@@ -1192,6 +1196,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         } == response.data["orphan_errors"][0]
 
     def test_with_only_orphan_errors_with_different_span_ids(self):
@@ -1236,6 +1241,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } in response.data["orphan_errors"]
         assert {
             "event_id": error1.event_id,
@@ -1248,6 +1254,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         } in response.data["orphan_errors"]
 
     def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
@@ -1294,6 +1301,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } in response.data["orphan_errors"]
 
     def test_with_default(self):
@@ -1320,6 +1328,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(default_event.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": default_event.search_message,
         } in root_event["errors"]
 
     def test_pruning_root(self):
