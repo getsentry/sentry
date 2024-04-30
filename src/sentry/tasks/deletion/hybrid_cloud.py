@@ -391,7 +391,8 @@ def get_ids_cross_db_for_row_watermark(
 
     object_ids_to_check = fk_to_model_id_map.keys()
     tombstone_entries = tombstone_cls.objects.filter(
-        object_identifier__in=object_ids_to_check
+        object_identifier__in=object_ids_to_check,
+        table_name=field.foreign_table_name,
     ).values_list("object_identifier", "created_at")
 
     affected_rows: list[int] = []
