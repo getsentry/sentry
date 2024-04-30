@@ -1005,11 +1005,11 @@ def process_replay_link(job: PostProcessJob) -> None:
         kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
     except ValueError:
         metrics.incr("post_process.process_replay_link.id_invalid")
-    else:
-        publisher.publish(
-            "ingest-replay-events",
-            json.dumps(kafka_payload),
-        )
+
+    publisher.publish(
+        "ingest-replay-events",
+        json.dumps(kafka_payload),
+    )
 
 
 def process_rules(job: PostProcessJob) -> None:
