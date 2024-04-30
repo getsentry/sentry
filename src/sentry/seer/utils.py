@@ -31,27 +31,27 @@ class BreakpointResponse(TypedDict):
     data: list[BreakpointData]
 
 
-seer_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
+seer_grouping_connection_pool = connection_from_url(
+    settings.SEER_GROUPING_URL,
     retries=Retry(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_GROUPING_TIMEOUT,
 )
 
-seer_staging_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL,
+seer_breakpoint_connection_pool = connection_from_url(
+    settings.SEER_BREAKPOINT_DETECTION_URL,
     retries=Retry(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_BREAKPOINT_DETECTION_TIMEOUT,
 )
 
 
 def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
-    response = seer_connection_pool.urlopen(
+    response = seer_breakpoint_connection_pool.urlopen(
         "POST",
         "/trends/breakpoint-detector",
         body=json.dumps(breakpoint_request),
@@ -107,7 +107,7 @@ def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> SimilarIssuesEmbeddingsResponse:
     """Call /v0/issues/similar-issues endpoint from seer."""
-    response = seer_staging_connection_pool.urlopen(
+    response = seer_grouping_connection_pool.urlopen(
         "POST",
         "/v0/issues/similar-issues",
         body=json.dumps(similar_issues_request),

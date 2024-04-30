@@ -16,7 +16,7 @@ from sentry.snuba.metrics_enhanced_performance import timeseries_query
 from sentry.utils import json
 
 ads_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
+    settings.SEER_ANOMALY_DETECTION_URL,
     retries=Retry(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],

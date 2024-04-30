@@ -3711,15 +3711,25 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # constraints instead of setting the column to not null.
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
-ANOMALY_DETECTION_URL = "http://127.0.0.1:9091"
-ANOMALY_DETECTION_TIMEOUT = 30
+SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
+SEER_DEFAULT_TIMEOUT = 5
 
-# TODO: Once this moves to its own service, this URL will need to be updated
-SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
-SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
-SEVERITY_DETECTION_RETRIES = 1
+SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
-SEER_AUTOFIX_URL = ANOMALY_DETECTION_URL  # In local development this is the same as ANOMALY_DETECTION_URL, for prod check getsentry.
+SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
+SEER_SEVERITY_RETRIES = 1
+
+SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_AUTOFIX_TIMEOUT = 5
+
+SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_GROUPING_TIMEOUT = 1
+
+SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_ANOMALY_DETECTION_TIMEOUT = 5
+
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")

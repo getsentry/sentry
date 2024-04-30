@@ -30,7 +30,7 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
-from sentry.conf.server import SEVERITY_DETECTION_RETRIES
+from sentry.conf.server import SEER_SEVERITY_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -2228,8 +2228,8 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEVERITY_DETECTION_URL,
-    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+    settings.SEER_SEVERITY_URL,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
 
@@ -2446,7 +2446,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             with metrics.timer(op):
                 timeout = options.get(
                     "issues.severity.seer-timout",
-                    settings.SEVERITY_DETECTION_TIMEOUT / 1000,
+                    settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
                 response = severity_connection_pool.urlopen(
                     "POST",
@@ -2460,8 +2460,8 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         except MaxRetryError as e:
             logger.warning(
                 "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEVERITY_DETECTION_RETRIES,
-                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                SEER_SEVERITY_RETRIES,
+                "ies" if SEER_SEVERITY_RETRIES > 1 else "y",
                 repr(e.reason),
                 extra=logger_data,
             )
