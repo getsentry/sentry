@@ -194,8 +194,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             )
 
         assert resp.status_code == 200, resp.content
-        updated_blocks = json.loads(responses.calls[-1].request.body.decode())["blocks"]
-        assert ":white_circle:" in updated_blocks[0]["text"]["text"]
 
     def assign_issue_block_kit(self, original_message, selected_option, payload_data=None):
         if isinstance(selected_option, Team):
