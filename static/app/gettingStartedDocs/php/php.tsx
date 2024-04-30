@@ -10,6 +10,7 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportPHPInstallStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -44,16 +45,6 @@ try {
 } catch (\\Throwable $exception) {
   \\Sentry\\captureException($exception);
 }`;
-
-const getMetricsVerifySnippet = () => `
-use function \\Sentry\\metrics;
-
-// Add 4 to a counter named 'hits'
-metrics()->increment('hits', 4);
-metrics()->flush();
-
-// We recommend registering the flushing in a shutdownhandler
-register_shutdown_function(static fn () => metrics()->flush());`;
 
 const onboarding: OnboardingConfig = {
   install: params => [
@@ -190,10 +181,28 @@ const customMetricsOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'PHP',
-              value: 'php',
+              label: 'Counter',
+              value: 'counter',
               language: 'php',
-              code: getMetricsVerifySnippet(),
+              code: exampleSnippets.php.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'php',
+              code: exampleSnippets.php.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'php',
+              code: exampleSnippets.php.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'php',
+              code: exampleSnippets.php.gauge,
             },
           ],
         },

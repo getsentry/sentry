@@ -65,6 +65,7 @@ const getConfigureMetricsSnippetObjC = (params: Params) => `
 const getVerifyMetricsSnippetSwift = () => `
 import Sentry
 
+// Incrementing a counter by one for each button click.
 SentrySDK.metrics
     .increment(key: "button_login_click",
                value: 1.0,
@@ -74,6 +75,7 @@ SentrySDK.metrics
 const getVerifyMetricsSnippetObjC = () => `
 @import Sentry;
 
+// Incrementing a counter by one for each button click.
 [SentrySDK.metrics
     incrementWithKey :@"button_login_click"
     value: 1.0
