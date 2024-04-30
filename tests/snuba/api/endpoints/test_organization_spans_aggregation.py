@@ -566,7 +566,7 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo"},
+                data={"transaction": "api/0/foo", "forceNodestore": "true"},
                 format="json",
             )
 
@@ -621,7 +621,7 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo"},
+                data={"transaction": "api/0/foo", "forceNodestore": "true"},
                 format="json",
             )
 
@@ -662,7 +662,7 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "http.method": "GET"},
+                data={"transaction": "api/0/foo", "http.method": "GET", "forceNodestore": "true"},
                 format="json",
             )
 
@@ -675,7 +675,7 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "http.method": "POST"},
+                data={"transaction": "api/0/foo", "http.method": "POST", "forceNodestore": "true"},
                 format="json",
             )
 
@@ -704,6 +704,7 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
                 data={
                     "transaction": "api/0/foo",
                     "environment": ["production", "development"],
+                    "forceNodestore": "true",
                 },
                 format="json",
             )

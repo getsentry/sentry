@@ -345,8 +345,10 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
+        force_nodestore = request.query_params.get("forceNodestore") == "true"
+
         start = params["start"]
-        if start and start < CUTOVER_DATE:
+        if start and start < CUTOVER_DATE or force_nodestore:
             backend = "nodestore"
         else:
             backend = "indexedSpans"
