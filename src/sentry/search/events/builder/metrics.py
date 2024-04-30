@@ -1326,6 +1326,12 @@ class MetricsQueryBuilder(QueryBuilder):
     def _get_metric_prefix(
         self, snql_function: fields.MetricsFunction, column: str | None
     ) -> str | None:
+        if self.use_metrics_layer or self.use_case_id not in {
+            UseCaseID.SPANS,
+            UseCaseID.TRANSACTIONS,
+        }:
+            return None
+
         prefix_to_function_map = {
             "d": snql_function.snql_distribution,
             "s": snql_function.snql_set,
@@ -1333,13 +1339,13 @@ class MetricsQueryBuilder(QueryBuilder):
             "g": snql_function.snql_gauge,
         }
 
-        use_case_to_metrics_map = {
+        metrics_map = {
             UseCaseID.SPANS: constants.SPAN_METRICS_MAP,
             UseCaseID.TRANSACTIONS: constants.METRICS_MAP,
         }
 
         prefix = None
-        primary_metric = use_case_to_metrics_map[self.use_case_id].get(column)
+        primary_metric = metrics_map[self.use_case_id].get(column)
         prefix = primary_metric.split(":")[0] if primary_metric else None
         if prefix is not None and prefix_to_function_map.get(prefix) is None:
             raise IncompatibleMetricsQuery(
