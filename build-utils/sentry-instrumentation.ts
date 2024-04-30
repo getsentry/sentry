@@ -139,7 +139,11 @@ class SentryInstrumentation {
           startTime,
         });
 
-    this.Sentry?.withActiveSpan(span || null, () => {
+    if (!span) {
+      return;
+    }
+
+    this.Sentry.withActiveSpan(span, () => {
       this.Sentry?.startInactiveSpan({
         op: 'build',
         name: 'webpack build',
@@ -156,7 +160,7 @@ class SentryInstrumentation {
       }).end(endTime);
     });
 
-    span?.end();
+    span.end();
   }
 
   apply(compiler: webpack.Compiler) {
