@@ -23,6 +23,13 @@ import {getTotalsView} from '../utils';
 
 import SpanSummaryControls from './spanSummaryControls';
 import SpanSummaryHeader from './spanSummaryHeader';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {t} from 'sentry/locale';
 
 type Props = {
   eventView: EventView;
@@ -96,10 +103,38 @@ type ContentProps = {
   organization: Organization;
   project: Project | undefined;
   spanSlug: SpanSlug;
+  transactionName: string;
 };
 
 function SpanSummaryContent(props: ContentProps) {
-  const {location, organization, eventView, project} = props;
+  const {location, organization, eventView, project, transactionName} = props;
+
+  const {spanSlug: spanParam} = useParams();
+  const [spanOp, groupId] = spanParam.split(':');
+
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    'span.op': spanOp,
+    transaction: transactionName,
+  };
+
+  const {
+    isLoading: isSpanHeaderDataLoading,
+    data: spanHeaderData,
+    isError,
+  } = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: ['span.description', 'avg(span.self_time)', 'sum(span.self_time)', 'count()'],
+    enabled: Boolean(groupId),
+    referrer: 'api.starfish.span-summary-page',
+  });
+
+  console.dir(spanHeaderData);
+
+  const description = spanHeaderData[0]?.['span.description'] ?? t('unknown');
+  const timeSpent = spanHeaderData[0]?.['sum(span.self_time)'];
+  const avgDuration = spanHeaderData[0]?.['avg(span.self_time)'];
+  const spanCount = spanHeaderData[0]?.['count()'];
 
   return (
     <Fragment>
@@ -110,7 +145,15 @@ function SpanSummaryContent(props: ContentProps) {
           eventView={eventView}
         />
       </Feature>
-      <SpanSummaryHeader />
+      <SpanSummaryHeader
+        spanOp={spanOp}
+        groupId={groupId}
+        transactionName={transactionName}
+        spanDescription={description}
+        avgDuration={avgDuration}
+        timeSpent={timeSpent}
+        spanCount={spanCount}
+      />
       <SpanSummaryCharts />
       <SpanSummaryTable project={project} />
     </Fragment>

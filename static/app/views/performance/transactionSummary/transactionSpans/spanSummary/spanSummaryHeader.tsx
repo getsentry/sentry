@@ -15,45 +15,33 @@ import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
-export default function SpanSummaryHeader() {
-  // const {spanSlug, suspectSpan, totalCount} = props;
+type Props = {
+  spanOp: string;
+  groupId: string;
+  transactionName: string;
+  spanDescription: string;
+  avgDuration: number;
+  timeSpent: number;
+  spanCount: number;
+};
 
-  const {spanSlug} = useParams();
-  const [spanOp, groupId] = spanSlug.split(':');
-
-  const location = useLocation();
-  const {transaction} = location.query;
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
-
-  const filters: SpanMetricsQueryFilters = {
-    'span.group': groupId,
-    'span.op': spanOp,
-    transaction: transaction as string,
-  };
-
+export default function SpanSummaryHeader(props: Props) {
   const {
-    isLoading: isDataLoading,
-    data,
-    error,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: ['span.description', 'avg(span.self_time)', 'sum(span.self_time)', 'count()'],
-    enabled: Boolean(groupId),
-    cursor,
-    referrer: 'api.starfish.span-summary-page',
-  });
-
-  const description = data[0]?.['span.description'] ?? t('unknown');
-  const sumExclusiveTime = data[0]?.['sum(span.self_time)'];
-  const avgDuration = data[0]?.['avg(span.self_time)'];
-  const spanCount = data[0]?.['count()'];
+    groupId,
+    spanOp,
+    transactionName,
+    spanDescription,
+    avgDuration,
+    timeSpent,
+    spanCount,
+  } = props;
 
   return (
     <ContentHeader>
       <HeaderInfo data-test-id="header-operation-name">
         <StyledSectionHeading>{t('Span')}</StyledSectionHeading>
         <SectionBody>
-          <SpanLabelContainer>{description ?? emptyValue}</SpanLabelContainer>
+          <SpanLabelContainer>{spanDescription ?? emptyValue}</SpanLabelContainer>
         </SectionBody>
         <SectionSubtext data-test-id="operation-name">{spanOp}</SectionSubtext>
       </HeaderInfo>
@@ -68,8 +56,8 @@ export default function SpanSummaryHeader() {
       <HeaderInfo data-test-id="header-total-exclusive-time">
         <StyledSectionHeading>{t('Time Spent')}</StyledSectionHeading>
         <SectionBody>
-          {defined(sumExclusiveTime) ? (
-            <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />
+          {defined(timeSpent) ? (
+            <PerformanceDuration abbreviation milliseconds={timeSpent} />
           ) : (
             '\u2014'
           )}
