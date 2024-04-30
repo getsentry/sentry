@@ -18,7 +18,6 @@ from sentry.integrations.message_builder import (
     build_footer,
     format_actor_option,
     format_actor_options,
-    get_color,
     get_title_link,
 )
 from sentry.integrations.slack.message_builder import (
@@ -375,7 +374,6 @@ def build_actions(
     group: Group,
     project: Project,
     text: str,
-    color: str,
     actions: Sequence[MessageAction] | None = None,
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
@@ -429,7 +427,7 @@ def build_actions(
         if a is not None
     ]
 
-    return action_list, text, color
+    return action_list, text, ""
 
 
 class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
@@ -488,7 +486,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
-        color = get_color(event_for_tags, self.notification, self.group)
         footer = (
             self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
             if self.notification and self.recipient
@@ -500,11 +497,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, action_text, color = build_actions(
-                self.group, project, text, color, self.actions, self.identity
+            payload_actions, action_text, action_level = build_actions(
+                self.group, project, text, self.actions, self.identity
             )
         else:
             payload_actions = []
+            action_level = None
 
         rule_id = None
         if self.rules:
@@ -527,15 +525,22 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
+        # if issue is resolved, archived, or assigned, replace circle emojis with white circle
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
                     level_text = k
 
-            title_emoji = LEVEL_TO_EMOJI.get(level_text)
+            title_emoji = (
+                LEVEL_TO_EMOJI.get(action_level) if action_level else LEVEL_TO_EMOJI.get(level_text)
+            )
         else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            if action_level:
+                title_emoji = action_level + " " + title_emojis[-1]
+            else:
+                title_emoji = " ".join(title_emojis)
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
