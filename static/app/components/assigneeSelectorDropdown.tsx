@@ -181,26 +181,43 @@ function AssigneeSelectorDropdown({
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const {mutate} = useMutation<AssignableEntity, RequestError, AssignableEntity>({
-    mutationFn: async (newAssignee: AssignableEntity): Promise<AssignableEntity> => {
+  const {mutate: handleAssigneeChange} = useMutation<
+    AssignableEntity | null,
+    RequestError,
+    AssignableEntity | null
+  >({
+    mutationFn: async (
+      newAssignee: AssignableEntity | null
+    ): Promise<AssignableEntity | null> => {
+      setIsLoading(true);
+      if (newAssignee === null) {
+        await clearAssignment(group.id, organization.slug, 'assignee_selector');
+        return Promise.resolve(null);
+      }
+
       await assignToActor({
         id: group.id,
         orgSlug: organization.slug,
         actor: {id: newAssignee.id, type: newAssignee.type},
         assignedBy: 'assignee_selector',
       });
-      return await Promise.resolve(newAssignee);
+      return Promise.resolve(newAssignee);
     },
-    onSuccess: async (newAssignee: AssignableEntity) => {
-      if (onAssign) {
+    onSuccess: async (newAssignee: AssignableEntity | null) => {
+      if (!newAssignee && onClear) {
+        onClear();
+      }
+      if (newAssignee && onAssign) {
         const suggestedAssignee = getSuggestedAssignees().find(
           actor => actor.type === newAssignee.type && actor.id === newAssignee.id
         );
         await onAssign(newAssignee.type, newAssignee.assignee, suggestedAssignee);
       }
+      setIsLoading(false);
     },
     onError: () => {
       addErrorMessage('Failed to updated assignee');
+      setIsLoading(false);
     },
   });
 
@@ -297,12 +314,10 @@ function AssigneeSelectorDropdown({
       }));
   };
 
-  const handleSelect = async (selectedOption: SelectOption<string> | null) => {
+  const handleSelect = (selectedOption: SelectOption<string> | null) => {
     // selectedOption is falsey when the option selected is already selected
     if (!selectedOption) {
-      setIsLoading(true);
-      await handleClear();
-      setIsLoading(false);
+      handleAssigneeChange(null);
       return;
     }
     // See makeMemberOption and makeTeamOption for how the value is formatted
@@ -313,9 +328,7 @@ function AssigneeSelectorDropdown({
         : selectedOption.value.split('TEAM_')[1];
 
     if (group.assignedTo && assigneeId === group.assignedTo?.id) {
-      setIsLoading(true);
-      await handleClear();
-      setIsLoading(false);
+      handleAssigneeChange(null);
       return;
     }
 
@@ -328,18 +341,8 @@ function AssigneeSelectorDropdown({
         assignableTeam => assignableTeam.team.id === assigneeId
       ) as AssignableTeam;
     }
-    setIsLoading(true);
-    await mutate({assignee: assignee, id: assigneeId, type: type});
-    setIsLoading(false);
-  };
 
-  const handleClear = async () => {
-    // TODO(msun): Move this to useMutate
-    await clearAssignment(group.id, organization.slug, 'assignee_selector');
-
-    if (onClear) {
-      onClear();
-    }
+    handleAssigneeChange({assignee: assignee, id: assigneeId, type: type});
   };
 
   const makeMemberOption = (
@@ -525,7 +528,7 @@ function AssigneeSelectorDropdown({
             ? `${group.assignedTo?.type === 'user' ? 'USER_' : 'TEAM_'}${group.assignedTo.id}`
             : ''
         }
-        onClear={handleClear}
+        onClear={() => handleAssigneeChange(null)}
         menuTitle={t('Select Assignee')}
         searchPlaceholder="Search users or teams..."
         size="sm"
