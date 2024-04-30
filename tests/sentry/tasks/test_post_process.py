@@ -1935,7 +1935,11 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert ret_value["project_id"] == self.project.id
         assert ret_value["segment_id"] is None
         assert ret_value["retention_days"] == 90
-        assert ret_value["payload"] == {
+
+        # convert ret_value_payload which is a list of bytes to a string
+        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+
+        assert ret_value_payload == {
             "type": "event_link",
             "replay_id": replay_id,
             "error_id": event.event_id,
@@ -1970,7 +1974,11 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert ret_value["project_id"] == self.project.id
         assert ret_value["segment_id"] is None
         assert ret_value["retention_days"] == 90
-        assert ret_value["payload"] == {
+
+        # convert ret_value_payload which is a list of bytes to a string
+        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+
+        assert ret_value_payload == {
             "type": "event_link",
             "replay_id": replay_id,
             "error_id": event.event_id,
