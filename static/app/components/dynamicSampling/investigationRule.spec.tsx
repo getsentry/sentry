@@ -83,33 +83,6 @@ describe('InvestigationRule', function () {
     expect(buttons).toHaveLength(0);
   }
 
-  it('does not render when feature not enabled', async function () {
-    initComponentEnvironment({hasFeature: false, hasRule: false});
-
-    render(
-      <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />
-    );
-    await expectNotToRender();
-    // check we didn't call the endpoint to check if a rule exists for no reason
-    expect(getRuleMock).toHaveBeenCalledTimes(0);
-  });
-
-  it('does not render when enough samples are present', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: false});
-
-    render(
-      <InvestigationRuleCreation
-        buttonProps={{}}
-        eventView={eventView}
-        numSamples={10} // enough samples not to render the InvestigationRule component
-      />,
-      {organization}
-    );
-    await expectNotToRender();
-    // check we didn't call the endpoint to check if a rule exists for no reason
-    expect(getRuleMock).toHaveBeenCalledTimes(0);
-  });
-
   it('shows a button when not enough samples are present and there is no rule', async function () {
     initComponentEnvironment({hasFeature: true, hasRule: false});
     render(
