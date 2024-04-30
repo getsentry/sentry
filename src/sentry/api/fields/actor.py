@@ -16,6 +16,4 @@ class ActorField(serializers.Field):
         return value.identifier
 
     def to_internal_value(self, data) -> ActorTuple | None:
-        actor_tuple = parse_and_validate_actor(data, self.context["organization"].id)
-
-        return actor_tuple
+        return parse_and_validate_actor(data, self.context["organization"].id)
