@@ -197,7 +197,10 @@ function useReplayData({
   const links = parseLinkHeader(linkHeader);
   const {pages: extraErrorPages, isFetching: isFetchingExtraErrors} =
     useFetchSequentialPages<{data: ReplayError[]}>({
-      enabled: !fetchReplayError && !isFetchingErrors && Boolean(links.next?.results),
+      enabled:
+        !fetchReplayError &&
+        !isFetchingErrors &&
+        (!replayRecord?.count_errors || Boolean(links.next?.results)),
       initialCursor: links.next?.cursor,
       getQueryKey: getErrorsQueryKey,
       perPage: errorsPerPage,
