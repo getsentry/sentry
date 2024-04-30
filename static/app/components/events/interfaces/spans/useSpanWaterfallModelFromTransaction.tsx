@@ -22,7 +22,8 @@ export function useSpanWaterfallModelFromTransaction(
       'avg(absolute_offset)': start_timestamp,
       'count()': count,
       'avg(duration)': duration,
-      samples,
+      sample_spans,
+      trace,
       ...rest
     } = span;
     return {
@@ -33,11 +34,11 @@ export function useSpanWaterfallModelFromTransaction(
       exclusive_time,
       timestamp: (start_timestamp + duration) / 1000,
       start_timestamp: start_timestamp / 1000,
-      trace_id: '1', // not actually trace_id just a placeholder
+      trace,
       count,
       total,
       duration,
-      samples,
+      samples: sample_spans,
       frequency: count / total,
       type: 'aggregate',
     };

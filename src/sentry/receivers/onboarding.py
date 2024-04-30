@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -83,6 +83,9 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
+        updated_empty_state=features.has(
+            "organizations:issue-stream-empty-state", project.organization
+        ),
     )
 
     success = OrganizationOnboardingTask.objects.record(
@@ -555,7 +558,9 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
+def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
+    # NOTE: This intentionally does not fire for the default issue alert rule
+    # that gets created on new project creation.
     task = OnboardingTask.METRIC_ALERT if rule_type == "metric" else OnboardingTask.ALERT_RULE
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,

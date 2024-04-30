@@ -260,7 +260,7 @@ class ProjectKey(Model):
 
     @property
     def crons_endpoint(self):
-        return f"{self.get_endpoint()}/api/{self.project_id}/crons/___MONITOR_SLUG___/{self.public_key}/"
+        return f"{self.get_endpoint()}/api/{self.project_id}/cron/___MONITOR_SLUG___/{self.public_key}/"
 
     @property
     def js_sdk_loader_cdn_url(self) -> str:

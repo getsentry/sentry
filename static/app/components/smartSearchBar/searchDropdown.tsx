@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
@@ -9,7 +10,6 @@ import {Overlay} from 'sentry/components/overlay';
 import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import {Tag} from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,6 +42,7 @@ type Props = {
   maxMenuHeight?: number;
   mergeItemsWith?: Record<string, SearchItem>;
   numericKeys?: Set<string>;
+  onDocsOpen?: () => void;
   onIconClick?: (value: string) => void;
   percentageKeys?: Set<string>;
   runShortcut?: (shortcut: Shortcut) => void;
@@ -69,6 +70,7 @@ function SearchDropdown({
   durationKeys,
   numericKeys,
   percentageKeys,
+  onDocsOpen,
   sizeKeys,
   textOperatorKeys,
   disallowedLogicalOperators,
@@ -152,6 +154,7 @@ function SearchDropdown({
           size="xs"
           href="https://docs.sentry.io/product/sentry-basics/search/"
           external
+          onClick={() => onDocsOpen?.()}
         >
           {t('Read the docs')}
         </Button>

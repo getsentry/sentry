@@ -30,7 +30,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
@@ -391,6 +391,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(alert_rule)
 
         # TODO: determine how to convert activated alert into continuous alert and vice versa (see logic.py)
+        # requires creating/disabling activations accordingly
         # assert resp.data["monitorType"] == AlertRuleMonitorType.ACTIVATED.value
         # assert (
         #     resp.data["activationCondition"]

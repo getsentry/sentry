@@ -1,7 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {

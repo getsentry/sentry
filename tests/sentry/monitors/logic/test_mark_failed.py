@@ -10,6 +10,9 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.issues.ingest import process_occurrence_data
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouphash import GroupHash
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
@@ -898,3 +901,58 @@ class MarkFailedTestCase(TestCase):
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
         assert monitor_environment.active_incident is not None
+
+    @with_feature("organizations:issue-platform")
+    def test_mark_failed_issue_assignment(self):
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+            owner_user_id=self.user.id,
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.IN_PROGRESS,
+        )
+        mark_failed(checkin, ts=checkin.date_added)
+
+        # failure has hit threshold, monitor should be in a failed state
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.ERROR
+
+        # check that an incident has been created correctly
+        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
+        assert len(monitor_incidents) == 1
+        monitor_incident = monitor_incidents.first()
+        assert monitor_incident.starting_checkin == checkin
+        assert monitor_incident.starting_timestamp == checkin.date_added
+        assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
+        occurrence_data = {"fingerprint": [monitor_environment.active_incident.grouphash]}
+        process_occurrence_data(occurrence_data)
+        issue_platform_hash = occurrence_data["fingerprint"][0]
+
+        grouphash = GroupHash.objects.get(hash=issue_platform_hash)
+        group_assignee = GroupAssignee.objects.get(group_id=grouphash.group_id)
+        assert group_assignee.user_id == monitor.owner_user_id

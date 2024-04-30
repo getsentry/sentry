@@ -59,7 +59,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             initial_values = kwargs.get("initial", {})
             return initial_values.get(field) or self.get_option(field, project)
 
-        token_config = {
+        token_config: dict[str, object] = {
             "name": "token",
             "type": "secret",
             "label": "Trello API Token",

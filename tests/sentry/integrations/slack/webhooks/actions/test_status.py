@@ -23,7 +23,8 @@ from sentry.models.identity import Identity
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -279,20 +280,8 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             "value": "ignored:archived_until_escalating",
             "type": "button",
         }
-        resp = self.post_webhook(
-            action_data=[status_action],
-            original_message=self.original_message,
-            type="interactive_message",
-            callback_id=json.dumps({"issue": self.group.id}),
-        )
-        self.group = Group.objects.get(id=self.group.id)
-
-        assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.IGNORED
-        assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
         expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
-        assert resp.data["attachments"][0]["text"] == expect_status
 
         with self.feature("organizations:slack-block-kit"):
             # test backwards compatibility
@@ -452,15 +441,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
         status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
 
-        resp = self.post_webhook(action_data=[status_action])
-        self.group = Group.objects.get(id=self.group.id)
-
-        assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.IGNORED
-        assert self.group.substatus == GroupSubStatus.FOREVER
-
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
         with self.feature("organizations:slack-block-kit"):
             # test backwards compatibility
@@ -570,13 +551,13 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
 
-        # Assign to user
-        status_action = {
-            "name": "assign",
-            "selected_options": [{"value": f"user:{user2.id}"}],
-        }
+        with self.feature("organizations:slack-block-kit"):
+            # Assign to user
+            status_action = {
+                "name": "assign",
+                "selected_options": [{"value": f"user:{user2.id}"}],
+            }
 
-        with self.feature({"organizations:slack-block-kit": False}):
             resp = self.post_webhook(action_data=[status_action])
 
             assert resp.status_code == 200, resp.content
@@ -606,22 +587,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
             expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
 
-            assert resp.data["text"].endswith(expect_status), resp.data["text"]
-
-        with self.feature("organizations:slack-block-kit"):
-            # test backwards compatibility
-            resp = self.post_webhook(action_data=[status_action])
-
-            assert resp.status_code == 200, resp.content
-            assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
-            activity = Activity.objects.filter(group=self.group).first()
-            assert activity.data == {
-                "assignee": str(user2.id),
-                "assigneeEmail": user2.email,
-                "assigneeType": "user",
-                "integration": ActivityIntegration.SLACK.value,
-            }
-            expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
             assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
             assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
@@ -765,17 +730,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             "selected_options": [{"value": f"user:{user2.id}"}],
         }
 
-        with self.feature({"organizations:slack-block-kit": False}):
-            resp = self.post_webhook(action_data=[status_action])
-
-            assert resp.status_code == 200, resp.content
-            assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-
-            expect_status = (
-                f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
-            )
-
-            assert resp.data["text"].endswith(expect_status), resp.data["text"]
+        expect_status = (
+            f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
+        )
 
         with self.feature("organizations:slack-block-kit"):
             # test backwards compatibility
@@ -843,18 +800,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             "selected_options": [{"value": f"user:{self.user.id}"}],
         }
 
-        with self.feature({"organizations:slack-block-kit": False}):
-            resp = self.post_webhook(action_data=[status_action])
-
-            assert resp.status_code == 200, resp.content
-            assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
-
-            expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
-                assignee=self.external_id
-            )
-
-            assert resp.data["text"].endswith(expect_status), resp.data["text"]
-
+        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
+            assignee=self.external_id
+        )
         with self.feature("organizations:slack-block-kit"):
             # test backwards compatibility
             resp = self.post_webhook(action_data=[status_action])
@@ -911,59 +859,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
-
-    @responses.activate
-    @with_feature({"organizations:slack-block-kit": False})
-    def test_resolve_issue(self):
-        status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
-
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        resp = self.post_webhook(action_data=[status_action])
-        assert resp.status_code == 200, resp.content
-
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = parse_qs(responses.calls[0].request.body)
-        assert data["trigger_id"][0] == self.trigger_id
-        assert "dialog" in data
-
-        dialog = json.loads(data["dialog"][0])
-        callback_data = json.loads(dialog["callback_id"])
-        assert int(callback_data["issue"]) == self.group.id
-        assert callback_data["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        resp = self.post_webhook(
-            type="dialog_submission",
-            callback_id=dialog["callback_id"],
-            data={"submission": {"resolve_type": "resolved"}},
-        )
-        self.group = Group.objects.get(id=self.group.id)
-
-        assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.RESOLVED
-
-        update_data = json.loads(responses.calls[1].request.body)
-
-        expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["text"].endswith(expect_status)
 
     @responses.activate
     def test_resolve_issue_backwards_compat_block_kit(self):
@@ -1052,65 +947,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"] == expect_status
-
-    @responses.activate
-    @with_feature({"organizations:slack-block-kit": False})
-    def test_resolve_issue_in_next_release(self):
-        status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
-
-        release = Release.objects.create(
-            organization_id=self.organization.id,
-            version="1.0",
-        )
-        release.add_project(self.project)
-
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        resp = self.post_webhook(action_data=[status_action])
-        assert resp.status_code == 200, resp.content
-
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = parse_qs(responses.calls[0].request.body)
-        assert data["trigger_id"][0] == self.trigger_id
-        assert "dialog" in data
-
-        dialog = json.loads(data["dialog"][0])
-        callback_data = json.loads(dialog["callback_id"])
-        assert int(callback_data["issue"]) == self.group.id
-        assert callback_data["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        resp = self.post_webhook(
-            type="dialog_submission",
-            callback_id=dialog["callback_id"],
-            data={"submission": {"resolve_type": "resolved:inNextRelease"}},
-        )
-        self.group = Group.objects.get(id=self.group.id)
-
-        assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.RESOLVED
-
-        update_data = json.loads(responses.calls[1].request.body)
-
-        expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["text"].endswith(expect_status)
 
     @responses.activate
     def test_resolve_issue_in_next_release_backwards_compat_block_kit(self):
@@ -1269,16 +1105,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def test_response_differs_on_bot_message(self):
         status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
         original_message = {"type": "message"}
-
-        with self.feature({"organizations:slack-block-kit": False}):
-            resp = self.post_webhook(action_data=[status_action], original_message=original_message)
-            self.group = Group.objects.get(id=self.group.id)
-
-            assert self.group.get_status() == GroupStatus.IGNORED
-            assert self.group.substatus == GroupSubStatus.FOREVER
-            assert resp.status_code == 200, resp.content
-            assert "attachments" in resp.data
-            assert resp.data["attachments"][0]["title"] in self.group.title
 
         with self.feature("organizations:slack-block-kit"):
             # test backwards compatibility

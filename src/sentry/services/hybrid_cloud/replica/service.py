@@ -14,7 +14,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam,
 from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class ControlReplicaService(RpcService):

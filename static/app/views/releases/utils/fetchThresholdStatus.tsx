@@ -1,5 +1,5 @@
 import type {Client} from 'sentry/api';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 import type {ThresholdStatus, ThresholdStatusesQuery} from './types';
 

@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {getUserTimezone} from 'sentry/utils/dates';
 
 const DAY = 24 * 60 * 60 * 1000;

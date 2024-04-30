@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from sentry.api.serializers import serialize
+from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.relocation import Relocation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -21,6 +22,37 @@ class RelocationSerializerTest(TestCase):
             "superuser", is_superuser=True, is_staff=True, is_active=True
         )
         self.login_as(user=self.superuser, superuser=True)
+
+        self.first_imported_user = self.create_user(email="first@example.com")
+        self.second_imported_user = self.create_user(email="second@example.com")
+        self.imported_org = self.create_organization(owner=self.first_imported_user)
+        self.create_member(
+            user=self.second_imported_user, organization=self.imported_org, role="member", teams=[]
+        )
+
+    def mock_imported_users_and_org(self, relocation: Relocation) -> None:
+        ControlImportChunkReplica.objects.create(
+            import_uuid=relocation.uuid,
+            model="sentry.user",
+            min_ordinal=1,
+            max_ordinal=2,
+            min_source_pk=1,
+            max_source_pk=2,
+            min_inserted_pk=1,
+            max_inserted_pk=2,
+            inserted_map={1: self.first_imported_user.id, 2: self.second_imported_user.id},
+        )
+        RegionImportChunk.objects.create(
+            import_uuid=relocation.uuid,
+            model="sentry.organization",
+            min_ordinal=1,
+            max_ordinal=2,
+            min_source_pk=1,
+            max_source_pk=2,
+            min_inserted_pk=1,
+            max_inserted_pk=2,
+            inserted_map={1: self.imported_org.id},
+        )
 
     def test_in_progress(self):
         relocation: Relocation = Relocation.objects.create(
@@ -56,8 +88,10 @@ class RelocationSerializerTest(TestCase):
         assert result["wantUsernames"] == ["alice", "bob"]
         assert not result["latestNotified"]
         assert not result["latestUnclaimedEmailsSentAt"]
-        assert "latestTask" not in result
-        assert "latestTaskAttempts" not in result
+        assert result["latestTask"] == OrderedTask.UPLOADING_COMPLETE.name
+        assert result["latestTaskAttempts"] == 1
+        assert result["importedUserIds"] == []
+        assert result["importedOrgIds"] == []
 
     def test_pause(self):
         relocation: Relocation = Relocation.objects.create(
@@ -72,6 +106,7 @@ class RelocationSerializerTest(TestCase):
             latest_task=OrderedTask.IMPORTING.name,
             latest_task_attempts=1,
         )
+        self.mock_imported_users_and_org(relocation)
         result = serialize(relocation)
 
         assert result["dateAdded"] == TEST_DATE_ADDED
@@ -92,8 +127,13 @@ class RelocationSerializerTest(TestCase):
         assert result["wantUsernames"] == ["charlie", "denise"]
         assert result["latestNotified"] == Relocation.EmailKind.STARTED.name
         assert not result["latestUnclaimedEmailsSentAt"]
-        assert "latestTask" not in result
-        assert "latestTaskAttempts" not in result
+        assert result["latestTask"] == OrderedTask.IMPORTING.name
+        assert result["latestTaskAttempts"] == 1
+        assert sorted(result["importedUserIds"]) == [
+            self.first_imported_user.id,
+            self.second_imported_user.id,
+        ]
+        assert result["importedOrgIds"] == [self.imported_org.id]
 
     def test_success(self):
         relocation: Relocation = Relocation.objects.create(
@@ -109,6 +149,7 @@ class RelocationSerializerTest(TestCase):
             latest_task=OrderedTask.COMPLETED.name,
             latest_task_attempts=1,
         )
+        self.mock_imported_users_and_org(relocation)
         result = serialize(relocation)
 
         assert result["dateAdded"] == TEST_DATE_ADDED
@@ -129,8 +170,13 @@ class RelocationSerializerTest(TestCase):
         assert result["wantUsernames"] == ["emily", "fred"]
         assert result["latestNotified"] == Relocation.EmailKind.SUCCEEDED.name
         assert result["latestUnclaimedEmailsSentAt"] == TEST_DATE_UPDATED
-        assert "latestTask" not in result
-        assert "latestTaskAttempts" not in result
+        assert result["latestTask"] == OrderedTask.COMPLETED.name
+        assert result["latestTaskAttempts"] == 1
+        assert sorted(result["importedUserIds"]) == [
+            self.first_imported_user.id,
+            self.second_imported_user.id,
+        ]
+        assert result["importedOrgIds"] == [self.imported_org.id]
 
     def test_failure(self):
         relocation: Relocation = Relocation.objects.create(
@@ -167,5 +213,7 @@ class RelocationSerializerTest(TestCase):
         assert result["wantUsernames"] == ["alice", "bob"]
         assert result["latestNotified"] == Relocation.EmailKind.FAILED.name
         assert not result["latestUnclaimedEmailsSentAt"]
-        assert "latestTask" not in result
-        assert "latestTaskAttempts" not in result
+        assert result["latestTask"] == OrderedTask.VALIDATING_COMPLETE.name
+        assert result["latestTaskAttempts"] == 1
+        assert result["importedUserIds"] == []
+        assert result["importedOrgIds"] == []

@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -13,7 +13,7 @@ import {
 } from 'sentry/data/platformCategories';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 
 function mockPageFilterStore(projects: Project[]) {
   PageFiltersStore.init();
@@ -39,7 +39,7 @@ describe('useCurrentProjectState', () => {
   const angular = ProjectFixture({id: '4', platform: 'javascript-angular'});
 
   it('should return currentProject=undefined when currentPanel != targetPanel', () => {
-    const {result} = reactHooks.renderHook(useCurrentProjectState, {
+    const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
         targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
@@ -53,7 +53,7 @@ describe('useCurrentProjectState', () => {
   it('should return the currentProject when currentPanel = targetPanel', () => {
     ProjectsStore.loadInitialData([javascript]);
     mockPageFilterStore([javascript]);
-    const {result} = reactHooks.renderHook(useCurrentProjectState, {
+    const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.METRICS_ONBOARDING,
         targetPanel: SidebarPanelKey.METRICS_ONBOARDING,
@@ -67,7 +67,7 @@ describe('useCurrentProjectState', () => {
   it('should return the first project if global selection does not have onboarding', () => {
     ProjectsStore.loadInitialData([rust_1, rust_2]);
     mockPageFilterStore([rust_1, rust_2]);
-    const {result} = reactHooks.renderHook(useCurrentProjectState, {
+    const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
         targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
@@ -81,7 +81,7 @@ describe('useCurrentProjectState', () => {
   it('should return the first onboarding project', () => {
     ProjectsStore.loadInitialData([rust_1, javascript]);
     mockPageFilterStore([rust_1, javascript]);
-    const {result} = reactHooks.renderHook(useCurrentProjectState, {
+    const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
         targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
@@ -95,7 +95,7 @@ describe('useCurrentProjectState', () => {
   it('should return the first project if no selection', () => {
     ProjectsStore.loadInitialData([rust_1, javascript]);
     mockPageFilterStore([]);
-    const {result} = reactHooks.renderHook(useCurrentProjectState, {
+    const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
         targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
@@ -109,7 +109,7 @@ describe('useCurrentProjectState', () => {
   it('should return undefined if no selection and no projects have onboarding', () => {
     ProjectsStore.loadInitialData([rust_1, rust_2]);
     mockPageFilterStore([]);
-    const {result} = reactHooks.renderHook(useCurrentProjectState, {
+    const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
         targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
@@ -123,7 +123,7 @@ describe('useCurrentProjectState', () => {
   it('should override current project if setCurrentProjects is called', () => {
     ProjectsStore.loadInitialData([javascript, angular]);
     mockPageFilterStore([javascript, angular]);
-    const {result} = reactHooks.renderHook(useCurrentProjectState, {
+    const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
         targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
@@ -132,7 +132,7 @@ describe('useCurrentProjectState', () => {
       },
     });
     expect(result.current.currentProject).toBe(javascript);
-    reactHooks.act(() => result.current.setCurrentProject(angular));
+    act(() => result.current.setCurrentProject(angular));
     expect(result.current.currentProject).toBe(angular);
   });
 });

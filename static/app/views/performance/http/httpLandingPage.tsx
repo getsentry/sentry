@@ -1,26 +1,33 @@
 import React, {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FeatureBadge from 'sentry/components/featureBadge';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {fromSorts} from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import {DomainsTable, isAValidSort} from 'sentry/views/performance/http/domainsTable';
-import {DurationChart} from 'sentry/views/performance/http/durationChart';
-import {ResponseRateChart} from 'sentry/views/performance/http/responseRateChart';
+import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
+import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
+import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
+import {Referrer} from 'sentry/views/performance/http/referrers';
 import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
-import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
+import {
+  DomainsTable,
+  isAValidSort,
+} from 'sentry/views/performance/http/tables/domainsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
@@ -37,19 +44,36 @@ export function HTTPLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
-  const sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  // TODO: Pull this using `useLocationQuery` below
+  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+
+  const query = useLocationQuery({
+    fields: {
+      'span.domain': decodeScalar,
+    },
+  });
 
   const chartFilters = {
     'span.module': ModuleName.HTTP,
-    has: 'span.domain',
   };
 
   const tableFilters = {
     'span.module': ModuleName.HTTP,
-    has: 'span.domain',
+    'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
+
+  const handleSearch = (newDomain: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        'span.domain': newDomain === '' ? undefined : newDomain,
+        [QueryParameterNames.SPANS_CURSOR]: undefined,
+      },
+    });
+  };
 
   const {
     isLoading: isThroughputDataLoading,
@@ -58,7 +82,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['spm()'],
-    referrer: 'api.starfish.http-module-landing-throughput-chart',
+    referrer: Referrer.LANDING_THROUGHPUT_CHART,
   });
 
   const {
@@ -68,7 +92,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: [`avg(span.self_time)`],
-    referrer: 'api.starfish.http-module-landing-duration-chart',
+    referrer: Referrer.LANDING_DURATION_CHART,
   });
 
   const {
@@ -78,7 +102,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(chartFilters),
     yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: 'api.starfish.http-module-landing-response-code-chart',
+    referrer: Referrer.LANDING_RESPONSE_CODE_CHART,
   });
 
   const domainsListResponse = useSpanMetrics({
@@ -97,7 +121,7 @@ export function HTTPLandingPage() {
     sorts: [sort],
     limit: DOMAIN_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-landing-domains-list',
+    referrer: Referrer.LANDING_DOMAINS_LIST,
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
@@ -124,12 +148,15 @@ export function HTTPLandingPage() {
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
-
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <PageFilterBar condensed>
@@ -140,7 +167,9 @@ export function HTTPLandingPage() {
             </ModuleLayout.Full>
 
             {onboardingProject && (
-              <Onboarding organization={organization} project={onboardingProject} />
+              <ModuleLayout.Full>
+                <Onboarding organization={organization} project={onboardingProject} />
+              </ModuleLayout.Full>
             )}
 
             {!onboardingProject && (
@@ -183,6 +212,14 @@ export function HTTPLandingPage() {
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Full>
+                  <SearchBar
+                    query={query['span.domain']}
+                    placeholder={t('Search for more domains')}
+                    onSearch={handleSearch}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
                   <DomainsTable response={domainsListResponse} sort={sort} />
                 </ModuleLayout.Full>
               </Fragment>
@@ -206,7 +243,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL="/performance/http"
-      features="performance-http-view"
+      features="spans-first-ui"
     >
       <HTTPLandingPage />
     </ModulePageProviders>

@@ -2,7 +2,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
 
 type CallbackOptions = {
   error?: Function;

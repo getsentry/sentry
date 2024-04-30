@@ -72,7 +72,7 @@ from sentry.snuba.metrics.query import (
     MetricsQuery,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
-from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
+from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 
 class MetricsQueryBuilder(QueryBuilder):
@@ -353,10 +353,11 @@ class MetricsQueryBuilder(QueryBuilder):
 
     @property
     def use_case_id(self) -> UseCaseID:
-        if self.is_performance:
-            return UseCaseID.TRANSACTIONS
-        elif self.spans_metrics_builder:
+
+        if self.spans_metrics_builder:
             return UseCaseID.SPANS
+        elif self.is_performance:
+            return UseCaseID.TRANSACTIONS
         else:
             return UseCaseID.SESSIONS
 
@@ -1635,7 +1636,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         queries = self.get_snql_query()
         if queries:
-            results = bulk_snql_query(queries, referrer, use_cache)
+            results = bulk_snuba_queries(queries, referrer, use_cache)
         else:
             results = []
 
@@ -1909,7 +1910,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         else:
             queries = self.get_snql_query()
             if queries:
-                results = bulk_snql_query(queries, referrer, use_cache)
+                results = bulk_snuba_queries(queries, referrer, use_cache)
 
             time_map: dict[str, dict[str, Any]] = defaultdict(dict)
             for current_result in results:

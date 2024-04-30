@@ -4,10 +4,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
+import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
@@ -36,7 +36,7 @@ import type {
   PriorityLevel,
   User,
 } from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
@@ -136,7 +136,7 @@ function BaseGroupRow({
     };
   }, [organization, group.id, group.owners, query]);
 
-  const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
+  const trackAssign: React.ComponentProps<typeof DeprecatedAssigneeSelector>['onAssign'] =
     useCallback(
       (type, _assignee, suggestedAssignee) => {
         if (query !== undefined) {
@@ -467,7 +467,7 @@ function BaseGroupRow({
           ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
-              <AssigneeSelector
+              <DeprecatedAssigneeSelector
                 id={group.id}
                 memberList={memberList}
                 onAssign={trackAssign}

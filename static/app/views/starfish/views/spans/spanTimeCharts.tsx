@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';
@@ -11,7 +12,7 @@ import {formatRate} from 'sentry/utils/formatters';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {
   ChartType,
   useSynchronizeCharts,
@@ -27,7 +28,8 @@ import {
   getThroughputChartTitle,
 } from 'sentry/views/starfish/views/spans/types';
 import type {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
-import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const NULL_SPAN_CATEGORY = t('custom');
 
 const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 

@@ -212,7 +212,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
 
 export const modalCss = css`
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
 `;
 
 const Actions = styled('div')`

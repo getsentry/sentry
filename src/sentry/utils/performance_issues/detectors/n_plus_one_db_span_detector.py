@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from typing import Any
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -58,12 +59,14 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     type = DetectorType.N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.potential_parents = {}
-        self.n_hash = None
-        self.n_spans = []
-        self.source_span = None
+        self.n_hash: str | None = None
+        self.n_spans: list[Span] = []
+        self.source_span: Span | None = None
         root_span = get_path(self._event, "contexts", "trace")
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
@@ -125,7 +128,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         self.source_span = span
 
-    def _continues_n_plus_1(self, span: Span):
+    def _continues_n_plus_1(self, span: Span) -> bool:
+        if self.source_span is None:
+            return False
+
         expected_parent_id = self.source_span.get("parent_span_id", None)
         parent_id = span.get("parent_span_id", None)
         if not parent_id or parent_id != expected_parent_id:

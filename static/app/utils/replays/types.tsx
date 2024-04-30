@@ -244,7 +244,9 @@ export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
 >;
 export type PaintFrame = HydratedSpan<'paint'>;
-export type RequestFrame = HydratedSpan<'resource.fetch' | 'resource.xhr'>;
+export type RequestFrame = HydratedSpan<
+  'resource.fetch' | 'resource.xhr' | 'resource.http'
+>;
 export type ResourceFrame = HydratedSpan<
   | 'resource.css'
   | 'resource.iframe'
@@ -274,6 +276,7 @@ export const SpanOps = [
   'resource.other',
   'resource.script',
   'resource.xhr',
+  'resource.http',
 ];
 
 /**

@@ -6,7 +6,7 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import type {Event} from '@sentry/types';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import type {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
@@ -225,7 +225,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
   }
 
-  const {customerDomain} = window.__initialData;
+  const {customerDomain, features} = window.__initialData;
 
   if (customerDomain) {
     Sentry.setTag('isCustomerDomain', 'yes');
@@ -233,6 +233,14 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
+
+  // TODO: Remove once we've finished rolling out the new renderer
+  Sentry.setTag(
+    'isConcurrentRenderer',
+    (features as unknown as string[])?.includes(
+      'organizations:react-concurrent-renderer-enabled'
+    ) ?? false
+  );
 }
 
 export function isFilteredRequestErrorEvent(event: Event): boolean {

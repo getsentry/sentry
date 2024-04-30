@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import quotas
+from sentry.api.fields.actor import ActorField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -248,6 +249,11 @@ class MonitorValidator(CamelSnakeSerializer):
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
         help_text="Status of the monitor. Disabled monitors will not accept events and will not count towards the monitor quota.",
+    )
+    owner = ActorField(
+        required=False,
+        allow_null=True,
+        help_text="The ID of the team or user that owns the monitor. (eg. user:51 or team:6)",
     )
     is_muted = serializers.BooleanField(
         required=False,

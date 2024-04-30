@@ -1,4 +1,3 @@
-import {act} from 'react-dom/test-utils';
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {DetailedEventsFixture} from 'sentry-fixture/events';
@@ -6,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   findByText,
   fireEvent,
   render,
@@ -120,7 +120,7 @@ function mockTransactionDetailsResponse(id: string, resp?: Partial<ResponseType>
     url: `/organizations/org-slug/events/project_slug:${id}/`,
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? {body: DetailedEventsFixture()[0]}),
   });
 }
 
@@ -129,7 +129,7 @@ function mockTraceRootEvent(id: string, resp?: Partial<ResponseType>) {
     url: `/organizations/org-slug/events/project_slug:${id}/`,
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? {body: DetailedEventsFixture()[0]}),
   });
 }
 
@@ -159,7 +159,7 @@ function mockSpansResponse(
   body: Partial<EventTransaction> = {}
 ) {
   return MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/project_slug:${id}/?averageColumn=span.self_time`,
+    url: `/organizations/org-slug/events/project_slug:${id}/?averageColumn=span.self_time&averageColumn=span.duration`,
     method: 'GET',
     asyncDelay: 1,
     body,
@@ -212,7 +212,7 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     timestamp: 10,
     data: {},
     trace_id: '',
-    childTransaction: undefined,
+    childTransactions: [],
     event: makeEvent() as EventTransaction,
     ...overrides,
   };
@@ -326,7 +326,7 @@ async function searchTestSetup() {
   mockTraceMetaResponse();
   mockTraceRootFacets();
   mockTraceRootEvent('0', {body: DetailedEventsFixture()[0]});
-  mockTraceEventDetails();
+  mockTraceEventDetails({body: DetailedEventsFixture()[0]});
 
   const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
@@ -478,6 +478,9 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
 describe('trace view', () => {
   beforeEach(() => {
     globalThis.ResizeObserver = MockResizeObserver as any;
+
+    // We are having replay errors about invalid stylesheets, though the CSS seems valid
+    jest.spyOn(console, 'error').mockImplementation(() => {});
 
     Object.defineProperty(window, 'location', {
       value: {
@@ -1165,19 +1168,23 @@ describe('trace view', () => {
       await searchToUpdate();
 
       assertHighlightedRowAtIndex(container, 1);
-      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-
       await searchToUpdate();
 
       // User moves down the list using keyboard navigation
-      while (container.querySelector('.TraceRow.Highlight') !== rows[6]) {
+      for (const _ of [1, 2, 3, 4, 5]) {
+        const initial = screen.getByTestId('trace-search-result-iterator').textContent;
         await userEvent.keyboard('{arrowDown}');
+        await waitFor(() => {
+          expect(screen.getByTestId('trace-search-result-iterator')).not.toBe(initial);
+        });
       }
 
       // User clicks on an entry in the list, then proceeds to search
-      expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '6/11'
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '6/11'
+        );
+      });
       // And then continues the query - the highlighting is preserved as long as the
       // rwo is part of the search results
       assertHighlightedRowAtIndex(container, 6);
@@ -1280,9 +1287,10 @@ describe('trace view', () => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
       });
 
-      await userEvent.click(
-        await screen.findAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID)[0]
-      );
+      const tabButtons = screen.queryAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID);
+      expect(tabButtons).toHaveLength(2);
+
+      await userEvent.click(tabButtons[0]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });

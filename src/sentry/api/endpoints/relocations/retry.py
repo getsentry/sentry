@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
@@ -22,6 +23,7 @@ from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.signals import relocation_retry_link_promo_code
 from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
 
@@ -112,6 +114,12 @@ class RelocationRetryEndpoint(Endpoint):
                 step=Relocation.Step.UPLOADING.value,
                 scheduled_pause_at_step=get_autopause_value(),
             )
+
+            relocation_retry_link_promo_code.send_robust(
+                old_relocation_uuid=relocation_uuid,
+                new_relocation_uuid=new_relocation.uuid,
+                sender=self.__class__,
+            )
             RelocationFile.objects.create(
                 relocation=new_relocation,
                 file=file,
@@ -119,10 +127,14 @@ class RelocationRetryEndpoint(Endpoint):
             )
 
         uploading_complete.delay(new_relocation.uuid)
-        analytics.record(
-            "relocation.created",
-            creator_id=request.user.id,
-            owner_id=owner.id,
-            uuid=str(new_relocation.uuid),
-        )
+        try:
+            analytics.record(
+                "relocation.created",
+                creator_id=request.user.id,
+                owner_id=owner.id,
+                uuid=str(new_relocation.uuid),
+            )
+        except Exception as e:
+            capture_exception(e)
+
         return Response(serialize(new_relocation), status=status.HTTP_201_CREATED)

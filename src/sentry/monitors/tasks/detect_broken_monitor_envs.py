@@ -14,15 +14,17 @@ from django.utils import timezone as django_timezone
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.monitors.models import (
     CheckInStatus,
+    Monitor,
     MonitorCheckIn,
     MonitorEnvBrokenDetection,
     MonitorIncident,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.query import RangeQuerySetWrapper
@@ -82,12 +84,39 @@ def update_user_monitor_dictionary(
         user_monitor_entry["environment_names"].append(environment_name)
 
 
+def get_user_emails_from_monitor(
+    monitor: Monitor,
+):
+    try:
+        if monitor.owner_user_id:
+            organization_member = OrganizationMember.objects.get(
+                user_id=monitor.owner_user_id, organization_id=monitor.organization_id
+            )
+            return [organization_member.user_email]
+        elif monitor.owner_team_id:
+            team = Team.objects.get_from_cache(id=monitor.owner_team_id)
+            return team.member_set.values_list("user_email", flat=True)
+    except (OrganizationMember.DoesNotExist, Team.DoesNotExist):
+        logger.info(
+            "monitors.broken_detection.invalid_owner",
+            extra={
+                "id": monitor.id,
+                "owner_user_id": monitor.owner_user_id,
+                "owner_team_id": monitor.owner_team_id,
+            },
+        )
+
+    project = Project.objects.get_from_cache(id=monitor.project_id)
+    return project.member_set.values_list("user_email", flat=True)
+
+
 def generate_monitor_email_context(
     monitor_entries: Iterable[dict[str, Any]], organization: Organization
 ):
     return [
         (
             monitor_entry["slug"],
+            monitor_entry["project_slug"],
             generate_monitor_detail_url(
                 organization,
                 monitor_entry["project_slug"],
@@ -147,9 +176,6 @@ def detect_broken_monitor_envs_for_org(org_id: int):
     except Organization.DoesNotExist:
         return
 
-    # Record how long it takes to process this org
-    org_process_start_time = django_timezone.now()
-
     # Map user email to a dictionary of monitors and their earliest incident start date amongst its broken environments
     user_broken_envs: dict[str, dict[str, Any]] = defaultdict(
         lambda: defaultdict(
@@ -170,12 +196,8 @@ def detect_broken_monitor_envs_for_org(org_id: int):
     # Query for all the broken incidents within the current org we are processing
     for open_incident in RangeQuerySetWrapper(
         orgs_open_incidents,
-        order_by="starting_timestamp",
         step=1000,
     ):
-        # Record how long it takes to process this org's incident
-        org_incident_process_start_time = django_timezone.now()
-
         # Verify that the most recent check-ins have been failing
         recent_checkins = (
             MonitorCheckIn.objects.filter(monitor_environment=open_incident.monitor_environment)
@@ -194,12 +216,13 @@ def detect_broken_monitor_envs_for_org(org_id: int):
         if not detection.user_notified_timestamp:
             environment_name = open_incident.monitor_environment.get_environment().name
             project = Project.objects.get_from_cache(id=open_incident.monitor.project_id)
-            for user in project.member_set:
-                if not user.user_email:
+
+            for email in get_user_emails_from_monitor(open_incident.monitor):
+                if not email:
                     continue
 
                 update_user_monitor_dictionary(
-                    user_broken_envs, user.user_email, open_incident, project, environment_name
+                    user_broken_envs, email, open_incident, project, environment_name
                 )
         elif (
             not detection.env_muted_timestamp
@@ -213,22 +236,13 @@ def detect_broken_monitor_envs_for_org(org_id: int):
                 open_incident.monitor_environment.update(is_muted=True)
                 detection.update(env_muted_timestamp=django_timezone.now())
 
-            for user in project.member_set:
-                if not user.user_email:
+            for email in get_user_emails_from_monitor(open_incident.monitor):
+                if not email:
                     continue
 
                 update_user_monitor_dictionary(
-                    user_muted_envs, user.user_email, open_incident, project, environment_name
+                    user_muted_envs, email, open_incident, project, environment_name
                 )
-
-        metrics.timing(
-            "crons.detect_broken_monitor_org_incident_time",
-            django_timezone.now().timestamp() - org_incident_process_start_time.timestamp(),
-            tags={"incident": open_incident.id},
-        )
-
-    # Record how long it takes to send all emails for an org
-    org_email_sending_start_time = django_timezone.now()
 
     # After accumulating all users within the org and which monitors to email them, send the emails
     for user_email, broken_monitors in user_broken_envs.items():
@@ -239,7 +253,9 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             "view_monitors_link": generate_monitor_overview_url(organization),
         }
         message = MessageBuilder(
-            subject="Your Cron Monitors Aren't Working",
+            subject="{} of your Cron Monitors {} working".format(
+                len(broken_monitors), "isn't" if len(broken_monitors) == 1 else "aren't"
+            ),
             template="sentry/emails/crons/broken-monitors.txt",
             html_template="sentry/emails/crons/broken-monitors.html",
             type="crons.broken_monitors",
@@ -253,7 +269,9 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             "view_monitors_link": generate_monitor_overview_url(organization),
         }
         message = MessageBuilder(
-            subject="Your Cron Monitors have been muted",
+            subject="{} of your Cron Monitors {} been muted".format(
+                len(muted_monitors), "has" if len(muted_monitors) == 1 else "have"
+            ),
             template="sentry/emails/crons/muted-monitors.txt",
             html_template="sentry/emails/crons/muted-monitors.html",
             type="crons.muted_monitors",
@@ -261,19 +279,7 @@ def detect_broken_monitor_envs_for_org(org_id: int):
         )
         message.send_async([user_email])
 
-    metrics.timing(
-        "crons.detect_broken_monitor_org_email_time",
-        django_timezone.now().timestamp() - org_email_sending_start_time.timestamp(),
-        tags={"org_id": org_id},
-    )
-
     # mark all open detections for this org as having had their email sent
     MonitorEnvBrokenDetection.objects.filter(
         monitor_incident__in=orgs_open_incidents, user_notified_timestamp=None
     ).update(user_notified_timestamp=django_timezone.now())
-
-    metrics.timing(
-        "crons.detect_broken_monitor_org_time",
-        django_timezone.now().timestamp() - org_process_start_time.timestamp(),
-        tags={"org_id": org_id},
-    )

@@ -10,7 +10,7 @@ from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
@@ -140,6 +140,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
                 limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 callbacks=[get_total_count],
                 order_by="first_seen",
+                override_unique_safety_check=True,
             ),
             ITERATOR_CHUNK,
         ):

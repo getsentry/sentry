@@ -21,7 +21,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import TagStore from 'sentry/stores/tagStore';
-import {PriorityLevel} from 'sentry/types';
+import {PriorityLevel} from 'sentry/types/group';
 import IssueListOverview from 'sentry/views/issueList/overview';
 
 const DEFAULT_LINKS_HEADER =
@@ -111,7 +111,10 @@ describe('IssueListOverview (actions)', function () {
     ],
     savedSearch: null,
     selectedSearchId: null,
-    ...RouteComponentPropsFixture({
+    ...RouteComponentPropsFixture<
+      {orgId: string; projectId: string},
+      {searchId?: string}
+    >({
       location: LocationFixture({
         query: {query: 'is:unresolved issue.priority:[high,medium]'},
       }),

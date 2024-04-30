@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -78,7 +79,7 @@ function ResourceSummary() {
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
       baseURL="/performance/browser/resources"
-      features="starfish-browser-resource-module-ui"
+      features="spans-first-ui"
     >
       <Layout.Header>
         <Layout.HeaderContent>
@@ -104,11 +105,15 @@ function ResourceSummary() {
 
           <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
           <HeaderContainer>
             <FilterOptionsContainer columnCount={2}>
               <PageFilterBar condensed>
@@ -130,7 +135,6 @@ function ResourceSummary() {
               throughput={spanMetrics['spm()']}
               timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
               timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
-              spanOp={spanMetrics[SPAN_OP]}
             />
           </HeaderContainer>
           {isImage && (

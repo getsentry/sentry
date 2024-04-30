@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import io
+
+# We have to use the default JSON interface to enable pretty-printing on export. When loading JSON,
+# we still use the one from `sentry.utils`, imported as `sentry_json` below.
+import json as builtin_json  # noqa: S003
 from typing import IO
 
 from sentry.backup.crypto import Encryptor, create_encrypted_export_tarball
@@ -23,7 +27,7 @@ from sentry.services.hybrid_cloud.import_export.service import (
     import_export_service,
 )
 from sentry.silo.base import SiloMode
-from sentry.utils import json
+from sentry.utils import json as sentry_json
 
 __all__ = (
     "ExportingError",
@@ -130,14 +134,14 @@ def _export(
         # TODO(getsentry/team-ospo#190): Since the structure of this data is very predictable (an
         # array of serialized model objects), we could probably avoid re-ingesting the JSON string
         # as a future optimization.
-        for json_model in json.loads(result.json_data):
+        for json_model in sentry_json.loads_experimental("backup.enable-orjson", result.json_data):
             json_export.append(json_model)
 
     # If no `encryptor` argument was passed in, this is an unencrypted export, so we can just dump
     # the JSON into the `dest` file and exit early.
     if encryptor is None:
         dest_wrapper = io.TextIOWrapper(dest, encoding="utf-8", newline="")
-        json.dump(json_export, dest_wrapper)
+        builtin_json.dump(json_export, dest_wrapper, indent=indent)
         dest_wrapper.detach()
         return
 

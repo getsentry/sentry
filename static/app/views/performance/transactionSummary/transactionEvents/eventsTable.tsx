@@ -27,6 +27,7 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -38,7 +39,6 @@ import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
-  generateTransactionLink,
   normalizeSearchConditions,
 } from '../utils';
 
@@ -164,8 +164,19 @@ class EventsTable extends Component<Props, State> {
       if (isIssue && !isRegressionIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
       } else {
-        const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
-        target = generateLink(transactionName)(organization, dataRow, location.query);
+        if (field === 'id') {
+          target = generateLinkToEventInTraceView({
+            traceSlug: dataRow.trace?.toString(),
+            projectSlug: dataRow['project.name']?.toString(),
+            eventId: dataRow.id,
+            timestamp: dataRow.timestamp,
+            location,
+            organization,
+            transactionName: transactionName,
+          });
+        } else {
+          target = generateTraceLink(transactionName)(organization, dataRow, location);
+        }
       }
 
       return (

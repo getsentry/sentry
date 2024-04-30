@@ -107,9 +107,6 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
-# See getsentry.processingstore
-register("eventstore.processing.rollout", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -450,6 +447,12 @@ register(
     default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "replay.organizations.video-slug-denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -464,6 +467,20 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
+register(
+    "feedback.ingest-inline-attachments",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Let spam detection run but don't take action on it.
+register(
+    "feedback.spam-detection-actions",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Extract spans only from a random fraction of transactions.
 #
@@ -540,6 +557,16 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("github-login.organization", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "github-extension.enabled",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-extension.enabled-orgs",
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -617,9 +644,16 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register("snuba.snql.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("integrations.slack.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("auth.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("backup.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("event-manager.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("eventstore.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("kafka-publisher.max-event-size", default=100000, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Enable multiple topics for eventstream. It allows specific event types to be sent
 # to specific topic.
@@ -661,14 +695,6 @@ register(
 )
 register("symbolicator.proguard-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Post Process Error Hook Sampling
-register(
-    "post-process.use-error-hook-sampling", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-# From 0.0 to 1.0: Randomly enqueue process_resource_change task
-register(
-    "post-process.error-hook-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
 
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
@@ -678,52 +704,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Moving signals and TSDB into outcomes consumer
-register(
-    "outcomes.signals-in-consumer-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-register(
-    "outcomes.tsdb-in-consumer-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
-# Node data save rate
-register(
-    "nodedata.cache-sample-rate",
-    default=0.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "nodedata.cache-on-save", default=False, flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
-register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-
-# Performance metric alerts incremental rollout rate. Tied to feature handlers
-# in getsentry
-register(
-    "incidents-performance.rollout-rate",
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Max number of tags to combine in a single query in Discover2 tags facet.
-register(
-    "discover2.max_tags_to_combine",
-    default=3,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables setting a sampling rate when producing the tag facet.
 register(
     "discover2.tags_facet_enable_sampling",
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Killswitch for datascrubbing after stacktrace processing. Set to False to
-# disable datascrubbers.
-register("processing.can-use-scrubbers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing.
 # Set this value of the fraction of projects that you want to use it for.
@@ -737,9 +723,6 @@ register(
 #
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# A rate to apply to any events denoted as experimental to be sent to an experimental dsn.
-register("store.use-experimental-dsn-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # A rate that enables statsd item sending (DDM data) to s4s
 register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -757,11 +740,6 @@ register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR
 
 register(
     "store.race-free-group-creation-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Option to enable dart deobfuscation on ingest
-register(
-    "processing.view-hierarchies-dart-deobfuscation", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Enable calling the severity modeling API on group creation
@@ -997,9 +975,6 @@ register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
 register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# [Unused] Sample rate for opting in orgs into transaction metrics extraction.
-register("relay.transaction-metrics-org-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1063,12 +1038,6 @@ register(
     "symbolicate-event.low-priority.metrics.submission-rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Sampling rate for controlled rollout of a change where ignest-consumer spawns
-# special save_event task for transactions avoiding the preprocess.
-register(
-    "store.save-transactions-ingest-consumer-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Drop delete_old_primary_hash messages for a particular project.
@@ -1188,21 +1157,6 @@ register(
     "kafka.send-project-events-to-random-partitions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
-# Rate to project_configs_v3, no longer used.
-register("relay.project-config-v3-enable", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# [Unused] Use zstandard compression in redis project config cache
-# Set this value to a list of DSNs.
-register(
-    "relay.project-config-cache-compress", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
-# [Unused] Use zstandard compression in redis project config cache
-# Set this value of the fraction of config writes you want to compress.
-register(
-    "relay.project-config-cache-compress-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
 # default brownout crontab for api deprecations
 register(
     "api.deprecation.brownout-cron",
@@ -1272,6 +1226,11 @@ register(
     "sentry-metrics.indexer.raise-validation-errors",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to enable orjson for JSON parsing in reconstruct_messages function
+register(
+    "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Global and per-organization limits on the writes to the string indexer's DB.
@@ -1728,6 +1687,24 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
+register(
+    "performance.traces.query_timestamp_projects",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-buffer-hours",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # hours
+register(
+    "performance.traces.span_query_minimum_spans",
+    type=Int,
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -1776,18 +1753,8 @@ register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR
 
 # Webhook processing controls
 register(
-    "hybridcloud.webhookpayload.use_parallel",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "hybridcloud.webhookpayload.worker_threads",
     default=4,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybridcloud.webhookpayload.use_mailbox_buckets",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1850,16 +1817,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Control whether the artifact bundles assemble endpoint support the missing chunks check the enables the CLI to only
-# upload missing chunks instead of the entire bundle again.
-register(
-    "sourcemaps.artifact_bundles.assemble_with_missing_chunks",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Controls the method of clock task dispatch. This is part of GH-58410 and will
+# enable dispatching via the clock pulse consumer instead of using celery tassk
+register(
+    "crons.use_clock_pulse_consumer",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
@@ -1874,7 +1841,7 @@ register(
 # The flag activates whether to send group attributes messages to kafka
 register(
     "issues.group_attributes.send_kafka",
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2348,6 +2315,24 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# list of project IDs we want to deny ingesting profiles
+# function metrics into the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.denied_proj_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# rollout rate: % of profiles for which we ingest the extracted profile
+# functions metrics into the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
@@ -2361,6 +2346,12 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "standalone-spans.process-spans-consumer.project-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "standalone-spans.buffer-window.seconds",
     type=Int,
     default=120,  # 2 minutes
@@ -2371,11 +2362,88 @@ register(
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "standalone-spans.send-occurrence-to-platform.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Deobfuscate profiles using Symbolicator
 register(
     "profiling.deobfuscate-using-symbolicator.enable-for-project",
     type=Sequence,
     default=[],
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "traces.sample-list.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Options for setting LLM providers and usecases
+register("llm.provider.options", default={}, flags=FLAG_NOSTORE)
+# Example provider:
+#     "openai": {
+#         "options": {
+#             "api_key": "",
+#         },
+#         "models": ["gpt-4-turbo", "gpt-3.5-turbo"],
+#     }
+
+register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
+# Example usecase:
+#     "suggestedfix": {
+#         "provider": "openai",
+#         "options": {
+#             "model": "gpt-3.5-turbo",
+#         },
+#     }
+# }
+
+register(
+    "feedback.filter_garbage_messages",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organizations with increased rate limits for organization_events API
+register(
+    "api.organization_events.rate-limit-increased.orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Increased rate limits for organization_events API for the orgs above
+register(
+    "api.organization_events.rate-limit-increased.limits",
+    type=Dict,
+    default={"limit": 50, "window": 1, "concurrent_limit": 50},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Reduced rate limits for organization_events API for the orgs in LA/EA/GA rollout
+# Once GA'd, this will be the default rate limit for all orgs not on the increase list
+register(
+    "api.organization_events.rate-limit-reduced.limits",
+    type=Dict,
+    default={"limit": 1000, "window": 300, "concurrent_limit": 15},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO: remove once removed from options
+register(
+    "issue_platform.use_kafka_partition_key",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+register(
+    "issue_platform.use_kafka_partition_key.rollout",
+    type=Float,
+    default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

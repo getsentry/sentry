@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -61,7 +61,7 @@ describe('useSpanMetricsSeries', () => {
       body: {},
     });
 
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       ({filters, enabled}) =>
         useSpanMetricsSeries({
           search: MutableSearch.fromQueryObject(filters),
@@ -96,7 +96,7 @@ describe('useSpanMetricsSeries', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(
+    const {result} = renderHook(
       ({filters, yAxis}) =>
         useSpanMetricsSeries({search: MutableSearch.fromQueryObject(filters), yAxis}),
       {
@@ -141,15 +141,12 @@ describe('useSpanMetricsSeries', () => {
       body: {},
     });
 
-    const {rerender, waitFor} = reactHooks.renderHook(
-      ({yAxis}) => useSpanMetricsSeries({yAxis}),
-      {
-        wrapper: Wrapper,
-        initialProps: {
-          yAxis: ['avg(span.self_time)', 'spm()'] as MetricsProperty[],
-        },
-      }
-    );
+    const {rerender} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
+      wrapper: Wrapper,
+      initialProps: {
+        yAxis: ['avg(span.self_time)', 'spm()'] as MetricsProperty[],
+      },
+    });
 
     expect(eventsRequest).toHaveBeenLastCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -192,15 +189,12 @@ describe('useSpanMetricsSeries', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(
-      ({yAxis}) => useSpanMetricsSeries({yAxis}),
-      {
-        wrapper: Wrapper,
-        initialProps: {
-          yAxis: ['spm()'] as MetricsProperty[],
-        },
-      }
-    );
+    const {result} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
+      wrapper: Wrapper,
+      initialProps: {
+        yAxis: ['spm()'] as MetricsProperty[],
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toEqual(false));
 
@@ -235,15 +229,12 @@ describe('useSpanMetricsSeries', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(
-      ({yAxis}) => useSpanMetricsSeries({yAxis}),
-      {
-        wrapper: Wrapper,
-        initialProps: {
-          yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as MetricsProperty[],
-        },
-      }
-    );
+    const {result} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
+      wrapper: Wrapper,
+      initialProps: {
+        yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as MetricsProperty[],
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toEqual(false));
 

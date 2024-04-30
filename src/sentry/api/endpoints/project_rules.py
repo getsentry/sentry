@@ -32,7 +32,7 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
-from sentry.rules.processor import is_condition_slow
+from sentry.rules.processing.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
@@ -681,7 +681,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="List a Project's Issue Alert Rules",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
@@ -716,7 +716,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         operation_id="Create an Issue Alert Rule for a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectRulesPostSerializer,
         responses={
@@ -825,7 +825,12 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         owner = data.get("owner")
         if owner:
             try:
-                kwargs["owner"] = owner.resolve_to_actor().id
+                kwargs["owner_user_id"] = None
+                kwargs["owner_team_id"] = None
+                if owner.type == User:
+                    kwargs["owner_user_id"] = owner.id
+                if owner.type == Team:
+                    kwargs["owner_team_id"] = owner.id
             except (User.DoesNotExist, Team.DoesNotExist):
                 return Response(
                     "Could not resolve owner",
@@ -860,7 +865,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         alert_rule_created.send_robust(
             user=request.user,
             project=project,
-            rule=rule,
+            rule_id=rule.id,
             rule_type="issue",
             sender=self,
             is_api_token=request.auth is not None,

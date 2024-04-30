@@ -82,6 +82,7 @@ class ReplayExamples:
                             "alt": "",
                             "aria_label": "",
                             "class": ["class1", "class2"],
+                            "component_name": "",
                             "id": "myid",
                             "role": "",
                             "tag": "div",
@@ -89,9 +90,8 @@ class ReplayExamples:
                             "title": "",
                         },
                         "project_id": "1",
-                        "component_name": "SignUpForm",
-                    }
-                ]
+                    },
+                ],
             },
             status_codes=["200"],
             response_only=True,
