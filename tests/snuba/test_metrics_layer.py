@@ -25,7 +25,13 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
-from sentry.snuba.metrics_layer.query import bulk_run_query, run_query
+from sentry.snuba.metrics_layer.query import (
+    bulk_run_query,
+    fetch_metric_mris,
+    fetch_metric_tag_keys,
+    fetch_metric_tag_values,
+    run_query,
+)
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -872,3 +878,91 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 10
         for row in result["data"]:
             assert row["aggregate_value"] >= 86400
+
+
+class MQLMetaTest(TestCase, BaseMetricsTestCase):
+    def ts(self, dt: datetime) -> int:
+        return int(dt.timestamp())
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.generic_metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
+            TransactionMRI.DURATION.value: "distribution",
+            TransactionMRI.USER.value: "set",
+            TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
+            "g:transactions/test_gauge@none": "gauge",
+        }
+        self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
+        self.hour_ago = self.now - timedelta(hours=1)
+        self.org_id = self.project.organization_id
+        for mri, metric_type in self.generic_metrics.items():
+            assert metric_type in {"counter", "distribution", "set", "gauge"}
+            for i in range(2):
+                value: int | dict[str, int]
+                if metric_type == "gauge":
+                    value = {
+                        "min": i,
+                        "max": i,
+                        "sum": i,
+                        "count": i,
+                        "last": i,
+                    }
+                else:
+                    value = i
+                self.store_metric(
+                    self.org_id,
+                    self.project.id,
+                    metric_type,
+                    mri,
+                    {
+                        "transaction": f"transaction_{i % 2}",
+                        "status_code": "500" if i % 2 == 0 else "200",
+                        "device": "BlackBerry" if i % 2 == 0 else "Nokia",
+                    },
+                    self.ts(self.hour_ago + timedelta(minutes=1 * i)),
+                    value,
+                    UseCaseID.TRANSACTIONS,
+                )
+
+    def test_fetch_metric_mris(self) -> None:
+        metric_mris = fetch_metric_mris(self.org_id, [self.project.id], UseCaseID.TRANSACTIONS)
+        assert len(metric_mris) == 1
+        assert len(metric_mris[self.project.id]) == 4
+        assert metric_mris[self.project.id] == [
+            "c:transactions/count_per_root_project@none",
+            "s:transactions/user@none",
+            "g:transactions/test_gauge@none",
+            "d:transactions/duration@millisecond",
+        ]
+
+    def test_fetch_metric_tag_keys(self) -> None:
+        tag_keys = fetch_metric_tag_keys(
+            self.org_id, [self.project.id], UseCaseID.TRANSACTIONS, "g:transactions/test_gauge@none"
+        )
+        assert len(tag_keys) == 1
+        assert len(tag_keys[self.project.id]) == 3
+        assert tag_keys[self.project.id] == ["status_code", "device", "transaction"]
+
+    def test_fetch_metric_tag_values(self) -> None:
+        tag_values = fetch_metric_tag_values(
+            self.org_id,
+            self.project.id,
+            UseCaseID.TRANSACTIONS,
+            "g:transactions/test_gauge@none",
+            "transaction",
+        )
+        assert len(tag_values) == 2
+        assert tag_values == ["transaction_0", "transaction_1"]
+
+    def test_fetch_metric_tag_values_with_prefix(self) -> None:
+        tag_values = fetch_metric_tag_values(
+            self.org_id,
+            self.project.id,
+            UseCaseID.TRANSACTIONS,
+            "g:transactions/test_gauge@none",
+            "status_code",
+            "5",
+        )
+        assert len(tag_values) == 1
+        assert tag_values == ["500"]
