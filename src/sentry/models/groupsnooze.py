@@ -97,7 +97,57 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self) -> bool:
-        metrics.incr("groupsnooze.test_frequency_rates")
+        if features.has(
+            "organizations:groupsnooze-cached-rates", organization=self.group.project.organization
+        ):
+            return self.test_frequency_rates_w_cache()
+        else:
+            return self.test_frequency_rates_no_cache()
+
+    def test_frequency_rates_w_cache(self) -> bool:
+        cache_key = f"groupsnooze:v1:{self.id}:test_frequency_rate:events_seen_counter"
+
+        cache_ttl = self.window * 60  # Redis TTL in seconds (window is in minutes)
+
+        value: int | float = float("inf")  # using +inf as a sentinel value
+
+        try:
+            value = cache.incr(cache_key)
+            cache.touch(cache_key, cache_ttl)
+        except ValueError:
+            # key doesn't exist, fall back on sentinel value
+            pass
+
+        if value < self.count:
+            metrics.incr("groupsnooze.test_frequency_rates", tags={"cached": "true", "hit": "true"})
+            return True
+
+        metrics.incr("groupsnooze.test_frequency_rates", tags={"cached": "true", "hit": "false"})
+        metrics.incr("groupsnooze.test_frequency_rates.snuba_call")
+        end = timezone.now()
+        start = end - timedelta(minutes=self.window)
+
+        rate = tsdb.backend.get_sums(
+            model=get_issue_tsdb_group_model(self.group.issue_category),
+            keys=[self.group_id],
+            start=start,
+            end=end,
+            tenant_ids={"organization_id": self.group.project.organization_id},
+            referrer_suffix="frequency_snoozes",
+        )[self.group_id]
+
+        # TTL is further into the future than it needs to be, but we'd rather over-estimate
+        # and call Snuba more often than under-estimate and not trigger
+        cache.set(cache_key, rate, cache_ttl)
+
+        if rate >= self.count:
+            return False
+
+        return True
+
+    def test_frequency_rates_no_cache(self) -> bool:
+        metrics.incr("groupsnooze.test_frequency_rates", tags={"cached": "false"})
+        metrics.incr("groupsnooze.test_frequency_rates.snuba_call")
 
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
@@ -227,7 +277,7 @@ class GroupSnooze(Model):
 
         threshold = self.user_count + users_seen
 
-        CACHE_TTL = 300  # Redis TTL in seconds
+        CACHE_TTL = 3600  # Redis TTL in seconds
 
         value: int | float = float("inf")  # using +inf as a sentinel value
         try:

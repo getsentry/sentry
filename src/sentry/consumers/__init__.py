@@ -225,6 +225,14 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
         "click_options": ingest_monitors_options(),
     },
+    "monitors-clock-tick": {
+        "topic": Topic.MONITORS_CLOCK_TICK,
+        "strategy_factory": "sentry.monitors.consumers.clock_tick_consumer.MonitorClockTickStrategyFactory",
+    },
+    "monitors-clock-tasks": {
+        "topic": Topic.MONITORS_CLOCK_TASKS,
+        "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
+    },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
         "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",

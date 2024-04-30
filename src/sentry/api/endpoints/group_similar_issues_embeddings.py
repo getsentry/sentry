@@ -11,8 +11,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.endpoints.event_grouping_info import get_grouping_info
 from sentry.api.serializers import serialize
+from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.seer.utils import (
@@ -146,9 +146,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
         if latest_event.data.get("exception"):
-            grouping_info = get_grouping_info(
-                None, project=group.project, event_id=latest_event.event_id
-            )
+            grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
         if stacktrace_string == "":

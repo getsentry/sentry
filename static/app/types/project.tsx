@@ -60,6 +60,10 @@ export type Project = {
   defaultEnvironment?: string;
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
+  highlightPreset?: {
+    context: Record<string, string[]>;
+    tags: string[];
+  };
   highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;

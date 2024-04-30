@@ -10,6 +10,8 @@ from sentry.models.groupinbox import bulk_remove_groups_from_inbox
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
+TRANSITION_AFTER_DAYS = 7
+
 
 def bulk_transition_group_to_ongoing(
     from_status: int,

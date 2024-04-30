@@ -1479,6 +1479,58 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {"count_op(queue.submit.celery)": 1, "count_op(queue.task.celery)": 1},
         ]
 
+    def test_slow_frames_gauge_metric(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            entity="metrics_gauges",
+            metric="mobile.slow_frames",
+            timestamp=self.six_min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            {
+                "min": 10,
+                "max": 10,
+                "sum": 10,
+                "count": 1,
+                "last": 10,
+            },
+            entity="metrics_gauges",
+            metric="mobile.slow_frames",
+            timestamp=self.six_min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if(mobile.slow_frames,release,foo)",
+                    "avg_if(mobile.slow_frames,release,bar)",
+                    "avg_compare(mobile.slow_frames,release,foo,bar)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {
+                "avg_compare(mobile.slow_frames,release,foo,bar)": 1.0,
+                "avg_if(mobile.slow_frames,release,foo)": 5.0,
+                "avg_if(mobile.slow_frames,release,bar)": 10.0,
+            }
+        ]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest

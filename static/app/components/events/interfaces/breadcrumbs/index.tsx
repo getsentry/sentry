@@ -332,7 +332,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
 
 export {BreadcrumbsContainer as Breadcrumbs};
 
-const SearchAndSortWrapper = styled('div')`
+export const SearchAndSortWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   gap: ${space(1)};
