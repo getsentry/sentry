@@ -624,7 +624,7 @@ function SectionCardContent({
   return (
     <ContentContainer {...props}>
       {contextSubject ? <CardContentSubject>{contextSubject}</CardContentSubject> : null}
-      <CardContentValueWrapper className="ctx-row-value">
+      <CardContentValueWrapper hasSubject={!!contextSubject} className="ctx-row-value">
         {defined(action?.link) ? (
           <Link to={action.link}>{dataComponent}</Link>
         ) : (
@@ -638,11 +638,13 @@ function SectionCardContent({
 function SectionCard({
   items,
   title,
+  disableTruncate,
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
+  disableTruncate?: boolean;
 }) {
-  const [showingAll, setShowingAll] = useState(false);
+  const [showingAll, setShowingAll] = useState(disableTruncate ?? false);
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   return (
@@ -651,11 +653,11 @@ function SectionCard({
       {items.slice(0, showingAll ? items.length : 5).map(item => (
         <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
       ))}
-      {items.length > 5 && (
+      {items.length > 5 && !disableTruncate ? (
         <TruncateActionWrapper>
           <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
         </TruncateActionWrapper>
-      )}
+      ) : null}
     </Card>
   );
 }
@@ -697,9 +699,9 @@ export const CardContentSubject = styled('div')`
   word-wrap: break-word;
 `;
 
-const CardContentValueWrapper = styled(CardContentSubject)`
+const CardContentValueWrapper = styled(CardContentSubject)<{hasSubject: boolean}>`
   color: ${p => p.theme.textColor};
-  grid-column: span 2;
+  grid-column: ${p => (p.hasSubject ? 'span 2' : '1 / -1')};
 `;
 
 const TruncateActionWrapper = styled('div')`

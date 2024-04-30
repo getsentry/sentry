@@ -15,12 +15,10 @@ import {
   Frame,
   SpanDescription as DBQueryDescription,
 } from 'sentry/views/starfish/components/spanDescription';
-import {FrameContainer} from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 import {TraceDrawerComponents} from '../../../../styles';
-import {ButtonGroup} from '..';
 
 export function SpanDescription({
   node,
@@ -38,59 +36,82 @@ export function SpanDescription({
     span.sentry_tags?.category
   );
 
+  if (![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)) {
+    return null;
+  }
+
+  const actions =
+    !span.op || !span.hash ? null : (
+      <ButtonGroup>
+        <SpanSummaryButton event={event} organization={organization} span={span} />
+        <Button
+          size="xs"
+          to={spanDetailsRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: event.title,
+            query: location.query,
+            spanSlug: {op: span.op, group: span.hash},
+            projectID: event.projectID,
+          })}
+        >
+          {t('View Similar Spans')}
+        </Button>
+      </ButtonGroup>
+    );
+
+  const value =
+    resolvedModule === ModuleName.DB ? (
+      <SpanDescriptionWrapper>
+        <DBQueryDescription
+          groupId={span.sentry_tags?.group ?? ''}
+          op={span.op ?? ''}
+          preliminaryDescription={span.description}
+        />
+      </SpanDescriptionWrapper>
+    ) : (
+      span.description
+    );
+
+  const title =
+    resolvedModule === ModuleName.DB && span.op?.startsWith('db')
+      ? t('Database Query')
+      : t('Resource');
+
   return (
-    <TraceDrawerComponents.TableRow
+    <TraceDrawerComponents.SectionCard
+      items={[
+        {
+          key: 'description',
+          subject: null,
+          value,
+        },
+      ]}
       title={
-        resolvedModule === ModuleName.DB && span.op?.startsWith('db')
-          ? t('Database Query')
-          : t('Description')
+        <TitleContainer>
+          {title}
+          {actions}
+        </TitleContainer>
       }
-      extra={
-        !span.op || !span.hash ? null : (
-          <ButtonGroup>
-            <SpanSummaryButton event={event} organization={organization} span={span} />
-            <Button
-              size="xs"
-              to={spanDetailsRouteWithQuery({
-                orgSlug: organization.slug,
-                transaction: event.title,
-                query: location.query,
-                spanSlug: {op: span.op, group: span.hash},
-                projectID: event.projectID,
-              })}
-            >
-              {t('View Similar Spans')}
-            </Button>
-          </ButtonGroup>
-        )
-      }
-    >
-      {resolvedModule === ModuleName.DB ? (
-        <SpanDescriptionWrapper>
-          <DBQueryDescription
-            groupId={span.sentry_tags?.group ?? ''}
-            op={span.op ?? ''}
-            preliminaryDescription={span.description}
-          />
-        </SpanDescriptionWrapper>
-      ) : (
-        span.description
-      )}
-    </TraceDrawerComponents.TableRow>
+    />
   );
 }
+
+const TitleContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(0.5)};
+  justify-content: space-between;
+`;
 
 const SpanDescriptionWrapper = styled('div')`
   ${Frame} {
     border: none;
   }
+`;
 
-  ${FrameContainer} {
-    padding: ${space(2)} 0 0 0;
-    margin-top: ${space(2)};
-  }
-
-  pre {
-    padding: 0 !important;
-  }
+const ButtonGroup = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  flex-wrap: wrap;
+  justify-content: flex-end;
 `;

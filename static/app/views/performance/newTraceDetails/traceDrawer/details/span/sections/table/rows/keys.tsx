@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {
   rawSpanKeys,
@@ -13,16 +12,17 @@ import {
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {KeyValueListDataItem} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {TraceDrawerComponents} from '../../../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../../../styles';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -69,78 +69,71 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   });
   const timingKeys = getSpanSubTimings(span) ?? [];
 
-  return (
-    <Fragment>
-      {allZeroSizes && (
-        <TextTr>
-          The following sizes were not collected for security reasons. Check if the host
-          serves the appropriate
-          <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin">
-            <span className="val-string">Timing-Allow-Origin</span>
-          </ExternalLink>
-          header. You may have to enable this collection manually.
-        </TextTr>
-      )}
-      {Object.entries(sizeKeys).map(([key, value]) => (
-        <TraceDrawerComponents.TableRow title={key} key={key}>
-          <Fragment>
-            <FileSize bytes={value} />
-            {value >= 1024 && <span>{` (${value} B)`}</span>}
-          </Fragment>
-        </TraceDrawerComponents.TableRow>
-      ))}
-      {Object.entries(nonSizeKeys).map(([key, value]) =>
-        !isHiddenDataKey(key) ? (
-          <TraceDrawerComponents.TableRow title={key} key={key}>
-            <GeneralSpanDetailsValue value={value} />
-          </TraceDrawerComponents.TableRow>
-        ) : null
-      )}
-      {unknownKeys.map(key => {
-        if (key === 'event' || key === 'childTransactions') {
-          // dont render the entire JSON payload
-          return null;
-        }
+  const items: SectionCardKeyValueList = [];
 
-        return (
-          <TraceDrawerComponents.TableRow title={key} key={key}>
-            <GeneralSpanDetailsValue value={span[key]} />
-          </TraceDrawerComponents.TableRow>
-        );
-      })}
-      {timingKeys.map(timing => (
-        <TraceDrawerComponents.TableRow
-          title={timing.name}
-          key={timing.name}
-          prefix={<RowTimingPrefix timing={timing} />}
-        >
-          {getPerformanceDuration(Number(timing.duration) * 1000)}
-        </TraceDrawerComponents.TableRow>
-      ))}
-    </Fragment>
-  );
+  if (allZeroSizes) {
+    items.push({
+      key: 'all_zeros_text',
+      subject: null,
+      value: tct(
+        ' The following sizes were not collected for security reasons. Check if the host serves the appropriate [link] header. You may have to enable this collection manually.',
+        {
+          link: (
+            <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin">
+              <span className="val-string">Timing-Allow-Origin</span>
+            </ExternalLink>
+          ),
+        }
+      ),
+    });
+  }
+  Object.entries(sizeKeys).forEach(([key, value]) => {
+    items.push({
+      key: key,
+      subject: key,
+      value: (
+        <Fragment>
+          <FileSize bytes={value} />
+          {value >= 1024 && <span>{` (${value} B)`}</span>}
+        </Fragment>
+      ),
+    });
+  });
+  Object.entries(nonSizeKeys).forEach(([key, value]) => {
+    if (!isHiddenDataKey(key)) {
+      items.push({
+        key: key,
+        subject: key,
+        value: value as KeyValueListDataItem['value'],
+      });
+    }
+  });
+  unknownKeys.forEach(key => {
+    if (key !== 'event' && key !== 'childTransactions') {
+      items.push({
+        key: key,
+        subject: key,
+        value: span[key],
+      });
+    }
+  });
+  timingKeys.forEach(timing => {
+    items.push({
+      key: timing.name,
+      subject: (
+        <TraceDrawerComponents.FlexBox style={{gap: space(0.5)}}>
+          <RowTimingPrefix timing={timing} />
+          {timing.name}
+        </TraceDrawerComponents.FlexBox>
+      ),
+      value: getPerformanceDuration(Number(timing.duration) * 1000),
+      // prefix: <RowTimingPrefix timing={timing} />
+    });
+  });
+
+  return <TraceDrawerComponents.SectionCard items={items} title={t('Additional Data')} />;
 }
 
 function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {
   return <OpsDot style={{backgroundColor: timing.color}} />;
 }
-
-const ValueTd = styled('td')`
-  position: relative;
-`;
-
-function TextTr({children}) {
-  return (
-    <tr>
-      <td className="key" />
-      <ValueTd className="value">
-        <StyledText>{children}</StyledText>
-      </ValueTd>
-    </tr>
-  );
-}
-
-const StyledText = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(2)} ${space(0)};
-`;

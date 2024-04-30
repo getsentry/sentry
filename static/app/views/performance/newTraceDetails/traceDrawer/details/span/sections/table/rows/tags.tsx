@@ -1,6 +1,7 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import Pill from 'sentry/components/pill';
-import Pills from 'sentry/components/pills';
+import {t} from 'sentry/locale';
+
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../../../styles';
 
 export function Tags({span}: {span: RawSpanType}) {
   const tags: {[tag_name: string]: string} | undefined = span?.tags;
@@ -15,16 +16,11 @@ export function Tags({span}: {span: RawSpanType}) {
     return null;
   }
 
-  return (
-    <tr>
-      <td className="key">Tags</td>
-      <td className="value">
-        <Pills style={{padding: '8px'}}>
-          {keys.map((key, index) => (
-            <Pill key={index} name={key} value={String(tags[key]) || ''} />
-          ))}
-        </Pills>
-      </td>
-    </tr>
-  );
+  const items: SectionCardKeyValueList = keys.map(key => ({
+    subject: key,
+    value: String(tags[key]) || '',
+    key: key,
+  }));
+
+  return <TraceDrawerComponents.SectionCard items={items} title={t('Tags')} />;
 }

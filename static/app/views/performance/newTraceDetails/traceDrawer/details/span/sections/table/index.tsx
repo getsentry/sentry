@@ -10,9 +10,8 @@ import type {
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-import {AncestryAndGrouping} from './rows/ancestry';
 import {SpanDescription} from './rows/description';
-import {DurationSummary} from './rows/duration';
+import {GeneralInfo} from './rows/generalInfo';
 import {SpanHTTPInfo} from './rows/http';
 import {SpanKeys} from './rows/keys';
 import {Tags} from './rows/tags';
@@ -38,14 +37,13 @@ function SpanNodeDetailTable(props: SpanDetailProps) {
             organization={organization}
             location={location}
           />
-          <DurationSummary node={props.node} />
-          <SpanHTTPInfo span={span} />
-          <AncestryAndGrouping
+          <GeneralInfo
             node={props.node}
             organization={organization}
             location={location}
             onParentClick={props.onParentClick}
           />
+          <SpanHTTPInfo span={span} />
           <Tags span={span} />
           <SpanKeys node={props.node} />
         </tbody>
