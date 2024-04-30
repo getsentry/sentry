@@ -211,7 +211,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
           : width * initialSizeInPercentage;
 
       return {
-        min: props.trace_state.preferences.layout === 'drawer bottom' ? 27 : 300,
+        min: props.trace_state.preferences.layout === 'drawer bottom' ? 27 : 350,
         initialSize,
         ref: drawerRef,
       };
