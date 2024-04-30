@@ -646,6 +646,11 @@ register(
 
 register("snuba.snql.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("integrations.slack.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("auth.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("backup.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("event-manager.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("eventstore.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1814,6 +1819,14 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Controls the method of clock task dispatch. This is part of GH-58410 and will
+# enable dispatching via the clock pulse consumer instead of using celery tassk
+register(
+    "crons.use_clock_pulse_consumer",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)

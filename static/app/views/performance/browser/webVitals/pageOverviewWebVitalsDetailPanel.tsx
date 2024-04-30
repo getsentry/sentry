@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
@@ -9,6 +8,7 @@ import type {
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';

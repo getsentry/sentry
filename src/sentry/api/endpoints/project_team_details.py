@@ -40,13 +40,13 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         self,
         request: Request,
         organization_slug: str | int,
-        project_slug: str | int,
+        project_id_or_slug: int | str,
         team_id_or_slug: int | str,
         *args,
         **kwargs,
     ):
         (args, kwargs) = super().convert_args(
-            request, organization_slug, project_slug, *args, **kwargs
+            request, organization_slug, project_id_or_slug, *args, **kwargs
         )
 
         project = kwargs["project"]
@@ -73,7 +73,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         operation_id="Add a Team to a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=None,
@@ -104,7 +104,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         operation_id="Delete a Team from a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
         ],
         responses={
