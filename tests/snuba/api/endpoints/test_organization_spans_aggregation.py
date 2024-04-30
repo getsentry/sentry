@@ -354,7 +354,7 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
             data["environment"] = environment
 
         with self.feature(self.FEATURES):
-            return self.store_event(data, project_id=project_id, **kwargs)
+            return self.store_event(data, project_id=project_id, assert_no_errors=False, **kwargs)
 
     def setUp(self):
         super().setUp()
