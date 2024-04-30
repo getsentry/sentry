@@ -74,7 +74,7 @@ class HighCardinalityWidgetException(Exception):
     pass
 
 
-class GlobalTemplateOverride(TypedDict):
+class GlobalGroupOverride(TypedDict):
     isEnabled: bool
 
 
@@ -83,7 +83,7 @@ class MetricExtractionConfig(TypedDict):
 
     version: int
     metrics: list[MetricSpec]
-    global_templates: dict[str, GlobalTemplateOverride]
+    globalGroups: dict[str, GlobalGroupOverride]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -127,17 +127,17 @@ def get_metric_extraction_config(
         metric_specs = _merge_metric_specs(alert_specs, widget_specs)
     timeout.check()
 
-    with sentry_sdk.start_span(op="get_global_templates"):
-        global_templates = _get_global_templates(project)
+    with sentry_sdk.start_span(op="get_global_groups"):
+        global_groups = _get_global_groups(project)
     timeout.check()
 
-    if not (metric_specs or global_templates):
+    if not (metric_specs or global_groups):
         return None
 
     return {
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metric_specs,
-        "global_templates": global_templates,
+        "globalGroups": global_groups,
     }
 
 
@@ -215,9 +215,8 @@ def _get_alert_metric_specs(
     return specs
 
 
-@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
-def _get_global_templates(project: Project) -> dict[str, GlobalTemplateOverride]:
-    templates: dict[str, GlobalTemplateOverride] = {}
+def _get_global_groups(project: Project) -> dict[str, GlobalGroupOverride]:
+    templates: dict[str, GlobalGroupOverride] = {}
     if features.has("projects:span-metrics-extraction", project):
         templates["spans_hardcoded"] = {"isEnabled": True}
     return templates

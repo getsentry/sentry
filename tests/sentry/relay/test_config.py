@@ -1132,12 +1132,7 @@ def test_project_config_valid_with_generic_filters(default_project):
 @region_silo_test
 @pytest.mark.parametrize("has_feature", [False, True])
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["projects:span-metrics-extraction"])
-def test_global_templates(default_project, has_feature):
-    """
-    Tests that the project config properly returns healthcheck filters when the
-    user has enabled healthcheck filters.
-    """
-
+def test_global_groups(default_project, has_feature):
     with Feature(
         {
             "organizations:transaction-metrics-extraction": True,
@@ -1149,8 +1144,9 @@ def test_global_templates(default_project, has_feature):
     _validate_project_config(config)
 
     if has_feature:
-        assert config["metricExtraction"]["globalTemplates"] == {
-            "templates": {"spans_hardcoded": {"isEnabled": True}}
+        assert config["metricExtraction"]["globalGroups"] == {
+            "spans_hardcoded": {"isEnabled": True}
         }
+
     else:
         assert "metricExtraction" not in config
