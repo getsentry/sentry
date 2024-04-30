@@ -1498,7 +1498,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         response = self.do_request(
             {
-                "field": ["project", "project.slug", "count()"],
+                "field": ["project", "project.name", "count()"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
@@ -1510,7 +1510,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
 
         assert data[0]["project"] == self.project.slug
-        assert data[0]["project.slug"] == self.project.slug
+        assert data[0]["project.name"] == self.project.slug
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
