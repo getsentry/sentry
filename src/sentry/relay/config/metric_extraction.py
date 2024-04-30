@@ -127,17 +127,12 @@ def get_metric_extraction_config(
         metric_specs = _merge_metric_specs(alert_specs, widget_specs)
     timeout.check()
 
-    with sentry_sdk.start_span(op="get_global_groups"):
-        global_groups = _get_global_groups(project)
-    timeout.check()
-
-    if not (metric_specs or global_groups):
+    if not metric_specs:
         return None
 
     return {
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metric_specs,
-        "globalGroups": global_groups,
     }
 
 
@@ -213,23 +208,6 @@ def _get_alert_metric_specs(
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
-
-
-def _get_global_groups(project: Project) -> dict[str, GlobalGroupOverride]:
-    should_extract_span_metrics = features.has("projects:span-metrics-extraction", project)
-    segment_spans_become_transactions = features.has(
-        "projects:extract-transaction-from-segment-span", project
-    )
-
-    return {
-        "spans_hardcoded": {"isEnabled": should_extract_span_metrics},
-        # For compatibility, the metric `d:transactions/measurements.score.total@ratio`
-        # is also extracted from standalone spans. But if we also double-write segment spans to transactions
-        # (and extract transaction metrics for the generated transaction), this duplication becomes unnecessary.
-        "spans_hardcoded_tx": {
-            "isEnabled": should_extract_span_metrics and not segment_spans_become_transactions
-        },
-    }
 
 
 def _bulk_cache_query_key(project: Project, chunk: int) -> str:
