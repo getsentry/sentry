@@ -46,7 +46,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
                 self.builder, alias
             ),
-            constants.PROJECT_SLUG_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
+            constants.PROJECT_NAME_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
                 self.builder, alias
             ),
         }
