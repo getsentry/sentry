@@ -64,7 +64,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             "oauth_signature",
         ]
         for hc in header_components:
-            assert hc in str(request.headers["Authorization"])
+            assert hc in request.headers["Authorization"]
 
     @responses.activate
     def test_get_repo_authentication(self):
@@ -80,4 +80,4 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         assert res["slug"] == "helloworld"
 
         assert len(responses.calls) == 1
-        assert b"oauth_consumer_key" in responses.calls[0].request.headers["Authorization"]
+        assert "oauth_consumer_key" in responses.calls[0].request.headers["Authorization"]
