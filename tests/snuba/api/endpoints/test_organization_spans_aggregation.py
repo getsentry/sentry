@@ -306,7 +306,6 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
             )
 
 
-@freeze_time("2024-03-20T00:00:00.000Z")
 class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
