@@ -213,6 +213,10 @@ describe('useReplayData', () => {
         (_url, options) => options.query?.dataset === DiscoverDatasets.DISCOVER,
         (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
         (_url, options) => options.query?.cursor === '0:0:0',
+        // Requests errors from 2s earlier
+        (_url, options) => options.query?.start === '2023-01-01T16:59:58.000Z',
+        // Requests error from 2s later
+        (_url, options) => options.query?.end === '2023-01-01T17:00:12.000Z',
       ],
     });
 
@@ -229,6 +233,10 @@ describe('useReplayData', () => {
         (_url, options) => options.query?.dataset === DiscoverDatasets.ISSUE_PLATFORM,
         (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
         (_url, options) => options.query?.cursor === '0:0:0',
+        // Requests errors from 2s earlier
+        (_url, options) => options.query?.start === '2023-01-01T16:59:58.000Z',
+        // Requests error from 2s later
+        (_url, options) => options.query?.end === '2023-01-01T17:00:12.000Z',
       ],
     });
 

@@ -12,6 +12,17 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
+// Subtract & add a few seconds from `started_at` and `finished_at` to account
+// for errors that might've come in with some clock drift, and are therefore
+// outside the the start/end times when we got segment data.
+
+// We need to add at least 1ms to `finished_at` date because
+// finished_at has the `ms` portion truncated, while replays-events-meta operates on
+// timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
+// while the event is saved with `12:00:00.450Z`.
+const START_TIME_FUZZ_MS = -2_000;
+const FINISH_TIME_FUZZ_MS = 2_000;
+
 type Options = {
   /**
    * The organization slug
@@ -44,6 +55,17 @@ interface Result {
   onRetry: () => void;
   projectSlug: string | null;
   replayRecord: ReplayRecord | undefined;
+}
+
+/**
+ * Clone a Date and adjust it by some milliseconds
+ */
+function dateOffset(date: Date | undefined, offsetMs: number) {
+  if (!date) {
+    return undefined;
+  }
+  date.setMilliseconds(date.getMilliseconds() + offsetMs);
+  return date;
 }
 
 /**
@@ -128,58 +150,48 @@ function useReplayData({
       perPage: segmentsPerPage,
     });
 
-  const getErrorsQueryKey = useCallback(
-    ({cursor, per_page}): ApiQueryKey => {
-      // Clone the `finished_at` time and bump it up one second because finishedAt
-      // has the `ms` portion truncated, while replays-events-meta operates on
-      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
-      // while the event is saved with `12:00:00.450Z`.
-      const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
-      finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
+  const startedAt = useMemo(() => {
+    return dateOffset(new Date(replayRecord?.started_at ?? ''), START_TIME_FUZZ_MS);
+  }, [replayRecord]);
 
-      return [
-        `/organizations/${orgSlug}/replays-events-meta/`,
-        {
-          query: {
-            dataset: DiscoverDatasets.DISCOVER,
-            start: replayRecord?.started_at.toISOString(),
-            end: finishedAtClone.toISOString(),
-            project: ALL_ACCESS_PROJECTS,
-            query: `replayId:[${replayRecord?.id}]`,
-            per_page,
-            cursor,
-          },
+  const finishedAt = useMemo(() => {
+    return dateOffset(new Date(replayRecord?.finished_at ?? ''), FINISH_TIME_FUZZ_MS);
+  }, [replayRecord]);
+
+  const getErrorsQueryKey = useCallback(
+    ({cursor, per_page}): ApiQueryKey => [
+      `/organizations/${orgSlug}/replays-events-meta/`,
+      {
+        query: {
+          dataset: DiscoverDatasets.DISCOVER,
+          start: startedAt?.toISOString(),
+          end: finishedAt?.toISOString(),
+          project: ALL_ACCESS_PROJECTS,
+          query: `replayId:[${replayRecord?.id}]`,
+          per_page,
+          cursor,
         },
-      ];
-    },
-    [orgSlug, replayRecord]
+      },
+    ],
+    [orgSlug, replayRecord, startedAt, finishedAt]
   );
 
   const getPlatformErrorsQueryKey = useCallback(
-    ({cursor, per_page}): ApiQueryKey => {
-      // Clone the `finished_at` time and bump it up one second because finishedAt
-      // has the `ms` portion truncated, while replays-events-meta operates on
-      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
-      // while the event is saved with `12:00:00.450Z`.
-      const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
-      finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
-
-      return [
-        `/organizations/${orgSlug}/replays-events-meta/`,
-        {
-          query: {
-            dataset: DiscoverDatasets.ISSUE_PLATFORM,
-            start: replayRecord?.started_at.toISOString(),
-            end: finishedAtClone.toISOString(),
-            project: ALL_ACCESS_PROJECTS,
-            query: `replayId:[${replayRecord?.id}]`,
-            per_page,
-            cursor,
-          },
+    ({cursor, per_page}): ApiQueryKey => [
+      `/organizations/${orgSlug}/replays-events-meta/`,
+      {
+        query: {
+          dataset: DiscoverDatasets.ISSUE_PLATFORM,
+          start: startedAt?.toISOString(),
+          end: finishedAt?.toISOString(),
+          project: ALL_ACCESS_PROJECTS,
+          query: `replayId:[${replayRecord?.id}]`,
+          per_page,
+          cursor,
         },
-      ];
-    },
-    [orgSlug, replayRecord]
+      },
+    ],
+    [orgSlug, replayRecord, startedAt, finishedAt]
   );
 
   const {
