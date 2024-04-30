@@ -77,18 +77,14 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-interface Props {
-  domain?: string;
-  error?: Error | null;
-  meta?: EventsMetaType;
-}
-
-export function TransactionsTable({error}: Props) {
+export function TransactionsTable() {
   const organization = useOrganization();
   const location = useLocation();
   const destination = decodeScalar(location.query.destination);
 
-  const {data, isLoading, meta, pageLinks} = useQueuesByTransactionQuery({destination});
+  const {data, isLoading, meta, pageLinks, error} = useQueuesByTransactionQuery({
+    destination,
+  });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
