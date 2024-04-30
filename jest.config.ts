@@ -225,8 +225,6 @@ const config: Config.InitialOptions = {
     // transform
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
-
-    '^@sentry/react$': require.resolve('@sentry/react'),
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
@@ -250,8 +248,8 @@ const config: Config.InitialOptions = {
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
-      ? `node_modules/(?!${ESM_NODE_MODULES.join('|')})`
-      : 'node_modules/',
+      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      : '/node_modules/',
   ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
