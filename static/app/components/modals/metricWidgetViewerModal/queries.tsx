@@ -38,7 +38,7 @@ import {
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {FormulaInput as EquationInput} from 'sentry/views/metrics/formulaInput';
+import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
 import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
