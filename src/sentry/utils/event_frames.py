@@ -200,6 +200,7 @@ def find_stack_frames(
             threads = get_path(event_data, "threads", "values", filter=True) or get_path(
                 event_data, "threads", filter=True
             )
+            # Handles edge case where the second call to get_path doesn't return a list of threads
             if threads == {"values": None}:
                 threads = None
             thread = get_crashing_thread(threads)
