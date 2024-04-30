@@ -99,7 +99,7 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
                         id_or_slug_path_params_enabled(
                             self.convert_args.__qualname__, str(organization_slug)
                         )
-                        and str(organization_slug).isnumeric()
+                        and str(organization_slug).isdigit()
                     ):
                         organization = Organization.objects.get_from_cache(id=organization_slug)
                     else:
