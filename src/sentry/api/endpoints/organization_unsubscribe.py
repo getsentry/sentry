@@ -84,7 +84,7 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
             project = Project.objects.select_related("organization").get(id=id)
         except Project.DoesNotExist:
             raise NotFound()
-        if str(organization_slug).isdigit():
+        if str(organization_slug).isdecimal():
             if project.organization.id != int(organization_slug):
                 raise NotFound()
         else:
