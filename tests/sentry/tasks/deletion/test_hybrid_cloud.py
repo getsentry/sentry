@@ -473,20 +473,19 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
         monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
-        with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
-            ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
-                tombstone_cls=RegionTombstone,
-                model=Monitor,
-                field=monitor_owner_field,
-                tombstone_watermark_batch=WatermarkBatch(
-                    low=0,
-                    up=highest_tombstone_id["id__max"] + 1,
-                    has_more=False,
-                    transaction_id="foobar",
-                ),
-            )
-            assert ids == [monitor.id]
-            assert oldest_obj == tombstone.created_at
+        ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=monitor_owner_field,
+            tombstone_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_tombstone_id["id__max"] + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at
 
     def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(self):
         cascade_data = [setup_cross_db_deletion_data() for _ in range(3)]
@@ -537,19 +536,18 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         for bounds, bounds_with_expected_results in bounds_with_expected_results:
             monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
-            with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
-                ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
-                    tombstone_cls=RegionTombstone,
-                    model=Monitor,
-                    field=monitor_owner_field,
-                    tombstone_watermark_batch=WatermarkBatch(
-                        low=bounds["low"],
-                        up=bounds["up"],
-                        has_more=False,
-                        transaction_id="foobar",
-                    ),
-                )
-                assert ids == bounds_with_expected_results
+            ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
+                tombstone_cls=RegionTombstone,
+                model=Monitor,
+                field=monitor_owner_field,
+                tombstone_watermark_batch=WatermarkBatch(
+                    low=bounds["low"],
+                    up=bounds["up"],
+                    has_more=False,
+                    transaction_id="foobar",
+                ),
+            )
+            assert ids == bounds_with_expected_results
 
     def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self):
         data = setup_cross_db_deletion_data()
@@ -575,20 +573,19 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
 
         highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
 
-        with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
-            ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
-                tombstone_cls=RegionTombstone,
-                model=Monitor,
-                field=Monitor._meta.get_field("owner_user_id"),
-                tombstone_watermark_batch=WatermarkBatch(
-                    low=0,
-                    up=highest_tombstone_id["id__max"] + 1,
-                    has_more=False,
-                    transaction_id="foobar",
-                ),
-            )
-            assert ids == [monitor.id]
-            assert oldest_obj == tombstone.created_at
+        ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor._meta.get_field("owner_user_id"),
+            tombstone_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_tombstone_id["id__max"] + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at
 
 
 @region_silo_test
@@ -608,21 +605,20 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         tombstone = RegionTombstone.objects.get(
             object_identifier=user_id, table_name=User._meta.db_table
         )
-        with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
-            ids, oldest_obj = get_ids_cross_db_for_row_watermark(
-                tombstone_cls=RegionTombstone,
-                model=Monitor,
-                field=Monitor._meta.get_field("owner_user_id"),
-                row_watermark_batch=WatermarkBatch(
-                    low=0,
-                    up=highest_model_id["id__max"] + 1,
-                    has_more=False,
-                    transaction_id="foobar",
-                ),
-            )
+        ids, oldest_obj = get_ids_cross_db_for_row_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor._meta.get_field("owner_user_id"),
+            row_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_model_id["id__max"] + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
 
-            assert ids == [monitor.id]
-            assert oldest_obj == tombstone.created_at
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at
 
     def test_with_empty_tombstones_table(self):
         # Set up some sample data that shouldn't be affected
@@ -634,20 +630,19 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         assert highest_model_id is not None
         assert not RegionTombstone.objects.filter().exists()
 
-        with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
-            ids, oldest_obj = get_ids_cross_db_for_row_watermark(
-                tombstone_cls=RegionTombstone,
-                model=Monitor,
-                field=Monitor._meta.get_field("owner_user_id"),
-                row_watermark_batch=WatermarkBatch(
-                    low=0,
-                    up=highest_model_id + 1,
-                    has_more=False,
-                    transaction_id="foobar",
-                ),
-            )
+        ids, oldest_obj = get_ids_cross_db_for_row_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor._meta.get_field("owner_user_id"),
+            row_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_model_id + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
 
-            assert ids == []
+        assert ids == []
 
     def test_row_watermarking_bounds(self):
         # In testing, the IDs for these models will be low, sequential values
@@ -702,21 +697,20 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         for bounds, bounds_with_expected_results in bounds_with_expected_results:
             monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
-            with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
-                ids, oldest_obj = get_ids_cross_db_for_row_watermark(
-                    tombstone_cls=RegionTombstone,
-                    model=Monitor,
-                    field=monitor_owner_field,
-                    row_watermark_batch=WatermarkBatch(
-                        low=bounds["low"],
-                        up=bounds["up"],
-                        has_more=False,
-                        transaction_id="foobar",
-                    ),
-                )
-                assert (
-                    ids == bounds_with_expected_results
-                ), f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
+            ids, oldest_obj = get_ids_cross_db_for_row_watermark(
+                tombstone_cls=RegionTombstone,
+                model=Monitor,
+                field=monitor_owner_field,
+                row_watermark_batch=WatermarkBatch(
+                    low=bounds["low"],
+                    up=bounds["up"],
+                    has_more=False,
+                    transaction_id="foobar",
+                ),
+            )
+            assert (
+                ids == bounds_with_expected_results
+            ), f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
 
     def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self):
         data = setup_cross_db_deletion_data()
@@ -742,17 +736,16 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
 
         highest_model_id = Monitor.objects.aggregate(Max("id"))["id__max"]
 
-        with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
-            ids, oldest_obj = get_ids_cross_db_for_row_watermark(
-                tombstone_cls=RegionTombstone,
-                model=Monitor,
-                field=Monitor._meta.get_field("owner_user_id"),
-                row_watermark_batch=WatermarkBatch(
-                    low=0,
-                    up=highest_model_id + 1,
-                    has_more=False,
-                    transaction_id="foobar",
-                ),
-            )
-            assert ids == [monitor.id]
-            assert oldest_obj == tombstone.created_at
+        ids, oldest_obj = get_ids_cross_db_for_row_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor._meta.get_field("owner_user_id"),
+            row_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_model_id + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at
