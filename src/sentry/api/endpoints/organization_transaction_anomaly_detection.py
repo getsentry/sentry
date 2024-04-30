@@ -21,7 +21,7 @@ ads_connection_pool = connection_from_url(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
 MappedParams = namedtuple("MappedParams", ["query_start", "query_end", "granularity"])
