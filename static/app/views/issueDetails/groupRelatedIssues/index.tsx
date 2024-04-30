@@ -104,11 +104,11 @@ function GroupRelatedIssues({params}: Props) {
                       </LinkButton>
                     </TextButtonWrapper>
                     <GroupList
+                      endpointPath={`/organizations/${orgSlug}/issues/`}
                       orgSlug={orgSlug}
-                      // Exclude the current group from the list of related issues
-                      query={`issue.id:[${sameRootCauseIssues.filter(id => id !== groupId)}]`}
+                      queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
+                      query=""
                       source="related-issues-tab"
-                      withColumns={['event', 'assignee']}
                     />
                   </div>
                 ) : (
@@ -139,11 +139,11 @@ function GroupRelatedIssues({params}: Props) {
                       </LinkButton>
                     </TextButtonWrapper>
                     <GroupList
+                      endpointPath={`/organizations/${orgSlug}/issues/`}
                       orgSlug={orgSlug}
-                      // Exclude the current group from the list of related issues
-                      query={`issue.id:[${traceConnectedIssues.filter(id => id !== groupId)}]`}
+                      queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
+                      query=""
                       source="related-issues-tab"
-                      withColumns={['event', 'assignee']}
                     />
                   </div>
                 ) : (

@@ -51,10 +51,10 @@ export type GroupListColumn =
 
 type Props = WithRouterProps & {
   api: Client;
+  endpointPath: string;
   orgSlug: string;
-  query: string; // Optional: `query` value to be passed to endpointPath
+  query: string;
   customStatsPeriod?: TimePeriodType;
-  endpointPath?: string; // It defaults to `/organizations/${orgSlug}/issues/`
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
