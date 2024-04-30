@@ -23,6 +23,7 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.rules.processing.processor import (
     activate_downstream_actions,
     bulk_get_rule_status,
+    PROJECT_ID_BUFFER_LIST_KEY,
     is_condition_slow,
     split_conditions_and_filters,
 )
@@ -32,9 +33,6 @@ from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
-
-
-PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
 class UniqueCondition(NamedTuple):

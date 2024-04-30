@@ -161,7 +161,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-spans-new-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-streamed-spans-exp-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:performance-streamed-spans-exp-visible", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:process-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:process-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:performance-trends-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-trends-new-data-date-range-default", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-use-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

@@ -10,7 +10,8 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -30,6 +31,7 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.rules")
 
 SLOW_CONDITION_MATCHES = ["event_frequency"]
+PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
 def get_match_function(match_name: str) -> Callable[..., bool] | None:
@@ -240,6 +242,30 @@ class RuleProcessor:
             has_escalated=self.has_escalated,
         )
 
+    def group_conditions_by_speed(
+        self, conditions: list[Mapping[str, str]]
+    ) -> tuple[list[Mapping[str, str]], list[Mapping[str, str]]]:
+        fast_conditions: list[Mapping[str, str]] = []
+        slow_conditions: list[Mapping[str, str]] = []
+
+        for condition in conditions:
+            if is_condition_slow(condition):
+                slow_conditions.append(condition)
+            else:
+                fast_conditions.append(condition)
+
+        return fast_conditions, slow_conditions
+
+    def enqueue_rule(self, rule: Rule) -> None:
+        self.buffer = RedisBuffer()
+        self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
+        self.buffer.push_to_hash(
+            model=Project,
+            filters={"project_id": rule.project.id},
+            field=f"{rule.id}:{self.group.id}",
+            value=self.event.event_id,
+        )
+
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
         If all conditions and filters pass, execute every action.
@@ -277,9 +303,13 @@ class RuleProcessor:
 
         state = self.get_state()
         condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
-
-        # Sort `condition_list` so that most expensive conditions run last.
-        condition_list.sort(key=lambda condition: is_condition_slow(condition))
+        slow_conditions = None
+        if features.has("organizations:process-slow-alerts", self.project.organization):
+            fast_conditions, slow_conditions = self.group_conditions_by_speed(condition_list)
+            condition_list = fast_conditions
+        else:
+            # Sort `condition_list` so that most expensive conditions run last.
+            condition_list.sort(key=lambda condition: is_condition_slow(condition))
 
         for predicate_list, match, name in (
             (filter_list, filter_match, "filter"),
@@ -291,6 +321,9 @@ class RuleProcessor:
             predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
+                    # prevent return here if slow_conditions exist, because we have more evaluation to do
+                    if slow_conditions:
+                        continue
                     return
             else:
                 log_string = f"Unsupported {name}_match {match!r} for rule {rule.id}"
@@ -301,6 +334,11 @@ class RuleProcessor:
                     extra={**logging_details},
                 )
                 return
+
+        # If we've reached here we have slow conditions to evaluate
+        if slow_conditions:
+            self.enqueue_rule(rule)
+            return
 
         updated = (
             GroupRuleStatus.objects.filter(id=status.id)
