@@ -2412,15 +2412,9 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         # Fall back to using just the title for events without an exception.
         title = event.title
 
-    # If the event hasn't yet been given a helpful title, attempt to calculate one
+    # If all we have is `<unlabeled event>` (or one of its equally unhelpful friends), bail
     if title in PLACEHOLDER_EVENT_TITLES:
-        title = event_type.get_title(metadata)
-
-    # If there's still nothing helpful to be had, bail
-    if title in PLACEHOLDER_EVENT_TITLES:
-        logger_data.update(
-            {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
-        )
+        logger_data.update({"event_type": event_type.key, "title": title})
         logger.warning(
             "Unable to get severity score because of unusable `message` value '%s'",
             title,
