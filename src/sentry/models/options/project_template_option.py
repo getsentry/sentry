@@ -1,11 +1,11 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectTemplateOption(Model):
     """
     A ProjectTemplateOption is a templated version of a project
