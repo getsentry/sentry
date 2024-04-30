@@ -226,7 +226,6 @@ const config: Config.InitialOptions = {
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
 
-    '^preact$': require.resolve('preact'),
     '^@sentry/react$': require.resolve('@sentry/react'),
   },
   setupFiles: [
@@ -247,7 +246,6 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
-    // '^.+\\.ts?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
