@@ -414,17 +414,15 @@ function AssigneeSelectorDropdown({
     let assignableTeamList = getAssignableTeams();
     let suggestedAssignees = getSuggestedAssignees();
 
+    // If the group is already assigned, extract the assigned
+    // user/team from the member-list/assignedTeam-list and add to the top of the menu
     if (group.assignedTo) {
       if (group.assignedTo.type === 'team') {
         const assignedTeam = assignableTeamList.find(
           assignableTeam => assignableTeam.team.id === group.assignedTo?.id
         );
         if (assignedTeam) {
-          options.push({
-            value: '_current_assignee',
-            label: t('Current Assignee'),
-            options: [makeTeamOption(assignedTeam)],
-          });
+          options.push(makeTeamOption(assignedTeam));
           assignableTeamList = assignableTeamList?.filter(
             assignableTeam => assignableTeam.team.id !== group.assignedTo?.id
           );
@@ -435,13 +433,9 @@ function AssigneeSelectorDropdown({
       } else {
         const assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
         if (assignedUser) {
-          options.push({
-            value: '_current_assignee',
-            label: t('Current Assignee'),
-            options: [
-              makeMemberOption(assignedUser.id, assignedUser.name || assignedUser.email),
-            ],
-          });
+          options.push(
+            makeMemberOption(assignedUser.id, assignedUser.name || assignedUser.email)
+          );
           memList = memList?.filter(member => member.id !== group.assignedTo?.id);
           suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
             return suggestedAssignee.id !== group.assignedTo?.id;
@@ -465,10 +459,20 @@ function AssigneeSelectorDropdown({
       options: assignableTeamList?.map(makeTeamOption) ?? [],
     };
 
+    const suggestedUsers = suggestedAssignees?.filter(
+      assignee => assignee.type === 'user'
+    );
+    const suggestedTeams = suggestedAssignees?.filter(
+      assignee => assignee.type === 'team'
+    );
+
     const suggestedOptions = {
       value: '_suggested_assignees',
       label: t('Suggested Assignees'),
-      options: suggestedAssignees?.map(makeSuggestedAssigneeOption) ?? [],
+      options:
+        suggestedUsers
+          .map(makeSuggestedAssigneeOption)
+          .concat(suggestedTeams?.map(makeSuggestedAssigneeOption)) ?? [],
     };
 
     options.push(suggestedOptions, memberOptions, teamOptions);
