@@ -14,11 +14,12 @@ logger = logging.getLogger("sentry.mail")
 
 
 def get_email_addresses(
-    user_ids: Iterable[int], project: Project | None = None
+    user_ids: Iterable[int], project: Project | None = None, only_verified: bool = False
 ) -> Mapping[int, str]:
     """
     Find the best email addresses for a collection of users. If a project is
-    provided, prefer their project-specific notification preferences.
+    provided, prefer their project-specific notification preferences. Can also
+    optionally filter to only returning verified email addresses.
     """
     pending = set(user_ids)
     results = {}
@@ -33,7 +34,9 @@ def get_email_addresses(
         for option in (o for o in options if o.value and not is_fake_email(o.value)):
             user_id_emails.append(UserIdEmailArgs(user_id=int(option.user_id), email=option.value))
 
-        user_id_emails_exists = user_service.verify_user_emails(user_id_emails=user_id_emails)
+        user_id_emails_exists = user_service.verify_user_emails(
+            user_id_emails=user_id_emails, only_verified=only_verified
+        )
 
         for user_id_key in user_id_emails_exists.keys():
             user_id = int(user_id_key)
