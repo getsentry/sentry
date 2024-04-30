@@ -59,6 +59,8 @@ export class WrapperReplayer {
       durationMs,
     });
 
+    const metaEventIdx = events.findIndex(e => e.type === 4);
+
     // Create a mock full snapshot event, in order to render rrweb gestures properly
     // The hardcoded data.node.id here should match the ID of the data being sent
     // in the `positions` arrays
@@ -73,7 +75,7 @@ export class WrapperReplayer {
               name: 'html',
               publicId: '',
               systemId: '',
-              id: 1,
+              id: 0,
             },
             {
               type: 2,
@@ -82,7 +84,7 @@ export class WrapperReplayer {
                 lang: 'en',
               },
               childNodes: [],
-              id: 2,
+              id: 0,
             },
           ],
           id: 0,
@@ -92,11 +94,11 @@ export class WrapperReplayer {
           top: 0,
         },
       },
-      timestamp: 100, // this shouldn't matter
+      timestamp: events[metaEventIdx].timestamp,
     };
 
-    // Insert after the first meta event
-    events.splice(events.findIndex(e => e.type === 4) + 1, 0, fullSnapshotEvent);
+    // Insert after the meta event
+    events.splice(metaEventIdx + 1, 0, fullSnapshotEvent);
 
     this.rrwebInst = new Replayer(events, {
       root: root as Element,
