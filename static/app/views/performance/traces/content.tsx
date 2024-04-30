@@ -128,10 +128,10 @@ export function Content() {
             {t('Trace ID')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
-            {t('Trace Root Name')}
+            {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Spans')}
+            {t('Total Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Breakdown')}
@@ -181,11 +181,16 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
       </StyledPanelItem>
       <StyledPanelItem align="left">
-        {trace.name ? (
-          trace.name
-        ) : (
-          <EmptyValueContainer>{t('No Name Available')}</EmptyValueContainer>
-        )}
+        <Description>
+          {trace.project ? (
+            <ProjectRenderer projectSlug={trace.project} hideName />
+          ) : null}
+          {trace.name ? (
+            trace.name
+          ) : (
+            <EmptyValueContainer>{t('Missing Trace Root')}</EmptyValueContainer>
+          )}
+        </Description>
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <Count value={trace.numSpans} />
@@ -288,7 +293,10 @@ export interface TraceResult<F extends string> {
   duration: number;
   end: number;
   name: string | null;
+  numErrors: number;
+  numOccurrences: number;
   numSpans: number;
+  project: string | null;
   spans: SpanResult<F>[];
   start: number;
   trace: string;

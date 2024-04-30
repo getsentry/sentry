@@ -25,8 +25,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {useTraceMeta} from '../newTraceDetails/traceApi/useTraceMeta';
-
 import type {TraceResult} from './content';
 import type {Field} from './data';
 
@@ -233,12 +231,9 @@ export function TransactionRenderer({
 }
 
 export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
-  const traceMeta = useTraceMeta(trace.trace);
   const organization = useOrganization();
 
-  const issueCount = !traceMeta.data
-    ? undefined
-    : traceMeta.data.errors + traceMeta.data.performance_issues;
+  const issueCount = trace.numErrors + trace.numOccurrences;
 
   return (
     <LinkButton
