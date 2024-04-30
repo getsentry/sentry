@@ -36,13 +36,13 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         self,
         request: Request,
         organization_slug: str | int,
-        project_slug: str | int,
+        project_id_or_slug: int | str,
         codeowners_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[Any, Any]:
         args, kwargs = super().convert_args(
-            request, organization_slug, project_slug, *args, **kwargs
+            request, organization_slug, project_id_or_slug, *args, **kwargs
         )
         try:
             kwargs["codeowners"] = ProjectCodeOwners.objects.get(
@@ -59,7 +59,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         `````````````
 
         :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project to get.
+        :pparam string project_id_or_slug: the id or slug of the project to get.
         :pparam string codeowners_id: id of codeowners object
         :param string raw: the raw CODEOWNERS text
         :param string codeMappingId: id of the RepositoryProjectPathConfig object

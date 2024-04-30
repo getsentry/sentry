@@ -1581,6 +1581,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-tree-ui": False,
     # Enable caching group counts in GroupSnooze
     "organizations:groupsnooze-cached-counts": False,
+    # Enable caching group frequency rates in GroupSnooze
+    "organizations:groupsnooze-cached-rates": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -3067,7 +3069,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.1"
+SELF_HOSTED_STABLE_VERSION = "24.4.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

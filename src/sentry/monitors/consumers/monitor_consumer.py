@@ -9,17 +9,16 @@ from datetime import datetime, timedelta
 from functools import partial
 from typing import Literal
 
-import msgpack
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import BrokerValue, Commit, Message, Partition
+from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 from django.db import router, transaction
 from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.codecs import ValidationError
+from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
 from sentry_sdk.tracing import Span, Transaction
 
@@ -59,7 +58,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
-MONITOR_CODEC = get_codec("ingest-monitors")
+MONITOR_CODEC: Codec[IngestMonitorMessage] = get_codec("ingest-monitors")
 
 CHECKIN_QUOTA_LIMIT = 6
 CHECKIN_QUOTA_WINDOW = 60
@@ -864,11 +863,7 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
         assert isinstance(item, BrokerValue)
 
         try:
-            try:
-                wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(item.payload.value)
-            except ValidationError:
-                wrapper = msgpack.unpackb(item.payload.value)
-                logger.exception("Failed to unpack message payload via sentry_kafka_schemas")
+            wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(item.payload.value)
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue
@@ -910,15 +905,12 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
             logger.exception("Failed to trigger monitor tasks")
 
 
-def process_single(message: Message[KafkaPayload]):
+def process_single(message: Message[KafkaPayload | FilteredPayload]):
+    assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
-    try:
-        try:
-            wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(message.payload.value)
-        except ValidationError:
-            logger.exception("Failed to unpack message payload via sentry_kafka_schemas")
-            wrapper = msgpack.unpackb(message.payload.value)
 
+    try:
+        wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(message.payload.value)
         ts = message.value.timestamp
         partition = message.value.partition.index
 
