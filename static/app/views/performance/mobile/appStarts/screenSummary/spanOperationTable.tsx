@@ -35,6 +35,7 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -161,6 +162,15 @@ export function SpanOperationTable({
         <Link to={`${pathname}?${qs.stringify(query)}`}>
           <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
+      );
+    }
+
+    if (data.meta.fields[column.key] === 'percent_change') {
+      return (
+        <PercentChangeCell
+          deltaValue={parseFloat(row[column.key] as string)}
+          preferredPolarity="-"
+        />
       );
     }
 
