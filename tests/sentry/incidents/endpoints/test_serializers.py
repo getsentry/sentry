@@ -33,7 +33,6 @@ from sentry.incidents.serializers import (
 )
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
-from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
@@ -662,8 +661,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.owner == self.team.actor
-        assert alert_rule.owner.type == ACTOR_TYPES["team"]
+        assert alert_rule.team_id == self.team.id
+        assert alert_rule.user_id is None
 
         base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
@@ -672,8 +671,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         # Reload user for actor
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)
-        assert alert_rule.owner == get_actor_for_user(self.user)
-        assert alert_rule.owner.type == ACTOR_TYPES["user"]
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
 
     def test_comparison_delta_above(self):
         params = self.valid_params.copy()

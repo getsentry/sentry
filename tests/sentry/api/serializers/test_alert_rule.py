@@ -206,7 +206,6 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result)
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
-        assert alert_rule.owner == self.team.actor
 
     def test_comparison_delta_above(self):
         alert_rule = self.create_alert_rule(comparison_delta=60, resolve_threshold=110)
