@@ -133,19 +133,6 @@ def _ensure_monitor_with_config(
         )
         if created:
             signal_monitor_created(project, None, True)
-        # TODO(rjo100): Temporarily log to measure impact of a bug incorrectly scoping
-        # the Monitor lookups to the wrapper's project_id. This means that any consumer check-in
-        # will automatically get attached to a monitor with the given slug, regardless
-        # of the monitor's attached project.
-        if monitor and monitor.project_id != project.id:
-            logger.error(
-                "Monitor project + wrapper project do not match",
-                extra={
-                    "organization.id": project.organization_id,
-                    "monitor.project_id": monitor.project_id,
-                    "project.id": project.id,
-                },
-            )
 
     # Update existing monitor
     if monitor and not created:

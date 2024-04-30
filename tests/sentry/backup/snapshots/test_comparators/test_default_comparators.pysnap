@@ -1,5 +1,5 @@
 ---
-created: '2024-04-30T18:34:09.660413+00:00'
+created: '2024-04-29T16:10:44.191647+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -97,7 +97,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - organization
-    - owner
     - snuba_query
     - team
     - user_id

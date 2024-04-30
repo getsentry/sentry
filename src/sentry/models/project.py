@@ -502,7 +502,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
                     organization_id=organization.id, id=rule.team_id
                 ).exists()
             if not is_member:
-                rule.update(team_id=None, user_id=None, owner=None)
+                rule.update(team_id=None, user_id=None)
         rules = Rule.objects.filter(
             Q(owner_team_id__isnull=False) | Q(owner_user_id__isnull=False), project=self
         )
@@ -577,9 +577,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         from sentry.models.rule import Rule
 
         ProjectTeam.objects.filter(project=self, team=team).delete()
-        AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(
-            owner=None, team_id=None
-        )
+        AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(team_id=None)
         Rule.objects.filter(owner_team_id=team.id, project=self).update(owner_team_id=None)
 
     def get_security_token(self):
