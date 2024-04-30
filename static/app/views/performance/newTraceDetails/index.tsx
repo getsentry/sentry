@@ -481,6 +481,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      if (traceStateRef.current.preferences.drawer.minimized) {
+        traceDispatch({type: 'minimize drawer', payload: false});
+      }
       setRowAsFocused(node, event, traceStateRef.current.search.resultsLookup, null, 0);
 
       if (traceStateRef.current.search.resultsLookup.has(node)) {
