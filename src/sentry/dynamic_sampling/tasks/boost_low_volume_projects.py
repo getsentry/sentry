@@ -91,7 +91,8 @@ logger = logging.getLogger(__name__)
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
     traceparent = sentry_sdk.get_traceparent()
-    logger.info("boost_low_volume_projects", extra={"traceparent": traceparent})
+    baggage = sentry_sdk.get_baggage()
+    logger.info("boost_low_volume_projects", extra={"traceparent": traceparent, "baggage": baggage})
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
         for (
             org_id,
@@ -119,7 +120,8 @@ def boost_low_volume_projects_of_org(
     ],
 ) -> None:
     traceparent = sentry_sdk.get_traceparent()
-    logger.info("boost_low_volume_projects", extra={"traceparent": traceparent})
+    baggage = sentry_sdk.get_baggage()
+    logger.info("boost_low_volume_projects", extra={"traceparent": traceparent, "baggage": baggage})
     adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
 
