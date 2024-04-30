@@ -1,4 +1,6 @@
+import {browserHistory} from 'react-router';
 import {mat3, vec2} from 'gl-matrix';
+import * as qs from 'query-string';
 
 import {getDuration} from 'sentry/utils/formatters';
 import clamp from 'sentry/utils/number/clamp';
@@ -125,6 +127,7 @@ export class VirtualizedViewManager {
   private scrollbar_width: number = 0;
 
   timers: {
+    onFovChange: {id: number} | null;
     onRowIntoView: number | null;
     onScrollEndSync: {id: number} | null;
     onWheelEnd: number | null;
@@ -134,6 +137,7 @@ export class VirtualizedViewManager {
     onWheelEnd: null,
     onRowIntoView: null,
     onScrollEndSync: null,
+    onFovChange: null,
   };
 
   // Column configuration
@@ -485,6 +489,22 @@ export class VirtualizedViewManager {
     }
   }
 
+  registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
+    if (ref) {
+      ref.style.width = Math.round(this.columns.list.width * 100) + '%';
+      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: false});
+    } else {
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.removeEventListener(
+          'scroll',
+          this.onHorizontalScrollbarScroll
+        );
+      }
+    }
+
+    this.horizontal_scrollbar_container = ref;
+  }
+
   getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
     const left_percentage = cursor.x / this.trace_physical_space.width;
     const left_view = left_percentage * this.trace_view.width;
@@ -693,6 +713,7 @@ export class VirtualizedViewManager {
     if (this.trace_view.width === 0) {
       return;
     }
+
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
@@ -705,24 +726,25 @@ export class VirtualizedViewManager {
 
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
+    this.enqueueFOVQueryParamSync();
   }
 
-  registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
-    if (ref) {
-      ref.style.width = Math.round(this.columns.list.width * 100) + '%';
-      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: false});
-    } else {
-      if (this.horizontal_scrollbar_container) {
-        this.horizontal_scrollbar_container.removeEventListener(
-          'scroll',
-          this.onHorizontalScrollbarScroll
-        );
-      }
+  enqueueFOVQueryParamSync() {
+    if (this.timers.onFovChange !== null) {
+      window.cancelAnimationFrame(this.timers.onFovChange.id);
     }
 
-    this.horizontal_scrollbar_container = ref;
+    this.timers.onFovChange = requestAnimationTimeout(() => {
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...qs.parse(location.search),
+          fov: `${this.trace_view.x},${this.trace_view.width}`,
+        },
+      });
+      this.timers.onFovChange = null;
+    }, 500);
   }
-
   onNewMaxRowWidth(max) {
     this.syncHorizontalScrollbar(max);
   }
