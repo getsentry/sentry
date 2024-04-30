@@ -90,6 +90,8 @@ def experimental_instrumented_task(name, silo_mode=None, **kwargs):
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
+            kwargs.pop("__transaction_id", None)
+            kwargs.pop("__start_time", None)
             return func(*args, **kwargs)
 
         # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
