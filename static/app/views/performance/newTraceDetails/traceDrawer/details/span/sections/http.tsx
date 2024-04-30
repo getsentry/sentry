@@ -4,7 +4,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 export function SpanHTTPInfo({span}: {span: RawSpanType}) {
   if (span.op === 'http.client' && span.description) {

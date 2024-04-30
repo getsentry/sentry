@@ -1,7 +1,7 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 export function Tags({span}: {span: RawSpanType}) {
   const tags: {[tag_name: string]: string} | undefined = span?.tags;

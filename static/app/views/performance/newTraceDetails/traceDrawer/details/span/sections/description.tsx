@@ -18,7 +18,7 @@ import {
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
-import {TraceDrawerComponents} from '../../../../styles';
+import {TraceDrawerComponents} from '../../styles';
 
 export function SpanDescription({
   node,

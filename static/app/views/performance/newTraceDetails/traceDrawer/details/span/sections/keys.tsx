@@ -22,7 +22,7 @@ import type {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',

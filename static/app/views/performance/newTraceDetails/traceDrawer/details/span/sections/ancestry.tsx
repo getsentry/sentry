@@ -29,7 +29,7 @@ import type {
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../../../styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 type TransactionResult = {
   id: string;

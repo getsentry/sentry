@@ -17,7 +17,7 @@ import {
   CardContentSubject,
   type SectionCardKeyValueList,
   TraceDrawerComponents,
-} from '../../../../styles';
+} from '../../styles';
 
 import {getSpanAncestryAndGroupingItems} from './ancestry';
 
