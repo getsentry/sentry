@@ -159,6 +159,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   metricAlert?: boolean;
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
+  supportedTags?: TagCollection | undefined;
 };
 
 function SearchBar(props: SearchBarProps) {
