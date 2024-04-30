@@ -64,7 +64,7 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics_for_querying,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
+from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id, is_mri
 from sentry.snuba.metrics.query import (
     MetricField,
     MetricGroupByField,
@@ -1350,6 +1350,9 @@ class MetricsQueryBuilder(QueryBuilder):
         }
 
         primary_metric = metrics_map[self.use_case_id].get(column, column)
+        if not is_mri(primary_metric) and not primary_metric.startswith("measurements."):
+            return None
+
         # Custom measurements are prefixed with "measurements." and always map to distributions
         prefix = "d" if primary_metric.startswith("measurements.") else primary_metric.split(":")[0]
         if prefix not in prefix_to_function_map or prefix_to_function_map.get(prefix) is None:
