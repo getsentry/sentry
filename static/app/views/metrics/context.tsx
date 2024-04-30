@@ -10,17 +10,21 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
-import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
+import type {MRI} from 'sentry/types';
+import {isCustomMetric, useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
   emptyMetricsQueryWidget,
   NO_QUERY_ID,
 } from 'sentry/utils/metrics/constants';
+import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsWidget} from 'sentry/utils/metrics/types';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaSelection} from 'sentry/views/metrics/chart/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
@@ -40,6 +44,7 @@ interface MetricsContextValue {
   focusArea: FocusAreaProps;
   hasMetrics: boolean;
   isDefaultQuery: boolean;
+  isLoading: boolean;
   isMultiChartMode: boolean;
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
@@ -65,6 +70,7 @@ export const MetricsContext = createContext<MetricsContextValue>({
   hasMetrics: false,
   highlightedSampleId: undefined,
   isDefaultQuery: false,
+  isLoading: true,
   isMultiChartMode: false,
   metricsSamples: [],
   removeWidget: () => {},
@@ -84,12 +90,15 @@ export function useMetricsContext() {
   return useContext(MetricsContext);
 }
 
-export function useMetricWidgets() {
+export function useMetricWidgets({defaultMri}: {defaultMri?: MRI}) {
   const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
-    useMemo<MetricsWidget[]>(() => parseMetricWidgetsQueryParam(urlWidgets), [urlWidgets])
+    useMemo<MetricsWidget[]>(
+      () => parseMetricWidgetsQueryParam(urlWidgets, defaultMri),
+      [defaultMri, urlWidgets]
+    )
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -147,12 +156,12 @@ export function useMetricWidgets() {
         setWidgets(currentWidgets => [
           ...currentWidgets,
           type === MetricExpressionType.QUERY
-            ? emptyMetricsQueryWidget
+            ? {...emptyMetricsQueryWidget, mri: defaultMri ?? emptyMetricsQueryWidget.mri}
             : emptyMetricsFormulaWidget,
         ]);
       }
     },
-    [currentWidgetsRef, duplicateWidget, setWidgets]
+    [currentWidgetsRef, duplicateWidget, setWidgets, defaultMri]
   );
 
   const removeWidget = useCallback(
@@ -210,13 +219,21 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const router = useRouter();
   const updateQuery = useUpdateQuery();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
+  const pageFilters = usePageFilters();
+  const {data: metricsMeta, isLoadingCustomMeta} = useMetricsMeta(pageFilters.selection);
+  const defaultMri =
+    metricsMeta
+      .toSorted((a, b) => {
+        return formatMRI(a.mri).localeCompare(formatMRI(b.mri));
+      })
+      .find(isCustomMetric)?.mri ?? undefined;
   const isMultiChartMode = multiChartMode === 1;
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
-    useMetricWidgets();
+    useMetricWidgets({defaultMri});
 
   const [metricsSamples, setMetricsSamples] = useState<
     MetricsSamplesResults<Field>['data'] | undefined
@@ -352,6 +369,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
+      isLoading: isLoadingCustomMeta,
       showQuerySymbols: widgets.length > 1,
       highlightedSampleId,
       setHighlightedSampleId,
@@ -374,6 +392,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
+      isLoadingCustomMeta,
       highlightedSampleId,
       isMultiChartMode,
       handleSetIsMultiChartMode,

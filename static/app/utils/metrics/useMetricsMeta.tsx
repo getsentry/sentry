@@ -28,9 +28,16 @@ export function useMetricsMeta(
   useCases: UseCase[] = DEFAULT_USE_CASES,
   filterBlockedMetrics = true,
   enabled: boolean = true
-): {data: MetricMeta[]; isLoading: boolean; isRefetching: boolean; refetch: () => void} {
+): {
+  data: MetricMeta[];
+  isLoading: boolean;
+  isLoadingCustomMeta: boolean;
+  isRefetching: boolean;
+  refetch: () => void;
+} {
   const {slug} = useOrganization();
 
+  const customUseCaseIndex = useCases.indexOf('custom');
   const queryKeys = useMemo(() => {
     return useCases.map(useCase => getMetricsMetaQueryKey(slug, pageFilters, [useCase]));
   }, [slug, pageFilters, useCases]);
@@ -40,20 +47,26 @@ export function useMetricsMeta(
     staleTime: 2000, // 2 seconds to cover page load
   });
 
-  const {data, isLoading, isRefetching, refetch} = useMemo(() => {
+  const {data, isLoading, isLoadingCustomMeta, isRefetching, refetch} = useMemo(() => {
     const mergedResult: {
       data: MetricMeta[];
       isLoading: boolean;
+      isLoadingCustomMeta: boolean;
       isRefetching: boolean;
       refetch: () => void;
     } = {
       data: [],
       isLoading: false,
+      isLoadingCustomMeta: false,
       isRefetching: false,
       refetch: () => {
         results.forEach(result => result.refetch());
       },
     };
+
+    if (customUseCaseIndex > -1 && results[customUseCaseIndex]?.isLoading === true) {
+      mergedResult.isLoadingCustomMeta = true;
+    }
 
     for (const useCaseResult of results) {
       mergedResult.isLoading ||= useCaseResult.isLoading;
@@ -63,14 +76,14 @@ export function useMetricsMeta(
     }
 
     return mergedResult;
-  }, [results]);
+  }, [customUseCaseIndex, results]);
 
   const meta = (data ?? []).sort((a, b) =>
     formatMRI(a.mri).localeCompare(formatMRI(b.mri))
   );
 
   if (!filterBlockedMetrics) {
-    return {data: meta, isLoading, isRefetching, refetch};
+    return {data: meta, isLoading, isLoadingCustomMeta, isRefetching, refetch};
   }
 
   return {
@@ -78,6 +91,7 @@ export function useMetricsMeta(
       return entry.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
     }),
     isLoading,
+    isLoadingCustomMeta,
     isRefetching,
     refetch,
   };

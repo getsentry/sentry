@@ -119,7 +119,28 @@ export const QueryBuilder = memo(function QueryBuilder({
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
     const result = meta
       .filter(metric => isShownByDefault(metric) || isSelected(metric))
-      .sort(metric => (isSelected(metric) ? -1 : 1));
+      // Sort by selected metric first
+      // Then custom metrics on the top
+      // Then by name
+      .sort((metricA, metricB) => {
+        if (isSelected(metricA)) {
+          return -1;
+        }
+        if (isSelected(metricB)) {
+          return 1;
+        }
+
+        const isACustom = isCustomMetric(metricA);
+        const isBCustom = isCustomMetric(metricB);
+        if (isACustom && !isBCustom) {
+          return -1;
+        }
+        if (!isACustom && isBCustom) {
+          return 1;
+        }
+
+        return formatMRI(metricA.mri).localeCompare(formatMRI(metricB.mri));
+      });
 
     // Add the selected metric to the top of the list if it's not already there
     if (result[0]?.mri !== metricsQuery.mri) {

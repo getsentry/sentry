@@ -8,6 +8,7 @@ import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -29,7 +30,7 @@ import {WidgetDetails} from 'sentry/views/metrics/widgetDetails';
 
 export const MetricsLayout = memo(() => {
   const organization = useOrganization();
-  const {hasMetrics} = useMetricsContext();
+  const {hasMetrics, isLoading} = useMetricsContext();
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
   const addCustomMetric = useCallback(
@@ -81,7 +82,9 @@ export const MetricsLayout = memo(() => {
             </PageFilterBar>
             <IntervalSelect />
           </FilterContainer>
-          {hasMetrics ? (
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : hasMetrics ? (
             <Fragment>
               <Queries />
               <MetricScratchpad />
