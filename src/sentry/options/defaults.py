@@ -494,7 +494,6 @@ register(
 # React concurrent renderer
 register(
     "frontend.react-concurrent-renderer-enabled",
-    type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
