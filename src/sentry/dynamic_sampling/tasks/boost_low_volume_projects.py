@@ -90,7 +90,8 @@ logger = logging.getLogger(__name__)
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
-    logger.info(sentry_sdk.scope)
+    trace_parent = sentry_sdk.get_traceparent()
+    logger.info("boost_low_volume_projects", extra={"trace_parent": trace_parent})
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
         for (
             org_id,
