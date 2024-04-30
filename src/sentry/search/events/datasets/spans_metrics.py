@@ -43,6 +43,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
                 self.builder, alias
             ),
+            constants.PROJECT_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
+                self.builder, alias
+            ),
+            constants.PROJECT_NAME_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
+                self.builder, alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> int:
