@@ -10,9 +10,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import toArray from 'sentry/utils/array/toArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
-import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {addToFilter, excludeFromFilter} from '../cellAction';
