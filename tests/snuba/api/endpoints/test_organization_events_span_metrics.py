@@ -1498,17 +1498,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         response = self.do_request(
             {
-                "field": ["project.id", "count()"],
-                "query": "",
-                "project": self.project.id,
-                "dataset": "spansMetrics",
-                "statsPeriod": "1h",
-            }
-        )
-
-        response_2 = self.do_request(
-            {
-                "field": ["project", "count()"],
+                "field": ["project", "project.slug", "count()"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
@@ -1517,13 +1507,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
 
         assert response.status_code == 200, response.content
-        assert response_2.status_code == 200, response_2.content
         data = response.data["data"]
-        data_2 = response_2.data["data"]
 
-        assert len(data) == len(data_2)
-        assert data[0]["project.id"] == data_2[0]["project"]
-        assert data[0]["count()"] == data_2[0]["count()"]
+        assert data[0]["project"] == self.project.slug
+        assert data[0]["project.slug"] == self.project.slug
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
