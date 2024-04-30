@@ -534,7 +534,7 @@ def convert_snuba_result(
 
 def fetch_metric_mris(
     org_id: int, project_ids: list[int], use_case_id: UseCaseID, app_id: str = ""
-) -> list[str]:
+) -> dict[int, list[str]]:
     """
     Fetches all the metric MRIs for a set of projects and use case. This will reverse
     resolve all the metric IDs into MRIs.
@@ -544,7 +544,7 @@ def fetch_metric_mris(
 
 def fetch_metric_tag_keys(
     org_id: int, project_ids: list[int], use_case_id: UseCaseID, mri: str, app_id: str = ""
-) -> list[str]:
+) -> dict[int, list[str]]:
     """
     Fetches the tag keys for a given metric MRI. This will reverse
     resolve all the tag keys into strings.
@@ -558,7 +558,7 @@ def _query_meta_table(
     use_case_id: UseCaseID,
     mri: str | None = None,
     app_id: str = "",
-) -> list[str]:
+) -> dict[int, list[str]]:
     """
     Helper function for querying the meta table. This will query across all four metric types, and resolve all the resulting
     values. If an MRI is provided, it is assumed that this function should find unique tag keys for that MRI.
@@ -586,10 +586,15 @@ def _query_meta_table(
 
     counters_query = (
         Query(Entity("generic_metrics_counters_meta"))
-        .set_select([Column(column_name)])
-        .set_groupby([Column(column_name)])
+        .set_select([Column("project_id"), Column(column_name)])
+        .set_groupby([Column("project_id"), Column(column_name)])
         .set_where(conditions)
-        .set_orderby([OrderBy(Column(column_name), Direction.ASC)])
+        .set_orderby(
+            [
+                OrderBy(Column("project_id"), Direction.ASC),
+                OrderBy(Column(column_name), Direction.ASC),
+            ]
+        )
         .set_limit(1000)
     )
 
@@ -617,7 +622,14 @@ def _query_meta_table(
         indexed_ids.extend([row[column_name] for row in result["data"]])
 
     resolved_ids = bulk_reverse_resolve(use_case_id, org_id, indexed_ids)
-    return list(resolved_ids.values())
+    # Group by project ID
+    grouped_results: dict[int, list[str]] = {}
+    for result in results:
+        for row in result["data"]:
+            mri = resolved_ids[row[column_name]]
+            grouped_results.setdefault(row["project_id"], list()).append(mri)
+
+    return grouped_results
 
 
 def fetch_metric_tag_values(

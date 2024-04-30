@@ -927,11 +927,12 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
 
     def test_fetch_metric_mris(self) -> None:
         metric_mris = fetch_metric_mris(self.org_id, [self.project.id], UseCaseID.TRANSACTIONS)
-        assert len(metric_mris) == 4
-        assert metric_mris == [
-            "g:transactions/test_gauge@none",
-            "s:transactions/user@none",
+        assert len(metric_mris) == 1
+        assert len(metric_mris[self.project.id]) == 4
+        assert metric_mris[self.project.id] == [
             "c:transactions/count_per_root_project@none",
+            "s:transactions/user@none",
+            "g:transactions/test_gauge@none",
             "d:transactions/duration@millisecond",
         ]
 
@@ -939,8 +940,9 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
         tag_keys = fetch_metric_tag_keys(
             self.org_id, [self.project.id], UseCaseID.TRANSACTIONS, "g:transactions/test_gauge@none"
         )
-        assert len(tag_keys) == 3
-        assert tag_keys == ["status_code", "device", "transaction"]
+        assert len(tag_keys) == 1
+        assert len(tag_keys[self.project.id]) == 3
+        assert tag_keys[self.project.id] == ["status_code", "device", "transaction"]
 
     def test_fetch_metric_tag_values(self) -> None:
         tag_values = fetch_metric_tag_values(
