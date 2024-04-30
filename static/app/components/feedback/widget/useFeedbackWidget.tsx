@@ -13,10 +13,7 @@ interface Props {
 
 export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props) {
   const config = useLegacyStore(ConfigStore);
-  const feedback =
-    Sentry.getClient()?.getIntegrationByName<
-      ReturnType<typeof Sentry.feedbackIntegration>
-    >('Feedback');
+  const feedback = Sentry.getFeedback();
 
   useEffect(() => {
     if (!feedback) {
@@ -33,16 +30,11 @@ export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props
 
     if (buttonRef) {
       if (buttonRef.current) {
-        // TODO: Remove this after we update to 8.0.0-beta.5
-        // @ts-expect-error This is wrongly typed in the current version...
         return feedback.attachTo(buttonRef.current, options);
       }
     } else {
-      // TODO: Remove this after we update to 8.0.0-beta.5
-      // @ts-expect-error This is wrongly typed in the current version...
-      const widgetPromise = feedback.createWidget(options);
-      return async () => {
-        const widget = await widgetPromise;
+      const widget = feedback.createWidget(options);
+      return () => {
         widget.removeFromDom();
       };
     }
