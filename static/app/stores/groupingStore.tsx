@@ -12,7 +12,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import toArray from 'sentry/utils/toArray';
+import toArray from 'sentry/utils/array/toArray';
 
 import type {CommonStoreDefinition} from './types';
 
