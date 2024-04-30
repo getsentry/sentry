@@ -143,9 +143,7 @@ export default function HighlightsDataSection({
 
   const editProps = {
     disabled: !isProjectAdmin,
-    title: !isProjectAdmin
-      ? t('You must be a Project Admin to edit highlights.')
-      : undefined,
+    title: !isProjectAdmin ? t('Only Project Admins can edit highlights.') : undefined,
   };
 
   return (

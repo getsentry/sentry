@@ -17,7 +17,7 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
-import {IconAdd, IconSubtract} from 'sentry/icons';
+import {IconAdd, IconInfo, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
@@ -324,7 +324,7 @@ export default function EditHighlightsModal({
   const columnCount = 3;
   return (
     <Fragment>
-      <Header>
+      <Header closeButton>
         <Title>{t('Edit Event Highlights')}</Title>
       </Header>
       <Body>
@@ -374,6 +374,10 @@ export default function EditHighlightsModal({
         />
       </Body>
       <Footer>
+        <FooterInfo>
+          <IconInfo />
+          <div>{t('Changes are applied to all issues for this project')}</div>
+        </FooterInfo>
         <ButtonBar gap={1}>
           <Button onClick={closeModal} size="sm">
             {t('Cancel')}
@@ -395,7 +399,7 @@ export default function EditHighlightsModal({
             priority="primary"
             size="sm"
           >
-            {isLoading ? t('Saving...') : t('Save')}
+            {isLoading ? t('Saving...') : t('Apply to Project')}
           </Button>
         </ButtonBar>
       </Footer>
@@ -412,6 +416,14 @@ const Subtitle = styled('h4')`
   border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: ${space(1.5)};
   padding-bottom: ${space(0.5)};
+`;
+
+const FooterInfo = styled('div')`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+  gap: ${space(1)};
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
