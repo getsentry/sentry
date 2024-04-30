@@ -130,31 +130,6 @@ const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
   return tags;
 }, {});
 
-const isSuggestions = [
-  'resolved',
-  'unresolved',
-  ...['archived', 'escalating', 'new', 'ongoing', 'regressed'],
-  'assigned',
-  'unassigned',
-  'for_review',
-  'linked',
-  'unlinked',
-];
-
-const IS_FIELD_TAG = Object.fromEntries(
-  [FieldKey.IS].map(item => [
-    item,
-    {
-      key: item,
-      name: item,
-      values: isSuggestions,
-      maxSuggestedValues: isSuggestions.length,
-      predefined: true,
-      kind: FieldKind.FIELD,
-    },
-  ])
-);
-
 const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
 
 const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
@@ -191,13 +166,14 @@ function SearchBar(props: SearchBarProps) {
     maxSearchItems,
     organization,
     tags,
+    metricAlert = false,
     omitTags,
+    supportedTags,
     fields,
     projectIds,
     includeSessionTagsValues,
     maxMenuHeight,
     customMeasurements,
-    metricAlert = false,
   } = props;
 
   const api = useApi();
@@ -266,6 +242,12 @@ function SearchBar(props: SearchBarProps) {
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
+    // If it is not a metric alert search bar and supportedTags has a value, return supportedTags
+    // If it is a metric alert search bar, combine supportedTags with getTagList tags
+    if (metricAlert === false && supportedTags !== undefined) {
+      return supportedTags;
+    }
+
     const combinedTags: TagCollection = orgHasPerformanceView
       ? Object.assign(
           {},
@@ -276,11 +258,13 @@ function SearchBar(props: SearchBarProps) {
         )
       : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    if (metricAlert === true) {
-      Object.assign(combinedTags, IS_FIELD_TAG);
-    }
-
-    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    Object.assign(
+      combinedTags,
+      tagsWithKind,
+      STATIC_FIELD_TAGS,
+      STATIC_SEMVER_TAGS,
+      supportedTags
+    );
 
     combinedTags.has = {
       key: FieldKey.HAS,
@@ -309,7 +293,6 @@ function SearchBar(props: SearchBarProps) {
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
           onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList(measurements)}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
@@ -319,6 +302,7 @@ function SearchBar(props: SearchBarProps) {
           maxMenuHeight={maxMenuHeight ?? 300}
           {...customPerformanceMetricsSearchConfig}
           {...props}
+          supportedTags={getTagList(measurements)}
         />
       )}
     </Measurements>
