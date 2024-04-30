@@ -28,6 +28,7 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -66,7 +67,10 @@ export default function HighlightsDataSection({
 
   const viewAllButton = viewAllRef ? (
     <Button
-      onClick={() => viewAllRef?.current?.scrollIntoView({behavior: 'smooth'})}
+      onClick={() => {
+        trackAnalytics('highlights_section.view_all_clicked', {organization});
+        viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
+      }}
       size="xs"
     >
       {t('View All')}
@@ -126,6 +130,7 @@ export default function HighlightsDataSection({
   });
 
   function openEditHighlightsModal() {
+    trackAnalytics('highlights_section.edit_clicked', {organization});
     openModal(
       deps => (
         <EditHighlightsModal
