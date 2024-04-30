@@ -681,7 +681,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="List a Project's Issue Alert Rules",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
@@ -716,7 +716,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         operation_id="Create an Issue Alert Rule for a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectRulesPostSerializer,
         responses={
@@ -825,11 +825,12 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         owner = data.get("owner")
         if owner:
             try:
-                # TODO(mark) Use owner.resolve() intead when owner is removed.
-                actor = owner.resolve_to_actor()
-                kwargs["owner"] = actor.id
-                kwargs["owner_user_id"] = actor.user_id
-                kwargs["owner_team_id"] = actor.team_id
+                kwargs["owner_user_id"] = None
+                kwargs["owner_team_id"] = None
+                if owner.type == User:
+                    kwargs["owner_user_id"] = owner.id
+                if owner.type == Team:
+                    kwargs["owner_team_id"] = owner.id
             except (User.DoesNotExist, Team.DoesNotExist):
                 return Response(
                     "Could not resolve owner",

@@ -49,7 +49,6 @@
     "sentry.user"
   ],
   "sentry.alertrule": [
-    "sentry.actor",
     "sentry.organization",
     "sentry.snubaquery",
     "sentry.team",
@@ -735,7 +734,6 @@
     "sentry.project"
   ],
   "sentry.rule": [
-    "sentry.actor",
     "sentry.environment",
     "sentry.project",
     "sentry.team",

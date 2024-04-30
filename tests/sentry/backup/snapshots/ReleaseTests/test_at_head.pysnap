@@ -914,7 +914,6 @@ source: tests/sentry/backup/test_releases.py
     date_added: '2024-04-17T21:06:29.712Z'
     environment_id: null
     label: ''
-    owner: null
     project: 4553851949875202
     source: 0
     status: 0
