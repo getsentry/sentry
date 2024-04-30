@@ -122,7 +122,7 @@ def boost_low_volume_projects_of_org(
 ) -> None:
 
     logger.info(
-        "boost_low_volume_projects",
+        "boost_low_volume_projects_of_org",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
     adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
