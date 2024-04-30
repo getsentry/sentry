@@ -185,7 +185,6 @@ DETAILED_PROJECT = {
             "mep-rollout-flag",
             "performance-issues-m-n-plus-one-db-detector",
             "session-replay-ui",
-            "release-health-drop-sessions",
             "alert-crash-free-metrics",
             "performance-n-plus-one-db-queries-visible",
             "session-replay-recording-scrubbing",

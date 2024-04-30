@@ -819,14 +819,13 @@ def _get_project_config(
 
         add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
 
-    if features.has("organizations:metrics-extraction", project.organization):
-        config["sessionMetrics"] = {
-            "version": (
-                EXTRACT_ABNORMAL_MECHANISM_VERSION
-                if _should_extract_abnormal_mechanism(project)
-                else EXTRACT_METRICS_VERSION
-            ),
-        }
+    config["sessionMetrics"] = {
+        "version": (
+            EXTRACT_ABNORMAL_MECHANISM_VERSION
+            if _should_extract_abnormal_mechanism(project)
+            else EXTRACT_METRICS_VERSION
+        ),
+    }
 
     performance_score_profiles = [
         *_get_browser_performance_profiles(project.organization),
