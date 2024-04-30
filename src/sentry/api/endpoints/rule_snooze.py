@@ -48,7 +48,7 @@ def can_edit_alert_rule(organization, request):
     # Skip scope and user validation if using token authentication, excluding
     # user tokens.
     if request.auth and (isinstance(user, AnonymousUser) or user.is_sentry_app):
-        # Raise an exception if the user is anonymous, but the request is to mute for the user
+        # Raise an exception if the user is anonymous, but the request is to mute for the user.
         if mute_for_user:
             raise BadRequest(
                 {
@@ -217,5 +217,4 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
     rule_model = AlertRule
-    rule_field = "alert_rule"
     rule_field = "alert_rule"
