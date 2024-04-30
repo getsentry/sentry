@@ -76,7 +76,7 @@ class ReleaseQuerySet(BaseQuerySet):
                 )
             )
 
-        if build.isnumeric() and validate_bigint(int(build)):
+        if build.isdecimal() and validate_bigint(int(build)):
             qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
         else:
             if not build or build.endswith("*"):
