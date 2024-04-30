@@ -5,7 +5,7 @@ from django.apps import apps
 from django.db.models import Max, QuerySet
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model
+from sentry.db.models import Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -28,7 +28,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import find_regions_for_user
 
 
-@region_silo_only_model
+@region_silo_model
 class DoNothingIntegrationModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
