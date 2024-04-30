@@ -74,7 +74,7 @@ export function ErrorNodeDetails({
             <div>{node.value.level ?? t('error')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {node.value.title}
+              {node.value.message ?? node.value.title ?? 'Error'}
             </TraceDrawerComponents.TitleOp>
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>

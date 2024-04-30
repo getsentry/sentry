@@ -8,6 +8,7 @@ export function TraceErrorFixture(params: Partial<TraceError> = {}): TraceError 
     project_id: 8,
     project_slug: 'santry',
     title: 'Error: Something went wrong',
+    message: 'Something went wrong',
     level: 'error',
     issue: '',
     ...params,
