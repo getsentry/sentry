@@ -101,16 +101,16 @@ class GroupSnooze(Model):
 
         cache_ttl = self.window * 60  # Redis TTL in seconds (window is in minutes)
 
-        cached_rate: int | float = float("inf")  # using +inf as a sentinel value
+        cached_event_count: int | float = float("inf")  # using +inf as a sentinel value
 
         try:
-            cached_rate = cache.incr(cache_key)
+            cached_event_count = cache.incr(cache_key)
             cache.touch(cache_key, cache_ttl)
         except ValueError:
             # key doesn't exist, fall back on sentinel value
             pass
 
-        if cached_rate < self.count:
+        if cached_event_count < self.count:
             metrics.incr("groupsnooze.test_frequency_rates", tags={"cached": "true", "hit": "true"})
             return True
 
