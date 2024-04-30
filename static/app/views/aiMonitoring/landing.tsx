@@ -13,8 +13,6 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
@@ -22,6 +20,7 @@ import {
 } from 'sentry/views/aiMonitoring/aiMonitoringCharts';
 import {AIMonitoringOnboarding} from 'sentry/views/aiMonitoring/onboarding';
 import {PipelinesTable} from 'sentry/views/aiMonitoring/PipelinesTable';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 
 function NoAccessComponent() {
@@ -34,16 +33,8 @@ function NoAccessComponent() {
 
 export default function AiMonitoringPage() {
   const organization = useOrganization();
-  const {
-    selection: {projects: selectedProjectIds},
-  } = usePageFilters();
-  const {projects} = useProjects();
-
-  const selectedProjects = projects.filter(p =>
-    selectedProjectIds.find(x => '' + x === p.id)
-  );
-  const isOnboarding =
-    selectedProjects.length > 0 && selectedProjects.every(x => !x.firstTransactionEvent);
+  const onboardingProject = useOnboardingProject();
+  const isOnboarding = !!onboardingProject;
 
   return (
     <PageFiltersContainer>
