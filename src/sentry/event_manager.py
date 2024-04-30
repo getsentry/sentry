@@ -183,7 +183,7 @@ def get_tag(data: dict[str, Any], key: str) -> Any | None:
     return None
 
 
-def is_sample_event(job: Job) -> Any | None:
+def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
 
 
@@ -284,37 +284,26 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
 
 
 class ScoreClause(Func):
-    def __init__(
-        self,
-        group: Group | None = None,
-        last_seen: datetime | None = None,
-        times_seen: int | None = None,
-        *args: Any,
-        **kwargs: Any,
-    ):
+    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
         self.group = group
         self.last_seen = last_seen
         self.times_seen = times_seen
         # times_seen is likely an F-object that needs the value extracted
         if hasattr(self.times_seen, "rhs"):
-            self.times_seen = self.times_seen.rhs.value  # type: ignore[union-attr]
+            self.times_seen = self.times_seen.rhs.value
         super().__init__(*args, **kwargs)
 
-    def __int__(self) -> int:
+    def __int__(self):
         # Calculate the score manually when coercing to an int.
         # This is used within create_or_update and friends
         return self.group.get_score() if self.group else 0
 
-    def as_sql(
-        self,
-        *args: Any,
-        **kwargs: Any,
-    ) -> tuple[str, list[Any]]:
+    def as_sql(self, compiler, connection, function=None, template=None):
         has_values = self.last_seen is not None and self.times_seen is not None
         if has_values:
-            sql = "log(times_seen + %d) * 600 + %d" % (  # type: ignore[str-format]
+            sql = "log(times_seen + %d) * 600 + %d" % (
                 self.times_seen,
-                self.last_seen.timestamp(),  # type: ignore[union-attr]
+                self.last_seen.timestamp(),
             )
         else:
             sql = "log(times_seen) * 600 + last_seen::abstime::int"
@@ -409,7 +398,7 @@ class EventManager:
         if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
-    def get_data(self) -> CanonicalKeyDict[str, Any]:
+    def get_data(self) -> CanonicalKeyDict:
         return self._data
 
     @sentry_sdk.tracing.trace
@@ -2379,7 +2368,7 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         return PriorityLevel.MEDIUM
 
 
-def update_severity_error_count(reset: bool = False) -> None:
+def update_severity_error_count(reset=False) -> None:
     timeout = 60 * 60  # 1 hour
     if reset:
         cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=timeout)
