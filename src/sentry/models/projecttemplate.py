@@ -26,4 +26,10 @@ class ProjectTemplate(DefaultFieldsModel):
         app_label = "sentry"
         db_table = "sentry_projecttemplate"
 
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "organization"], name="unique_projecttemplate_name_per_org"
+            )
+        ]
+
     __repr__ = sane_repr("name", "organization_id")
