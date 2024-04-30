@@ -8,6 +8,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from django.core.cache import cache
 from jsonschema import ValidationError
 
 from sentry import eventstore
@@ -19,8 +20,11 @@ from sentry.issues.occurrence_consumer import (
     InvalidEventPayloadError,
     _get_kwargs,
     _process_message,
+    process_occurrence_group,
 )
-from sentry.models.group import Group
+from sentry.issues.producer import _prepare_status_change_message
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -530,3 +534,44 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["assignee"] = ""
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["assignee"] is None
+
+    @mock.patch("sentry.issues.occurrence_consumer._process_message")
+    def test_validate_cache(self, mock_process_message):
+        # Test to ensure cache is set properly after processing an occurrence group
+        with mock.patch("django.core.cache.cache.set", side_effect=cache.set) as mock_cache_set:
+            process_occurrence_group([{"id": 1}, {"id": 2}, {"id": 2}])
+
+            # Check if cache.set is called with the correct parameters
+            expected_calls = [
+                mock.call("occurrence_consumer.process_occurrence_group.1", 1, 300),
+                mock.call("occurrence_consumer.process_occurrence_group.2", 1, 300),
+            ]
+            mock_cache_set.assert_has_calls(expected_calls, any_order=True)
+            assert mock_process_message.call_count == 2
+
+    def test_status_change(self) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(datetime.datetime.now()),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group.status == GroupStatus.UNRESOLVED
+        status = GroupStatus.RESOLVED
+
+        status_change = StatusChangeMessage(
+            fingerprint=["group-1"],
+            project_id=group.project_id,
+            new_status=status,
+            new_substatus=None,
+        )
+        message = _prepare_status_change_message(status_change)
+        assert message is not None
+        process_occurrence_group([message])
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == status
