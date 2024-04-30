@@ -47,7 +47,7 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
 
         # Checks if the organization_slug (eventually renamed to organization_id_or_slug) matches the group organization's id or slug
         if organization_slug:
-            if str(organization_slug).isdigit():
+            if str(organization_slug).isdecmial():
                 if int(organization_slug) != group.organization.id:
                     raise ResourceDoesNotExist
             else:

@@ -65,7 +65,7 @@ class OrganizationRegionEndpoint(Endpoint):
                 id_or_slug_path_params_enabled(
                     self.convert_args.__qualname__, str(organization_slug)
                 )
-                and str(organization_slug).isdigit()
+                and str(organization_slug).isdecmial()
             ):
                 org_mapping = OrganizationMapping.objects.get(organization_id=organization_slug)
             else:
