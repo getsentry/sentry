@@ -2,13 +2,13 @@ import * as Sentry from '@sentry/react';
 import invariant from 'invariant';
 
 import {defined} from 'sentry/utils';
+import toArray from 'sentry/utils/array/toArray';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
   RawReplayError,
 } from 'sentry/utils/replays/types';
-import toArray from 'sentry/utils/toArray';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export default function hydrateErrors(

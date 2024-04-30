@@ -4,8 +4,8 @@ import type {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types';
+import toArray from 'sentry/utils/array/toArray';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import toArray from 'sentry/utils/toArray';
 
 import SelectedGroupStore from './selectedGroupStore';
 import type {CommonStoreDefinition} from './types';

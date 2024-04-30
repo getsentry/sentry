@@ -7,12 +7,12 @@ import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventError, EventTag, Group, Organization} from 'sentry/types';
+import toArray from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {formatHistogramData} from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
-import toArray from 'sentry/utils/toArray';
 
 interface Props {
   event: EventError;

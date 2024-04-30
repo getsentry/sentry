@@ -20,6 +20,7 @@ import type {
   SelectValue,
   User,
 } from 'sentry/types';
+import toArray from 'sentry/utils/array/toArray';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -40,7 +41,6 @@ import {
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import toArray from 'sentry/utils/toArray';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
