@@ -155,12 +155,9 @@ def munged_filename_and_frames(
 
 
 def get_crashing_thread(
-    thread_frames: Sequence[Mapping[str, Any]] | Mapping[str, None] | None
+    thread_frames: Sequence[Mapping[str, Any]] | None
 ) -> Mapping[str, Any] | None:
-    # Handles edge case where {"values": None} is passed in
-    if not thread_frames or (
-        isinstance(thread_frames, Mapping) and not thread_frames.get("values")
-    ):
+    if not thread_frames:
         return None
     if len(thread_frames) == 1:
         return thread_frames[0]
@@ -203,6 +200,8 @@ def find_stack_frames(
             threads = get_path(event_data, "threads", "values", filter=True) or get_path(
                 event_data, "threads", filter=True
             )
+            if threads == {"values": None}:
+                threads = None
             thread = get_crashing_thread(threads)
             if thread is not None:
                 frames = get_path(thread, "stacktrace", "frames") or []

@@ -49,7 +49,6 @@ class CrashingThreadTestCase(unittest.TestCase):
         assert not get_crashing_thread(None)
         assert not get_crashing_thread([{}, {}, {}])
         assert not get_crashing_thread([{}])
-        assert not get_crashing_thread({"values": None})
 
     def test_single_crashed_thread(self):
         thread_frames = [{"id": 1, "crashed": True}, {"id": 2, "crashed": False}]
