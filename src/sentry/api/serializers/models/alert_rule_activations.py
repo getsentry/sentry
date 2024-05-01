@@ -9,7 +9,7 @@ class AlertRuleActivationsResponse(TypedDict):
     id: str
     activator: str
     alertRuleId: str
-    conditionType: int
+    conditionType: str
     dateCreated: datetime
     finishedAt: datetime
     isComplete: bool
