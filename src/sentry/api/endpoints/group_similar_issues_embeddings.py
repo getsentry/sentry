@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 50
 
 
-def get_value_if_exists(exception_value: dict[str, Any]) -> str:
+def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
 
@@ -59,9 +59,9 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         exc_type, exc_value, frame_str = "", "", ""
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
-                exc_type = get_value_if_exists(exception_value)
+                exc_type = _get_value_if_exists(exception_value)
             elif exception_value.get("id") == "value":
-                exc_value = get_value_if_exists(exception_value)
+                exc_value = _get_value_if_exists(exception_value)
             elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                 contributing_frames = [
                     frame
@@ -79,7 +79,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     frame_dict = {"filename": "", "function": "", "context-line": ""}
                     for frame_values in frame.get("values", []):
                         if frame_values.get("id") in frame_dict:
-                            frame_dict[frame_values["id"]] = get_value_if_exists(frame_values)
+                            frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
 
                     frame_str += f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
 
