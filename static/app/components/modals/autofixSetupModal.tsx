@@ -275,7 +275,7 @@ function AutofixSetupSteps({
       </GuidedSteps.Step>
       <GuidedSteps.Step
         stepKey="codebaseIndexing"
-        title={t('Index your repositories')}
+        title={t('Enable Autofix')}
         isCompleted={autofixSetup.codebaseIndexing.ok}
       >
         <AutofixCodebaseIndexingStep
