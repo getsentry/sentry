@@ -25,6 +25,7 @@ const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Row = Pick<
   MetricsResponse,
+  | 'project'
   | 'project.id'
   | 'transaction'
   | 'spm()'
@@ -34,13 +35,18 @@ type Row = Pick<
 >;
 
 type Column = GridColumnHeader<
-  'transaction' | 'spm()' | 'cache_miss_rate()' | 'time_spent_percentage()'
+  'transaction' | 'spm()' | 'cache_miss_rate()' | 'time_spent_percentage()' | 'project'
 >;
 
 const COLUMN_ORDER: Column[] = [
   {
     key: 'transaction',
     name: t('Transaction'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'project',
+    name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
   {

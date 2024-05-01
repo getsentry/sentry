@@ -108,6 +108,7 @@ export function HTTPLandingPage() {
   const domainsListResponse = useSpanMetrics({
     search: MutableSearch.fromQueryObject(tableFilters),
     fields: [
+      'project',
       'project.id',
       'span.domain',
       'spm()',
