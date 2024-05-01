@@ -25,7 +25,6 @@ class ImageBlockBuilder(BlockSlackMessageBuilder):
     def __init__(self, group: Group) -> None:
         super().__init__()
         self.group = group
-        self.event = group.get_latest_event_for_environments()
 
     def build_image_block(self) -> SlackBlock | None:
         if (
@@ -45,13 +44,13 @@ class ImageBlockBuilder(BlockSlackMessageBuilder):
             },
         )
 
-        organization = self.group.organization
-        if self.event is None or self.event.transaction is None or self.event.occurrence is None:
-            return None
-        transaction_name = escape_transaction(self.event.transaction)
-        period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
-
         try:
+            organization = self.group.organization
+            event = self.group.get_latest_event_for_environments()
+            if event is None or event.transaction is None or event.occurrence is None:
+                return None
+            transaction_name = escape_transaction(event.transaction)
+            period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
             resp = client.get(
                 auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
                 user=None,
@@ -70,7 +69,7 @@ class ImageBlockBuilder(BlockSlackMessageBuilder):
             url = charts.generate_chart(
                 ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
                 data={
-                    "evidenceData": self.event.occurrence.evidence_data,
+                    "evidenceData": event.occurrence.evidence_data,
                     "percentileData": resp.data["p95(transaction.duration)"]["data"],
                 },
             )
