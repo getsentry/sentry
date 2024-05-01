@@ -15,7 +15,6 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -1120,7 +1119,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "frequency": 180,
             "filters": filters,
             "environment": staging_env.name,
-            "owner": get_actor_for_user(self.user).get_actor_identifier(),
+            "owner": f"user:{self.user.id}",
         }
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
@@ -1275,7 +1274,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filterMatch": "any",
             "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
             "actions": [],
-            "owner": get_actor_for_user(new_user).get_actor_identifier(),
+            "owner": f"user:{new_user.id}",
         }
         response = self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload

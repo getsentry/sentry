@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from sentry.backup.dependencies import dependencies, get_exportable_sentry_models, get_model_name
 from sentry.backup.scopes import RelocationScope
-from sentry.models.actor import Actor
 from sentry.models.team import Team
 from tests.sentry.backup.test_exhaustive import EXHAUSTIVELY_TESTED, UNIQUENESS_TESTED
 from tests.sentry.backup.test_imports import COLLISION_TESTED
@@ -61,8 +60,6 @@ def test_exportable_final_derivations_of_sentry_model_are_collision_tested():
             if necessitates_collision_test:
                 want_collision_tested.add(model_relations.model)
 
-    # TODO(actor): Remove after actor refactor completed.
-    want_collision_tested.remove(Actor)
     want_collision_tested.remove(Team)
 
     untested = {get_model_name(m) for m in want_collision_tested} - COLLISION_TESTED

@@ -15,7 +15,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
     SlackRuleSaveEditMessageBuilder,
 )
-from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
@@ -107,7 +106,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         frequency: int | None = 30,
         **kwargs: Any,
     ):
-        owner = get_actor_for_user(self.user).get_actor_identifier()
+        owner = f"user:{self.user.id}"
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
