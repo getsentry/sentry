@@ -132,7 +132,7 @@ def proxy_sentryapp_request(
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to the region of the organization that owns a sentryapp"""
     try:
-        if app_id_or_slug.isnumeric():
+        if app_id_or_slug.isdecimal():
             sentry_app = SentryApp.objects.get(id=app_id_or_slug)
         else:
             sentry_app = SentryApp.objects.get(slug=app_id_or_slug)

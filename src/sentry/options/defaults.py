@@ -494,7 +494,6 @@ register(
 # React concurrent renderer
 register(
     "frontend.react-concurrent-renderer-enabled",
-    type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2356,6 +2355,12 @@ register(
     "standalone-spans.buffer-window.seconds",
     type=Int,
     default=120,  # 2 minutes
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.buffer-ttl.seconds",
+    type=Int,
+    default=300,  # 5 minutes
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

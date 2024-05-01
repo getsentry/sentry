@@ -13,7 +13,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
@@ -37,7 +37,7 @@ class ApiApplicationStatus:
     deletion_in_progress = 3
 
 
-@control_silo_only_model
+@control_silo_model
 class ApiApplication(Model):
     __relocation_scope__ = RelocationScope.Global
 

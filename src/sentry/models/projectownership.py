@@ -10,7 +10,7 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model, sane_repr
+from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
@@ -34,7 +34,7 @@ READ_CACHE_DURATION = 3600
 _Everyone = enum.Enum("_Everyone", "EVERYONE")
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectOwnership(Model):
     __relocation_scope__ = RelocationScope.Organization
 
