@@ -146,6 +146,7 @@ def setup_deletable_objects(
 
 
 @django_db_all
+@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_region_processing(task_runner):
     reset_watermarks()
 
@@ -224,6 +225,7 @@ def setup_deletion_test():
 
 
 @django_db_all
+@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_cascade_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
@@ -245,6 +247,7 @@ def test_cascade_deletion_behavior(task_runner):
 
 
 @django_db_all
+@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_do_nothing_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
@@ -268,6 +271,7 @@ def test_do_nothing_deletion_behavior(task_runner):
 
 
 @django_db_all
+@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_set_null_deletion_behavior(task_runner):
     data = setup_deletion_test()
     user = data["user"]
