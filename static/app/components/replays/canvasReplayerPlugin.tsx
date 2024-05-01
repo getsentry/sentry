@@ -208,9 +208,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
           await processEvent(e, {replayer});
           handleQueue.delete(id);
         } catch (err) {
-          if (!(err instanceof InvalidCanvasNodeError)) {
-            Sentry.captureException(err);
-          }
+          handleProcessEventError(err);
         }
       });
     },
@@ -296,11 +294,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         return;
       }
       const [event, replayer] = queueItem;
-      try {
-        processEvent(event, {replayer});
-      } catch (err) {
-        Sentry.captureException(err);
-      }
+      processEvent(event, {replayer}).catch(handleProcessEventError);
     },
 
     /**
@@ -336,17 +330,17 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         return;
       }
 
-      try {
-        processEvent(e, {replayer});
-      } catch (err) {
-        if (err instanceof InvalidCanvasNodeError) {
-          // This can throw if mirror DOM is not ready
-          Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
-          return;
-        }
-
-        Sentry.captureException(err);
-      }
+      processEvent(e, {replayer}).catch(handleProcessEventError);
     },
   };
+}
+
+function handleProcessEventError(err: unknown) {
+  if (err instanceof InvalidCanvasNodeError) {
+    // This can throw if mirror DOM is not ready
+    Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
+    return;
+  }
+
+  Sentry.captureException(err);
 }
