@@ -1,22 +1,26 @@
-import {Fragment, type PropsWithChildren, useMemo} from 'react';
+import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
-import {Button as CommonButton, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DataSection} from 'sentry/components/events/styles';
+import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
+import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Project} from 'sentry/types';
+import type {KeyValueListDataItem} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/formatters';
+import {defined, formatBytesBase10} from 'sentry/utils';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,11 +28,18 @@ import {useParams} from 'sentry/utils/useParams';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isNoDataNode,
+  isRootNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {
+  MissingInstrumentationNode,
+  NoDataNode,
+  ParentAutogroupNode,
+  SiblingAutogroupNode,
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -53,11 +64,11 @@ const Actions = styled(FlexBox)`
   gap: ${space(0.5)};
   flex-wrap: wrap;
   justify-content: end;
+  width: 100%;
 `;
 
 const Title = styled(FlexBox)`
   gap: ${space(1)};
-  flex: none;
   width: 50%;
   > span {
     min-width: 30px;
@@ -104,6 +115,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   justify-content: center;
   width: 30px;
   height: 30px;
+  min-width: 30px;
 
   svg {
     fill: ${p => p.theme.white};
@@ -112,16 +124,11 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   }
 `;
 
-const Button = styled(CommonButton)`
-  position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
-`;
-
 const HeaderContainer = styled(Title)`
   justify-content: space-between;
-  overflow: hidden;
   width: 100%;
+  z-index: 10;
+  flex: 1 1 auto;
 `;
 
 interface EventDetailsLinkProps {
@@ -174,11 +181,7 @@ function EventDetailsLink(props: EventDetailsLinkProps) {
       }
       size="xs"
       to={locationDescriptor}
-      onClick={() => {
-        trackAnalytics('performance_views.trace_details.view_event_details', {
-          organization: props.organization,
-        });
-      }}
+      onClick={() => traceAnalytics.trackViewEventDetails(props.organization)}
     >
       {t('View Event Details')}
     </LinkButton>
@@ -410,39 +413,307 @@ const ValueTd = styled('td')`
   position: relative;
 `;
 
-function ProfileLink({
-  event,
-  project,
-  query,
-}: {
-  event: EventTransaction;
-  project: Project | undefined;
-  query?: Location['query'];
+function NodeActions(props: {
+  node: TraceTreeNode<any>;
+  onTabScrollToNode: (
+    node:
+      | TraceTreeNode<any>
+      | ParentAutogroupNode
+      | SiblingAutogroupNode
+      | NoDataNode
+      | MissingInstrumentationNode
+  ) => void;
+  organization: Organization;
+  eventSize?: number | undefined;
 }) {
-  const profileId = event.contexts.profile?.profile_id || '';
+  const items = useMemo(() => {
+    const showInView: MenuItemProps = {
+      key: 'show-in-view',
+      label: t('Show in View'),
+      onAction: () => {
+        traceAnalytics.trackShowInView(props.organization);
+        props.onTabScrollToNode(props.node);
+      },
+    };
 
-  if (!profileId) {
+    const eventId = props.node.metadata.event_id;
+    const projectSlug = props.node.metadata.project_slug;
+    const query = {...qs.parse(location.search), legacy: 1};
+
+    const eventDetailsLink = {
+      query: query,
+      pathname: `/performance/${projectSlug}:${eventId}/`,
+      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
+    };
+
+    const viewEventDetails: MenuItemProps = {
+      key: 'view-event-details',
+      label: t('View Event Details'),
+      to: eventDetailsLink,
+      onAction: () => {
+        traceAnalytics.trackViewEventDetails(props.organization);
+      },
+    };
+
+    const eventSize = props.eventSize;
+    const jsonDetails: MenuItemProps = {
+      key: 'json-details',
+      onAction: () => {
+        traceAnalytics.trackViewEventJSON(props.organization);
+        window.open(
+          `/api/0/projects/${props.organization.slug}/${projectSlug}/events/${eventId}/json/`,
+          '_blank'
+        );
+      },
+      label:
+        t('JSON') +
+        (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
+    };
+
+    if (isTransactionNode(props.node)) {
+      return [showInView, viewEventDetails, jsonDetails];
+    }
+    if (isSpanNode(props.node)) {
+      return [showInView, viewEventDetails];
+    }
+    if (isMissingInstrumentationNode(props.node)) {
+      return [showInView];
+    }
+    if (isTraceErrorNode(props.node)) {
+      return [showInView];
+    }
+    if (isRootNode(props.node)) {
+      return [showInView];
+    }
+    if (isAutogroupedNode(props.node)) {
+      return [showInView];
+    }
+    if (isNoDataNode(props.node)) {
+      return [showInView];
+    }
+
+    return [showInView];
+  }, [props]);
+
+  return (
+    <ActionsContainer>
+      <Actions className="Actions">
+        <Button
+          size="xs"
+          onClick={_e => {
+            traceAnalytics.trackShowInView(props.organization);
+            props.onTabScrollToNode(props.node);
+          }}
+        >
+          {t('Show in view')}
+        </Button>
+
+        {isTransactionNode(props.node) ||
+        isSpanNode(props.node) ||
+        isTraceErrorNode(props.node) ? (
+          <EventDetailsLink node={props.node} organization={props.organization} />
+        ) : null}
+
+        {isTransactionNode(props.node) ? (
+          <Button
+            size="xs"
+            icon={<IconOpen />}
+            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            external
+          >
+            {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
+          </Button>
+        ) : null}
+      </Actions>
+      <DropdownMenu
+        items={items}
+        className="DropdownMenu"
+        position="bottom-end"
+        trigger={triggerProps => (
+          <ActionsButtonTrigger size="xs" {...triggerProps}>
+            {t('Actions')}
+            <IconChevron direction="down" size="xs" />
+          </ActionsButtonTrigger>
+        )}
+      />
+    </ActionsContainer>
+  );
+}
+
+const ActionsButtonTrigger = styled(Button)`
+  svg {
+    margin-left: ${space(0.5)};
+    width: 10px;
+    height: 10px;
+  }
+`;
+
+const ActionsContainer = styled('div')`
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  gap: ${space(1)};
+  container-type: inline-size;
+  min-width: 24px;
+  width: 100%;
+
+  @container (max-width: 380px) {
+    .DropdownMenu {
+      display: block;
+    }
+    .Actions {
+      display: none;
+    }
+  }
+
+  @container (min-width: 381px) {
+    .DropdownMenu {
+      display: none;
+    }
+  }
+`;
+
+interface SectionCardContentConfig {
+  disableErrors?: boolean;
+  includeAliasInSubject?: boolean;
+}
+
+type SectionCardKeyValue = Omit<KeyValueListDataItem, 'subject'> & {
+  subject: React.ReactNode;
+};
+
+export type SectionCardKeyValueList = SectionCardKeyValue[];
+
+interface SectionCardContentProps {
+  item: SectionCardKeyValue;
+  meta: Record<string, any>;
+  alias?: string;
+  config?: SectionCardContentConfig;
+}
+
+function SectionCardContent({
+  item,
+  alias,
+  meta,
+  config,
+  ...props
+}: SectionCardContentProps) {
+  const {key, subject, value, action = {}} = item;
+  if (key === 'type') {
     return null;
   }
 
-  return profileId && project?.slug ? (
-    <TraceDrawerComponents.TableRow
-      title="Profile ID"
-      extra={
-        <TransactionToProfileButton
-          size="xs"
-          projectSlug={project.slug}
-          event={event}
-          query={query}
-        >
-          {t('View Profile')}
-        </TransactionToProfileButton>
-      }
-    >
-      {profileId}
-    </TraceDrawerComponents.TableRow>
-  ) : null;
+  const dataComponent = (
+    <StructuredData
+      value={value}
+      depth={0}
+      maxDefaultDepth={0}
+      meta={meta?.[key]}
+      withAnnotatedText
+      withOnlyFormattedText
+    />
+  );
+
+  const contextSubject = subject
+    ? config?.includeAliasInSubject && alias
+      ? `${startCase(alias)}: ${subject}`
+      : subject
+    : null;
+
+  return (
+    <ContentContainer {...props}>
+      {contextSubject ? <CardContentSubject>{contextSubject}</CardContentSubject> : null}
+      <CardContentValueWrapper hasSubject={!!contextSubject} className="ctx-row-value">
+        {defined(action?.link) ? (
+          <Link to={action.link}>{dataComponent}</Link>
+        ) : (
+          dataComponent
+        )}
+      </CardContentValueWrapper>
+    </ContentContainer>
+  );
 }
+
+function SectionCard({
+  items,
+  title,
+  disableTruncate,
+}: {
+  items: SectionCardKeyValueList;
+  title: React.ReactNode;
+  disableTruncate?: boolean;
+}) {
+  const [showingAll, setShowingAll] = useState(disableTruncate ?? false);
+  const renderText = showingAll ? t('Show less') : t('Show more') + '...';
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardContentTitle>{title}</CardContentTitle>
+      {items.slice(0, showingAll ? items.length : 5).map(item => (
+        <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
+      ))}
+      {items.length > 5 && !disableTruncate ? (
+        <TruncateActionWrapper>
+          <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
+        </TruncateActionWrapper>
+      ) : null}
+    </Card>
+  );
+}
+
+const Card = styled(Panel)`
+  padding: ${space(0.75)};
+  display: grid;
+  column-gap: ${space(1.5)};
+  grid-template-columns: minmax(100px, auto) 1fr 30px;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const CardContentTitle = styled('p')`
+  grid-column: 1 / -1;
+  padding: ${space(0.25)} ${space(0.75)};
+  margin: 0;
+  color: ${p => p.theme.headingColor};
+  font-weight: bold;
+`;
+
+const ContentContainer = styled('div')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: span 3;
+  column-gap: ${space(1.5)};
+  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: 4px;
+  color: ${p => p.theme.subText};
+  border: 1px solid 'transparent';
+  background-color: ${p => p.theme.background};
+  &:nth-child(odd) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+`;
+
+export const CardContentSubject = styled('div')`
+  grid-column: span 1;
+  font-family: ${p => p.theme.text.familyMono};
+  word-wrap: break-word;
+`;
+
+const CardContentValueWrapper = styled(CardContentSubject)<{hasSubject: boolean}>`
+  color: ${p => p.theme.textColor};
+  grid-column: ${p => (p.hasSubject ? 'span 2' : '1 / -1')};
+`;
+
+const TruncateActionWrapper = styled('div')`
+  grid-column: 1 / -1;
+  margin: ${space(0.5)} 0;
+  display: flex;
+  justify-content: center;
+`;
 
 const TraceDrawerComponents = {
   DetailContainer,
@@ -452,19 +723,19 @@ const TraceDrawerComponents = {
   TitleOp,
   HeaderContainer,
   Actions,
+  NodeActions,
   Table,
   IconTitleWrapper,
   IconBorder,
   EventDetailsLink,
-  Button,
   TitleText,
   Duration,
   TableRow,
   LAZY_RENDER_PROPS,
   TableRowButtonContainer,
   TableValueRow,
-  ProfileLink,
   IssuesLink,
+  SectionCard,
 };
 
 export {TraceDrawerComponents};

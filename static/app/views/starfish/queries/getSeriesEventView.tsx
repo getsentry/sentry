@@ -1,10 +1,10 @@
 import sortBy from 'lodash/sortBy';
 
 import type {PageFilters} from 'sentry/types/core';
-import {intervalToMilliseconds} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getIntervalForMetricFunction} from 'sentry/views/performance/database/getIntervalForMetricFunction';
 import {DEFAULT_INTERVAL} from 'sentry/views/performance/database/settings';

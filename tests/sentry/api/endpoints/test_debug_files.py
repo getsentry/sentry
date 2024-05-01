@@ -45,7 +45,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -66,7 +69,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -84,7 +90,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-associate-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.post(
@@ -109,7 +118,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -127,7 +139,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-associate-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.post(
@@ -151,7 +166,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -163,7 +181,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-associate-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.post(
@@ -185,7 +206,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.get(url)
@@ -258,7 +282,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -290,7 +317,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self._upload_proguard(url, PROGUARD_UUID)
 
@@ -299,7 +329,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-associate-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(
             url,
@@ -316,7 +349,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url)
         download_id = response.data[0]["id"]
@@ -387,7 +423,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-source-maps",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -429,7 +468,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-source-maps",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         release_ids = [release.id, release2.id]
@@ -464,7 +506,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-source-maps",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -483,7 +528,10 @@ class DebugFilesUploadTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-source-maps",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -501,7 +549,7 @@ class DebugFilesUploadTest(APITestCase):
             "sentry-api-0-dsym-files",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
         self.login_as(user=self.user)
@@ -530,7 +578,7 @@ class DebugFilesUploadTest(APITestCase):
             "sentry-api-0-dsym-files",
             kwargs={
                 "organization_slug": other_org.slug,
-                "project_slug": other_project.slug,
+                "project_id_or_slug": other_project.slug,
             },
         )
         self.login_as(user=other_user)

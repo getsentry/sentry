@@ -68,7 +68,10 @@ class ProjectCommitListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-commits",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.get(url + "?query=foobar", format="json")

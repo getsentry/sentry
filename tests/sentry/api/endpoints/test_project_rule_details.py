@@ -15,10 +15,12 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.actor import Actor, get_actor_for_user
+from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -26,6 +28,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
+from sentry.utils.actor import ActorTuple
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -37,10 +40,16 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        with assume_test_silo_mode(SiloMode.REGION):
-            assert Actor.objects.get(id=rule.owner_id)
+        actor = ActorTuple.from_actor_identifier(owner_id)
+        if actor.type == User:
+            assert rule.owner_user_id == actor.id
+            assert rule.owner_team_id is None
+        if actor.type == Team:
+            assert rule.owner_team_id == actor.id
+            assert rule.owner_user_id is None
     else:
-        assert rule.owner is None
+        assert rule.owner_team_id is None
+        assert rule.owner_user_id is None
 
     environment = payload.get("environment")
     if environment:
@@ -550,7 +559,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert response.data["owner"] == f"team:{team.id}"
         rule = Rule.objects.get(id=response.data["id"])
-        assert rule.owner_id
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
 
@@ -567,7 +575,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert response.data["owner"] == f"user:{self.user.id}"
         rule = Rule.objects.get(id=response.data["id"])
-        assert rule.owner_id
         assert rule.owner_team_id is None
         assert rule.owner_user_id == self.user.id
 

@@ -9,7 +9,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils import metrics
@@ -22,7 +22,7 @@ class ReleaseStages(str, Enum):
     REPLACED = "replaced"
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseProjectEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

@@ -12,7 +12,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -149,7 +149,7 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
 
 
 class GroupHistoryManager(BaseManager["GroupHistory"]):
-    def filter_to_team(self, team):
+    def filter_to_team(self, team: "Team"):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.project import Project
 
@@ -164,7 +164,7 @@ class GroupHistoryManager(BaseManager["GroupHistory"]):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupHistory(Model):
     """
     This model is used to track certain status changes for groups,

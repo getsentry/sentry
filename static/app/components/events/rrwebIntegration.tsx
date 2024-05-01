@@ -1,3 +1,4 @@
+import {lazy} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -17,6 +18,8 @@ type Props = {
   orgId: Organization['id'];
   projectSlug: Project['slug'];
 };
+
+const LazyReplayer = lazy(() => import('./rrwebReplayer'));
 
 function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
   const {
@@ -61,7 +64,7 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
   return (
     <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
       <LazyLoad
-        component={() => import('./rrwebReplayer')}
+        LazyComponent={LazyReplayer}
         urls={attachmentList.map(createAttachmentUrl)}
       />
     </StyledReplayEventDataSection>

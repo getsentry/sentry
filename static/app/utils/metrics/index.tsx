@@ -334,7 +334,10 @@ export function isCustomMetric({mri}: {mri: MRI}) {
 }
 
 export function isSpanSelfTime({mri}: {mri: MRI}) {
-  return mri === 'd:spans/exclusive_time@millisecond';
+  return (
+    mri === 'd:spans/exclusive_time@millisecond' ||
+    mri === 'g:spans/self_time@millisecond'
+  );
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {

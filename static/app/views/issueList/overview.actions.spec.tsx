@@ -111,7 +111,10 @@ describe('IssueListOverview (actions)', function () {
     ],
     savedSearch: null,
     selectedSearchId: null,
-    ...RouteComponentPropsFixture({
+    ...RouteComponentPropsFixture<
+      {orgId: string; projectId: string},
+      {searchId?: string}
+    >({
       location: LocationFixture({
         query: {query: 'is:unresolved issue.priority:[high,medium]'},
       }),

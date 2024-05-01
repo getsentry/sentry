@@ -111,7 +111,7 @@ class Feature(BaseModel):
         cls, name: str, config_json: str, context_builder: ContextBuilder | None = None
     ) -> Feature:
         try:
-            config_data_dict = json.loads(config_json)
+            config_data_dict = json.loads_experimental("flagpole.enable-orjson", config_json)
         except json.JSONDecodeError as decode_error:
             raise InvalidFeatureFlagConfiguration("Invalid feature json provided") from decode_error
 

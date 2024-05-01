@@ -11,8 +11,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.endpoints.event_grouping_info import get_grouping_info
 from sentry.api.serializers import serialize
+from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.seer.utils import (
@@ -51,20 +51,18 @@ def get_stacktrace_string(data):
 
     frame_count = 0
     stacktrace_str = ""
-    for exception in exceptions:
-        if exception.get("id") not in ["exception", "threads"]:
+    for exception in reversed(exceptions):
+        if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
 
-        # For each exception, extract its type, value, and stacktrace frames
+        # For each exception, extract its type, value, and up to 50 stacktrace frames
         exc_type, exc_value, frame_str = "", "", ""
         for exception_value in exception.get("values", []):
-            contributing_frames = []
             if exception_value.get("id") == "type":
                 exc_type = get_value_if_exists(exception_value)
             elif exception_value.get("id") == "value":
                 exc_value = get_value_if_exists(exception_value)
-            elif exception_value.get("id") == "stacktrace":
-                # Take the last 50 in-app and contributing frames
+            elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                 contributing_frames = [
                     frame
                     for frame in exception_value["values"]
@@ -74,7 +72,6 @@ def get_stacktrace_string(data):
                 if frame_count + num_frames > MAX_FRAME_COUNT:
                     remaining_frame_count = MAX_FRAME_COUNT - frame_count
                     contributing_frames = contributing_frames[-remaining_frame_count:]
-                    frame_count += remaining_frame_count
                     num_frames = remaining_frame_count
                 frame_count += num_frames
 
@@ -84,14 +81,14 @@ def get_stacktrace_string(data):
                         if frame_values.get("id") in frame_dict:
                             frame_dict[frame_values["id"]] = get_value_if_exists(frame_values)
 
-                    frame_str += f'  File "{frame_dict["filename"]}", line {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+                    frame_str += f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
 
-        # Add the exception values into the formatted string
-        if exception.get("contributes"):
-            if exception.get("id") == "exception":
-                stacktrace_str += f"{exc_type}: {exc_value}\n"
-            if frame_str:
-                stacktrace_str += frame_str
+        # Only exceptions have the type and value properties, so we don't need to handle the threads
+        # case here
+        if exception.get("id") == "exception":
+            stacktrace_str += f"{exc_type}: {exc_value}\n"
+        if frame_str:
+            stacktrace_str += frame_str
 
     return stacktrace_str.strip()
 
@@ -110,7 +107,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     }
 
     def get_formatted_results(
-        self, responses: Sequence[SimilarIssuesEmbeddingsData | None], user: User | AnonymousUser
+        self, responses: Sequence[SimilarIssuesEmbeddingsData], user: User | AnonymousUser
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
         Format the responses using to be used by the frontend by changing the  field names and
@@ -118,13 +115,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         """
         group_data = {}
         for response in responses:
-            if response:
-                formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                    "message": 1 - response["message_distance"],
-                    "exception": 1 - response["stacktrace_distance"],
-                    "shouldBeGrouped": "Yes" if response["should_group"] else "No",
-                }
-                group_data.update({response["parent_group_id"]: formatted_response})
+            formatted_response: FormattedSimilarIssuesEmbeddingsData = {
+                "message": 1 - response["message_distance"],
+                "exception": 1 - response["stacktrace_distance"],
+                "shouldBeGrouped": "Yes" if response["should_group"] else "No",
+            }
+            group_data.update({response["parent_group_id"]: formatted_response})
 
         serialized_groups = {
             int(g["id"]): g
@@ -149,9 +145,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
         if latest_event.data.get("exception"):
-            grouping_info = get_grouping_info(
-                None, project=group.project, event_id=latest_event.event_id
-            )
+            grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
         if stacktrace_string == "":
