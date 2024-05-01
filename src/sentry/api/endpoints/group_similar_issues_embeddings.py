@@ -122,7 +122,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                 "exception": 1 - similar_issue_data["stacktrace_distance"],
                 "shouldBeGrouped": "Yes" if similar_issue_data["should_group"] else "No",
             }
-            group_data.update({similar_issue_data["parent_group_id"]: formatted_response})
+            group_data[similar_issue_data["parent_group_id"]] = formatted_response
 
         serialized_groups = {
             int(g["id"]): g
@@ -168,9 +168,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         }
         # Add optional parameters
         if request.GET.get("k"):
-            similar_issues_params.update({"k": int(request.GET["k"])})
+            similar_issues_params["k"] = int(request.GET["k"])
         if request.GET.get("threshold"):
-            similar_issues_params.update({"threshold": float(request.GET["threshold"])})
+            similar_issues_params["threshold"] = float(request.GET["threshold"])
 
         extra: dict[str, Any] = dict(similar_issues_params.copy())
         extra["group_message"] = extra.pop("message")
