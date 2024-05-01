@@ -161,11 +161,12 @@ function NextButton({children, ...props}: BaseButtonProps) {
   );
 }
 
-function StepButtons() {
+function StepButtons({children}: {children?: React.ReactNode}) {
   return (
     <StepButtonsWrapper>
       <BackButton />
       <NextButton />
+      {children}
     </StepButtonsWrapper>
   );
 }
