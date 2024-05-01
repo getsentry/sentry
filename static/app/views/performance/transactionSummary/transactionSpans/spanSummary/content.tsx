@@ -5,10 +5,8 @@ import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {Organization, Project} from 'sentry/types';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
-import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -19,16 +17,13 @@ import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
 import {ZoomKeys} from '../spanDetails/utils';
-import {getTotalsView} from '../utils';
 
 import SpanSummaryControls from './spanSummaryControls';
 import SpanSummaryHeader from './spanSummaryHeader';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -107,7 +102,7 @@ type ContentProps = {
 };
 
 function SpanSummaryContent(props: ContentProps) {
-  const {location, organization, eventView, project, transactionName} = props;
+  const {location, organization, eventView, transactionName, project} = props;
 
   const {spanSlug: spanParam} = useParams();
   const [spanOp, groupId] = spanParam.split(':');
@@ -118,11 +113,7 @@ function SpanSummaryContent(props: ContentProps) {
     transaction: transactionName,
   };
 
-  const {
-    isLoading: isSpanHeaderDataLoading,
-    data: spanHeaderData,
-    isError,
-  } = useSpanMetrics({
+  const {isLoading: isSpanHeaderDataLoading, data: spanHeaderData} = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
     fields: ['span.description', 'avg(span.self_time)', 'sum(span.self_time)', 'count()'],
     enabled: Boolean(groupId),

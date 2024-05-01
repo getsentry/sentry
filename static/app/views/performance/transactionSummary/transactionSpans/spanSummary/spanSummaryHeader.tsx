@@ -29,6 +29,7 @@ export default function SpanSummaryHeader(props: Props) {
         </SectionBody>
         <SectionSubtext data-test-id="operation-name">{spanOp}</SectionSubtext>
       </HeaderInfo>
+
       <HeaderInfo data-test-id="header-avg-duration">
         <StyledSectionHeading>{DataTitles.avg}</StyledSectionHeading>
         <SectionBody>
@@ -37,6 +38,7 @@ export default function SpanSummaryHeader(props: Props) {
             : '\u2014'}
         </SectionBody>
       </HeaderInfo>
+
       <HeaderInfo data-test-id="header-total-exclusive-time">
         <StyledSectionHeading>{DataTitles.timeSpent}</StyledSectionHeading>
         <SectionBody>

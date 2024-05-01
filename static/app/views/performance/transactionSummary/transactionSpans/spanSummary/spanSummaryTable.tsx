@@ -3,13 +3,11 @@ import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,6 +26,14 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {browserHistory} from 'react-router';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {decodeScalar} from 'sentry/utils/queryString';
+import EventView, {MetaType} from 'sentry/utils/discover/eventView';
+import {
+  useGenericDiscoverQuery,
+  DiscoverQueryProps,
+} from 'sentry/utils/discover/genericDiscoverQuery';
+import styled from '@emotion/styled';
+import {space} from 'sentry/styles/space';
+import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 
 type DataRowKeys =
   | SpanIndexedField.ID
@@ -75,7 +81,12 @@ const COLUMN_TYPE: Omit<
 
 const LIMIT = 8;
 
-export default function SpanSummaryTable() {
+type Props = {
+  project: Project | undefined;
+};
+
+export default function SpanSummaryTable(props: Props) {
+  const {project} = props;
   const organization = useOrganization();
   const {spanSlug} = useParams();
   const [spanOp, groupId] = spanSlug.split(':');
@@ -92,7 +103,7 @@ export default function SpanSummaryTable() {
 
   const sort = useSpanSummarySort();
 
-  const {data, pageLinks, isLoading, isError} = useIndexedSpans({
+  const {data, pageLinks, isLoading} = useIndexedSpans({
     fields: [
       SpanIndexedField.ID,
       SpanIndexedField.TRANSACTION_ID,
@@ -110,6 +121,57 @@ export default function SpanSummaryTable() {
   if (!data) {
     return null;
   }
+
+  const transactionIds = data.map(row => row[SpanIndexedField.TRANSACTION_ID]);
+
+  const eventView = EventView.fromNewQueryWithLocation(
+    {
+      name: 'Transaction Durations',
+      query: MutableSearch.fromQueryObject({
+        project: project?.slug,
+        id: `[${transactionIds.join()}]`,
+      }).formatString(),
+      fields: ['id', 'trace', 'transaction.duration'],
+      version: 2,
+    },
+    location
+  );
+
+  console.dir(eventView);
+
+  const {
+    isLoading: isTxnDurationDataLoading,
+    data: txnDurationData,
+    isError: txnDurationError,
+  } = useGenericDiscoverQuery<
+    {
+      data: any[];
+      meta: MetaType;
+    },
+    DiscoverQueryProps
+  >({
+    route: 'events',
+    eventView,
+    location,
+    orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      ...eventView.getEventsAPIPayload(location),
+      // topEvents: eventView.topEvents,
+      //excludeOther: 0,
+      //partial: 1,
+      //orderby: undefined,
+      interval: eventView.interval,
+    }),
+    limit: LIMIT,
+    options: {
+      refetchOnWindowFocus: false,
+    },
+    referrer: 'api.performance.span-summary-table',
+  });
+
+  console.dir(txnDurationData);
+
+  // const transactionIds = data.
 
   // if (!defined(examples)) {
   //   return null;
@@ -166,7 +228,12 @@ export default function SpanSummaryTable() {
                 location,
                 sort,
               }),
-            renderBodyCell: renderBodyCell(location, organization, spanOp),
+            renderBodyCell: renderBodyCell(
+              location,
+              organization,
+              spanOp,
+              isTxnDurationDataLoading || txnDurationError
+            ),
           }}
           location={location}
         />
@@ -176,40 +243,22 @@ export default function SpanSummaryTable() {
   );
 }
 
-// function renderHeadCell(column: Column, _index: number): React.ReactNode {
-//   const align = fieldAlignment(column.key, COLUMN_TYPE[column.key]);
-//   return (
-//     <SortLink
-//       title={column.name}
-//       align={align}
-//       direction={undefined}
-//       canSort={false}
-//       generateSortLink={() => undefined}
-//     />
-//   );
-// }
-
 function renderBodyCell(
   location: Location,
   organization: Organization,
-  spanOp: string = ''
+  spanOp: string = '',
+  isTxnDurationDataLoading: boolean
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
     const {timestamp, span_id, trace, project} = dataRow;
     const spanDuration = dataRow['span.duration'];
     const transactionId = dataRow['transaction.id'];
-    // if the transaction duration is falsey, then just render the span duration on its own
-    // if (column.key === SpanIndexedField.SPAN_DURATION && dataRow.transactionDuration) {
-    //   return (
-    //     <SpanDurationBar
-    //       spanOp={spanOp}
-    //       spanDuration={dataRow.spanDuration}
-    //       transactionDuration={dataRow.transactionDuration}
-    //     />
-    //   );
-    // }
 
     if (column.key === SpanIndexedField.SPAN_DURATION) {
+      if (isTxnDurationDataLoading) {
+        return <SpanDurationBarLoading />;
+      }
+
       return (
         <SpanDurationBar
           spanOp={spanOp}
@@ -254,3 +303,12 @@ function renderBodyCell(
     return rendered;
   };
 }
+
+const SpanDurationBarLoading = styled('div')`
+  height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  top: ${space(0.5)};
+  background-color: ${p => p.theme.gray100};
+`;

@@ -55,9 +55,6 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
   const {key, name} = column;
   const alignment = getAlignment(key);
 
-  console.dir(sort);
-  console.dir(column);
-
   let newSortDirection: Sort['kind'] = 'desc';
   if (sort?.field === column.key) {
     if (sort.kind === 'desc') {
