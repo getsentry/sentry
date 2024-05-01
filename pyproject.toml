@@ -589,6 +589,7 @@ module = [
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.utils.audit",
+    "sentry.utils.canonical",
     "sentry.utils.email.*",
     "sentry.utils.iterators",
     "sentry.utils.locking.backends.redis",

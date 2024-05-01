@@ -305,7 +305,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self._project_cache = project
 
     def get_interfaces(self) -> Mapping[str, Interface]:
-        return cast(Mapping[str, Interface], CanonicalKeyView(get_interfaces(self.data)))
+        return CanonicalKeyView(get_interfaces(self.data))
 
     @cached_property
     def interfaces(self) -> Mapping[str, Interface]:
