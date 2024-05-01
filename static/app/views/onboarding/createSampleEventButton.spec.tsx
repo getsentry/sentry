@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -6,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 jest.useFakeTimers();

@@ -9,7 +9,7 @@ from django.db import models
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import OptionManager, Value
@@ -142,7 +142,7 @@ class UserOptionManager(OptionManager["UserOption"]):
 
 # TODO(dcramer): the NULL UNIQUE constraint here isn't valid, and instead has to
 # be manually replaced in the database. We should restructure this model.
-@control_silo_only_model
+@control_silo_model
 class UserOption(Model):
     """
     User options apply only to a user, and optionally a project OR an organization.

@@ -11,7 +11,10 @@ class ProjectStatsDocs(APIDocsTestCase):
 
         self.url = reverse(
             "sentry-api-0-project-stats",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
 
         self.login_as(user=self.user)

@@ -25,8 +25,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {useTraceMeta} from '../newTraceDetails/traceApi/useTraceMeta';
-
 import type {TraceResult} from './content';
 import type {Field} from './data';
 
@@ -113,7 +111,14 @@ export function SpanBreakdownSliceRenderer({
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset = toPercent(relativeSliceStart / traceDuration);
   return (
-    <div style={{width: slicePercent, left: sliceOffset, position: 'absolute'}}>
+    <div
+      style={{
+        width: `max(2px, ${slicePercent})`,
+        left: sliceOffset,
+        position: 'absolute',
+        ...(sliceName ? {} : {zIndex: -1}),
+      }}
+    >
       <Tooltip
         title={
           <div>
@@ -226,12 +231,9 @@ export function TransactionRenderer({
 }
 
 export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
-  const traceMeta = useTraceMeta(trace.trace);
   const organization = useOrganization();
 
-  const issueCount = !traceMeta.data
-    ? undefined
-    : traceMeta.data.errors + traceMeta.data.performance_issues;
+  const issueCount = trace.numErrors + trace.numOccurrences;
 
   return (
     <LinkButton
@@ -243,6 +245,7 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
       })}
       size="xs"
       icon={<IconIssues size="xs" />}
+      style={{minHeight: '20px', height: '20px'}}
     >
       {issueCount !== undefined ? (
         issueCount

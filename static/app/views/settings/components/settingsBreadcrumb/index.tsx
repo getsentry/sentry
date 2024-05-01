@@ -1,6 +1,6 @@
-import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -69,7 +69,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
 
 export default SettingsBreadcrumb;
 
-const CrumbLink = styled(RouterLink)`
+const CrumbLink = styled(Link)`
   display: block;
 
   color: ${p => p.theme.subText};

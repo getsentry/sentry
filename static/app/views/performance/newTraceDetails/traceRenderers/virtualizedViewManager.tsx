@@ -1,6 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {
@@ -15,6 +15,14 @@ const DIVIDER_WIDTH = 6;
 
 function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
+}
+
+function getHorizontalDelta(x: number, y: number): number {
+  if (x >= 0 && y >= 0) {
+    return Math.max(x, y);
+  }
+
+  return Math.min(x, y);
 }
 
 type ViewColumn = {
@@ -510,7 +518,10 @@ export class VirtualizedViewManager {
       this.enqueueOnWheelEndRaf();
 
       // Holding shift key allows for horizontal scrolling
-      const distance = event.shiftKey ? event.deltaY : event.deltaX;
+      const distance = event.shiftKey
+        ? getHorizontalDelta(event.deltaX, event.deltaY)
+        : event.deltaX;
+
       if (
         event.shiftKey ||
         (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))

@@ -1,5 +1,4 @@
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -11,6 +10,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';

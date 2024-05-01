@@ -44,7 +44,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      releases of.
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
@@ -99,7 +99,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to create a
+        :pparam string project_id_or_slug: the id or slug of the project to create a
                                      release for.
         :param string version: a version identifier for this release.  Can
                                be a version number, a commit hash etc.
@@ -205,6 +205,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
                 # Disable snuba here as it often causes 429s when overloaded and
                 # a freshly created release won't have health data anyways.
-                return Response(serialize(release, request.user, no_snuba=True), status=status)
+                return Response(
+                    serialize(release, request.user, no_snuba_for_release_creation=True),
+                    status=status,
+                )
             scope.set_tag("failure_reason", "serializer_error")
             return Response(serializer.errors, status=400)

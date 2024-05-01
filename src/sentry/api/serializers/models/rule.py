@@ -20,7 +20,7 @@ def generate_rule_label(project, rule, data):
     if rule_cls is None:
         return
 
-    rule_inst = rule_cls(project, data=data, rule=rule)
+    rule_inst = rule_cls(project=project, data=data, rule=rule)
     return rule_inst.render_label()
 
 

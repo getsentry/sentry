@@ -1581,6 +1581,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-tree-ui": False,
     # Enable caching group counts in GroupSnooze
     "organizations:groupsnooze-cached-counts": False,
+    # Enable caching group frequency rates in GroupSnooze
+    "organizations:groupsnooze-cached-rates": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -1658,8 +1660,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-threshold-period": False,
     # Enables the metrics metadata.
     "organizations:metric-meta": False,
-    # Extract metrics for sessions during ingestion.
-    "organizations:metrics-extraction": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
     # Enables the search bar for metrics samples list
@@ -1749,8 +1749,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
     "organizations:performance-screens-platform-selector": False,
-    # Enable API aka HTTP aka Network Performance module
-    "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable histogram view in span details
@@ -1805,6 +1803,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:project-event-date-limit": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
+    # Enable the react concurrent renderer
+    "organizations:react-concurrent-renderer-enabled": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable related issues feature
@@ -1816,8 +1816,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:relay-cardinality-limiter": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # True if Relay should drop raw session payloads after extracting metrics from them.
-    "organizations:release-health-drop-sessions": False,
     # Enable new release UI
     "organizations:releases-v2": False,
     "organizations:releases-v2-banner": False,
@@ -1881,6 +1879,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
+    # Add regression chart as image to slack message
+    "organizations:slack-endpoint-regression-image": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -2151,11 +2151,6 @@ SENTRY_FILESTORE_ALIASES = {
     "filesystem": "django.core.files.storage.FileSystemStorage",
     "s3": "sentry.filestore.s3.S3Boto3Storage",
     "gcs": "sentry.filestore.gcs.GoogleCloudStorage",
-}
-
-SENTRY_ANALYTICS_ALIASES = {
-    "noop": "sentry.analytics.Analytics",
-    "pubsub": "sentry.analytics.pubsub.PubSubAnalytics",
 }
 
 # set of backends that do not support needing SMTP mail.* settings
@@ -3067,7 +3062,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.1"
+SELF_HOSTED_STABLE_VERSION = "24.4.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
