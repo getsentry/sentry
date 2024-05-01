@@ -38,6 +38,7 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import resolve_column, resolve_conditions
+from src.sentry.models.eventattachment import EventAttachment
 
 
 def get_actions(request: Request, group):
@@ -396,6 +397,18 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item].update({"sentryAppIssues": sentry_app_issues})
 
+        if self._expand("hasAttachments"):
+            if not features.has(
+                "organizations:event-attachments",
+                item.project.organization,
+                actor=request.user,
+            ):
+                return self.respond(status=404)
+
+            for item in item_list:
+                attachments = EventAttachment.objects.filter(group_id=item.id)
+                attrs[item].update({"hasAttachments": len(attachments) > 0})
+
         return attrs
 
     def serialize(
@@ -453,6 +466,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("sentryAppIssues"):
             result["sentryAppIssues"] = attrs["sentryAppIssues"]
+
+        if self._expand("hasAttachments"):
+            result["hasAttachments"] = attrs["hasAttachments"]
 
         return result
 

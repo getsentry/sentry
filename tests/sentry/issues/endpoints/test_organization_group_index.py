@@ -59,6 +59,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
+from src.sentry.models.eventattachment import EventAttachment
+from src.sentry.models.files.file import File
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -1852,6 +1854,46 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["sentryAppIssues"][1]["issueId"] == str(issue_2.group_id)
         assert response.data[0]["sentryAppIssues"][0]["displayName"] == issue_1.display_name
         assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
+
+    def test_expand_has_attachments(self):
+        with self.feature("organizations:event-attachments"):
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                project_id=self.project.id,
+            )
+            query = "status:unresolved"
+            self.login_as(user=self.user)
+            response = self.get_response(
+                sort_by="date", limit=10, query=query, expand=["hasAttachments"]
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            # No attachments
+            assert response.data[0]["hasAttachments"] is False
+
+            # Test with no expand
+            response = self.get_response(sort_by="date", limit=10, query=query)
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert "hasAttachments" not in response.data[0]
+
+            # Add 1 attachment
+            file_attachment = File.objects.create(name="hello.png", type="image/png")
+            EventAttachment.objects.create(
+                event_id=event.event_id,
+                project_id=event.project_id,
+                file_id=file_attachment.id,
+                type=file_attachment.type,
+                name="hello.png",
+            )
+
+            response = self.get_response(
+                sort_by="date", limit=10, query=query, expand=["hasAttachments"]
+            )
+            assert response.status_code == 200
+            assert response.data[0]["hasAttachments"] is True
 
     def test_expand_owners(self):
         event = self.store_event(

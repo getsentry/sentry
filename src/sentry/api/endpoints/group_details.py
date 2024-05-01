@@ -45,6 +45,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
+from src.sentry.models.eventattachment import EventAttachment
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -234,6 +235,17 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     list(external_issues), request, serializer=PlatformExternalIssueSerializer()
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
+
+            if "hasAttachments" in expand:
+                if not features.has(
+                    "organizations:event-attachments",
+                    group.project.organization,
+                    actor=request.user,
+                ):
+                    return self.respond(status=404)
+
+                attachments = EventAttachment.objects.filter(group_id=group.id)
+                data.update({"hasAttachments": len(attachments) > 0})
 
             data.update(
                 {
