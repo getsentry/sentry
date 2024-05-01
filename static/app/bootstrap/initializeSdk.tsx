@@ -117,6 +117,15 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
+
+      // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
+      if (event.spans) {
+        const newEndTimestamp = Math.max(
+          ...event.spans.map(span => span.endTimestamp ?? 0)
+        );
+        event.timestamp = newEndTimestamp;
+      }
+
       if (event.transaction) {
         event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
       }
