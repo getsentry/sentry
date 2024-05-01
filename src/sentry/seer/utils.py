@@ -1,3 +1,4 @@
+import logging
 from typing import NotRequired, TypedDict
 
 import sentry_sdk
@@ -7,6 +8,8 @@ from urllib3 import Retry
 from sentry.net.http import connection_from_url
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
+
+logger = logging.getLogger(__name__)
 
 
 class SeerException(Exception):
@@ -119,4 +122,11 @@ def get_similar_issues_embeddings(
         UnicodeError,
         JSONDecodeError,
     ):
+        logger.exception(
+            "Failed to parse seer similar issues response",
+            extra={
+                "request_params": similar_issues_request,
+                "response_data": response.data,
+            },
+        )
         return {"responses": []}
