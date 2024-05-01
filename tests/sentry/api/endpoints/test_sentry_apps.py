@@ -21,6 +21,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -191,7 +192,7 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
             self.get_success_response(status_code=200)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_sees_all_apps(self):
         self.get_success_response(status_code=200)
 
@@ -380,12 +381,12 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
             )
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_cannot_create(self):
         self.get_error_response(**self.get_data(name="POPULARITY"))
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_can_create(self):
         self.add_user_permission(self.superuser, "superuser.write")
         self.get_success_response(**self.get_data(popularity=POPULARITY), status_code=201)

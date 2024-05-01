@@ -7,6 +7,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -206,9 +207,8 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
             self.assert_can_access(superuser, self.path)
             self.assert_can_access(superuser, self.path, method="DELETE")
 
-    @with_feature(
-        {"organizations:event-attachments": True, "auth:enterprise-superuser-read-write": True}
-    )
+    @with_feature("organizations:event-attachments")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_read_access(self):
         self.organization.update_option("sentry:attachments_role", "owner")
@@ -218,9 +218,8 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
 
         self.assert_cannot_access(superuser, self.path, method="DELETE")
 
-    @with_feature(
-        {"organizations:event-attachments": True, "auth:enterprise-superuser-read-write": True}
-    )
+    @with_feature("organizations:event-attachments")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_write_can_access(self):
         self.organization.update_option("sentry:attachments_role", "owner")

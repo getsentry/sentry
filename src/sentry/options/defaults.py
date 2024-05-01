@@ -275,6 +275,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Superuser read/write
+register(
+    "superuser.read-write.ga-rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # API
 # GA Option for endpoints to work with id or slug as path parameters
