@@ -120,7 +120,7 @@ class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
             issue = Group.objects.get_from_cache(id=issue_id)
         except Group.DoesNotExist:
             raise NotFound()
-        if str(organization_slug).isdigit():
+        if str(organization_slug).isdecimal():
             if issue.organization.id != int(organization_slug):
                 raise NotFound()
         else:
