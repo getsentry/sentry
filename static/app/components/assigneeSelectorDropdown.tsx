@@ -167,7 +167,7 @@ export function AssigneeAvatar({
   );
 }
 
-function AssigneeSelectorDropdown({
+export default function AssigneeSelectorDropdown({
   group,
   memberList,
   noDropdown = false,
@@ -589,5 +589,3 @@ const TooltipSubExternalLink = styled(ExternalLink)`
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};
 `;
-
-export default AssigneeSelectorDropdown;
