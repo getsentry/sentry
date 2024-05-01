@@ -4,27 +4,25 @@ import type {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useParams} from 'sentry/utils/useParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
 import Tab from '../../tabs';
-import {ZoomKeys} from '../spanDetails/utils';
 
 import SpanSummaryControls from './spanSummaryControls';
 import SpanSummaryHeader from './spanSummaryHeader';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useParams} from 'sentry/utils/useParams';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {t} from 'sentry/locale';
 
 type Props = {
   eventView: EventView;
@@ -37,8 +35,6 @@ type Props = {
 
 export default function SpanSummaryContentWrapper(props: Props) {
   const {location, organization, eventView, project, transactionName, spanSlug} = props;
-  const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
-  const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
 
   // customize the route analytics event we send
   useRouteAnalyticsEventNames(
@@ -113,7 +109,7 @@ function SpanSummaryContent(props: ContentProps) {
     transaction: transactionName,
   };
 
-  const {isLoading: isSpanHeaderDataLoading, data: spanHeaderData} = useSpanMetrics({
+  const {data: spanHeaderData} = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
     fields: ['span.description', 'avg(span.self_time)', 'sum(span.self_time)', 'count()'],
     enabled: Boolean(groupId),
