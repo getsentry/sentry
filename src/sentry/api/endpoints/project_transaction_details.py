@@ -40,12 +40,19 @@ class ProjectTransactionDetailsEndpoint(ProjectEndpoint):
         spans_data = _query_all_spans_in_transaction(
             project.organization, project, transaction_id, start, end
         )
+        sentry_sdk.set_measurement("transaction_endpoint.span_query.num_spans", len(spans_data))
         if len(spans_data) == 0:
             return Response(status=404)
 
-        segment_span = next((span for span in spans_data if span["is_segment"] != 0), None)
+        segment_spans_generator = (span for span in spans_data if span["is_segment"] != 0)
+        segment_span = next(segment_spans_generator, None)
         if segment_span is None:
             return Response({"detail": "No transaction span found"}, status=500)
+        if next(segment_spans_generator, None) is not None:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("transaction_id", transaction_id)
+                message = "Found transaction with multiple segment spans"
+                sentry_sdk.capture_message(message, level="warning")
 
         spans_data = list(
             filter(lambda span: span["span_id"] != segment_span["span_id"], spans_data)
@@ -66,30 +73,29 @@ class ProjectTransactionDetailsEndpoint(ProjectEndpoint):
 
         # Assemble them into the same format as the event details endpoint
         data = {
-            "event_id": transaction_id,
-            "project": project.id,
-            "release": segment_sentry_tags.get("release"),
+            "id": transaction_id,
+            "groupID": None,
+            "eventID": transaction_id,
+            "projectID": project.id,
+            "entries": [
+                {
+                    "type": "spans",
+                    "data": _span_data_to_event_spans(spans_data),
+                }
+            ],
             "dist": None,
-            "platform": segment_span.get("platform"),  # column is always null in Clickhouse
             "message": "",
-            "datetime": datetime.fromtimestamp(
-                segment_span.get("precise.start_ts"), tz=timezone.utc
-            ).isoformat(),
-            "tags": list(segment_tags_items) + list(segment_sentry_tags.items()),
-            "_meta": {},
-            "_metrics": {},
-            "breakdowns": {
-                "span_ops": _span_ops_breakdown(spans_data),
+            "title": transaction_name,
+            "location": transaction_name,
+            "user": {
+                # missing from indexed spans dataset
             },
             "contexts": {
                 "browser": {
                     "name": segment_sentry_tags.get("browser.name"),
                     # other props missing from indexed spans dataset
                 },
-                "organization": {
-                    # missing from indexed spans dataset
-                },
-                "os": {
+                "client_os": {
                     "name": segment_sentry_tags.get("os.name"),
                     # other props missing from indexed spans dataset
                 },
@@ -104,50 +110,39 @@ class ProjectTransactionDetailsEndpoint(ProjectEndpoint):
                     "type": "trace",
                 },
             },
-            "culprit": transaction_name,
-            "environment": segment_sentry_tags.get("environment"),
-            "errors": [],
-            "extra": {},
-            "ingest_path": [],
-            "level": "info",
-            "location": transaction_name,
-            "logger": "",
-            "measurements": segment_measurements,
-            "metadata": {
-                "location": transaction_name,
-                "title": transaction_name,
-            },
-            "nodestore_insert": segment_span.get("precise.finish_ts"),
-            "received": segment_span.get("precise.finish_ts"),
-            "request": {
-                # missing from indexed spans dataset
-            },
             "sdk": {
                 "name": segment_sentry_tags.get("sdk.name"),
                 "version": segment_sentry_tags.get("sdk.version"),
                 # other props missing from indexed spans dataset
             },
-            "span_grouping_config": {
-                # missing from indexed spans dataset
+            "context": {},  # missing from indexed spans dataset
+            "packages": {},  # # missing from indexed spans dataset
+            "type": "transaction",
+            "metadata": {
+                "location": transaction_name,
+                "title": transaction_name,
             },
-            "entries": [
-                {
-                    "type": "spans",
-                    "data": _span_data_to_event_spans(spans_data),
-                }
+            "tags": [
+                {"key": key, "value": value}
+                for key, value in list(segment_tags_items) + list(segment_sentry_tags.items())
             ],
+            "platform": segment_span.get("platform"),  # column is always null in Clickhouse
+            "dateReceived": datetime.fromtimestamp(
+                segment_span.get("precise.start_ts"), tz=timezone.utc
+            ).isoformat(),
+            "errors": [],
+            "occurrence": None,
+            "_meta": {},
             "start_timestamp": segment_span.get("precise.start_ts"),
             "timestamp": segment_span.get("precise.finish_ts"),
-            "title": transaction_name,
-            "transaction": transaction_name,
-            "transaction_info": {
-                # missing from indexed spans dataset
+            "measurements": segment_measurements,
+            "breakdowns": {
+                "span_ops": _span_ops_breakdown(spans_data),
             },
-            "type": "transaction",
-            "user": {
-                # missing from indexed spans dataset
+            "release": {
+                "version": segment_sentry_tags.get("release"),
+                # other props missing from indexed spans dataset
             },
-            "version": 5,
             "projectSlug": project.slug,
         }
 
@@ -161,6 +156,7 @@ class ProjectTransactionDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
 
+@sentry_sdk.tracing.trace
 def _query_all_spans_in_transaction(organization, project, transaction_id, start, end):
     params: ParamsType = {
         "start": start - timedelta(seconds=1),
@@ -231,6 +227,7 @@ def _span_data_to_event_spans(span_data):
             "parent_span_id": span["parent_span_id"],
             "trace_id": span["trace_id"],
             "tags": dict(zip(span["tags.key"], span["tags.value"])),
+            "data": {},  # missing from indexed spans data set
             "sentry_tags": dict(zip(span["sentry_tags.key"], span["sentry_tags.value"])),
             "hash": _normalize_group(span["group"]),
             "same_process_as_parent": span.get("same_process_as_parent"),
@@ -239,6 +236,7 @@ def _span_data_to_event_spans(span_data):
     ]
 
 
+@sentry_sdk.tracing.trace
 def _span_ops_breakdown(spans_data):
     # Roughly replicates the logic in Relay. See:
     # https://github.com/getsentry/relay/blob/b2fcde7ddb829e53f8b312bc25b2dc24eaae3b84/relay-event-normalization/src/normalize/breakdowns.rs#L87
@@ -293,6 +291,7 @@ def _duration_from_intervals(intervals):
     return duration
 
 
+@sentry_sdk.tracing.trace
 def _add_comparison_to_event(data, organization_id, project, average_columns):
     group_to_span_map = defaultdict(list)
     end = datetime.now()

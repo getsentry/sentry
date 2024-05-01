@@ -136,43 +136,26 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "event_id": self.transaction_id,
-            "project": self.project.id,
-            "release": release,
-            "dist": None,
-            "platform": "",
-            "message": "",
-            "datetime": datetime.fromtimestamp(
-                root_span.get("start_timestamp_ms", 0.0) / 1000.0, tz=timezone.utc
-            ).isoformat(),
-            "tags": [
-                ("tag", "value"),
-                ("browser.name", browser_name),
-                ("environment", environment),
-                ("group", span_hash),
-                ("op", transaction_op),
-                ("os.name", os_name),
-                ("release", release),
-                ("sdk.name", sdk_name),
-                ("sdk.version", sdk_version),
-                ("transaction", transaction_name),
+            "id": self.transaction_id,
+            "groupID": None,
+            "eventID": self.transaction_id,
+            "projectID": self.project.id,
+            "entries": [
+                {
+                    "type": "spans",
+                    "data": [],
+                }
             ],
-            "_meta": {},
-            "_metrics": {},
-            "breakdowns": {
-                "span_ops": {
-                    "total.time": {
-                        "value": 0.0,
-                        "unit": "milliseconds",
-                    },
-                },
-            },
+            "dist": None,
+            "message": "",
+            "title": transaction_name,
+            "location": transaction_name,
+            "user": {},
             "contexts": {
                 "browser": {
                     "name": browser_name,
                 },
-                "organization": {},
-                "os": {
+                "client_os": {
                     "name": os_name,
                 },
                 "trace": {
@@ -186,42 +169,54 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
                     "type": "trace",
                 },
             },
-            "culprit": transaction_name,
-            "entries": [
-                {
-                    "type": "spans",
-                    "data": [],
-                }
-            ],
-            "environment": environment,
-            "errors": [],
-            "extra": {},
-            "ingest_path": [],
-            "level": "info",
-            "location": transaction_name,
-            "logger": "",
-            "measurements": {},
-            "metadata": {
-                "location": transaction_name,
-                "title": transaction_name,
-            },
-            "nodestore_insert": (root_span.get("start_timestamp_ms", 0.0) + span_duration) / 1000,
-            "projectSlug": self.project.slug,
-            "received": (root_span.get("start_timestamp_ms", 0.0) + span_duration) / 1000,
-            "request": {},
             "sdk": {
                 "name": sdk_name,
                 "version": sdk_version,
             },
-            "span_grouping_config": {},
+            "context": {},
+            "packages": {},
+            "type": "transaction",
+            "metadata": {
+                "location": transaction_name,
+                "title": transaction_name,
+            },
+            "tags": [
+                {"key": k, "value": v}
+                for k, v in [
+                    ("tag", "value"),
+                    ("browser.name", browser_name),
+                    ("environment", environment),
+                    ("group", span_hash),
+                    ("op", transaction_op),
+                    ("os.name", os_name),
+                    ("release", release),
+                    ("sdk.name", sdk_name),
+                    ("sdk.version", sdk_version),
+                    ("transaction", transaction_name),
+                ]
+            ],
+            "platform": "",
+            "dateReceived": datetime.fromtimestamp(
+                root_span.get("start_timestamp_ms", 0.0) / 1000.0, tz=timezone.utc
+            ).isoformat(),
+            "errors": [],
+            "occurrence": None,
+            "_meta": {},
             "start_timestamp": root_span.get("start_timestamp_ms", 0.0) / 1000,
             "timestamp": (root_span.get("start_timestamp_ms", 0.0) + span_duration) / 1000,
-            "title": transaction_name,
-            "transaction": transaction_name,
-            "transaction_info": {},
-            "type": "transaction",
-            "user": {},
-            "version": 5,
+            "measurements": {},
+            "breakdowns": {
+                "span_ops": {
+                    "total.time": {
+                        "value": 0.0,
+                        "unit": "milliseconds",
+                    },
+                },
+            },
+            "release": {
+                "version": release,
+            },
+            "projectSlug": self.project.slug,
         }
 
     def test_imitates_event_details_span_output_format(self):
@@ -315,6 +310,7 @@ class OrganizationTransactionDetailsTest(OrganizationEventsEndpointTestBase):
                 "parent_span_id": root_span.get("span_id"),
                 "trace_id": self.trace_id,
                 "tags": {"another_tag": "another_value"},
+                "data": {},
                 "sentry_tags": {"op": "db", "group": db_span_hash},
                 "hash": db_span_hash,
                 "same_process_as_parent": None,
