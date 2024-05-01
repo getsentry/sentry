@@ -30,6 +30,7 @@ from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
@@ -234,6 +235,17 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     list(external_issues), request, serializer=PlatformExternalIssueSerializer()
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
+
+            if "hasAttachments" in expand:
+                if not features.has(
+                    "organizations:event-attachments",
+                    group.project.organization,
+                    actor=request.user,
+                ):
+                    return self.respond(status=404)
+
+                attachments = EventAttachment.objects.filter(group_id=group.id)
+                data.update({"hasAttachments": len(attachments) > 0})
 
             data.update(
                 {
