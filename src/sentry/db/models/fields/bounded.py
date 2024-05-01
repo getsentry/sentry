@@ -17,20 +17,30 @@ class BoundedIntegerField(models.IntegerField):
     MAX_VALUE = 2147483647
 
     def get_prep_value(self, value: int) -> int:
-        if value:
+        if isinstance(value, str) and value.isdigit():
             value = int(value)
+        elif value == '' or value is None:
+            return None
+        if isinstance(value, int):
             assert value <= self.MAX_VALUE
-        return super().get_prep_value(value)
+            return super().get_prep_value(value)
+        else:
+            raise ValueError(f"Expected a number but got {type(value).__name__}: {value}")
 
 
 class BoundedPositiveIntegerField(models.PositiveIntegerField):
     MAX_VALUE = 2147483647
 
     def get_prep_value(self, value: int) -> int:
-        if value:
+        if isinstance(value, str) and value.isdigit():
             value = int(value)
+        elif value == '' or value is None:
+            return None
+        if isinstance(value, int):
             assert value <= self.MAX_VALUE
-        return super().get_prep_value(value)
+            return super().get_prep_value(value)
+        else:
+            raise ValueError(f"Expected a number but got {type(value).__name__}: {value}")
 
 
 class BoundedAutoField(models.AutoField):
