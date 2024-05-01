@@ -179,18 +179,19 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
  * accurately describe the available space.
  */
 export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): number {
-  const [width, setWidth] = useState(0);
+  const [columnCount, setColumnCount] = useState(1);
 
   const element = elementRef.current;
 
   const onResize = useCallback(() => {
-    setWidth(element?.clientWidth || 0);
+    const width = element?.clientWidth || 0;
+    const breakpoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
+      ({minWidth}) => width >= minWidth
+    );
+    setColumnCount(breakpoint?.columnCount ?? 1);
   }, [element]);
 
   useResizeObserver({ref: elementRef, onResize});
 
-  const breakPoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
-    ({minWidth}) => width >= minWidth
-  );
-  return breakPoint?.columnCount ?? 1;
+  return columnCount;
 }
