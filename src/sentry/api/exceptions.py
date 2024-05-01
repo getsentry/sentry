@@ -36,6 +36,12 @@ class SentryAPIException(APIException):
         self.detail = {"detail": detail}
 
 
+class BadRequest(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "invalid-request"
+    message = "Invalid request"
+
+
 class ParameterValidationError(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "parameter-validation-error"
