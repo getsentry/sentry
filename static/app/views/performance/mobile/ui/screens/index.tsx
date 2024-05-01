@@ -76,7 +76,7 @@ export function UIScreens() {
   } = useTableQuery({
     eventView: tableEventView,
     enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-startup-screen-table', // TODO: referrer
+    referrer: 'api.performance.mobile.ui.screen-table',
   });
 
   // TODO: Add transaction.op:ui.load when collecting begins
