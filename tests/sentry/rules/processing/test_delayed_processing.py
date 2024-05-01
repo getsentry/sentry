@@ -17,6 +17,7 @@ from sentry.rules.processing.delayed_processing import (
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils import json
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
@@ -57,12 +58,13 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
         condition_id = f"sentry.rules.conditions.event_frequency.{id}"
         return {"interval": interval, "id": condition_id, "value": value}
 
-    def push_to_hash(self, project_id, rule_id, group_id, event_id):
+    def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
+        value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
         self.redis_buffer.push_to_hash(
             model=Project,
             filters={"project_id": project_id},
             field=f"{rule_id}:{group_id}",
-            value=event_id,
+            value=value,
         )
 
     def setUp(self):
@@ -179,8 +181,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             assert self.group1
             assert self.group2
             assert len(rule_fire_histories) == 2
-            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
-            assert rule_fire_histories[1] == (self.rule2.id, self.group2.id)
+            assert (self.rule1.id, self.group1.id) in rule_fire_histories
+            assert (self.rule2.id, self.group2.id) in rule_fire_histories
 
             apply_delayed(self.project_two.id)
             rule_fire_histories = RuleFireHistory.objects.filter(
@@ -192,8 +194,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             assert len(rule_fire_histories) == 2
             assert self.group3
             assert self.group4
-            assert rule_fire_histories[0] == (self.rule3.id, self.group3.id)
-            assert rule_fire_histories[1] == (self.rule4.id, self.group4.id)
+            assert (self.rule3.id, self.group3.id) in rule_fire_histories
+            assert (self.rule4.id, self.group4.id) in rule_fire_histories
 
     def test_apply_delayed_same_condition_diff_value(self):
         """
@@ -221,9 +223,9 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
                 project=self.project,
             ).values_list("rule", "group")
             assert len(rule_fire_histories) == 3
-            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
-            assert rule_fire_histories[1] == (self.rule1.id, group5.id)
-            assert rule_fire_histories[2] == (rule5.id, group5.id)
+            assert (self.rule1.id, self.group1.id) in rule_fire_histories
+            assert (self.rule1.id, group5.id) in rule_fire_histories
+            assert (rule5.id, group5.id) in rule_fire_histories
 
     def test_apply_delayed_same_condition_diff_interval(self):
         """
@@ -250,8 +252,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
                 project=self.project,
             ).values_list("rule", "group")
             assert len(rule_fire_histories) == 2
-            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
-            assert rule_fire_histories[1] == (diff_interval_rule.id, group5.id)
+            assert (self.rule1.id, self.group1.id) in rule_fire_histories
+            assert (diff_interval_rule.id, group5.id) in rule_fire_histories
 
     def test_apply_delayed_same_condition_diff_env(self):
         """
@@ -279,8 +281,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
                 project=self.project,
             ).values_list("rule", "group")
             assert len(rule_fire_histories) == 2
-            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
-            assert rule_fire_histories[1] == (diff_env_rule.id, group5.id)
+            assert (self.rule1.id, self.group1.id) in rule_fire_histories
+            assert (diff_env_rule.id, group5.id) in rule_fire_histories
 
     def test_apply_delayed_two_rules_one_fires(self):
         """
@@ -313,8 +315,8 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
                 project=self.project,
             ).values_list("rule", "group")
             assert len(rule_fire_histories) == 2
-            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
-            assert rule_fire_histories[1] == (self.rule1.id, group5.id)
+            assert (self.rule1.id, self.group1.id) in rule_fire_histories
+            assert (self.rule1.id, group5.id) in rule_fire_histories
 
     def test_apply_delayed_action_match_all(self):
         """
@@ -356,6 +358,6 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
                 project=self.project,
             ).values_list("rule", "group")
             assert len(rule_fire_histories) == 3
-            assert rule_fire_histories[0] == (self.rule1.id, self.group1.id)
-            assert rule_fire_histories[1] == (self.rule1.id, group5.id)
-            assert rule_fire_histories[2] == (two_conditions_match_all_rule.id, group5.id)
+            assert (self.rule1.id, self.group1.id) in rule_fire_histories
+            assert (self.rule1.id, group5.id) in rule_fire_histories
+            assert (two_conditions_match_all_rule.id, group5.id) in rule_fire_histories

@@ -8,7 +8,8 @@ from django.utils import timezone
 
 from sentry import eventstore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
@@ -23,7 +24,7 @@ from sentry.rules.processing.processor import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
@@ -186,25 +187,39 @@ def get_rules_to_fire(
     return rules_to_fire
 
 
-def get_group_id_to_event(
-    rulegroup_to_events: dict[str, str], project: Project
-) -> dict[int, Event]:
-    group_id_to_event: dict[int, Event] = {}
-    for rule_group, event_id in rulegroup_to_events.items():
+def get_group_to_groupevent(
+    rulegroup_to_events: dict[str, str], project: Project, group_ids: set[int]
+) -> dict[Group, GroupEvent]:
+    group_to_groupevent: dict[Group, GroupEvent] = {}
+    groups = Group.objects.filter(id__in=group_ids)
+    group_id_to_group = {group.id: group for group in groups}
+    for rule_group, instance_id in rulegroup_to_events.items():
+        event_data = json.loads(instance_id)
+        event_id = event_data.get("event_id")
+        occurrence_id = event_data.get("occurrence_id")
         _, group_id = rule_group.split(":")
-        event = Event(
-            event_id=event_id,
-            project_id=project.id,
-            snuba_data={
-                "event_id": event_id,
-                "group_id": group_id,
-                "project_id": project.id,
-            },
-        )
-        group_id_to_event[int(group_id)] = event
+        group_id = int(group_id)
+        if group_id in [group.id for group in groups]:
+            group = group_id_to_group.get(group_id)
+            if group:
+                event = Event(
+                    event_id=event_id,
+                    project_id=project.id,
+                    snuba_data={
+                        "event_id": event_id,
+                        "group_id": group.id,
+                        "project_id": project.id,
+                    },
+                )
+                eventstore.backend.bind_nodes([event])
+                group_event = event.for_group(group)
+                if occurrence_id:
+                    occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project.id)
+                    if occurrence:
+                        group_event.occurrence_id = occurrence.id
 
-    eventstore.backend.bind_nodes(list(group_id_to_event.values()))
-    return group_id_to_event
+                group_to_groupevent[group] = group_event
+    return group_to_groupevent
 
 
 @redis_buffer_registry.add_handler(BufferHookEvent.FLUSH)
@@ -256,14 +271,12 @@ def apply_delayed(project_id: int) -> None:
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
     # Step 7: Ready, aim, fire!!
-    group_id_to_event = get_group_id_to_event(rulegroup_to_events, project)
-
     now = timezone.now()
     for rule, group_ids in rules_to_fire.items():
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         freq_offset = now - timedelta(minutes=frequency)
-        groups = Group.objects.filter(id__in=group_ids)
-        for group in groups:
+        group_to_groupevent = get_group_to_groupevent(rulegroup_to_events, project, group_ids)
+        for group, groupevent in group_to_groupevent.items():
             rule_statuses = bulk_get_rule_status(alert_rules, group, project)
             status = rule_statuses[rule.id]
             if status.last_active and status.last_active > freq_offset:
@@ -278,9 +291,9 @@ def apply_delayed(project_id: int) -> None:
             if not updated:
                 return
 
-            event = group_id_to_event[group.id]
             notification_uuid = str(uuid.uuid4())
-            rule_fire_history = history.record(rule, group, event.event_id, notification_uuid)
-            activate_downstream_actions(
-                rule, event.for_group(group), notification_uuid, rule_fire_history
+            groupevent = group_to_groupevent[group]
+            rule_fire_history = history.record(rule, group, groupevent.event_id, notification_uuid)
+            safe_execute(
+                activate_downstream_actions, rule, groupevent, notification_uuid, rule_fire_history
             )
