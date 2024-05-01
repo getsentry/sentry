@@ -102,6 +102,9 @@ def _chunk_watermark_batch(
     silo_mode=SiloMode.CONTROL,
 )
 def schedule_hybrid_cloud_foreign_key_jobs_control():
+    if options.get("hybrid_cloud.disable_tombstone_cleanup"):
+        return
+
     _schedule_hybrid_cloud_foreign_key(
         SiloMode.CONTROL, process_hybrid_cloud_foreign_key_cascade_batch_control
     )
@@ -114,6 +117,9 @@ def schedule_hybrid_cloud_foreign_key_jobs_control():
     silo_mode=SiloMode.REGION,
 )
 def schedule_hybrid_cloud_foreign_key_jobs():
+    if options.get("hybrid_cloud.disable_tombstone_cleanup"):
+        return
+
     _schedule_hybrid_cloud_foreign_key(
         SiloMode.REGION, process_hybrid_cloud_foreign_key_cascade_batch
     )
@@ -150,6 +156,9 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) 
 def process_hybrid_cloud_foreign_key_cascade_batch_control(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
+    if options.get("hybrid_cloud.disable_tombstone_cleanup"):
+        return
+
     _process_hybrid_cloud_foreign_key_cascade(
         app_name=app_name,
         model_name=model_name,
@@ -168,6 +177,9 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
+    if options.get("hybrid_cloud.disable_tombstone_cleanup"):
+        return
+
     _process_hybrid_cloud_foreign_key_cascade(
         app_name=app_name,
         model_name=model_name,
