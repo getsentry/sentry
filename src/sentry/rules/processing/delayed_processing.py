@@ -202,9 +202,7 @@ def get_group_to_groupevent(
         event_id = event_data.get("event_id")
         occurrence_id = event_data.get("occurrence_id")
         _, group_id = rule_group.split(":")
-        group_id = int(group_id)
-        # if group_id in [group.id for group in groups]:
-        group = group_id_to_group.get(group_id)
+        group = group_id_to_group.get(int(group_id))
         if group:
             # TODO: fetch events and occurrences in batches
             event = Event(
