@@ -52,7 +52,7 @@ export type ActivityTypeDraft = {
 
 export type ActivityType = ActivityTypeDraft & {
   previousValue: string | null;
-  value: string | null;
+  value: string | null; // determines IncidentStatus of the activity (CRITICAL/WARNING/etc.)
   eventStats?: {data: Data};
 };
 

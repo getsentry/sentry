@@ -14,7 +14,9 @@ describe('MetricHistory', () => {
   it('renders a critical incident', () => {
     render(<MetricHistory incidents={[IncidentFixture()]} />);
     expect(screen.getByRole('link', {name: '#123'})).toBeInTheDocument();
-    expect(screen.getByText('Number of errors above 70 in 1 hour')).toBeInTheDocument();
+    expect(
+      screen.getByText('Number of errors above 70 within 1 hour')
+    ).toBeInTheDocument();
     expect(screen.getByText('12hr')).toBeInTheDocument();
   });
 
