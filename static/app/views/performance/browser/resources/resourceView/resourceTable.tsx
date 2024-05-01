@@ -122,7 +122,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
         <DescriptionWrapper>
           <ResourceIcon fileExtension={fileExtension} spanOp={row[SPAN_OP]} />
           <SpanDescriptionCell
-            moduleName={ModuleName.HTTP}
+            moduleName={ModuleName.RESOURCE}
             projectId={row[PROJECT_ID]}
             spanOp={row[SPAN_OP]}
             description={row[SPAN_DESCRIPTION]}

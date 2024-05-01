@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, lazy} from 'react';
 import {IndexRedirect, Redirect} from 'react-router';
 import memoize from 'lodash/memoize';
 
@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
@@ -27,7 +28,10 @@ import {IndexRoute, Route} from './components/route';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
-const SafeLazyLoad = errorHandler(LazyLoad);
+// LazyExoticComponent Props get crazy when wrapped in an additional layer
+const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<
+  typeof LazyLoad
+>;
 
 // NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
 // pirvate routing tree.
@@ -39,11 +43,12 @@ const SafeLazyLoad = errorHandler(LazyLoad);
 export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   resolve: () => Promise<{default: C}>
 ) {
+  const LazyComponent = lazy<C>(() => retryableImport(resolve));
   // XXX: Assign the component to a variable so it has a displayname
   function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
-    return <SafeLazyLoad {...props} component={resolve} />;
+    return <SafeLazyLoad {...props} LazyComponent={LazyComponent} />;
   }
 
   return RouteLazyLoad;
@@ -1617,6 +1622,11 @@ function buildRoutes() {
             )}
           />
         </Route>
+        <Route path="ui/">
+          <IndexRoute
+            component={make(() => import('sentry/views/performance/mobile/ui'))}
+          />
+        </Route>
       </Route>
       <Route path="traces/">
         <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
@@ -1720,13 +1730,6 @@ function buildRoutes() {
           path="spans/"
           component={make(
             () => import('sentry/views/performance/mobile/appStarts/screenSummary')
-          )}
-        />
-      </Route>
-      <Route path="responsiveness/">
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/modules/mobile/responsiveness')
           )}
         />
       </Route>

@@ -18,7 +18,7 @@ class ProjectEventDetailsDocs(APIDocsTestCase):
             self.endpoint,
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )

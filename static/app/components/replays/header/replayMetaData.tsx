@@ -1,18 +1,16 @@
-import {Fragment, useEffect} from 'react';
-import {Link} from 'react-router';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
+import Link from 'sentry/components/links/link';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
+import ReplayViewers from 'sentry/components/replays/header/replayViewers';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useReplayViewedByData from 'sentry/utils/replays/hooks/useReplayViewedByData';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
@@ -28,16 +26,6 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
   const eventView = EventView.fromLocation(location);
-  const viewersResult = useReplayViewedByData({
-    projectSlug: replayRecord?.project_id,
-    replayId: replayRecord?.id,
-  });
-
-  useEffect(() => {
-    if (viewersResult.isError) {
-      Sentry.captureException(viewersResult.error);
-    }
-  });
 
   const breadcrumbTab = {
     ...location,
@@ -97,10 +85,10 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
       </KeyMetricData>
       <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
       <KeyMetricData>
-        {viewersResult.isLoading ? (
-          <HeaderPlaceholder width="55px" height="27px" />
+        {replayRecord ? (
+          <ReplayViewers projectId={replayRecord.project_id} replayId={replayRecord.id} />
         ) : (
-          <AvatarList avatarSize={25} users={viewersResult.data?.data.viewed_by} />
+          <HeaderPlaceholder width="55px" height="27px" />
         )}
       </KeyMetricData>
     </KeyMetrics>

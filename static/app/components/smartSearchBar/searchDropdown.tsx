@@ -42,6 +42,7 @@ type Props = {
   maxMenuHeight?: number;
   mergeItemsWith?: Record<string, SearchItem>;
   numericKeys?: Set<string>;
+  onDocsOpen?: () => void;
   onIconClick?: (value: string) => void;
   percentageKeys?: Set<string>;
   runShortcut?: (shortcut: Shortcut) => void;
@@ -69,6 +70,7 @@ function SearchDropdown({
   durationKeys,
   numericKeys,
   percentageKeys,
+  onDocsOpen,
   sizeKeys,
   textOperatorKeys,
   disallowedLogicalOperators,
@@ -152,6 +154,7 @@ function SearchDropdown({
           size="xs"
           href="https://docs.sentry.io/product/sentry-basics/search/"
           external
+          onClick={() => onDocsOpen?.()}
         >
           {t('Read the docs')}
         </Button>

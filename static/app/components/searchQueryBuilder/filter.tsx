@@ -1,17 +1,21 @@
-import {useMemo, useRef} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useFocusWithin} from '@react-aria/interactions';
+import {mergeProps} from '@react-aria/utils';
+import type {ListState} from '@react-stately/list';
+import type {Node} from '@react-types/shared';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {QueryBuilderFocusType} from 'sentry/components/searchQueryBuilder/types';
+import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
 import {
-  focusIsWithinToken,
   formatFilterValue,
   getValidOpsForFilter,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
+  type ParseResultToken,
   TermOperator,
   type Token,
   type TokenResult,
@@ -22,6 +26,12 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 type SearchQueryTokenProps = {
+  item: Node<ParseResultToken>;
+  state: ListState<ParseResultToken>;
+  token: TokenResult<Token.FILTER>;
+};
+
+type FilterPartProps = {
   token: TokenResult<Token.FILTER>;
 };
 
@@ -42,7 +52,7 @@ const getOpLabel = (token: TokenResult<Token.FILTER>) => {
   return OP_LABELS[token.operator] ?? token.operator;
 };
 
-function FilterOperator({token}: SearchQueryTokenProps) {
+function FilterOperator({token}: FilterPartProps) {
   const {dispatch} = useSearchQueryBuilder();
 
   const items: MenuItemProps[] = useMemo(() => {
@@ -62,104 +72,138 @@ function FilterOperator({token}: SearchQueryTokenProps) {
   return (
     <DropdownMenu
       trigger={triggerProps => (
-        <OpDiv
-          tabIndex={-1}
-          role="gridcell"
-          aria-label={t('Edit token operator')}
+        <OpButton
+          aria-label={t('Edit operator for filter: %s', token.key.text)}
           {...triggerProps}
         >
           <InteractionStateLayer />
           {getOpLabel(token)}
-        </OpDiv>
+        </OpButton>
       )}
       items={items}
     />
   );
 }
 
-function FilterKey({token}: SearchQueryTokenProps) {
-  const ref = useRef<HTMLDivElement>(null);
+function FilterKey({token}: FilterPartProps) {
   const label = token.key.text;
 
   // TODO(malwilley): Add edit functionality
 
   return (
-    <KeyDiv tabIndex={-1} role="gridcell" ref={ref} aria-label={t('Edit token key')}>
+    <KeyButton aria-label={t('Edit filter key: %s', label)} onClick={() => {}}>
       <InteractionStateLayer />
       {label}
-    </KeyDiv>
+    </KeyButton>
   );
 }
 
-function FilterValue({token}: SearchQueryTokenProps) {
-  const {focus, dispatch} = useSearchQueryBuilder();
-  const isFocused =
-    focus?.type === QueryBuilderFocusType.FILTER_VALUE &&
-    focusIsWithinToken(focus, token);
-  const isEditing = isFocused && focus.editing;
+function FilterValue({token, state, item}: SearchQueryTokenProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  if (!token.value.text && !isEditing) {
+    setIsEditing(true);
+  }
+
+  const {focusWithinProps} = useFocusWithin({
+    onBlurWithin: () => {
+      setIsEditing(false);
+    },
+  });
 
   if (isEditing) {
     return (
-      <ValueDiv>
-        <SearchQueryBuilderValueCombobox token={token} />
-      </ValueDiv>
+      <ValueEditing ref={ref} {...focusWithinProps}>
+        <SearchQueryBuilderValueCombobox
+          token={token}
+          onChange={() => {
+            setIsEditing(false);
+            if (state.collection.getKeyAfter(item.key)) {
+              state.selectionManager.setFocusedKey(
+                state.collection.getKeyAfter(item.key)
+              );
+            }
+          }}
+        />
+      </ValueEditing>
     );
   }
 
   return (
-    <ValueDiv
-      tabIndex={-1}
-      role="gridcell"
-      aria-label={t('Edit token value')}
-      onClick={() => dispatch({type: 'CLICK_TOKEN_VALUE', token})}
+    <ValueButton
+      aria-label={t('Edit value for filter: %s', token.key.text)}
+      onClick={() => setIsEditing(true)}
     >
       <InteractionStateLayer />
       {formatFilterValue(token)}
-    </ValueDiv>
+    </ValueButton>
   );
 }
 
-function FilterDelete({token}: SearchQueryTokenProps) {
+function FilterDelete({token}: FilterPartProps) {
   const {dispatch} = useSearchQueryBuilder();
 
-  // TODO(malwilley): Add edit functionality
-
   return (
-    <DeleteDiv
-      tabIndex={-1}
-      role="gridcell"
-      aria-label={t('Remove token')}
+    <DeleteButton
+      aria-label={t('Remove filter: %s', token.key.text)}
       onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
     >
       <InteractionStateLayer />
       <IconClose legacySize="8px" />
-    </DeleteDiv>
+    </DeleteButton>
   );
 }
 
-export function SearchQueryBuilderFilter({token}: SearchQueryTokenProps) {
+export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const isFocused = item.key === state.selectionManager.focusedKey;
+
+  const {dispatch} = useSearchQueryBuilder();
+  const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      e.stopPropagation();
+      dispatch({type: 'DELETE_TOKEN', token});
+    }
+  };
+
+  const modifiedRowProps = mergeProps(rowProps, {
+    tabIndex: isFocused ? 0 : -1,
+    onKeyDown,
+  });
+
   // TODO(malwilley): Add better error messaging
   const tokenHasError = 'invalid' in token && defined(token.invalid);
 
   return (
     <FilterWrapper
-      onClick={e => {
-        e.stopPropagation();
-      }}
       aria-label={token.text}
-      role="row"
-      tabIndex={-1}
       data-invalid={tokenHasError}
+      ref={ref}
+      {...modifiedRowProps}
     >
-      <FilterKey token={token} />
-      <FilterOperator token={token} />
-      <FilterValue token={token} />
-      <FilterDelete token={token} />
+      <BaseTokenPart {...gridCellProps}>
+        <FilterKey token={token} />
+      </BaseTokenPart>
+      <BaseTokenPart {...gridCellProps}>
+        <FilterOperator token={token} />
+      </BaseTokenPart>
+      <BaseTokenPart {...gridCellProps}>
+        <FilterValue token={token} state={state} item={item} />
+      </BaseTokenPart>
+      <BaseTokenPart {...gridCellProps}>
+        <FilterDelete token={token} />
+      </BaseTokenPart>
     </FilterWrapper>
   );
 }
 
-const FilterWrapper = styled('div')<{invalid?: boolean}>`
+const FilterWrapper = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto auto;
@@ -168,32 +212,42 @@ const FilterWrapper = styled('div')<{invalid?: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   height: 24px;
 
-  [data-invalid] {
-    border-color: ${p => p.theme.red300};
+  :focus {
+    background-color: ${p => p.theme.gray100};
+    outline: none;
   }
 `;
 
 const BaseTokenPart = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: stretch;
   position: relative;
-  user-select: none;
-  cursor: pointer;
 `;
 
-const KeyDiv = styled(BaseTokenPart)`
+const UnstyledButton = styled('button')`
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0;
+  user-select: none;
+
+  :focus {
+    outline: none;
+  }
+`;
+
+const KeyButton = styled(UnstyledButton)`
   padding: 0 ${space(0.5)} 0 ${space(0.75)};
   border-radius: 3px 0 0 3px;
   border-right: 1px solid transparent;
 
-  :focus,
   :focus-within {
     background-color: ${p => p.theme.translucentGray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
-const OpDiv = styled(BaseTokenPart)`
+const OpButton = styled(UnstyledButton)`
   padding: 0 ${space(0.5)};
   color: ${p => p.theme.subText};
   height: 100%;
@@ -207,13 +261,25 @@ const OpDiv = styled(BaseTokenPart)`
   }
 `;
 
-const ValueDiv = styled(BaseTokenPart)`
+const ValueButton = styled(UnstyledButton)`
   padding: 0 ${space(0.5)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
 
-  :focus,
+  :focus {
+    background-color: ${p => p.theme.purple100};
+    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.innerBorder};
+  }
+`;
+
+const ValueEditing = styled('div')`
+  padding: 0 ${space(0.5)};
+  color: ${p => p.theme.purple400};
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+
   :focus-within {
     background-color: ${p => p.theme.purple100};
     border-left: 1px solid ${p => p.theme.innerBorder};
@@ -221,13 +287,14 @@ const ValueDiv = styled(BaseTokenPart)`
   }
 `;
 
-const DeleteDiv = styled(BaseTokenPart)`
+const DeleteButton = styled(UnstyledButton)`
   padding: 0 ${space(0.75)} 0 ${space(0.5)};
   border-radius: 0 3px 3px 0;
   color: ${p => p.theme.subText};
-
   border-left: 1px solid transparent;
+
   :focus {
+    background-color: ${p => p.theme.translucentGray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
 `;

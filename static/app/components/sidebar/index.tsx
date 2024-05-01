@@ -250,7 +250,6 @@ function Sidebar() {
         // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
         if (
           organization.features.includes('spans-first-ui') ||
-          organization.features.includes('performance-http-view') ||
           organization.features.includes('performance-cache-view') ||
           organization.features.includes('performance-queues-view')
         ) {
@@ -278,7 +277,7 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="performance-http-view" organization={organization}>
+              <Feature features="spans-first-ui" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
                   label={
@@ -347,6 +346,19 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/mobile/app-startup/`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature
+                features={['spans-first-ui', 'starfish-mobile-ui-module']}
+                organization={organization}
+              >
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={t('Mobile UI')}
+                  to={`/organizations/${organization.slug}/performance/mobile/ui/`}
+                  id="performance-mobile-ui"
+                  icon={<SubitemDot collapsed />}
+                  isAlpha
                 />
               </Feature>
               <Feature features="spans-first-ui">

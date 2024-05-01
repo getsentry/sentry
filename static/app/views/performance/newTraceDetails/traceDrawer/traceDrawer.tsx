@@ -42,6 +42,7 @@ import {
   getTraceTabTitle,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {
   makeTraceNodeBarColor,
@@ -49,8 +50,6 @@ import {
   type TraceTreeNode,
 } from '../traceModels/traceTree';
 
-import {ButtonGroup} from './details/span/sections/table/index';
-import {TraceDrawerComponents} from './details/styles';
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
@@ -62,6 +61,7 @@ type TraceDrawerProps = {
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
+  traceType: TraceType;
   trace_dispatch: React.Dispatch<TraceReducerAction>;
   trace_state: TraceReducerState;
   traces: TraceSplitResults<TraceFullDetailed> | null;
@@ -134,6 +134,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.manager.initializePhysicalSpace(width, height);
         props.manager.draw();
       }
+
       minimized = minimized ?? traceStateRef.current.preferences.drawer.minimized;
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom' && user) {
@@ -172,9 +173,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
       }, 1000);
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
-        min = minimized ? 27 : drawerHeight;
+        min = minimized ? 27 : size;
       } else {
-        min = minimized ? 0 : drawerWidth;
+        min = minimized ? 0 : size;
       }
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
@@ -210,7 +211,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
           : width * initialSizeInPercentage;
 
       return {
-        min: props.trace_state.preferences.layout === 'drawer bottom' ? 27 : 300,
+        min: props.trace_state.preferences.layout === 'drawer bottom' ? 27 : 350,
         initialSize,
         ref: drawerRef,
       };
@@ -253,6 +254,23 @@ export function TraceDrawer(props: TraceDrawerProps) {
       onResize(0, 0, true, true);
       size.current = drawerOptions.min;
     } else {
+      if (drawerOptions.initialSize === 0) {
+        const userPreference =
+          traceStateRef.current.preferences.drawer.sizes[
+            traceStateRef.current.preferences.layout
+          ];
+
+        const {width, height} = props.traceGridRef?.getBoundingClientRect() ?? {
+          width: 0,
+          height: 0,
+        };
+        const containerSize =
+          traceStateRef.current.preferences.layout === 'drawer bottom' ? height : width;
+        const drawer_size = containerSize * userPreference;
+        onResize(drawer_size, drawerOptions.min, true, false);
+        size.current = userPreference;
+        return;
+      }
       onResize(drawerOptions.initialSize, drawerOptions.min, true, false);
       size.current = drawerOptions.initialSize;
     }
@@ -260,6 +278,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
     size,
     onResize,
     trace_dispatch,
+    props.traceGridRef,
     props.trace_state.preferences.drawer.minimized,
     organization,
     drawerOptions,
@@ -414,6 +433,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
             {props.trace_state.tabs.current_tab ? (
               props.trace_state.tabs.current_tab.node === 'trace' ? (
                 <TraceDetails
+                  traceType={props.traceType}
                   tree={props.trace}
                   node={props.trace.root.children[0]}
                   rootEventResults={props.rootEventResults}
@@ -777,39 +797,6 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
   td {
     max-width: 100% !important;
   }
-
-  ${p =>
-    p.layout !== 'drawer bottom' &&
-    `
-        table {
-          display: flex;
-        }
-
-        tbody {
-          flex: 1;
-        }
-
-        tr {
-          display: grid;
-        }
-
-        ${TraceDrawerComponents.TableValueRow}{
-          grid-template-columns: none;
-          grid-template-rows: min-content min-content;
-
-          pre {
-            padding-bottom: 0 !important;
-          }
-
-          ${TraceDrawerComponents.TableRowButtonContainer} {
-            padding-top: 0;
-
-           ${ButtonGroup} {
-              flex-direction: row;
-            }
-          }
-        }
-      `}
 `;
 
 const TabIconButton = styled(Button)<{active: boolean}>`

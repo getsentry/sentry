@@ -1,5 +1,6 @@
 import logging
 
+import pytest
 from django.conf import settings
 
 from sentry.issues.grouptype import (
@@ -23,6 +24,7 @@ class PriorityLevel:
     HIGH = 75
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillGroupPriority(TestMigrations):
     migrate_from = "0691_remove_project_team_avatar_model"
     migrate_to = "0692_backfill_group_priority_again"

@@ -13,9 +13,10 @@ RELATED_ISSUES_ALGORITHMS = {
 }
 
 
-def find_related_issues(group: Group) -> list[dict[str, list[int] | str]]:
-    related_issues: list[dict[str, list[int] | str]] = []
+def find_related_issues(group: Group) -> list[dict[str, str | list[int] | dict[str, str]]]:
+    related_issues: list[dict[str, str | list[int] | dict[str, str]]] = []
     for key, func in RELATED_ISSUES_ALGORITHMS.items():
-        related_issues.append({"type": key, "data": func(group)})
+        data, meta = func(group)
+        related_issues.append({"type": key, "data": data, "meta": meta})
 
     return related_issues

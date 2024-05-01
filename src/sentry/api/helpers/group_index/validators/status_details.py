@@ -21,7 +21,7 @@ class StatusDetailsValidator(serializers.Serializer):
         project = self.context["project"]
         if value == "latest":
             try:
-                value = (
+                return (
                     Release.objects.filter(
                         projects=project, organization_id=project.organization_id
                     )
@@ -34,19 +34,18 @@ class StatusDetailsValidator(serializers.Serializer):
                 )
         else:
             try:
-                value = Release.objects.get(
+                return Release.objects.get(
                     projects=project, organization_id=project.organization_id, version=value
                 )
             except Release.DoesNotExist:
                 raise serializers.ValidationError(
                     "Unable to find a release with the given version."
                 )
-        return value
 
     def validate_inNextRelease(self, value: bool) -> "Release":
         project = self.context["project"]
         try:
-            value = (
+            return (
                 Release.objects.filter(projects=project, organization_id=project.organization_id)
                 .extra(select={"sort": "COALESCE(date_released, date_added)"})
                 .order_by("-sort")[0]
@@ -55,4 +54,3 @@ class StatusDetailsValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 "No release data present in the system to form a basis for 'Next Release'"
             )
-        return value

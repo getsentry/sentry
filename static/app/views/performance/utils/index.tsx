@@ -13,6 +13,7 @@ import type {
   ReleaseProject,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import toArray from 'sentry/utils/array/toArray';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -20,7 +21,6 @@ import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

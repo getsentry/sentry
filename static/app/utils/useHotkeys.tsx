@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
-import toArray from 'sentry/utils/toArray';
+import toArray from 'sentry/utils/array/toArray';
 
 import {getKeyCode} from './getKeyCode';
 

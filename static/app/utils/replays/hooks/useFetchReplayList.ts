@@ -76,7 +76,7 @@ export default function useFetchReplayList({
   }, [options, organization.slug, queryReferrer]);
 
   const {data, ...result} = useApiQuery<{data: any[]}>(fixedQueryKey, {
-    staleTime: Infinity,
+    staleTime: 0,
     enabled: true,
   });
 

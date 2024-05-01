@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
-from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -234,24 +233,18 @@ class ProjectTest(APITestCase, TestCase):
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = Rule.objects.create(
-            label="another test rule", project=project, owner=team.actor, owner_team=team
-        )
+        rule1 = Rule.objects.create(label="another test rule", project=project, owner_team=team)
         rule2 = Rule.objects.create(
             label="rule4",
             project=project,
-            owner=get_actor_for_user(from_user),
             owner_user_id=from_user.id,
         )
 
         # should keep their owners
-        rule3 = Rule.objects.create(
-            label="rule2", project=project, owner=to_team.actor, owner_team=to_team
-        )
+        rule3 = Rule.objects.create(label="rule2", project=project, owner_team=to_team)
         rule4 = Rule.objects.create(
             label="rule3",
             project=project,
-            owner=get_actor_for_user(to_user),
             owner_user_id=to_user.id,
         )
 
@@ -273,12 +266,10 @@ class ProjectTest(APITestCase, TestCase):
         assert EnvironmentProject.objects.count() == 1
         assert snuba_query.environment != environment
         assert alert_rule.organization_id == to_org.id
-        assert alert_rule.owner is None
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
 
         for rule in (rule1, rule2):
-            assert rule.owner is None
             assert rule.owner_user_id is None
             assert rule.owner_team_id is None
 
@@ -387,17 +378,17 @@ class ProjectTest(APITestCase, TestCase):
 
         rule = Rule.objects.create(project=self.project, label="issa rule", owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
-            organization=self.organization, owner=Actor.objects.get(team_id=team.id)
+            organization=self.organization, owner=ActorTuple.from_id(user_id=None, team_id=team.id)
         )
         self.project.remove_team(team)
 
         rule.refresh_from_db()
         assert rule.owner_team_id is None
-        assert rule.owner_id is None
+        assert rule.owner_user_id is None
 
         alert_rule.refresh_from_db()
         assert alert_rule.team_id is None
-        assert alert_rule.owner_id is None
+        assert alert_rule.user_id is None
 
 
 class CopyProjectSettingsTest(TestCase):
