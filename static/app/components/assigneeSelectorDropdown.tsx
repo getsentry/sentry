@@ -41,7 +41,7 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
 
 export type OnAssignCallback = (
   type: Actor['type'],
-  assignee: User | AssignableTeam,
+  assignee: User | Actor,
   suggestedAssignee?: SuggestedAssignee
 ) => Promise<void>;
 
@@ -59,7 +59,7 @@ type AssignableTeam = {
 };
 
 type AssignableEntity = {
-  assignee: User | AssignableTeam;
+  assignee: User | Actor;
   id: string;
   type: Actor['type'];
 };
@@ -332,17 +332,26 @@ function AssigneeSelectorDropdown({
       return;
     }
 
-    let assignee: User | AssignableTeam;
+    let assignee: User | Actor;
 
     if (type === 'user') {
       assignee = currentMemberList()?.find(member => member.id === assigneeId) as User;
     } else {
-      assignee = getAssignableTeams().find(
+      const assignedTeam = getAssignableTeams().find(
         assignableTeam => assignableTeam.team.id === assigneeId
       ) as AssignableTeam;
+      assignee = {
+        id: assignedTeam.id,
+        name: assignedTeam.team.slug,
+        type: 'team',
+      };
     }
 
-    handleAssigneeChange({assignee: assignee, id: assigneeId, type: type});
+    handleAssigneeChange({
+      assignee: assignee,
+      id: assigneeId,
+      type: type,
+    } as AssignableEntity);
   };
 
   const makeMemberOption = (
