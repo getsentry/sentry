@@ -491,6 +491,9 @@ from .endpoints.project_app_store_connect_credentials import (
 )
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
+from .endpoints.project_autofix_codebase_index_status import (
+    ProjectAutofixCodebaseIndexStatusEndpoint,
+)
 from .endpoints.project_autofix_create_codebase_index import (
     ProjectAutofixCreateCodebaseIndexEndpoint,
 )
@@ -2754,6 +2757,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction/(?P<transaction_id>[^\/]+)/$",
         ProjectTransactionDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-transaction-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/status/$",
+        ProjectAutofixCodebaseIndexStatusEndpoint.as_view(),
+        name="sentry-api-0-project-autofix-codebase-index-status",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/create/$",

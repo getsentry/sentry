@@ -442,6 +442,14 @@ class Referrer(Enum):
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
     API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
 
+    # Performance Mobile UI Module
+    API_PERFORMANCE_MOBILE_UI_BAR_CHART = "api.performance.mobile.ui.bar-chart"
+    API_PERFORMANCE_MOBILE_UI_EVENT_SAMPLES = "api.performance.mobile.ui.event-samples"
+    API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON = "api.performance.mobile.ui.metrics-ribbon"
+    API_PERFORMANCE_MOBILE_UI_SCREEN_TABLE = "api.performance.mobile.ui.screen-table"
+    API_PERFORMANCE_MOBILE_UI_SERIES = "api.performance.mobile.ui.series"
+    API_PERFORMANCE_MOBILE_UI_SPAN_TABLE = "api.performance.mobile.ui.span-table"
+
     # Performance Requests Module
     API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"
     API_PERFORMANCE_HTTP_LANDING_DURATION_CHART = "api.performance.http.landing-duration-chart"

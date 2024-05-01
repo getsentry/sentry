@@ -1,7 +1,8 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import useUrlParams from './useUrlParams';
 

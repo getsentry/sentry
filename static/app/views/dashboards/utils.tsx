@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {connect} from 'echarts';
 import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -26,6 +25,7 @@ import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilte
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import type {MRI, Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';

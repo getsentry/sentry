@@ -2363,11 +2363,6 @@
   "sentry.grouphistory": {
     "dangling": false,
     "foreign_keys": {
-      "actor": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
       "group": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.group",

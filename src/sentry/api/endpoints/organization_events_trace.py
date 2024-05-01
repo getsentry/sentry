@@ -481,7 +481,7 @@ def create_transaction_params(
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
     if not query_metadata:
-        return transaction_params
+        return params
 
     metadata_query = QueryBuilder(
         Dataset.Discover,
@@ -515,7 +515,7 @@ def create_transaction_params(
 
     # Do not modify the params if anything comes back empty
     if len(project_id_set) == 0 or min_timestamp is None or max_timestamp is None:
-        return
+        return params
 
     project_ids = list(project_id_set)
     # Reusing this option for now

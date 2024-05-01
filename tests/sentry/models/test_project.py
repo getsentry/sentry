@@ -495,9 +495,7 @@ class FilterToSubscribedUsersTest(TestCase):
             organization_id=self.project.organization.id,
         )
         actual_recipients = recipients[ExternalProviders.EMAIL]
-        expected_recipients = {
-            RpcActor.from_orm_user(user, fetch_actor=False) for user in expected_users
-        }
+        expected_recipients = {RpcActor.from_object(user) for user in expected_users}
         assert actual_recipients == expected_recipients
 
     def test(self):
