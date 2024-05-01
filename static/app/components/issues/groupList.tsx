@@ -52,7 +52,7 @@ export type GroupListColumn =
 type Props = WithRouterProps & {
   api: Client;
   orgSlug: string;
-  queryParams: Record<string, number | string | string[]>;
+  queryParams: Record<string, number | string | string[] | undefined | null>;
   customStatsPeriod?: TimePeriodType;
   // It defaults to `/organizations/${orgSlug}/issues/`
   endpointPath?: string;
