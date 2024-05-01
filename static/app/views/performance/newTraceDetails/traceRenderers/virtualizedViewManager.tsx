@@ -708,6 +708,23 @@ export class VirtualizedViewManager {
     }
   }
 
+  maybeInitializeTraceViewFromQS(fov: string): void {
+    const [x, width] = fov.split(',').map(parseFloat);
+
+    if (isNaN(x) || isNaN(width)) {
+      return;
+    }
+
+    if (width <= 0 || width > this.trace_space.width) {
+      return;
+    }
+
+    if (x < 0 || x > this.trace_space.width) {
+      return;
+    }
+    this.setTraceView({x, width});
+  }
+
   setTraceView(view: {width?: number; x?: number}) {
     // In cases where a trace might have a single error, there is no concept of a timeline
     if (this.trace_view.width === 0) {
