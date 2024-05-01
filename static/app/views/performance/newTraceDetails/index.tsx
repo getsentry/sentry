@@ -326,13 +326,6 @@ function TraceViewContent(props: TraceViewContentProps) {
 
     const newTabs = [TRACE_TAB];
 
-    if (tree.profiled_events.size > 0) {
-      newTabs.push({
-        node: 'profiles',
-        label: 'Profiles',
-      });
-    }
-
     if (tree.vitals.size > 0) {
       const types = Array.from(tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
@@ -340,6 +333,13 @@ function TraceViewContent(props: TraceViewContentProps) {
       newTabs.push({
         ...VITALS_TAB,
         label,
+      });
+    }
+
+    if (tree.profiled_events.size > 0) {
+      newTabs.push({
+        node: 'profiles',
+        label: 'Profiles',
       });
     }
 
@@ -633,6 +633,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
+      const query = qs.parse(location.search);
+
+      if (query.fov && typeof query.fov === 'string') {
+        viewManager.maybeInitializeTraceViewFromQS(query.fov);
+      }
+
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
 
