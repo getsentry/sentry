@@ -51,10 +51,11 @@ export type GroupListColumn =
 
 type Props = WithRouterProps & {
   api: Client;
-  endpointPath: string;
   orgSlug: string;
-  query: string;
+  queryParams: Record<string, number | string | string[]>;
   customStatsPeriod?: TimePeriodType;
+  // It defaults to `/organizations/${orgSlug}/issues/`
+  endpointPath?: string;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -64,8 +65,9 @@ type Props = WithRouterProps & {
       pageDiff: number
     ) => void
   ) => void;
+  // Prefer queryParams over this prop.
+  query?: string;
   queryFilterDescription?: string;
-  queryParams?: Record<string, number | string | string[] | undefined | null>;
   renderEmptyMessage?: () => React.ReactNode;
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
@@ -101,7 +103,6 @@ class GroupList extends Component<Props, State> {
     return (
       !isEqual(this.state, nextState) ||
       nextProps.endpointPath !== this.props.endpointPath ||
-      nextProps.query !== this.props.query ||
       !isEqual(nextProps.queryParams, this.props.queryParams)
     );
   }
@@ -112,7 +113,6 @@ class GroupList extends Component<Props, State> {
     if (
       prevProps.orgSlug !== this.props.orgSlug ||
       prevProps.endpointPath !== this.props.endpointPath ||
-      prevProps.query !== this.props.query ||
       !isEqual(
         omit(prevProps.queryParams, ignoredQueryParams),
         omit(this.props.queryParams, ignoredQueryParams)
@@ -142,7 +142,7 @@ class GroupList extends Component<Props, State> {
 
     const endpoint = this.getGroupListEndpoint();
 
-    const parsedQuery = parseSearch((queryParams ?? this.getQueryParams()).query);
+    const parsedQuery = parseSearch(queryParams.query as string);
     const hasLogicBoolean = parsedQuery
       ? treeResultLocator<boolean>({
           tree: parsedQuery,
@@ -190,20 +190,8 @@ class GroupList extends Component<Props, State> {
   getGroupListEndpoint() {
     const {orgSlug, endpointPath, queryParams} = this.props;
     const path = endpointPath ?? `/organizations/${orgSlug}/issues/`;
-    const queryParameters = queryParams ?? this.getQueryParams();
 
-    return `${path}?${qs.stringify(queryParameters)}`;
-  }
-
-  getQueryParams() {
-    const {location, query} = this.props;
-
-    const queryParams = location.query;
-    queryParams.limit = 50;
-    queryParams.sort = 'new';
-    queryParams.query = query;
-
-    return queryParams;
+    return `${path}?${qs.stringify(queryParams)}`;
   }
 
   handleCursorChange(

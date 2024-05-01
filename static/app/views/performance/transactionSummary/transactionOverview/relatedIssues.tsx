@@ -113,7 +113,6 @@ class RelatedIssues extends Component<Props> {
             orgSlug={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
-            query=""
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}
             withChart={false}

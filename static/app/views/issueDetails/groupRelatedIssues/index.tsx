@@ -95,11 +95,10 @@ function GroupRelatedIssues({params}: Props) {
                 <Title>{t('Issues caused by the same root cause')}</Title>
                 {sameRootCauseIssues.length > 0 ? (
                   <GroupList
-                    endpointPath={`/organizations/${orgSlug}/issues/`}
                     orgSlug={orgSlug}
                     queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
-                    query=""
                     source="related-issues-tab"
+                    canSelectGroups={false}
                   />
                 ) : (
                   <small>{t('No same-root-cause related issues were found.')}</small>
@@ -120,11 +119,10 @@ function GroupRelatedIssues({params}: Props) {
                       </Link>
                     </small>
                     <GroupList
-                      endpointPath={`/organizations/${orgSlug}/issues/`}
                       orgSlug={orgSlug}
                       queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
-                      query=""
                       source="related-issues-tab"
+                      canSelectGroups={false}
                     />
                   </div>
                 ) : (

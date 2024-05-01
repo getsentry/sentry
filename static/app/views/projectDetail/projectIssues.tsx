@@ -278,9 +278,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 
       <GroupList
         orgSlug={organization.slug}
-        endpointPath={endpointPath}
         queryParams={queryParams}
-        query=""
         canSelectGroups={false}
         renderEmptyMessage={renderEmptyMessage}
         withChart={false}
