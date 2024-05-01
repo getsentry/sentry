@@ -26,6 +26,7 @@ const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 type Row = Pick<
   MetricsResponse,
   | 'project'
+  | 'project.id'
   | 'transaction'
   | 'spm()'
   | 'cache_miss_rate()'

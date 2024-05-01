@@ -23,6 +23,7 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 type Row = Pick<
   MetricsResponse,
   | 'project'
+  | 'project.id'
   | 'span.domain'
   | 'spm()'
   | 'http_response_rate(3)'

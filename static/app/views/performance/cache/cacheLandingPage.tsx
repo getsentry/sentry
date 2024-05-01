@@ -77,6 +77,7 @@ export function CacheLandingPage() {
     search: MutableSearch.fromQueryObject(BASE_FILTERS),
     fields: [
       'project',
+      'project.id',
       'transaction',
       'spm()',
       `${CACHE_MISS_RATE}()`,
