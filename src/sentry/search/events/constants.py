@@ -356,11 +356,6 @@ METRIC_DURATION_COLUMNS = {
     for key, value in METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
 }
-SPAN_METRIC_GAUGE_DURATION_COLUMNS = {
-    key
-    for key, value in SPAN_METRICS_MAP.items()
-    if value.endswith("@millisecond") and value.startswith("g:")
-}
 SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
