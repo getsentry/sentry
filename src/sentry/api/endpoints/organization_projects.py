@@ -119,7 +119,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
                 elif key == "id":
-                    queryset = queryset.filter(id__in=value)
+                    if all(isinstance(v, int) for v in value):
+                        queryset = queryset.filter(id__in=value)
+                    else:
+                        raise ValueError("All 'id' values must be integers.")
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "team":
