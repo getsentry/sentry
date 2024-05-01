@@ -89,7 +89,7 @@ SAMPLED_TASKS = {
 }
 
 PROFILES_SAMPLING_RATE = {
-    "spans.process.process_message": options.get("standalone-spans.profile-process-messages.enable")
+    "spans.process.process_message": options.get("standalone-spans.profile-process-messages.rate")
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
