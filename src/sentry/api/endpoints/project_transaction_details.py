@@ -10,10 +10,8 @@ from snuba_sdk import Column, Condition, Function, Op
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.utils import handle_query_errors
-from sentry.constants import ObjectStatus
-from sentry.models.project import Project
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.builder.spans_metrics import SpansMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -24,26 +22,13 @@ VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
 
 @region_silo_endpoint
-class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
+class ProjectTransactionDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.PERFORMANCE
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization, project_slug, transaction_id):
-        try:
-            project = Project.objects.get(
-                slug=project_slug, organization_id=organization.id, status=ObjectStatus.ACTIVE
-            )
-        except Project.DoesNotExist:
-            return Response(status=404)
-
-        # Check access to the project as this endpoint doesn't use membership checks done
-        # get_filter_params().
-        if not request.access.has_project_access(project):
-            return Response(status=404)
-
-        # Get a list of all spans with this transaction_id
+    def get(self, request: Request, project, transaction_id):
         given_start_str = request.GET.get("start_timestamp", "")
         given_end_str = request.GET.get("end_timestamp", "")
         try:
@@ -53,7 +38,7 @@ class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
             return Response({"detail": "missing start_timestamp or end_timestamp"}, status=400)
 
         spans_data = _query_all_spans_in_transaction(
-            organization, project, transaction_id, start, end
+            project.organization, project, transaction_id, start, end
         )
         if len(spans_data) == 0:
             return Response(status=404)
@@ -163,7 +148,7 @@ class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
                 # missing from indexed spans dataset
             },
             "version": 5,
-            "projectSlug": project_slug,
+            "projectSlug": project.slug,
         }
 
         average_columns = request.GET.getlist("averageColumn", [])
@@ -171,7 +156,7 @@ class OrganizationTransactionDetailsEndpoint(OrganizationEndpoint):
             all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
             and len(average_columns) > 0
         ):
-            _add_comparison_to_event(data, organization.id, project, average_columns)
+            _add_comparison_to_event(data, project.organization.id, project, average_columns)
 
         return Response(data)
 
@@ -214,7 +199,7 @@ def _query_all_spans_in_transaction(organization, project, transaction_id, start
             "measurements.key",
             "measurements.value",
         ],
-        orderby=["precise.start_ts", "id"],
+        orderby=["-is_segment", "precise.start_ts", "id"],
         limit=10000,
     )
     # These columns are incorrectly translated by the query builder - add
