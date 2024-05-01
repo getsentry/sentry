@@ -1,13 +1,16 @@
 import logging
 from collections import defaultdict
-from collections.abc import MutableMapping
-from typing import Any, DefaultDict, NamedTuple
+from typing import DefaultDict, NamedTuple
 
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules import rules
-from sentry.rules.conditions.event_frequency import BaseEventFrequencyCondition, ComparisonType
+from sentry.rules.conditions.event_frequency import (
+    BaseEventFrequencyCondition,
+    ComparisonType,
+    EventFrequencyConditionData,
+)
 from sentry.rules.processing.processor import is_condition_slow, split_conditions_and_filters
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -30,24 +33,24 @@ class UniqueCondition(NamedTuple):
 
 
 class DataAndGroups(NamedTuple):
-    data: MutableMapping[str, Any] | None
+    data: EventFrequencyConditionData | None
     group_ids: set[int]
 
     def __repr__(self):
         return f"data: {self.data}\ngroup_ids: {self.group_ids}"
 
 
-def get_slow_conditions(rule: Rule) -> list[MutableMapping[str, str]]:
+def get_slow_conditions(rule: Rule) -> list[EventFrequencyConditionData]:
     """
     Returns the slow conditions of a rule model instance.
     """
     conditions_and_filters = rule.data.get("conditions", ())
     conditions, _ = split_conditions_and_filters(conditions_and_filters)
-    slow_conditions: list[MutableMapping[str, str]] = [
-        cond for cond in conditions if is_condition_slow(cond)
-    ]
+    slow_conditions = [cond for cond in conditions if is_condition_slow(cond)]
 
-    return slow_conditions
+    # MyPy refuses to make TypedDict compatible with MutableMapping
+    # https://github.com/python/mypy/issues/4976
+    return slow_conditions  # type: ignore[return-value]
 
 
 def get_rules_to_groups(rulegroup_to_events: dict[str, str]) -> DefaultDict[int, set[int]]:
@@ -61,8 +64,10 @@ def get_rules_to_groups(rulegroup_to_events: dict[str, str]) -> DefaultDict[int,
 
 def get_rule_to_slow_conditions(
     alert_rules: list[Rule],
-) -> DefaultDict[Rule, list[MutableMapping[str, str]]]:
-    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str]]] = defaultdict(list)
+) -> DefaultDict[Rule, list[EventFrequencyConditionData]]:
+    rule_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]] = defaultdict(
+        list
+    )
     for rule in alert_rules:
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
@@ -113,7 +118,9 @@ def get_condition_group_results(
             logger.warning("Unregistered condition %r", unique_condition.cls_id)
             return None
 
-        condition_inst = condition_cls(project=project, data=condition_data)
+        # MyPy refuses to make TypedDict compatible with MutableMapping
+        # https://github.com/python/mypy/issues/4976
+        condition_inst = condition_cls(project=project, data=condition_data)  # type: ignore[arg-type]
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
             logger.warning("Unregistered condition %r", condition_cls.id)
             return None
@@ -139,7 +146,7 @@ def get_condition_group_results(
 
 def get_rules_to_fire(
     condition_group_results: dict[UniqueCondition, dict[int, int]],
-    rule_to_slow_conditions: DefaultDict[Rule, list[MutableMapping[str, str]]],
+    rule_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]],
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)

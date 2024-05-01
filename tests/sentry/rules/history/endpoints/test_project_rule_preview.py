@@ -128,7 +128,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             frequency=10,
         )
 
-        for (group, reason) in group_reason:
+        for group, reason in group_reason:
             assert any([int(g["id"]) == group.id for g in resp.data])
 
             for preview_group in resp.data:

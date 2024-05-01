@@ -145,7 +145,7 @@ def get_issue_state_activity(
         if condition_cls is None:
             raise PreviewException
         # instantiates a EventCondition subclass and retrieves activities related to it
-        condition_inst = condition_cls(project, data=condition)
+        condition_inst = condition_cls(project=project, data=condition)
         try:
             activities = condition_inst.get_activity(start, end, CONDITION_ACTIVITY_LIMIT)
             for activity in activities:
@@ -403,7 +403,9 @@ def apply_frequency_conditions(
         condition_cls = rules.get(condition_data["id"])
         if condition_cls is None:
             raise PreviewException
-        condition_types[condition_data["id"]].append(condition_cls(project, data=condition_data))
+        condition_types[condition_data["id"]].append(
+            condition_cls(project=project, data=condition_data)
+        )
 
     filtered_activity = defaultdict(list)
     if condition_match == "all":

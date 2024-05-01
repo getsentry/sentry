@@ -22,7 +22,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
 
         def info_extractor(rule_cls):
             context = {"id": rule_cls.id, "label": rule_cls.label}
-            node = rule_cls(None)
+            node = rule_cls(project=None)
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields
 
