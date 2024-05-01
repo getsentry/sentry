@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import itertools
+import os
 import random
 import time
+import uuid
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
@@ -19,9 +21,14 @@ from django.utils import timezone as django_timezone
 from sentry import buffer, roles, tsdb
 from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentType
+from sentry.ingest.consumer.processors import (
+    process_attachment_chunk,
+    process_individual_attachment,
+)
 from sentry.models.activity import Activity
 from sentry.models.broadcast import Broadcast
 from sentry.models.commit import Commit
@@ -1238,6 +1245,79 @@ def create_mock_transactions(
         generate_performance_issues()
 
 
+def create_mock_attachment(event_id, project):
+    attachment_id = str(uuid.uuid4())
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+    attachment_path = os.path.join(file_dir, "../../static/sentry/images/favicon.png")
+    with open(attachment_path, "rb") as f:
+        payload = f.read()
+
+    attachment_chunk = {
+        "type": "attachment_chunk",
+        "payload": payload,
+        "event_id": event_id,
+        "project_id": project.id,
+        "id": attachment_id,
+        "chunk_index": 0,
+    }
+    attachment_event = {
+        "type": "attachment",
+        "event_id": event_id,
+        "project_id": project.id,
+        "attachment": {
+            "id": attachment_id,
+            "name": "screenshot.png",
+            "content_type": "application/png",
+            "attachment_type": "event.attachment",
+            "chunks": 1,
+            "size": len(payload),
+            "rate_limited": False,
+        },
+    }
+
+    process_attachment_chunk(attachment_chunk)
+    process_individual_attachment(attachment_event, project)
+
+
+def create_mock_user_feedback(project, has_attachment=True):
+    event = {
+        "project_id": project.id,
+        "request": {
+            "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+            },
+        },
+        "event_id": str(uuid.uuid4()).replace("-", ""),
+        "timestamp": time.time(),
+        "received": "2024-4-27T22:23:29.574000+00:00",
+        "environment": "prod",
+        "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+        "user": {
+            "ip_address": "72.164.175.154",
+            "email": "josh.ferge@sentry.io",
+            "id": 880461,
+            "isStaff": False,
+            "name": "Josh Ferge",
+        },
+        "contexts": {
+            "feedback": {
+                "contact_email": "josh.ferge@sentry.io",
+                "name": "Josh Ferge",
+                "message": " test test   ",
+                "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            },
+        },
+        "breadcrumbs": [],
+        "platform": "javascript",
+    }
+    create_feedback_issue(event, project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    if has_attachment:
+        create_mock_attachment(event["event_id"], project)
+
+
 def main(
     skip_default_setup=False,
     num_events=1,
@@ -1291,5 +1371,6 @@ def main(
 
             mocks_loaded.send(project=project, sender=__name__)
 
+    create_mock_user_feedback(project_map["Wind"])
     create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
     create_system_time_series()
