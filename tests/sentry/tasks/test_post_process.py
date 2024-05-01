@@ -1311,8 +1311,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee is None
         assert len(GroupOwner.objects.filter(group_id=event.group)) == 0
 
-    @patch("sentry.tasks.post_process.logger")
-    def test_debounces_handle_owner_assignments(self, logger):
+    @patch("sentry.utils.metrics.incr")
+    def test_debounces_handle_owner_assignments(self, mock_incr):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1329,16 +1329,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        logger.info.assert_any_call(
-            "handle_owner_assignment.issue_owners_exist",
-            extra={
-                "event": event.event_id,
-                "group": event.group_id,
-                "project": event.project_id,
-                "organization": event.project.organization_id,
-                "reason": "issue_owners_exist",
-            },
-        )
+        mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
     @patch("sentry.tasks.post_process.logger")
     def test_issue_owners_should_ratelimit(self, mock_logger):
