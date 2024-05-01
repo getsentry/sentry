@@ -1,8 +1,6 @@
 import * as React from 'react';
 import {findDOMNode} from 'react-dom';
 import {createRoot} from 'react-dom/client';
-// eslint-disable-next-line no-restricted-imports
-import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
 
@@ -14,7 +12,6 @@ const globals = {
   React,
   Sentry,
   moment,
-  Router: ReactRouter,
   ReactDOM: {findDOMNode, createRoot},
 
   // django templates make use of these globals
