@@ -136,7 +136,7 @@ function BaseGroupRow({
     };
   }, [organization, group.id, group.owners, query]);
 
-  const trackAssign: React.ComponentProps<typeof AssigneeSelectorDropdown>['onAssign'] =
+  const updateGroup: React.ComponentProps<typeof AssigneeSelectorDropdown>['onAssign'] =
     useCallback(
       async (type, assignee, suggestedAssignee) => {
         await GroupStore.onAssignToSuccess(group.id, assignee.id, suggestedAssignee);
@@ -471,7 +471,7 @@ function BaseGroupRow({
               <AssigneeSelectorDropdown
                 group={group}
                 memberList={memberList}
-                onAssign={trackAssign}
+                onAssign={updateGroup}
               />
             </AssigneeWrapper>
           )}
