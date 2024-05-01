@@ -118,7 +118,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
                 reverse(
                     "sentry-metric-alert",
                     kwargs={
-                        "organization_id_or_slug": incident.organization.slug,
+                        "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,
                     },
                 )
