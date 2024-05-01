@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
@@ -10,6 +9,7 @@ import type {
 } from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
