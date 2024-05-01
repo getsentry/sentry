@@ -155,21 +155,15 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.self_time",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS.union(
-                                    constants.SPAN_METRIC_BYTES_COLUMNS
-                                ),
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                                | constants.SPAN_METRIC_BYTES_COLUMNS
+                                | constants.SPAN_METRIC_GAUGE_DURATION_COLUMNS,
                             ),
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "avgIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_gauge=self._resolve_avg,
+                    snql_distribution=self._resolve_avg,
                     is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
@@ -1087,6 +1081,16 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     self.builder.resolve_tag_value(args["op"]),
                 ],
             ),
+            alias,
+        )
+
+    def _resolve_avg(self, args, alias):
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
             alias,
         )
 

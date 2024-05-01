@@ -322,6 +322,8 @@ DEFAULT_METRIC_TAGS = {
     "transaction.op",
     "transaction.status",
     "span.op",
+    "trace.status",
+    "messaging.destination.name",
 }
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
@@ -335,6 +337,7 @@ SPAN_METRICS_MAP = {
     "mobile.frozen_frames": "g:spans/mobile.frozen_frames@none",
     "mobile.total_frames": "g:spans/mobile.total_frames@none",
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
+    "messaging.message.receive.latency": "g:spans/messaging.message.receive.latency@millisecond",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
@@ -352,6 +355,11 @@ METRIC_DURATION_COLUMNS = {
     key
     for key, value in METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
+}
+SPAN_METRIC_GAUGE_DURATION_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
+    if value.endswith("@millisecond") and value.startswith("g:")
 }
 SPAN_METRIC_DURATION_COLUMNS = {
     key
