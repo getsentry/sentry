@@ -221,7 +221,9 @@ class _ClientConfig:
             "organizations:multi-region-selector", actor=self.user
         ):
             yield "organizations:multi-region-selector"
-        if options.get("frontend.react-concurrent-renderer-enabled"):
+        if options.get("frontend.react-concurrent-renderer-enabled") or features.has(
+            "organizations:react-concurrent-renderer-enabled", actor=self.user
+        ):
             yield "organizations:react-concurrent-renderer-enabled"
 
     @property
