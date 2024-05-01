@@ -34,12 +34,7 @@ type Row = Pick<
 >;
 
 type Column = GridColumnHeader<
-  | 'transaction'
-  | 'spm()'
-  | 'cache_miss_rate()'
-  | 'time_spent_percentage()'
-  | 'project.id'
-  | 'project'
+  'transaction' | 'spm()' | 'cache_miss_rate()' | 'time_spent_percentage()' | 'project'
 >;
 
 const COLUMN_ORDER: Column[] = [
