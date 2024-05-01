@@ -16,7 +16,7 @@ from typing import Any, TextIO
 
 import click
 
-GCLOUD = "gcloud"
+GCLOUD_BIN = "gcloud"
 POLLING_INTERVAL = 30
 TIMEOUT = 12000
 
@@ -135,7 +135,7 @@ def _sync_gcloud_workstation_cmd(
     """
 
     cmd = [
-        GCLOUD,
+        GCLOUD_BIN,
     ]
     cmd.extend(args)
     if scope is not None:
@@ -225,7 +225,7 @@ def _check_gcloud_setup(project: str) -> GCPAccount:
     `$PATH`. Returns the email of the account currently logged into `gcloud`.
     """
 
-    if shutil.which(GCLOUD) is None:
+    if shutil.which(GCLOUD_BIN) is None:
         raise WorkstationsException(ERR_BIN_NOT_FOUND)
 
     try:
@@ -351,9 +351,12 @@ def workstations() -> None:
     permissions from the OSPO team to spin up a workstation. Please reach out to us on
     #discuss-self-hosted - we'd be happy to get you set up! :)
 
-    This command is primarily intended for Sentry employees working on self-hosted. The
-    `workstations` command requires that the `gcloud` command line utility be installed and visible
-    from its `$PATH`.
+    This command is primarily intended for Sentry employees working on self-hosted. To learn more
+    about how to set this up, check out
+    https://github.com/getsentry/self-hosted/blob/master/workstation/README.md.
+
+    The `workstations` command requires that the `gcloud` command line utility at version >=464.0 be
+    installed and visible from its `$PATH`.
 
     The tool requires two configuration values: a `project` specifying the GCP project that owns the
     desired workstation(s), and a `config` that provisions them with it. These can be set in the
@@ -534,7 +537,7 @@ def _connect(name: str, conf: WorkstationConfig, started_at: datetime | None = N
     localhost_port = _get_open_port()
     subprocess.Popen(
         [
-            GCLOUD,
+            GCLOUD_BIN,
             "workstations",
             "start-tcp-tunnel",
             name,
