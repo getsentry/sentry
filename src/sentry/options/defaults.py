@@ -498,13 +498,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# React concurrent renderer
-register(
-    "frontend.react-concurrent-renderer-enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)

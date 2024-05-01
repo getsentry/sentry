@@ -221,8 +221,6 @@ class _ClientConfig:
             "organizations:multi-region-selector", actor=self.user
         ):
             yield "organizations:multi-region-selector"
-        if options.get("frontend.react-concurrent-renderer-enabled"):
-            yield "organizations:react-concurrent-renderer-enabled"
 
     @property
     def needs_upgrade(self) -> bool:
