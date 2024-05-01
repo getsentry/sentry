@@ -70,6 +70,8 @@ DELETED_FIELDS: dict[
     "sentry.rule": {"owner"},
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
     "sentry.alertrule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.grouphistory": {"actor"},
 }
 
 # The maximum number of models that may be sent at a time.
