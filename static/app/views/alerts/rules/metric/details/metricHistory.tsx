@@ -9,7 +9,7 @@ import type {ActivationTriggerActivity, AlertRuleActivation} from 'sentry/types/
 import {ActivationTrigger} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
 import MetricAlertActivity from 'sentry/views/alerts/rules/metric/details/metricActivity';
-import MetricHistoryActivation from 'sentry/views/alerts/rules/metric/details/MetricHistoryActivation';
+import MetricHistoryActivation from 'sentry/views/alerts/rules/metric/details/metricHistoryActivation';
 import type {Incident} from 'sentry/views/alerts/types';
 
 const COLLAPSE_COUNT = 3;
