@@ -97,7 +97,7 @@ def test_caching_function_none_value():
     cache.clear()
 
     @back_with_silo_cache(
-        base_key="my-test-key", silo_mode=SiloMode.CONTROL, t=RpcOrganizationSummary
+        base_key="my-test-key", silo_mode=SiloMode.CONTROL, t=RpcOrganizationSummary, timeout=900
     )
     def get_org(org_id: int) -> RpcOrganizationSummary | None:
         return organization_service.get_org_by_id(id=org_id)
