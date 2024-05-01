@@ -26,6 +26,7 @@ from sentry.backup.dependencies import (
 from sentry.backup.findings import InstanceID
 from sentry.backup.helpers import EXCLUDED_APPS, DatetimeSafeDjangoJSONEncoder, Filter, ImportFlags
 from sentry.backup.scopes import ExportScope
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
@@ -170,25 +171,25 @@ class UniversalImportExportService(ImportExportService):
         }
 
         try:
+            # It's possible that this write has already occurred, and we are simply retrying
+            # because the response got lost in transit. If so, just re-use that reply. We do
+            # this in the transaction because, while `import_by_model` is generally called in a
+            # sequential manner, cases like timeouts or long queues may cause a previous call to
+            # still be active when the next one is made. We'll check once here for an existing
+            # copy of this (uniquely identifiable) import chunk here to short circuit and avoid
+            # doing frivolous work. However, this doesn't fully solve our data race error, as it
+            # is possible that another runaway process makes the colliding write while we're
+            # building our transaction. Thus, we'll check `get_existing_import_chunk()` again if
+            # we catch an `IntegrityError` below.
+            existing_import_chunk = get_existing_import_chunk(
+                batch_model_name, import_flags, import_chunk_type, min_ordinal
+            )
+            if existing_import_chunk is not None:
+                logger.info("import_by_model.already_imported", extra=extra)
+                return existing_import_chunk
+
             using = router.db_for_write(model)
             with transaction.atomic(using=using):
-                # It's possible that this write has already occurred, and we are simply retrying
-                # because the response got lost in transit. If so, just re-use that reply. We do
-                # this in the transaction because, while `import_by_model` is generally called in a
-                # sequential manner, cases like timeouts or long queues may cause a previous call to
-                # still be active when the next one is made. We'll check once here for an existing
-                # copy of this (uniquely identifiable) import chunk here to short circuit and avoid
-                # doing frivolous work. However, this doesn't fully solve our data race error, as it
-                # is possible that another runaway process makes the colliding write while we're
-                # building our transaction. Thus, we'll check `get_existing_import_chunk()` again if
-                # we catch an `IntegrityError` below.
-                existing_import_chunk = get_existing_import_chunk(
-                    batch_model_name, import_flags, import_chunk_type, min_ordinal
-                )
-                if existing_import_chunk is not None:
-                    logger.info("import_by_model.already_imported", extra=extra)
-                    return existing_import_chunk
-
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0
@@ -329,7 +330,9 @@ class UniversalImportExportService(ImportExportService):
                 if import_chunk_type == ControlImportChunk:
                     ControlImportChunk(**import_chunk_args).save()
                 else:
-                    RegionImportChunk(**import_chunk_args).save()
+                    # XXX: Monitors and Files are stored in non-default connections in saas.
+                    with in_test_hide_transaction_boundary():
+                        RegionImportChunk(**import_chunk_args).save()
 
                 logger.info("import_by_model.successfully_imported", extra=extra)
                 return RpcImportOk(
