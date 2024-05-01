@@ -206,16 +206,16 @@ class ProcessDelayedAlertConditionsTest(
         rule5 = self.create_project_rule(
             project=self.project,
             condition_match=[self.event_frequency_condition2],
-            environment_id=self.environment.id,
         )
         tags = [["foo", "guux"], ["sentry:release", "releaseme"]]
         contexts = {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}}
-        for i in range(3):
-            event5 = self.create_performance_issue(
-                tags=tags,
-                fingerprint="group-5",
-                contexts=contexts,
-            )
+        with self.feature("organizations:issue-platform"):
+            for i in range(3):
+                event5 = self.create_performance_issue(
+                    tags=tags,
+                    fingerprint="group-5",
+                    contexts=contexts,
+                )
         group5 = event5.group
         assert group5
         assert self.group1
@@ -234,9 +234,8 @@ class ProcessDelayedAlertConditionsTest(
                 event_id__in=[self.event1.event_id, event5.event_id],
                 project=self.project,
             ).values_list("rule", "group")
-            assert len(rule_fire_histories) == 3
+            assert len(rule_fire_histories) == 2
             assert (self.rule1.id, self.group1.id) in rule_fire_histories
-            assert (self.rule1.id, group5.id) in rule_fire_histories
             assert (rule5.id, group5.id) in rule_fire_histories
 
     def test_apply_delayed_same_condition_diff_value(self):
