@@ -10,7 +10,6 @@ from sentry.models.group import Group
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -187,16 +186,6 @@ class GroupSnoozeTest(
         assert generic_group is not None
         snooze = GroupSnooze.objects.create(group=generic_group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
-
-
-@apply_feature_flag_on_cls("organizations:groupsnooze-cached-counts")
-@apply_feature_flag_on_cls("organizations:groupsnooze-cached-rates")
-class GroupSnoozeWCacheTest(GroupSnoozeTest):
-    """
-    Test the cached version of the snooze.
-    Runs all the test defined in GroupSnoozeTest with the cached version of the snooze.
-    Plus the tests defined below.
-    """
 
     def test_test_user_rates_w_cache(self):
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
