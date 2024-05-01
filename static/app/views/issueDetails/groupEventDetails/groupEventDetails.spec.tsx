@@ -1,5 +1,4 @@
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
@@ -21,6 +20,7 @@ import type {Event, Group} from 'sentry/types';
 import {EntryType, IssueCategory, IssueType} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 import type {GroupEventDetailsProps} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';

@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
-import {browserHistory} from 'react-router';
+
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 function useUrlParams(
   defaultKey: string,

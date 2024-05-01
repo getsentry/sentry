@@ -1,6 +1,5 @@
-import {browserHistory} from 'react-router';
-
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {Option} from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';

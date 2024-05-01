@@ -20,7 +20,6 @@ type InitializeOrgProps = {
     features?: string[];
   };
 };
-import {browserHistory} from 'react-router';
 import {duration} from 'moment';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayListFixture} from 'sentry-fixture/replayList';
@@ -28,6 +27,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 

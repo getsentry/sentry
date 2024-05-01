@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
-import {browserHistory} from 'react-router';
 import type {Query} from 'history';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 
 function useFiltersInLocationQuery<Q extends Query>() {

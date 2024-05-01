@@ -1,12 +1,12 @@
 import type {CSSProperties} from 'react';
 import {useCallback} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FEEDBACK_FIELDS,

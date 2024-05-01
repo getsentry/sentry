@@ -1,7 +1,6 @@
-import {browserHistory} from 'react-router';
-
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';

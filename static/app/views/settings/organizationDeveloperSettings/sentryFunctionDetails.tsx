@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import Editor from '@monaco-editor/react';
 
 import {
@@ -18,6 +17,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization, SentryFunction} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
