@@ -10,7 +10,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 
@@ -22,7 +22,7 @@ class CommitFileChangeManager(BaseManager["CommitFileChange"]):
         return int(self.filter(commit__in=commits).values("filename").distinct().count())
 
 
-@region_silo_only_model
+@region_silo_model
 class CommitFileChange(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

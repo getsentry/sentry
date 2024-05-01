@@ -6,7 +6,7 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, region_silo_only_model
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.models.outbox import OutboxCategory
@@ -17,7 +17,7 @@ from sentry.types.integrations import ExternalProviders
 logger = logging.getLogger(__name__)
 
 
-@region_silo_only_model
+@region_silo_model
 class ExternalActor(ReplicatedRegionModel):
     __relocation_scope__ = RelocationScope.Excluded
 

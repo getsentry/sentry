@@ -11,7 +11,7 @@ from django.forms import model_to_dict
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import Model, region_silo_only_model
+from sentry.db.models import Model, region_silo_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
@@ -84,7 +84,7 @@ def actor_type_to_string(type: int) -> str | None:
     return None
 
 
-@region_silo_only_model
+@region_silo_model
 class Actor(Model):
     __relocation_scope__ = RelocationScope.Organization
 

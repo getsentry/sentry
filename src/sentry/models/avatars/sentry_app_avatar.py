@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, control_silo_only_model
+from sentry.db.models import FlexibleForeignKey, control_silo_model
 from sentry.db.models.manager import BaseManager
 
 from . import ControlAvatarBase
@@ -36,7 +36,7 @@ class SentryAppAvatarManager(BaseManager["SentryAppAvatar"]):
         return avatar_to_app_map
 
 
-@control_silo_only_model
+@control_silo_model
 class SentryAppAvatar(ControlAvatarBase):
     """
     A SentryAppAvatar associates a SentryApp with a logo photo File

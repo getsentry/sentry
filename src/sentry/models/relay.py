@@ -5,10 +5,10 @@ from sentry_relay.auth import PublicKey
 
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model
+from sentry.db.models import Model, region_silo_model
 
 
-@region_silo_only_model
+@region_silo_model
 class RelayUsage(OverwritableConfigMixin, Model):
     __relocation_scope__ = RelocationScope.Config
     __relocation_custom_ordinal__ = ["relay_id", "version"]
@@ -25,7 +25,7 @@ class RelayUsage(OverwritableConfigMixin, Model):
         db_table = "sentry_relayusage"
 
 
-@region_silo_only_model
+@region_silo_model
 class Relay(OverwritableConfigMixin, Model):
     __relocation_scope__ = RelocationScope.Config
     __relocation_custom_ordinal__ = ["relay_id"]

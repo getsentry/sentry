@@ -24,7 +24,7 @@ from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     OptionManager,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentryOrgSlugField
@@ -142,7 +142,7 @@ class OrganizationManager(BaseManager["Organization"]):
         return owner_role_orgs
 
 
-@region_silo_only_model
+@region_silo_model
 class Organization(
     ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin
 ):

@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from bitfield import typed_dict_bitfield
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import ArrayField, FlexibleForeignKey, Model, control_silo_only_model
+from sentry.db.models import ArrayField, FlexibleForeignKey, Model, control_silo_model
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 
@@ -20,7 +20,7 @@ def generate_code():
     return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
 
 
-@control_silo_only_model
+@control_silo_model
 class ApiGrant(Model):
     """
     A grant represents a token with a short lifetime that can

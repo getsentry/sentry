@@ -2,13 +2,13 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.models.release_threshold.constants import TriggerType as ReleaseThresholdTriggerType
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseThreshold(Model):
     """
     NOTE:

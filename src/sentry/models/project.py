@@ -29,7 +29,7 @@ from sentry.db.models import (
     Model,
     OptionManager,
     Value,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
@@ -214,7 +214,7 @@ class ProjectManager(BaseManager["Project"]):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-@region_silo_only_model
+@region_silo_model
 class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 

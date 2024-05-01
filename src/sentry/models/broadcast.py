@@ -4,14 +4,14 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 
 
 def default_expiration():
     return timezone.now() + timedelta(days=7)
 
 
-@control_silo_only_model
+@control_silo_model
 class Broadcast(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -31,7 +31,7 @@ class Broadcast(Model):
     __repr__ = sane_repr("message")
 
 
-@control_silo_only_model
+@control_silo_model
 class BroadcastSeen(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

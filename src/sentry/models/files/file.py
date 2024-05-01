@@ -1,14 +1,14 @@
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey
-from sentry.db.models.base import region_silo_only_model
+from sentry.db.models.base import region_silo_model
 from sentry.models.files.abstractfile import AbstractFile
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.tasks.files import delete_unreferenced_blobs_region
 
 
-@region_silo_only_model
+@region_silo_model
 class File(AbstractFile):
 
     blobs = models.ManyToManyField("sentry.FileBlob", through="sentry.FileBlobIndex")

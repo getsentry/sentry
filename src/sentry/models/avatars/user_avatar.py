@@ -6,7 +6,7 @@ from typing import Any, ClassVar, Self
 
 from django.db import models, router, transaction
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model
+from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_model
 
 from ...types.region import find_regions_for_user
 from ..outbox import ControlOutboxBase, OutboxCategory
@@ -30,7 +30,7 @@ class UserAvatarType(IntEnum):
         )
 
 
-@control_silo_only_model
+@control_silo_model
 class UserAvatar(ControlAvatarBase):
     """
     A UserAvatar associates a User with their avatar photo File

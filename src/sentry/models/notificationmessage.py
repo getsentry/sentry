@@ -8,12 +8,12 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 
 
-@region_silo_only_model
+@region_silo_model
 class NotificationMessage(Model):
     """
     Data model represents the aggregate for an entire notification message.

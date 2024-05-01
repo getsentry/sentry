@@ -9,13 +9,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
@@ -243,7 +237,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             self.remove_old_assignees(group, previous_groupassignee)
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupAssignee(Model):
     """
     Identifies an assignment relationship between a user/team and an

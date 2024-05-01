@@ -30,7 +30,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.models.files.file import File
@@ -121,7 +121,7 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
         return rv
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectDebugFile(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -356,7 +356,7 @@ def _analyze_progard_filename(filename: str) -> str | None:
         return None
 
 
-@region_silo_only_model
+@region_silo_model
 class ProguardArtifactRelease(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

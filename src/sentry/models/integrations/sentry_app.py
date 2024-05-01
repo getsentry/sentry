@@ -22,7 +22,7 @@ from sentry.db.models import (
     Model,
     ParanoidManager,
     ParanoidModel,
-    control_silo_only_model,
+    control_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -101,7 +101,7 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
         return self.filter(status=SentryAppStatus.PUBLISHED)
 
 
-@control_silo_only_model
+@control_silo_model
 class SentryApp(ParanoidModel, HasApiScopes, Model):
     __relocation_scope__ = RelocationScope.Global
 

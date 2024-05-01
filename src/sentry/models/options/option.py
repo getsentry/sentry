@@ -13,8 +13,8 @@ from sentry.db.models import (
     OptionManager,
     ValidateFunction,
     Value,
-    control_silo_only_model,
-    region_silo_only_model,
+    control_silo_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.picklefield import PickledObjectField
@@ -61,7 +61,7 @@ class BaseOption(OverwritableConfigMixin, Model):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class Option(BaseOption):
     __relocation_scope__ = RelocationScope.Config
 
@@ -72,7 +72,7 @@ class Option(BaseOption):
     __repr__ = sane_repr("key", "value")
 
 
-@control_silo_only_model
+@control_silo_model
 class ControlOption(BaseOption):
     __relocation_scope__ = RelocationScope.Config
 

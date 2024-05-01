@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.models.files.utils import get_size_and_checksum, get_storage
 
@@ -48,7 +48,7 @@ class PutfileResult:
     blob_path: str | None = None
 
 
-@region_silo_only_model
+@region_silo_model
 class EventAttachment(Model):
     """Attachment Metadata and Storage
 

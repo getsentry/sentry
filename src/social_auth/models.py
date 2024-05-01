@@ -7,7 +7,7 @@ from django.apps import apps
 from django.conf import settings
 from django.db import models
 
-from sentry.db.models import control_silo_only_model
+from sentry.db.models import control_silo_model
 
 from .fields import JSONField
 from .utils import setting
@@ -22,7 +22,7 @@ ASSOCIATION_HANDLE_LENGTH = setting("SOCIAL_AUTH_ASSOCIATION_HANDLE_LENGTH", 255
 CLEAN_USERNAME_REGEX = re.compile(r"[^\w.@+-_]+", re.UNICODE)
 
 
-@control_silo_only_model
+@control_silo_model
 class UserSocialAuth(models.Model):
     """Social Auth association model"""
 

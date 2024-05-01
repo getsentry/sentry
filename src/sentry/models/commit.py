@@ -14,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils.groupreference import find_referenced_groups
@@ -32,7 +32,7 @@ class CommitManager(BaseManager["Commit"]):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class Commit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

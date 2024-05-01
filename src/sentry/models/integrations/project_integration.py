@@ -1,10 +1,10 @@
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectIntegration(Model):
     """
     TODO(epurkhiser): This is deprecated and will be removed soon. Do not use

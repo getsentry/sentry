@@ -1,5 +1,5 @@
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_only_model
+from sentry.db.models import region_silo_model
 
 """
 sentry.models.deploy
@@ -21,7 +21,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.retries import TimedRetryPolicy
 
 
-@region_silo_only_model
+@region_silo_model
 class Deploy(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

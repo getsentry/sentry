@@ -13,7 +13,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -31,7 +31,7 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 )
 
 
-@control_silo_only_model
+@control_silo_model
 class AuthProviderDefaultTeams(Model):
     # Completely defunct model.
     __relocation_scope__ = RelocationScope.Excluded
@@ -45,7 +45,7 @@ class AuthProviderDefaultTeams(Model):
         unique_together = ()
 
 
-@control_silo_only_model
+@control_silo_model
 class AuthProvider(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.AUTH_PROVIDER_UPDATE

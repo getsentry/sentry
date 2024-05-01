@@ -8,7 +8,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
     get_model_if_available,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.features.rollout import in_random_rollout
@@ -16,7 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 
 
-@region_silo_only_model
+@region_silo_model
 class Counter(Model):
     __relocation_scope__ = RelocationScope.Organization
 

@@ -8,18 +8,14 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    control_silo_only_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.outbox import OutboxCategory
 
 
-@control_silo_only_model
+@control_silo_model
 class OrganizationIntegration(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE

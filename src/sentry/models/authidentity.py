@@ -5,14 +5,14 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.outbox import OutboxCategory
 from sentry.types.region import find_regions_for_orgs
 
 
-@control_silo_only_model
+@control_silo_model
 class AuthIdentity(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.AUTH_IDENTITY_UPDATE
