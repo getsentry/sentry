@@ -19,6 +19,12 @@ export enum AutofixStepType {
   CHANGES = 'changes',
 }
 
+export enum AutofixCodebaseIndexingStatus {
+  UP_TO_DATE = 'up_to_date',
+  INDEXING = 'indexing',
+  NOT_INDEXED = 'not_indexed',
+}
+
 export type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
@@ -150,3 +156,9 @@ export type DiffLine = {
   target_line_no: number | null;
   value: string;
 };
+
+export interface AutofixRepoDefinition {
+  name: string;
+  owner: string;
+  provider: string;
+}
