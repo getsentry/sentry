@@ -90,3 +90,62 @@ export function insertImplicitAND(
 
   return with_implicit_and;
 }
+
+function processTokenResults(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+  const flattened = toFlattened(tokens);
+  const withImplicitAnd = insertImplicitAND(flattened);
+
+  return withImplicitAnd;
+}
+
+// https://en.wikipedia.org/wiki/Shunting_yard_algorithm
+export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+  const processed = processTokenResults(tokens);
+
+  const result: ProcessedTokenResult[] = [];
+  // Operator stack
+  const stack: ProcessedTokenResult[] = [];
+
+  for (const token of processed) {
+    switch (token.type) {
+      // @TODO Jonas: AND precedence has to be higher than or.
+      case Token.LOGIC_BOOLEAN: {
+        while (stack.length > 0) {
+          const top = stack[stack.length - 1];
+          if (top.type === Token.LOGIC_BOOLEAN) {
+            result.push(stack.pop() as ProcessedTokenResult);
+          } else {
+            break;
+          }
+        }
+        stack.push(token);
+        break;
+      }
+      case 'L_PAREN':
+        stack.push(token);
+        break;
+      case 'R_PAREN': {
+        while (stack.length > 0) {
+          const top = stack[stack.length - 1];
+          if (top.type === 'L_PAREN') {
+            stack.pop();
+            break;
+          }
+          result.push(stack.pop() as ProcessedTokenResult);
+        }
+        break;
+      }
+      default: {
+        result.push(token);
+        break;
+      }
+    }
+  }
+
+  // Push the remained of the operators to the output
+  while (stack.length > 0) {
+    result.push(stack.pop() as ProcessedTokenResult);
+  }
+
+  return result;
+}

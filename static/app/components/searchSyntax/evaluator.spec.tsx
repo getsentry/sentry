@@ -2,6 +2,7 @@ import {
   insertImplicitAND,
   type ProcessedTokenResult,
   toFlattened,
+  toPostFix,
 } from 'sentry/components/searchSyntax/evaluator';
 import {
   parseSearch,
@@ -194,6 +195,33 @@ describe('Search Syntax Evaluator', () => {
         expect(tokensToString(withImplicitAND)).toBe(
           'is:unresolved AND ( duration:>1h OR ( duration:<1h AND duration:1m ) )'
         );
+      });
+    });
+  });
+
+  describe('postfix', () => {
+    it('simple operator', () => {
+      const tokens = toPostFix(parseSearch('is:unresolved is:resolved')!);
+      expect(tokensToString(tokens)).toBe('is:unresolved is:resolved AND');
+    });
+
+    describe('logical groups', () => {
+      it('parens', () => {
+        const tokens = toPostFix(parseSearch('is:unresolved (is:resolved OR is:dead)')!);
+        expect(tokensToString(tokens)).toBe('is:unresolved is:resolved is:dead OR AND');
+      });
+
+      it('or', () => {
+        const tokens = toPostFix(
+          parseSearch('is:unresolved OR (is:resolved AND is:dead)')!
+        );
+        expect(tokensToString(tokens)).toBe('is:unresolved is:resolved is:dead AND OR');
+      });
+      it('and', () => {
+        const tokens = toPostFix(
+          parseSearch('is:unresolved AND (is:resolved AND is:dead)')!
+        );
+        expect(tokensToString(tokens)).toBe('is:unresolved is:resolved is:dead AND AND');
       });
     });
   });
