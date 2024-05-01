@@ -1,89 +1,26 @@
-import {Fragment} from 'react';
+import {Fragment, type ReactElement} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  ActivationConditionType,
-  ActivationTrigger,
-  type ActivationTriggerActivity,
-} from 'sentry/types/alerts';
+import {ActivationConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {StyledDateTime} from 'sentry/views/alerts/rules/metric/details/styles';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
 import type {ActivityType, Incident} from 'sentry/views/alerts/types';
 import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-
-type MetricAlertActivationProps = {
-  activationActivity: ActivationTriggerActivity;
-  organization: Organization;
-};
-
-export function MetricAlertActivation({
-  activationActivity,
-  organization,
-}: MetricAlertActivationProps) {
-  let trigger;
-  let activator;
-  switch (activationActivity.conditionType) {
-    case String(ActivationConditionType.RELEASE_CREATION):
-      activator = (
-        <GlobalSelectionLink
-          to={{
-            pathname: `/organizations/${
-              organization.slug
-            }/releases/${encodeURIComponent(activationActivity.activator)}/`,
-          }}
-        >
-          {activationActivity.activator}
-        </GlobalSelectionLink>
-      );
-      trigger = <span>Release {activator} created.</span>;
-      break;
-    case String(ActivationConditionType.DEPLOY_CREATION):
-      activator = activationActivity.activator;
-      trigger = `Deploy ${activator} created.`;
-      break;
-    default:
-      trigger = '--';
-  }
-
-  return (
-    <Fragment>
-      <div />
-      <div>
-        {trigger}{' '}
-        {activationActivity.type === ActivationTrigger.ACTIVATED
-          ? 'Start monitoring.'
-          : 'Finish monitoring.'}
-      </div>
-      <div />
-      <div>
-        <StyledDateTime
-          date={getDynamicText({
-            value: activationActivity.dateCreated,
-            fixed: 'Mar 4, 2022 10:44:13 AM UTC',
-          })}
-          year
-          seconds
-          timeZone
-        />
-      </div>
-    </Fragment>
-  );
-}
 
 type MetricAlertActivityProps = {
   incident: Incident;
@@ -124,7 +61,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
 
   const project = incident.alertRule.projects[0];
   const activation = incident.activation;
-  let activationBlock = <div />;
+  let activationBlock: ReactElement | null = null;
   if (activation) {
     let condition;
     let activator;
@@ -225,10 +162,6 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
 }
 
 export default MetricAlertActivity;
-
-const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray300};
-`;
 
 const Cell = styled('div')`
   display: flex;

@@ -8,9 +8,8 @@ import {space} from 'sentry/styles/space';
 import type {ActivationTriggerActivity, AlertRuleActivation} from 'sentry/types/alerts';
 import {ActivationTrigger} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
-import MetricAlertActivity, {
-  MetricAlertActivation,
-} from 'sentry/views/alerts/rules/metric/details/metricActivity';
+import MetricAlertActivity from 'sentry/views/alerts/rules/metric/details/metricActivity';
+import MetricHistoryActivation from 'sentry/views/alerts/rules/metric/details/MetricHistoryActivation';
 import type {Incident} from 'sentry/views/alerts/types';
 
 const COLLAPSE_COUNT = 3;
@@ -70,7 +69,7 @@ function MetricHistory({incidents, activations}: Props) {
               }
               if ('activator' in item) {
                 return (
-                  <MetricAlertActivation
+                  <MetricHistoryActivation
                     key={`${item.type}-${item.activator}`}
                     activationActivity={item}
                     organization={organization}
