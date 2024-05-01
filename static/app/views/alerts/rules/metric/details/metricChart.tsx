@@ -1,6 +1,5 @@
 import {Fragment, PureComponent} from 'react';
 import type {WithRouterProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -41,6 +40,7 @@ import {space} from 'sentry/styles/space';
 import type {DateString, Organization, Project} from 'sentry/types';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import toArray from 'sentry/utils/array/toArray';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
