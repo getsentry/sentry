@@ -61,6 +61,13 @@ class FeedbackCreationSource(Enum):
 def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
+    if feedback.get("associated_event_id"):
+        evidence_data["associated_event_id"] = feedback["associated_event_id"]
+        evidence_display.append(
+            IssueEvidence(
+                name="associated_event_id", value=feedback["associated_event_id"], important=False
+            )
+        )
     if feedback.get("contact_email"):
         evidence_data["contact_email"] = feedback["contact_email"]
         evidence_display.append(
@@ -173,7 +180,7 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     return False
 
 
-def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
     metrics.incr("feedback.create_feedback_issue.entered")
 
     if should_filter_feedback(event, project_id, source):
