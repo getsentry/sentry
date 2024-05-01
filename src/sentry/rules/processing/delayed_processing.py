@@ -1,9 +1,9 @@
 import logging
 import uuid
 from collections import defaultdict
-from typing import DefaultDict, NamedTuple
-from collections.abc import MutableMapping
 from datetime import timedelta
+from typing import DefaultDict, NamedTuple
+
 from django.utils import timezone
 
 from sentry import eventstore
@@ -15,7 +15,11 @@ from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules import history, rules
-from sentry.rules.conditions.event_frequency import BaseEventFrequencyCondition, ComparisonType, EventFrequencyConditionData
+from sentry.rules.conditions.event_frequency import (
+    BaseEventFrequencyCondition,
+    ComparisonType,
+    EventFrequencyConditionData,
+)
 from sentry.rules.processing.processor import (
     activate_downstream_actions,
     bulk_get_rule_status,
@@ -188,7 +192,7 @@ def get_rules_to_fire(
 
 
 def get_group_to_groupevent(
-    rulegroup_to_events: dict[str, str], project: Project, group_ids: set[int]
+    rulegroup_to_events: dict[str, str], project_id: int, group_ids: set[int]
 ) -> dict[Group, GroupEvent]:
     group_to_groupevent: dict[Group, GroupEvent] = {}
     groups = Group.objects.filter(id__in=group_ids)
@@ -204,17 +208,17 @@ def get_group_to_groupevent(
             if group:
                 event = Event(
                     event_id=event_id,
-                    project_id=project.id,
+                    project_id=project_id,
                     snuba_data={
                         "event_id": event_id,
                         "group_id": group.id,
-                        "project_id": project.id,
+                        "project_id": project_id,
                     },
                 )
                 eventstore.backend.bind_nodes([event])
                 group_event = event.for_group(group)
                 if occurrence_id:
-                    occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project.id)
+                    occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project_id)
                     if occurrence:
                         group_event.occurrence_id = occurrence.id
 
@@ -270,12 +274,12 @@ def apply_delayed(project_id: int) -> None:
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
-    # Step 7: Ready, aim, fire!!
+    # Step 7: Fire the rule's actions
     now = timezone.now()
     for rule, group_ids in rules_to_fire.items():
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         freq_offset = now - timedelta(minutes=frequency)
-        group_to_groupevent = get_group_to_groupevent(rulegroup_to_events, project, group_ids)
+        group_to_groupevent = get_group_to_groupevent(rulegroup_to_events, project.id, group_ids)
         for group, groupevent in group_to_groupevent.items():
             rule_statuses = bulk_get_rule_status(alert_rules, group, project)
             status = rule_statuses[rule.id]
