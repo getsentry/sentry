@@ -109,6 +109,7 @@ export function HTTPLandingPage() {
     search: MutableSearch.fromQueryObject(tableFilters),
     fields: [
       'project',
+      'project.id'
       'span.domain',
       'spm()',
       'http_response_rate(3)',
