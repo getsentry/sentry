@@ -679,6 +679,7 @@ describe('VirtualizedViewManger', () => {
               span: '',
               level: 'error',
               title: 'ded fo good',
+              message: 'ded fo good',
               timestamp: 1,
             },
           ],

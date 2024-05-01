@@ -15,7 +15,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupSnooze(Model):
     """
     A snooze marks an issue as ignored until a condition is hit.
@@ -277,7 +277,7 @@ class GroupSnooze(Model):
 
         threshold = self.user_count + users_seen
 
-        CACHE_TTL = 300  # Redis TTL in seconds
+        CACHE_TTL = 3600  # Redis TTL in seconds
 
         value: int | float = float("inf")  # using +inf as a sentinel value
         try:

@@ -21,7 +21,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -192,7 +192,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         return []
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleExcludedProjects(Model):
     """
     Excludes a specific project from an AlertRule
@@ -212,7 +212,7 @@ class AlertRuleExcludedProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleProjects(Model):
     """
     Specify a project for the AlertRule
@@ -235,7 +235,7 @@ class AlertRuleMonitorType(Enum):
     ACTIVATED = 1
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -382,7 +382,7 @@ class AlertRuleThresholdType(Enum):
     BELOW = 1
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleTrigger(Model):
     """
     This model represents the threshold trigger for an AlertRule
@@ -411,7 +411,7 @@ class AlertRuleTrigger(Model):
         unique_together = (("alert_rule", "label"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleTriggerExclusion(Model):
     """
     Allows us to define a specific trigger to be excluded from a query subscription
@@ -438,7 +438,7 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
         return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
     This model represents an action that occurs when a trigger is fired. This is
@@ -564,7 +564,7 @@ class AlertRuleActivityType(Enum):
     DEACTIVATED = 8
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleActivity(Model):
     """
     Provides an audit log of activity for the alert rule

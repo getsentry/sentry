@@ -8,10 +8,10 @@ from django.utils.translation import gettext_lazy as _
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import CIEmailField, Model, control_silo_only_model, sane_repr
+from sentry.db.models import CIEmailField, Model, control_silo_model, sane_repr
 
 
-@control_silo_only_model
+@control_silo_model
 class Email(Model):
     """
     Email represents a unique email. Email settings (unsubscribe state) should be associated here.

@@ -18,7 +18,7 @@ from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
@@ -160,7 +160,7 @@ class TeamStatus:
     DELETION_IN_PROGRESS = 2
 
 
-@region_silo_only_model
+@region_silo_model
 class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     """
     A team represents a group of individuals which maintain ownership of projects.
