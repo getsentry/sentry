@@ -19,7 +19,7 @@ class BoundedIntegerField(models.IntegerField):
     def get_prep_value(self, value: int) -> int:
         if isinstance(value, str) and value.isdigit():
             value = int(value)
-        elif value == '' or value is None:
+        elif value == "" or value is None:
             return None
         if isinstance(value, int):
             assert value <= self.MAX_VALUE
@@ -34,7 +34,7 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
     def get_prep_value(self, value: int) -> int:
         if isinstance(value, str) and value.isdigit():
             value = int(value)
-        elif value == '' or value is None:
+        elif value == "" or value is None:
             return None
         if isinstance(value, int):
             assert value <= self.MAX_VALUE
