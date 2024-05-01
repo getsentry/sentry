@@ -436,8 +436,11 @@ function NodeActions(props: {
       },
     };
 
-    const eventId = props.node.metadata.event_id;
-    const projectSlug = props.node.metadata.project_slug;
+    const eventId =
+      props.node.metadata.event_id ?? props.node.parent_transaction?.metadata.event_id;
+    const projectSlug =
+      props.node.metadata.project_slug ??
+      props.node.parent_transaction?.metadata.project_slug;
     const query = {...qs.parse(location.search), legacy: 1};
 
     const eventDetailsLink = {
