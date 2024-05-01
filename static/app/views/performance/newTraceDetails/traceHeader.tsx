@@ -97,7 +97,12 @@ export function TraceHeader({
     metaResults.isLoading;
 
   const uniqueErrorIssues = useMemo(() => {
+    if (!traceNode) {
+      return [];
+    }
+
     const unique: TraceErrorOrIssue[] = [];
+
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.errors) {
@@ -112,6 +117,10 @@ export function TraceHeader({
   }, [traceNode]);
 
   const uniquePerformanceIssues = useMemo(() => {
+    if (!traceNode) {
+      return [];
+    }
+
     const unique: TraceErrorOrIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
