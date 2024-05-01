@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -15,6 +14,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
