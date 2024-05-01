@@ -22,7 +22,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         <IntegationBannerTitle>{t('Connect with Git Providers')}</IntegationBannerTitle>
         <IntegationBannerDescription>
           {t(
-            'Install Git providers (GitHub, Gitlab…) to enable features like code mapping and stack trace linking.'
+            'Install Git providers (GitHub, GitLab…) to enable features like code mapping and stack trace linking.'
           )}
         </IntegationBannerDescription>
         <LinkButton
