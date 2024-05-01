@@ -241,7 +241,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             reverse(
                 "sentry-metric-alert",
                 kwargs={
-                    "organization_id_or_slug": incident.organization.slug,
+                    "organization_slug": incident.organization.slug,
                     "incident_id": incident.identifier,
                 },
             ),
@@ -291,7 +291,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         path = reverse(
             "sentry-metric-alert",
             kwargs={
-                "organization_id_or_slug": self.organization.slug,
+                "organization_slug": self.organization.slug,
                 "incident_id": incident.identifier,
             },
         )
