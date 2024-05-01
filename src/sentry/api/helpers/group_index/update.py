@@ -18,7 +18,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
@@ -847,7 +847,7 @@ def handle_assigned_to(
     group_list: list[Group],
     project_lookup: dict[int, Project],
     acting_user: User | None,
-) -> Any | None:
+) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.
 
