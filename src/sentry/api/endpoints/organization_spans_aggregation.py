@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Function
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -345,13 +345,13 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        force_nodestore = request.query_params.get("forceNodestore") == "true"
+        enable_indexed_spans = options.get("indexed-spans.agg-span-waterfall.enable")
 
         start = params["start"]
-        if start and start < CUTOVER_DATE or force_nodestore:
-            backend = "nodestore"
-        else:
+        if start and start >= CUTOVER_DATE and enable_indexed_spans:
             backend = "indexedSpans"
+        else:
+            backend = "nodestore"
 
         transaction = request.query_params.get("transaction", None)
         http_method = request.query_params.get("http.method", None)

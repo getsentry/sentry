@@ -8,8 +8,10 @@ from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.endpoints.organization_spans_aggregation import NULL_GROUP
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
+from src.sentry.testutils.pytest.fixtures import django_db_all
 
 MOCK_SNUBA_RESPONSE = {
     "data": [
@@ -163,7 +165,6 @@ MOCK_SNUBA_RESPONSE = {
 }
 
 
-@freeze_time("2024-03-26T00:00:00.000Z")
 class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
@@ -182,6 +183,7 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
             kwargs={"organization_slug": self.project.organization.slug},
         )
 
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_simple(self, mock_query):
         mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
@@ -233,6 +235,7 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
         assert data[fingerprint]["avg(exclusive_time)"] == 20.0
         assert data[fingerprint]["count()"] == 1
 
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_offset_logic(self, mock_query):
         mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
@@ -261,6 +264,7 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
         fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D2").hexdigest()[:16]
         assert data[fingerprint]["avg(absolute_offset)"] == 1075.0
 
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_null_group_fallback(self, mock_query):
         mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
@@ -278,6 +282,7 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
         assert data[root_fingerprint]["description"] == ""
         assert data[root_fingerprint]["count()"] == 2
 
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_http_method_filter(self, mock_query):
         with self.feature(self.FEATURES):
@@ -561,11 +566,12 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
             kwargs={"organization_slug": self.project.organization.slug},
         )
 
+    @django_db_all
     def test_simple(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "forceNodestore": "true"},
+                data={"transaction": "api/0/foo"},
                 format="json",
             )
 
@@ -616,11 +622,12 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
         assert data[fingerprint]["avg(exclusive_time)"] == 20.0
         assert data[fingerprint]["count()"] == 1
 
+    @django_db_all
     def test_offset_logic(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "forceNodestore": "true"},
+                data={"transaction": "api/0/foo"},
                 format="json",
             )
 
@@ -642,6 +649,7 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
         fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D2").hexdigest()[:16]
         assert data[fingerprint]["avg(absolute_offset)"] == 1075.0
 
+    @django_db_all
     def test_null_group_fallback(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -657,11 +665,12 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
         assert data[root_fingerprint]["description"] == ""
         assert data[root_fingerprint]["count()"] == 2
 
+    @django_db_all
     def test_http_method_filter(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "http.method": "GET", "forceNodestore": "true"},
+                data={"transaction": "api/0/foo", "http.method": "GET"},
                 format="json",
             )
 
@@ -674,12 +683,13 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "http.method": "POST", "forceNodestore": "true"},
+                data={"transaction": "api/0/foo", "http.method": "POST"},
                 format="json",
             )
 
         assert response.data == {}
 
+    @django_db_all
     def test_environment_filter(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
