@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
@@ -27,6 +28,7 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -65,7 +67,10 @@ export default function HighlightsDataSection({
 
   const viewAllButton = viewAllRef ? (
     <Button
-      onClick={() => viewAllRef?.current?.scrollIntoView({behavior: 'smooth'})}
+      onClick={() => {
+        trackAnalytics('highlights_section.view_all_clicked', {organization});
+        viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
+      }}
       size="xs"
     >
       {t('View All')}
@@ -119,7 +124,13 @@ export default function HighlightsDataSection({
     );
   }
 
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {
+    organization: organization,
+    project: detailedProject,
+  });
+
   function openEditHighlightsModal() {
+    trackAnalytics('highlights_section.edit_clicked', {organization});
     openModal(
       deps => (
         <EditHighlightsModal
@@ -135,6 +146,11 @@ export default function HighlightsDataSection({
     );
   }
 
+  const editProps = {
+    disabled: !isProjectAdmin,
+    title: !isProjectAdmin ? t('Only Project Admins can edit highlights.') : undefined,
+  };
+
   return (
     <EventDataSection
       title={t('Event Highlights')}
@@ -143,7 +159,12 @@ export default function HighlightsDataSection({
       actions={
         <ButtonBar gap={1}>
           {viewAllButton}
-          <Button size="xs" icon={<IconEdit />} onClick={openEditHighlightsModal}>
+          <Button
+            size="xs"
+            icon={<IconEdit />}
+            onClick={openEditHighlightsModal}
+            {...editProps}
+          >
             {t('Edit')}
           </Button>
         </ButtonBar>
@@ -158,7 +179,11 @@ export default function HighlightsDataSection({
           <EmptyHighlights>
             <EmptyHighlightsContent>
               {t("There's nothing here...")}
-              <AddHighlightsButton size="xs" onClick={openEditHighlightsModal}>
+              <AddHighlightsButton
+                size="xs"
+                onClick={openEditHighlightsModal}
+                {...editProps}
+              >
                 {t('Add Highlights')}
               </AddHighlightsButton>
             </EmptyHighlightsContent>

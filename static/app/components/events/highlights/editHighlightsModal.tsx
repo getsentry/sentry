@@ -17,10 +17,11 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
-import {IconAdd, IconSubtract} from 'sentry/icons';
+import {IconAdd, IconInfo, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -324,7 +325,7 @@ export default function EditHighlightsModal({
   const columnCount = 3;
   return (
     <Fragment>
-      <Header>
+      <Header closeButton>
         <Title>{t('Edit Event Highlights')}</Title>
       </Header>
       <Body>
@@ -332,11 +333,13 @@ export default function EditHighlightsModal({
           event={event}
           highlightTags={highlightTags}
           highlightContext={highlightContext}
-          onRemoveTag={tagKey =>
-            setHighlightTags(highlightTags.filter(tag => tag !== tagKey))
-          }
+          onRemoveTag={tagKey => {
+            trackAnalytics('edit_highlights.remove_tag_key', {organization});
+            setHighlightTags(highlightTags.filter(tag => tag !== tagKey));
+          }}
           onRemoveContextKey={(contextType, contextKey) =>
             setHighlightContext(() => {
+              trackAnalytics('edit_highlights.remove_context_key', {organization});
               const {[contextType]: highlightContextKeys, ...newHighlightContext} =
                 highlightContext;
               const newHighlightContextKeys = (highlightContextKeys ?? []).filter(
@@ -357,30 +360,45 @@ export default function EditHighlightsModal({
           event={event}
           columnCount={columnCount}
           highlightTags={highlightTags}
-          onAddTag={tagKey => setHighlightTags([...highlightTags, tagKey])}
+          onAddTag={tagKey => {
+            trackAnalytics('edit_highlights.add_tag_key', {organization});
+            setHighlightTags([...highlightTags, tagKey]);
+          }}
           data-test-id="highlights-tag-section"
         />
         <EditContextHighlightSection
           event={event}
           columnCount={columnCount}
           highlightContext={highlightContext}
-          onAddContextKey={(contextType, contextKey) =>
+          onAddContextKey={(contextType, contextKey) => {
+            trackAnalytics('edit_highlights.add_context_key', {organization});
             setHighlightContext({
               ...highlightContext,
               [contextType]: [...(highlightContext[contextType] ?? []), contextKey],
-            })
-          }
+            });
+          }}
           data-test-id="highlights-context-section"
         />
       </Body>
       <Footer>
+        <FooterInfo data-test-id="highlights-save-info">
+          <IconInfo />
+          <div>{t('Changes are applied to all issues for this project')}</div>
+        </FooterInfo>
         <ButtonBar gap={1}>
-          <Button onClick={closeModal} size="sm">
+          <Button
+            onClick={() => {
+              trackAnalytics('edit_highlights.cancel_clicked', {organization});
+              closeModal();
+            }}
+            size="sm"
+          >
             {t('Cancel')}
           </Button>
           {highlightPreset && (
             <Button
               onClick={() => {
+                trackAnalytics('edit_highlights.use_default_clicked', {organization});
                 setHighlightContext(highlightPreset.context);
                 setHighlightTags(highlightPreset.tags);
               }}
@@ -391,11 +409,14 @@ export default function EditHighlightsModal({
           )}
           <Button
             disabled={isLoading}
-            onClick={() => saveHighlights({highlightContext, highlightTags})}
+            onClick={() => {
+              trackAnalytics('edit_highlights.save_clicked', {organization});
+              saveHighlights({highlightContext, highlightTags});
+            }}
             priority="primary"
             size="sm"
           >
-            {isLoading ? t('Saving...') : t('Save')}
+            {isLoading ? t('Saving...') : t('Apply to Project')}
           </Button>
         </ButtonBar>
       </Footer>
@@ -412,6 +433,14 @@ const Subtitle = styled('h4')`
   border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: ${space(1.5)};
   padding-bottom: ${space(0.5)};
+`;
+
+const FooterInfo = styled('div')`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+  gap: ${space(1)};
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
