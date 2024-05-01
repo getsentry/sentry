@@ -452,7 +452,7 @@ export default function AssigneeSelectorDropdown({
 
     const memberOptions = {
       value: '_members',
-      label: t('Everyone Else'),
+      label: t('Members'),
       options:
         memList?.map(member =>
           makeMemberOption(member.id, member.name || member.email)
