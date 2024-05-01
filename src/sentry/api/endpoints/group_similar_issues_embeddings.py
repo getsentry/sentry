@@ -107,20 +107,22 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     }
 
     def get_formatted_results(
-        self, responses: Sequence[SimilarIssuesEmbeddingsData], user: User | AnonymousUser
+        self,
+        similar_issues_data: Sequence[SimilarIssuesEmbeddingsData],
+        user: User | AnonymousUser,
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
         Format the responses using to be used by the frontend by changing the  field names and
         changing the cosine distances into cosine similarities.
         """
         group_data = {}
-        for response in responses:
+        for similar_issue_data in similar_issues_data:
             formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                "message": 1 - response["message_distance"],
-                "exception": 1 - response["stacktrace_distance"],
-                "shouldBeGrouped": "Yes" if response["should_group"] else "No",
+                "message": 1 - similar_issue_data["message_distance"],
+                "exception": 1 - similar_issue_data["stacktrace_distance"],
+                "shouldBeGrouped": "Yes" if similar_issue_data["should_group"] else "No",
             }
-            group_data.update({response["parent_group_id"]: formatted_response})
+            group_data.update({similar_issue_data["parent_group_id"]: formatted_response})
 
         serialized_groups = {
             int(g["id"]): g
