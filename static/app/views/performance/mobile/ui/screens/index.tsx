@@ -44,9 +44,8 @@ export function UIScreens() {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  // TODO
-  const sortCountField = `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`;
-  const orderby = decodeScalar(locationQuery.sort, `-${sortCountField}`);
+  // TODO: Replace with a default sort on the count column when added
+  const orderby = decodeScalar(locationQuery.sort, '');
   const newQuery: NewQuery = {
     name: '',
     fields: [
