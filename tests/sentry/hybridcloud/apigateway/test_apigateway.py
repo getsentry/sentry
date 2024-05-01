@@ -138,18 +138,18 @@ class ApiGatewayTest(ApiGatewayTestCase):
         )
 
         region_url_slug = reverse(
-            "region-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.slug}
+            "region-endpoint", kwargs={"organization_id_or_slug": self.organization.slug}
         )
         control_url_slug = reverse(
-            "control-endpoint-id-or-slug",
+            "control-endpoint",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
         region_url_id = reverse(
-            "region-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.id}
+            "region-endpoint", kwargs={"organization_id_or_slug": self.organization.id}
         )
         control_url_id = reverse(
-            "control-endpoint-id-or-slug", kwargs={"organization_id_or_slug": self.organization.id}
+            "control-endpoint", kwargs={"organization_id_or_slug": self.organization.id}
         )
 
         with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):

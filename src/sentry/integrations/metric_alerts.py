@@ -131,7 +131,7 @@ def incident_attachment_info(
         reverse(
             "sentry-metric-alert-details",
             kwargs={
-                "organization_id_or_slug": alert_rule.organization.slug,
+                "organization_slug": alert_rule.organization.slug,
                 "alert_rule_id": alert_rule.id,
             },
         ),
@@ -184,7 +184,7 @@ def metric_alert_attachment_info(
         reverse(
             "sentry-metric-alert-details",
             kwargs={
-                "organization_id_or_slug": alert_rule.organization.slug,
+                "organization_slug": alert_rule.organization.slug,
                 "alert_rule_id": alert_rule.id,
             },
         ),
