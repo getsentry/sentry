@@ -6,6 +6,7 @@ from urllib3 import Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import json
+from sentry.utils.json import JSONDecodeError
 
 
 class SeerException(Exception):
@@ -113,6 +114,10 @@ def get_similar_issues_embeddings(
 
     try:
         return json.loads(response.data.decode("utf-8"))
-    except AttributeError:
+    except (
+        AttributeError,  # caused by a response with no data and therefore no `.decode` method
+        UnicodeError,
+        JSONDecodeError,
+    ):
         empty_response: SimilarIssuesEmbeddingsResponse = {"responses": []}
         return empty_response
