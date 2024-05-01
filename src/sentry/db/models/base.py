@@ -34,8 +34,6 @@ __all__ = (
     "get_model_if_available",
     "control_silo_model",
     "region_silo_model",
-    "control_silo_only_model",
-    "region_silo_only_model",
 )
 
 
@@ -453,7 +451,3 @@ region_silo_model = ModelSiloLimit(SiloMode.REGION)
 Apply to models that belong to a single organization or
 require strong consistency with other Region silo resources.
 """
-
-# Deprecated
-control_silo_only_model = control_silo_model
-region_silo_only_model = region_silo_model

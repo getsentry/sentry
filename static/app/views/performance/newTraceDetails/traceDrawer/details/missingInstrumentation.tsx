@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import useProjects from 'sentry/utils/useProjects';
 import {ProfilePreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/profiling/profilePreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';

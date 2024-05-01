@@ -6,13 +6,13 @@ from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.types.region import find_regions_for_user
 
 
-@control_silo_only_model
+@control_silo_model
 class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
     Permissions are applied to administrative users and control explicit scope-like permissions within the API.

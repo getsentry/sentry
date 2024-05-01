@@ -3,8 +3,8 @@ import * as Sentry from '@sentry/react';
 import Jed from 'jed';
 import {sprintf} from 'sprintf-js';
 
+import toArray from 'sentry/utils/array/toArray';
 import localStorage from 'sentry/utils/localStorage';
-import toArray from 'sentry/utils/toArray';
 
 const markerStyles = {
   background: '#ff801790',

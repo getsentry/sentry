@@ -20,7 +20,7 @@ import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {defined, formatBytesBase10} from 'sentry/utils';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -436,8 +436,11 @@ function NodeActions(props: {
       },
     };
 
-    const eventId = props.node.metadata.event_id;
-    const projectSlug = props.node.metadata.project_slug;
+    const eventId =
+      props.node.metadata.event_id ?? props.node.parent_transaction?.metadata.event_id;
+    const projectSlug =
+      props.node.metadata.project_slug ??
+      props.node.parent_transaction?.metadata.project_slug;
     const query = {...qs.parse(location.search), legacy: 1};
 
     const eventDetailsLink = {
@@ -668,9 +671,6 @@ function SectionCard({
 
 const Card = styled(Panel)`
   padding: ${space(0.75)};
-  display: grid;
-  column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, auto) 1fr 30px;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -684,9 +684,8 @@ const CardContentTitle = styled('p')`
 
 const ContentContainer = styled('div')`
   display: grid;
-  grid-template-columns: subgrid;
-  grid-column: span 3;
   column-gap: ${space(1.5)};
+  grid-template-columns: minmax(100px, 150px) 1fr 30px;
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
   color: ${p => p.theme.subText};

@@ -666,7 +666,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         }
         group_similar_endpoint = GroupSimilarIssuesEmbeddingsEndpoint()
         formatted_results = group_similar_endpoint.get_formatted_results(
-            responses=[response_1, response_2], user=self.user
+            similar_issues_data=[response_1, response_2], user=self.user
         )
         assert formatted_results == self.get_expected_response(
             [self.similar_group.id, new_group.id], [0.95, 0.51], [0.99, 0.77], ["Yes", "No"]

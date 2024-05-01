@@ -13,7 +13,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -25,7 +25,7 @@ from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 logger = logging.getLogger(__name__)
 
 
-@region_silo_only_model
+@region_silo_model
 class ExportedData(Model):
     """
     Stores references to asynchronous data export jobs
@@ -151,7 +151,7 @@ class ExportedData(Model):
     __repr__ = sane_repr("query_type", "query_info")
 
 
-@region_silo_only_model
+@region_silo_model
 class ExportedDataBlob(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

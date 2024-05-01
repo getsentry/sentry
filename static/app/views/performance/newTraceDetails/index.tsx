@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -25,6 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
@@ -481,6 +481,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      if (traceStateRef.current.preferences.drawer.minimized) {
+        traceDispatch({type: 'minimize drawer', payload: false});
+      }
       setRowAsFocused(node, event, traceStateRef.current.search.resultsLookup, null, 0);
 
       if (traceStateRef.current.search.resultsLookup.has(node)) {
