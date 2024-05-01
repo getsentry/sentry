@@ -213,12 +213,12 @@ export function Trace({
       trace.root.space[1] !== manager.trace_space.width)
   ) {
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    const maybeQueue = decodeScrollQueue(qs.parse(location.search).node);
-    const maybeEventId = qs.parse(location.search)?.eventId;
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
 
-    if (maybeQueue || maybeEventId) {
+    if (maybeQueue || queryParams.event_id) {
       scrollQueueRef.current = {
-        eventId: maybeEventId as string,
+        eventId: queryParams.event_id as string,
         path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
       };
     }
