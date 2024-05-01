@@ -377,6 +377,7 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/traces/`}
                   id="performance-trace-explorer"
                   icon={<SubitemDot collapsed />}
+                  isAlpha
                 />
               </Feature>
             </SidebarAccordion>
