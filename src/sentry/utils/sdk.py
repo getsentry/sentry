@@ -315,7 +315,7 @@ def configure_sdk():
         experimental_transport = None
 
     if settings.SENTRY_PROFILING_ENABLED:
-        sdk_options["profiles_sampler"] = settings.SENTRY_PROFILES_SAMPLE_RATE
+        sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
