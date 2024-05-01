@@ -5,9 +5,13 @@ import CollapsePanel from 'sentry/components/collapsePanel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ActivationTriggerActivity, AlertRuleActivation} from 'sentry/types/alerts';
+import {ActivationTrigger} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
-import MetricAlertActivity from 'sentry/views/alerts/rules/metric/details/metricActivity';
-import type {AlertRuleActivation, Incident} from 'sentry/views/alerts/types';
+import MetricAlertActivity, {
+  MetricAlertActivation,
+} from 'sentry/views/alerts/rules/metric/details/metricActivity';
+import type {Incident} from 'sentry/views/alerts/types';
 
 const COLLAPSE_COUNT = 3;
 
@@ -23,14 +27,27 @@ function MetricHistory({incidents, activations}: Props) {
   );
   const numOfIncidents = filteredIncidents.length;
 
-  console.log('filteredIncidents: ', filteredIncidents);
-  console.log('ACTIVATIONS: ', activations);
+  const activationTriggers: ActivationTriggerActivity[] = [];
+  activations?.forEach(activation => {
+    activationTriggers.push({
+      type: ActivationTrigger.ACTIVATED,
+      activator: activation.activator,
+      conditionType: activation.conditionType,
+      dateCreated: activation.dateCreated,
+    });
+    if (activation.isComplete) {
+      activationTriggers.push({
+        type: ActivationTrigger.FINISHED,
+        activator: activation.activator,
+        conditionType: activation.conditionType,
+        dateCreated: activation.finishedAt,
+      });
+    }
+  });
 
-  // TODO: compile number of 'groups'/'bundles'/items?
-  // collapsable IF bundles is over?
-  // Create a weighted num or something
-  // Wait - we're now just adding to the description of the incident trigger
-  // IF NO incident, then lets just toss a grayed "activation created"? (or do this anyways)
+  const sortedActivity = [...filteredIncidents, ...activationTriggers].sort((a, b) =>
+    a.dateCreated > b.dateCreated ? -1 : 1
+  );
 
   return (
     <CollapsePanel
@@ -47,14 +64,24 @@ function MetricHistory({incidents, activations}: Props) {
             emptyMessage={t('No alerts triggered during this time.')}
             expanded={numOfIncidents <= COLLAPSE_COUNT || isExpanded}
           >
-            {filteredIncidents.map((incident, idx) => {
+            {sortedActivity.map((item, idx) => {
               if (idx >= COLLAPSE_COUNT && !isExpanded) {
                 return null;
               }
+              if ('activator' in item) {
+                return (
+                  <MetricAlertActivation
+                    key={`${item.type}-${item.activator}`}
+                    activationActivity={item}
+                    organization={organization}
+                  />
+                );
+              }
+
               return (
                 <MetricAlertActivity
                   key={idx}
-                  incident={incident}
+                  incident={item}
                   organization={organization}
                 />
               );

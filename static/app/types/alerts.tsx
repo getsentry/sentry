@@ -310,3 +310,15 @@ export type AlertRuleActivation = {
   querySubscriptionId: string;
   metricValue?: number;
 };
+
+export enum ActivationTrigger {
+  ACTIVATED = 'activated',
+  FINISHED = 'finished',
+}
+
+export type ActivationTriggerActivity = {
+  activator: string;
+  conditionType: string;
+  dateCreated: string;
+  type: ActivationTrigger;
+};
