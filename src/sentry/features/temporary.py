@@ -30,7 +30,6 @@ def register_temporary_features(manager: FeatureManager):
     # NOTE: Please maintain alphabetical order when adding new feature flags
 
     # Features that don't use resource scoping
-    manager.add("auth:enterprise-superuser-read-write", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL)
