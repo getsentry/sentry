@@ -381,7 +381,7 @@ export default function EditHighlightsModal({
         />
       </Body>
       <Footer>
-        <FooterInfo>
+        <FooterInfo data-test-id="highlights-save-info">
           <IconInfo />
           <div>{t('Changes are applied to all issues for this project')}</div>
         </FooterInfo>
