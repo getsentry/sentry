@@ -31,6 +31,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
     OperandType,
@@ -598,13 +599,31 @@ class BaseQueryBuilder:
             if not in_test_environment():
                 raise UnqualifiedQueryError("You need to specify at least one project.")
         else:
-            conditions.append(
-                Condition(
-                    self.column("project_id"),
-                    Op.IN,
-                    self.params.project_ids,
-                )
+            split_by_char_optimization = options.get(
+                "querybuilder.organization.project-split-by-char-optimization"
             )
+            if self.params.organization.id in split_by_char_optimization:
+                conditions.append(
+                    Condition(
+                        self.column("project_id"),
+                        Op.IN,
+                        Function(
+                            "splitByChar",
+                            [
+                                ",",
+                                ",".join(str(project_id) for project_id in self.params.project_ids),
+                            ],
+                        ),
+                    )
+                )
+            else:
+                conditions.append(
+                    Condition(
+                        self.column("project_id"),
+                        Op.IN,
+                        self.params.project_ids,
+                    )
+                )
 
         if len(self.params.environments) > 0:
             term = event_search.SearchFilter(
