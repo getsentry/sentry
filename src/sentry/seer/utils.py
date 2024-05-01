@@ -119,5 +119,4 @@ def get_similar_issues_embeddings(
         UnicodeError,
         JSONDecodeError,
     ):
-        empty_response: SimilarIssuesEmbeddingsResponse = {"responses": []}
-        return empty_response
+        return {"responses": []}
