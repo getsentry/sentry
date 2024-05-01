@@ -34,8 +34,8 @@ export function UIScreens() {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  // TODO: Spans metrics
-  const query = new MutableSearch(['transaction.op:ui.load']);
+  // TODO: Add transaction.op:ui.load when collecting begins
+  const query = new MutableSearch([]);
 
   const searchQuery = decodeScalar(locationQuery.query, '');
   if (searchQuery) {
@@ -80,8 +80,8 @@ export function UIScreens() {
     referrer: 'api.starfish.mobile-startup-screen-table', // TODO: referrer
   });
 
-  // TODO: This should work for span metrics
-  const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
+  // TODO: Add transaction.op:ui.load when collecting begins
+  const tableSearchFilters = new MutableSearch([]);
 
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
