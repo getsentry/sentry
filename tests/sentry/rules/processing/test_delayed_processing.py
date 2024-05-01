@@ -14,7 +14,7 @@ from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     process_delayed_alert_conditions,
 )
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
@@ -23,7 +23,9 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 pytestmark = pytest.mark.sentry_metrics
 
 
-class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequencyPercentTest):
+class ProcessDelayedAlertConditionsTest(
+    TestCase, APITestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
+):
     def create_event(
         self, project_id, timestamp, fingerprint, environment=None, user: bool = True
     ) -> Event:
@@ -196,6 +198,46 @@ class ProcessDelayedAlertConditionsTest(TestCase, APITestCase, BaseEventFrequenc
             assert self.group4
             assert (self.rule3.id, self.group3.id) in rule_fire_histories
             assert (self.rule4.id, self.group4.id) in rule_fire_histories
+
+    def test_apply_delayed_issue_platform_event(self):
+        """
+        Test that we fire rules triggered from issue platform events
+        """
+        rule5 = self.create_project_rule(
+            project=self.project,
+            condition_match=[self.event_frequency_condition2],
+            environment_id=self.environment.id,
+        )
+        tags = [["foo", "guux"], ["sentry:release", "releaseme"]]
+        contexts = {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}}
+        for i in range(3):
+            event5 = self.create_performance_issue(
+                tags=tags,
+                fingerprint="group-5",
+                contexts=contexts,
+            )
+        group5 = event5.group
+        assert group5
+        assert self.group1
+        self.push_to_hash(
+            self.project.id,
+            rule5.id,
+            group5.id,
+            event5.event_id,
+            occurrence_id=event5.occurrence_id,
+        )
+        with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
+            apply_delayed(self.project.id)
+            rule_fire_histories = RuleFireHistory.objects.filter(
+                rule__in=[self.rule1, rule5],
+                group__in=[self.group1, group5],
+                event_id__in=[self.event1.event_id, event5.event_id],
+                project=self.project,
+            ).values_list("rule", "group")
+            assert len(rule_fire_histories) == 3
+            assert (self.rule1.id, self.group1.id) in rule_fire_histories
+            assert (self.rule1.id, group5.id) in rule_fire_histories
+            assert (rule5.id, group5.id) in rule_fire_histories
 
     def test_apply_delayed_same_condition_diff_value(self):
         """

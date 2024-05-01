@@ -14,6 +14,7 @@ from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
     BaseEventFrequencyCondition,
@@ -276,28 +277,37 @@ def apply_delayed(project_id: int) -> None:
         )
     # Step 7: Fire the rule's actions
     now = timezone.now()
+    snoozed_rules = RuleSnooze.objects.filter(
+        rule__in=[rule for rule in rules_to_fire.keys()], user_id=None
+    ).values_list("rule", flat=True)
     for rule, group_ids in rules_to_fire.items():
-        frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
-        freq_offset = now - timedelta(minutes=frequency)
-        group_to_groupevent = get_group_to_groupevent(rulegroup_to_events, project.id, group_ids)
-        for group, groupevent in group_to_groupevent.items():
-            rule_statuses = bulk_get_rule_status(alert_rules, group, project)
-            status = rule_statuses[rule.id]
-            if status.last_active and status.last_active > freq_offset:
-                return
-
-            updated = (
-                GroupRuleStatus.objects.filter(id=status.id)
-                .exclude(last_active__gt=freq_offset)
-                .update(last_active=now)
+        if rule.id not in snoozed_rules:
+            frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
+            freq_offset = now - timedelta(minutes=frequency)
+            group_to_groupevent = get_group_to_groupevent(
+                rulegroup_to_events, project.id, group_ids
             )
+            for group, groupevent in group_to_groupevent.items():
+                rule_statuses = bulk_get_rule_status(alert_rules, group, project)
+                status = rule_statuses[rule.id]
+                if status.last_active and status.last_active > freq_offset:
+                    return
 
-            if not updated:
-                return
+                updated = (
+                    GroupRuleStatus.objects.filter(id=status.id)
+                    .exclude(last_active__gt=freq_offset)
+                    .update(last_active=now)
+                )
 
-            notification_uuid = str(uuid.uuid4())
-            groupevent = group_to_groupevent[group]
-            rule_fire_history = history.record(rule, group, groupevent.event_id, notification_uuid)
-            safe_execute(
-                activate_downstream_actions, rule, groupevent, notification_uuid, rule_fire_history
-            )
+                if not updated:
+                    return
+
+                notification_uuid = str(uuid.uuid4())
+                groupevent = group_to_groupevent[group]
+                rule_fire_history = history.record(
+                    rule, group, groupevent.event_id, notification_uuid
+                )
+                for callback, futures in activate_downstream_actions(
+                    rule, groupevent, notification_uuid, rule_fire_history
+                ).values():
+                    safe_execute(callback, groupevent, futures, _with_transaction=False)
