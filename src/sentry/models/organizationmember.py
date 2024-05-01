@@ -372,7 +372,7 @@ class OrganizationMember(ReplicatedRegionModel):
     def send_sso_link_email(self, sending_user_email: str, provider):
         from sentry.utils.email import MessageBuilder
 
-        link_args = {"organization_id_or_slug": self.organization.slug}
+        link_args = {"organization_slug": self.organization.slug}
         context = {
             "organization": self.organization,
             "actor_email": sending_user_email,
