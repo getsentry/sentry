@@ -123,13 +123,13 @@ function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
       <RepoLinkItem>
         <GithubLink>
           <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
-            <IconGithub color="gray500" size="sm" />
+            <IconGithub color="linkColor" size="sm" />
             <span>
               {repo.owner}/{repo.name}
             </span>
           </ExternalLink>
         </GithubLink>
-        {repo.ok ? <RepoCheckIcon isCircled /> : null}
+        {repo.ok ? <IconCheckmark color="success" isCircled /> : null}
       </RepoLinkItem>
     );
   }
@@ -315,7 +315,7 @@ function AutofixSetupContent({
   if (hasSuccessfulSetup) {
     return (
       <AutofixSetupDone>
-        <DoneIcon size="xxl" isCircled />
+        <DoneIcon color="success" size="xxl" isCircled />
         <p>{t("You've successfully configured Autofix!")}</p>
         <Button onClick={closeModal} priority="primary">
           {t("Let's go")}
@@ -368,7 +368,6 @@ const AutofixSetupDone = styled('div')`
 `;
 
 const DoneIcon = styled(IconCheckmark)`
-  color: ${p => p.theme.success};
   margin-bottom: ${space(4)};
 `;
 
@@ -384,10 +383,6 @@ const RepoLinkItem = styled('li')`
   gap: ${space(0.5)};
 `;
 
-const RepoCheckIcon = styled(IconCheckmark)`
-  fill: ${p => p.theme.success};
-`;
-
 const GithubLink = styled('div')`
   display: flex;
   align-items: center;
@@ -399,6 +394,5 @@ const GithubLink = styled('div')`
 
   svg {
     margin-right: ${space(0.5)};
-    fill: ${p => p.theme.linkColor};
   }
 `;
