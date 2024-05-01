@@ -8,6 +8,7 @@ import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {AutofixInstructionsModal} from 'sentry/components/events/autofix/autofixInstructionsModal';
+import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
 import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAutofixCodebaseIndexing';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AutofixSetupModal} from 'sentry/components/modals/autofixSetupModal';
@@ -76,7 +77,7 @@ export function AutofixBanner({
                 {t('Give Instructions')}
               </Button>
             </Fragment>
-          ) : indexingStatus === 'indexing' ? (
+          ) : indexingStatus === AutofixCodebaseIndexingStatus.INDEXING ? (
             <RowStack>
               <LoadingIndicator mini />
               <LoadingMessage>
