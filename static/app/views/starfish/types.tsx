@@ -27,6 +27,7 @@ export enum SpanMetricsField {
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
+  PROJECT = 'project',
   PROJECT_ID = 'project.id',
   TRANSACTION = 'transaction',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
@@ -60,7 +61,8 @@ export type SpanStringFields =
   | 'release'
   | 'os.name'
   | 'span.status_code'
-  | 'span.ai.pipeline.group';
+  | 'span.ai.pipeline.group'
+  | 'project';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;

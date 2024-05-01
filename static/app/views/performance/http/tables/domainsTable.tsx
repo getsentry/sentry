@@ -15,7 +15,6 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DomainCell} from 'sentry/views/performance/http/tables/domainCell';
-import {ProjectIdCell} from 'sentry/views/performance/http/tables/projectIdCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -23,7 +22,7 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
   MetricsResponse,
-  | 'project.id'
+  | 'project'
   | 'span.domain'
   | 'spm()'
   | 'http_response_rate(3)'
@@ -36,7 +35,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'span.domain'
-  | 'project.id'
+  | 'project'
   | 'spm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
@@ -52,7 +51,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'project.id',
+    key: 'project',
     name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -175,11 +174,6 @@ function renderBodyCell(
     return (
       <DomainCell projectId={row['project.id']?.toString()} domain={row['span.domain']} />
     );
-  }
-
-  // TODO: Integrate this into `fieldRenderers`
-  if (column.key === 'project.id') {
-    return <ProjectIdCell projectId={row['project.id']?.toString()} />;
   }
 
   if (!meta?.fields) {
