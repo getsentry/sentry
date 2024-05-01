@@ -4,10 +4,12 @@ import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {ActivationConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -27,37 +29,26 @@ type MetricAlertActivityProps = {
 
 function MetricAlertActivity({organization, incident}: MetricAlertActivityProps) {
   // NOTE: while _possible_, we should never expect an incident to _not_ have a status_change activity
-  const activities = (incident.activities ?? []).filter(
+  const activities: ActivityType[] = (incident.activities ?? []).filter(
     activity => activity.type === IncidentActivityType.STATUS_CHANGE
   );
-  console.log('ACTIVITIES: ', activities);
-  const criticalActivity = activities.find(
-    activity => activity.value === `${IncidentStatus.CRITICAL}`
-  );
-  const warningActivity = activities.find(
-    activity => activity.value === `${IncidentStatus.WARNING}`
-  );
 
-  // Triggered activity is just the color indicator with the
-  const triggeredActivity: ActivityType = criticalActivity
-    ? criticalActivity!
-    : warningActivity!;
+  const statusValues = [String(IncidentStatus.CRITICAL), String(IncidentStatus.WARNING)];
+  // TODO: kinda cheating with the forced `!`. Is there a better way to type this?
+  const latestActivity: ActivityType = activities.find(activity =>
+    statusValues.includes(String(activity.value))
+  )!;
 
-  const isCritical = triggeredActivity
-    ? Number(triggeredActivity.value) === IncidentStatus.CRITICAL
-    : false;
+  const isCritical = Number(latestActivity.value) === IncidentStatus.CRITICAL;
 
-  console.log('CRITICAL ACTIVITY: ', criticalActivity);
-  console.log('WARNING ACTIVITY: ', warningActivity);
-  console.log('TRIGGERED ACTIVITY: ', triggeredActivity);
-
-  // Find duration by looking at the difference between the previous and current activity timestamp
-  const nextActivity = activities.find(
-    activity => activity.previousValue === triggeredActivity.value
+  // Find the _final_ most recent activity _after_ our triggered activity
+  // This exists for the `CLOSED` state (or any state NOT WARNING/CRITICAL)
+  const finalActivity = activities.find(
+    activity => activity.previousValue === latestActivity.value
   );
   const activityDuration = (
-    nextActivity ? moment(nextActivity.dateCreated) : moment()
-  ).diff(moment(triggeredActivity.dateCreated), 'milliseconds');
+    finalActivity ? moment(finalActivity.dateCreated) : moment()
+  ).diff(moment(latestActivity.dateCreated), 'milliseconds');
 
   const triggerLabel = isCritical ? 'critical' : 'warning';
   const curentTrigger = incident.alertRule.triggers.find(
@@ -68,13 +59,46 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
     AlertWizardAlertNames[getAlertTypeFromAggregateDataset(incident.alertRule)]
   );
 
+  const project = incident.alertRule.projects[0];
   const activation = incident.activation;
-  console.log('INCIDENT ACTIVATION: ', activation);
+  let activationBlock = <div />;
+  if (activation) {
+    let condition;
+    let activator;
+    switch (activation.conditionType) {
+      case String(ActivationConditionType.RELEASE_CREATION):
+        condition = 'Release';
+        activator = (
+          <GlobalSelectionLink
+            to={{
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(activation.activator)}/`,
+              query: {project: project},
+            }}
+          >
+            {activation.activator}
+          </GlobalSelectionLink>
+        );
+        break;
+      case String(ActivationConditionType.DEPLOY_CREATION):
+        condition = 'Deploy';
+        activator = activation.activator;
+        break;
+      default:
+        condition = '--';
+    }
+    activationBlock = (
+      <div>
+        &nbsp;from {condition} {activator}
+      </div>
+    );
+  }
 
   return (
     <Fragment>
       <Cell>
-        {triggeredActivity.value && (
+        {latestActivity.value && (
           <StatusIndicator
             status={isCritical ? 'error' : 'warning'}
             tooltipTitle={t('Status: %s', isCritical ? t('Critical') : t('Warning'))}
@@ -110,7 +134,8 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
             {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
               ? t('above')
               : t('below')}{' '}
-            {curentTrigger?.alertThreshold} {t('in')} {timeWindow}
+            {curentTrigger?.alertThreshold || '_'} {t('within')} {timeWindow}
+            {activationBlock}
           </Fragment>
         )}
       </Cell>
