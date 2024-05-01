@@ -178,7 +178,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                 [
                     result["stacktrace_distance"]
                     for result in (results.get("responses") or [])
-                    if result and result["stacktrace_distance"] <= 0.01
+                    if result["stacktrace_distance"] <= 0.01
                 ]
             ),
             user_id=request.user.id,
