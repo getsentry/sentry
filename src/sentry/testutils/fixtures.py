@@ -568,9 +568,6 @@ class Fixtures:
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
 
-    def create_sentry_function(self, *args, **kwargs):
-        return Factories.create_sentry_function(*args, **kwargs)
-
     def create_saved_search(self, *args, **kwargs):
         return Factories.create_saved_search(*args, **kwargs)
 
