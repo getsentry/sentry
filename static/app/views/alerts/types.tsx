@@ -1,4 +1,4 @@
-import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {AlertRuleActivation, IssueAlertRule} from 'sentry/types/alerts';
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
@@ -103,15 +103,3 @@ export interface MetricAlert extends MetricRule {
 }
 
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
-
-export type AlertRuleActivation = {
-  activator: string;
-  alertRuleId: string;
-  conditionType: string;
-  dateCreated: string;
-  finishedAt: string;
-  id: string;
-  isComplete: boolean;
-  querySubscriptionId: string;
-  metricValue?: number;
-};
