@@ -154,6 +154,12 @@ describe('Related Issues View', function () {
     expect(
       await screen.findByText('No trace-connected related issues were found.')
     ).toBeInTheDocument();
+    const linkButton = screen.getByRole('button', {name: /open in issues/i});
+    expect(linkButton).toHaveAttribute(
+      'href',
+      // Opening in Issues needs to include the group we are currently viewing
+      `/organizations/org-slug/issues/?query=issue.id:[${groupId},${group1},${group2}]`
+    );
   });
 
   it('renders with trace connected issues', async function () {
@@ -188,7 +194,13 @@ describe('Related Issues View', function () {
     const linkElement = screen.getByRole('link', {name: /this trace/i});
     expect(linkElement).toHaveAttribute(
       'href',
-      '/performance/trace/1234/?node=error-abcd'
+      '/organizations/org-slug/performance/trace/1234/?node=error-abcd'
+    );
+    const linkButton = screen.getByRole('button', {name: /open in issues/i});
+    // The Issue search supports using `trace` as a parameter
+    expect(linkButton).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/?query=trace:1234`
     );
   });
 });
