@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -80,16 +80,13 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     return {"data": []}
 
 
-class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
-    k: int
-    threshold: float
-
-
-class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):
+class SimilarIssuesEmbeddingsRequest(TypedDict):
     group_id: int
     project_id: int
     stacktrace: str
     message: str
+    k: NotRequired[int]  # how many neighbors to find
+    threshold: NotRequired[float]
 
 
 class SimilarIssuesEmbeddingsData(TypedDict):
