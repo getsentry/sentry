@@ -245,6 +245,7 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
       })}
       size="xs"
       icon={<IconIssues size="xs" />}
+      style={{minHeight: '20px', height: '20px'}}
     >
       {issueCount !== undefined ? (
         issueCount
