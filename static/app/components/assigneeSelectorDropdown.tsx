@@ -321,11 +321,8 @@ function AssigneeSelectorDropdown({
       return;
     }
     // See makeMemberOption and makeTeamOption for how the value is formatted
-    const type = selectedOption.value.startsWith('USER_') ? 'user' : 'team';
-    const assigneeId =
-      type === 'user'
-        ? selectedOption.value.split('USER_')[1]
-        : selectedOption.value.split('TEAM_')[1];
+    const type = selectedOption.value.startsWith('user:') ? 'user' : 'team';
+    const assigneeId = selectedOption.value.split(':')[1];
 
     if (group.assignedTo && assigneeId === group.assignedTo?.id) {
       handleAssigneeChange(null);
@@ -372,14 +369,14 @@ function AssigneeSelectorDropdown({
         />
       ),
       // Jank way to pass assignee type (team or user) into each row
-      value: `USER_${userId}`,
+      value: `user:${userId}`,
       textValue: userDisplay,
     };
   };
 
   const makeTeamOption = (assignableTeam: AssignableTeam): SelectOption<string> => ({
     label: <IdBadge data-test-id="assignee-option" team={assignableTeam.team} />,
-    value: `TEAM_${assignableTeam.team.id}`,
+    value: `team:${assignableTeam.team.id}`,
     textValue: assignableTeam.team.slug,
   });
 
@@ -399,7 +396,7 @@ function AssigneeSelectorDropdown({
             description={suggestedReasonTable[assignee.suggestedReason]}
           />
         ),
-        value: `USER_${assignee.id}`,
+        value: `user:${assignee.id}`,
         textValue: assignee.name,
       };
     }
@@ -411,7 +408,7 @@ function AssigneeSelectorDropdown({
           description={suggestedReasonTable[assignee.suggestedReason]}
         />
       ),
-      value: `TEAM_${assignee.id}`,
+      value: `team:${assignee.id}`,
       textValue: assignedTeam.team.slug,
     };
   };
@@ -538,7 +535,7 @@ function AssigneeSelectorDropdown({
         onClick={e => e.stopPropagation()}
         value={
           group.assignedTo
-            ? `${group.assignedTo?.type === 'user' ? 'USER_' : 'TEAM_'}${group.assignedTo.id}`
+            ? `${group.assignedTo?.type === 'user' ? 'user:' : 'team:'}${group.assignedTo.id}`
             : ''
         }
         onClear={() => handleAssigneeChange(null)}
