@@ -73,8 +73,10 @@ def prepare_buffered_segment_payload(segments) -> bytes:
 @metrics.wraps("spans.consumers.process.deserialize_span")
 def _deserialize_span(value: bytes, use_orjson=False, use_rapidjson=False) -> Mapping[str, Any]:
     if use_orjson:
+        sentry_sdk.set_tag("json_lib", "orjson")
         return orjson.loads(value)
     if use_rapidjson:
+        sentry_sdk.set_tag("json_lib", "rapidjson")
         return rapidjson.loads(value)
 
     return SPAN_SCHEMA.decode(value)

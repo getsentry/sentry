@@ -88,10 +88,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
 }
 
-PROFILES_SAMPLING_RATE = {
-    "spans.process.process_message": options.get("standalone-spans.profile-process-messages.rate")
-}
-
 if settings.ADDITIONAL_SAMPLED_TASKS:
     SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
 
@@ -206,6 +202,11 @@ def traces_sampler(sampling_context):
 
 
 def profiles_sampler(sampling_context):
+    PROFILES_SAMPLING_RATE = {
+        "spans.process.process_message": options.get(
+            "standalone-spans.profile-process-messages.rate"
+        )
+    }
     if "transaction_context" in sampling_context:
         transaction_name = sampling_context["transaction_context"].get("name")
 
