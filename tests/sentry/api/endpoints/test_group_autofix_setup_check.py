@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry.api.helpers.autofix import AutofixCodebaseIndexingStatus
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -32,7 +33,23 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         )
         self.organization.update_option("sentry:gen_ai_consent", True)
 
-    def test_successful_setup(self):
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+                "ok": True,
+            }
+        ],
+    )
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_project_codebase_indexing_status",
+        return_value=AutofixCodebaseIndexingStatus.UP_TO_DATE,
+    )
+    def test_successful_setup(self, mock_update_codebase_index, mock_get_repos_and_access):
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -54,6 +71,21 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             "integration": {
                 "ok": True,
                 "reason": None,
+            },
+            "githubWriteIntegration": {
+                "ok": True,
+                "repos": [
+                    {
+                        "provider": "github",
+                        "owner": "getsentry",
+                        "name": "seer",
+                        "external_id": "123",
+                        "ok": True,
+                    }
+                ],
+            },
+            "codebaseIndexing": {
+                "ok": True,
             },
         }
 
@@ -135,4 +167,65 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         assert response.data["integration"] == {
             "ok": False,
             "reason": "integration_missing",
+        }
+
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+                "ok": False,
+            },
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "sentry",
+                "external_id": "234",
+                "ok": True,
+            },
+        ],
+    )
+    def test_repo_write_access_not_ready(self, mock_get_repos_and_access):
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["githubWriteIntegration"] == {
+            "ok": False,
+            "repos": [
+                {
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "seer",
+                    "external_id": "123",
+                    "ok": False,
+                },
+                {
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "234",
+                    "ok": True,
+                },
+            ],
+        }
+
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_project_codebase_indexing_status",
+        return_value=AutofixCodebaseIndexingStatus.NOT_INDEXED,
+    )
+    def test_codebase_indexing_not_done(self, mock_get_project_codebase_indexing_status):
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["codebaseIndexing"] == {
+            "ok": False,
         }
