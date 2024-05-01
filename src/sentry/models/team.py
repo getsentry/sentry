@@ -25,7 +25,6 @@ from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.outbox import OutboxCategory
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -249,16 +248,6 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         from sentry.models.project import Project
 
         return Project.objects.get_for_team_ids([self.id])
-
-    def get_member_actor_ids(self):
-        owner_ids = [self.actor_id]
-        member_user_ids = self.member_set.values_list("user_id", flat=True)
-        owner_ids += Actor.objects.filter(
-            type=ACTOR_TYPES["user"],
-            user_id__in=member_user_ids,
-        ).values_list("id", flat=True)
-
-        return owner_ids
 
     def get_member_user_ids(self):
         return self.member_set.values_list("user_id", flat=True)

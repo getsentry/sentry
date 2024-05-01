@@ -1,13 +1,11 @@
-from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import TestCase
 
 
 class ExternalActorTest(TestCase):
     def setUp(self) -> None:
-        actor = Actor.objects.create(type=ACTOR_TYPES["team"])
         org = self.create_organization(owner=self.user)
-        team = self.create_team(organization=org, actor=actor)
+        team = self.create_team(organization=org)
 
         integrations = [
             self.create_integration(

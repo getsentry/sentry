@@ -61,7 +61,7 @@ def test_exportable_final_derivations_of_sentry_model_are_collision_tested():
             if necessitates_collision_test:
                 want_collision_tested.add(model_relations.model)
 
-    # TODO(hybrid-cloud): Remove after actor refactor completed.
+    # TODO(actor): Remove after actor refactor completed.
     want_collision_tested.remove(Actor)
     want_collision_tested.remove(Team)
 
