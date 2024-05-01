@@ -41,6 +41,7 @@ EVENT_EXPANSION = {
         "issue.resolved",
         "issue.ignored",
         "issue.assigned",
+        "issue.unresolved",
     ],
     "error": ["error.created"],
     "comment": ["comment.created", "comment.updated", "comment.deleted"],

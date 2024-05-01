@@ -27,7 +27,12 @@ class SentryAppIssueResolved(SentryAppIssueEvent):
     type = "sentry_app.issue.resolved"
 
 
+class SentryAppIssueUnresolved(SentryAppIssueEvent):
+    type = "sentry_app.issue.unresolved"
+
+
 analytics.register(SentryAppIssueCreated)
 analytics.register(SentryAppIssueAssigned)
 analytics.register(SentryAppIssueIgnored)
 analytics.register(SentryAppIssueResolved)
+analytics.register(SentryAppIssueUnresolved)
