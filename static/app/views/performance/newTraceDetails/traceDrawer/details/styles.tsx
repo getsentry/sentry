@@ -668,9 +668,6 @@ function SectionCard({
 
 const Card = styled(Panel)`
   padding: ${space(0.75)};
-  display: grid;
-  column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, auto) 1fr 30px;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -684,9 +681,8 @@ const CardContentTitle = styled('p')`
 
 const ContentContainer = styled('div')`
   display: grid;
-  grid-template-columns: subgrid;
-  grid-column: span 3;
   column-gap: ${space(1.5)};
+  grid-template-columns: minmax(100px, 150px) 1fr 30px;
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
   color: ${p => p.theme.subText};
