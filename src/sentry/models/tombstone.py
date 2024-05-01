@@ -30,8 +30,8 @@ class TombstoneBase(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    table_name = models.CharField(max_length=48, null=False)
-    object_identifier = BoundedBigIntegerField(null=False)
+    table_name = models.CharField(max_length=48, null=False, db_index=True)
+    object_identifier = BoundedBigIntegerField(null=False, db_index=True)
     created_at = models.DateTimeField(null=False, default=timezone.now)
 
     @staticmethod
