@@ -272,7 +272,7 @@ describe('NotificationSettingsByType', function () {
     expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
     expect(screen.queryByText('Quota Notifications')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Control the notifications you receive for organizations spend.')
+      screen.getByText('Control the notifications you receive for organization spend.')
     ).toBeInTheDocument();
   });
 });

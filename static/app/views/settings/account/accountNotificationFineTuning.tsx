@@ -222,7 +222,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     ) {
       field.title = t('Spend Notifications');
       field.description = t(
-        'Control the notifications you receive for organizations spend.'
+        'Control the notifications you receive for organization spend.'
       );
     }
     const {title, description} = field;

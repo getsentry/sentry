@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -82,9 +84,12 @@ describe('NotificationSettings', function () {
       },
     });
 
+    const organizationNoFlag = OrganizationFixture();
+    organizationNoFlag.features.push('slack-overage-notifications');
+
     renderMockRequests({});
 
-    render(<NotificationSettings organizations={[organization]} />, {
+    render(<NotificationSettings organizations={[organization, organizationNoFlag]} />, {
       context: routerContext,
     });
 
