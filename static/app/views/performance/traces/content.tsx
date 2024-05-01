@@ -115,7 +115,7 @@ export function Content() {
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
       <TracesSearchBar
         queries={queries}
@@ -144,17 +144,17 @@ export function Content() {
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText style={{padding: '5px'}} />
           {isLoading && (
-            <StyledPanelItem span={7}>
+            <StyledPanelItem span={7} overflow>
               <LoadingIndicator />
             </StyledPanelItem>
           )}
           {isError && ( // TODO: need an error state
-            <StyledPanelItem span={7}>
+            <StyledPanelItem span={7} overflow>
               <EmptyStateWarning withIcon />
             </StyledPanelItem>
           )}
           {isEmpty && (
-            <StyledPanelItem span={7}>
+            <StyledPanelItem span={7} overflow>
               <EmptyStateWarning withIcon />
             </StyledPanelItem>
           )}
@@ -180,7 +180,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         />
         <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
       </StyledPanelItem>
-      <StyledPanelItem align="left">
+      <StyledPanelItem align="left" overflow>
         <Description>
           {trace.project ? (
             <ProjectRenderer projectSlug={trace.project} hideName />
@@ -218,7 +218,7 @@ function SpanTable({
   trace: TraceResult<Field>;
 }) {
   return (
-    <SpanTablePanelItem span={7}>
+    <SpanTablePanelItem span={7} overflow>
       <StyledPanel>
         <SpanPanelContent>
           <StyledPanelHeader align="left" lightText>
@@ -257,7 +257,7 @@ function SpanRow({span, trace}: {span: SpanResult<Field>; trace: TraceResult<Fie
           timestamp={span.timestamp}
         />
       </StyledSpanPanelItem>
-      <StyledSpanPanelItem align="left">
+      <StyledSpanPanelItem align="left" overflow>
         <Description>
           <ProjectRenderer projectSlug={span.project} hideName />
           <strong>{span['span.op']}</strong>
@@ -408,10 +408,14 @@ const Description = styled('div')`
 
 const StyledPanelItem = styled(PanelItem)<{
   align?: 'left' | 'center' | 'right';
+  overflow?: boolean;
   span?: number;
 }>`
+  align-items: center;
   padding: ${space(1)};
-  ${p => p.theme.overflowEllipsis};
+  ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
+  ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
+  ${p => (p.overflow ? p.theme.overflowEllipsis : null)};
   ${p =>
     p.align === 'center'
       ? `
