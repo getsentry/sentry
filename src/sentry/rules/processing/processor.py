@@ -64,7 +64,9 @@ def get_rule_type(condition: Mapping[str, Any]) -> str | None:
     return rule_type
 
 
-def split_conditions_and_filters(rule_condition_list):
+def split_conditions_and_filters(
+    rule_condition_list,
+) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
     condition_list = []
     filter_list = []
     for rule_cond in rule_condition_list:

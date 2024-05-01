@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import type {Organization} from 'sentry/types/organization';
-import {intervalToMilliseconds} from 'sentry/utils/dates';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';

@@ -1873,6 +1873,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
+    # Enable improvements to Slack notifications
+    "organizations:slack-improvements": False,
     # Add regression chart as image to slack message
     "organizations:slack-endpoint-regression-image": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -1954,6 +1956,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enabled unresolved issue webhook for organization
+    "organizations:webhooks-unresolved": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -2132,7 +2136,6 @@ SENTRY_INTERFACES = {
     "debug_meta": "sentry.interfaces.debug_meta.DebugMeta",
     "spans": "sentry.interfaces.spans.Spans",
 }
-PREFER_CANONICAL_LEGACY_KEYS = False
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
     "smtp": "django.core.mail.backends.smtp.EmailBackend",
@@ -2145,11 +2148,6 @@ SENTRY_FILESTORE_ALIASES = {
     "filesystem": "django.core.files.storage.FileSystemStorage",
     "s3": "sentry.filestore.s3.S3Boto3Storage",
     "gcs": "sentry.filestore.gcs.GoogleCloudStorage",
-}
-
-SENTRY_ANALYTICS_ALIASES = {
-    "noop": "sentry.analytics.Analytics",
-    "pubsub": "sentry.analytics.pubsub.PubSubAnalytics",
 }
 
 # set of backends that do not support needing SMTP mail.* settings

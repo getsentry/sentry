@@ -31,6 +31,7 @@ export function Autofix({event, group}: Props) {
         ) : (
           <AutofixBanner
             groupId={group.id}
+            projectId={group.project.id}
             triggerAutofix={triggerAutofix}
             hasSuccessfulSetup={hasSuccessfulSetup}
           />

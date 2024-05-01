@@ -24,7 +24,7 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
 from rest_framework.request import Request
 
-from sentry import features
+from sentry import features, options
 from sentry.api.exceptions import SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
@@ -81,7 +81,10 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any) -> set[str]:
     superuser_scopes = SUPERUSER_SCOPES
     if (
         not is_self_hosted()
-        and features.has("auth:enterprise-superuser-read-write", actor=user)
+        and (
+            options.get("superuser.read-write.ga-rollout")
+            or features.has("auth:enterprise-superuser-read-write", actor=user)
+        )
         and "superuser.write" not in auth_state.permissions
     ):
         superuser_scopes = SUPERUSER_READONLY_SCOPES
@@ -108,7 +111,10 @@ def superuser_has_permission(
         return True
 
     # if we aren't enforcing superuser read-write, then superuser always has access
-    if not features.has("auth:enterprise-superuser-read-write", actor=request.user):
+    if not (
+        features.has("auth:enterprise-superuser-read-write", actor=request.user)
+        or options.get("superuser.read-write.ga-rollout")
+    ):
         return True
 
     # either request.access or permissions must exist

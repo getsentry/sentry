@@ -542,14 +542,7 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded as err:
-            logger.info(
-                "event_manager.save.discard",
-                extra={
-                    "reason": err.reason,
-                    "tombstone_id": err.tombstone_id,
-                },
-            )
+        except HashDiscarded:
             discard_event(job, attachments)
             raise
 
@@ -2036,6 +2029,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             group=group,
             transition_type="automatic",
             sender="handle_regression",
+            new_substatus=GroupSubStatus.REGRESSED,
         )
         if not options.get("groups.enable-post-update-signal"):
             post_save.send(

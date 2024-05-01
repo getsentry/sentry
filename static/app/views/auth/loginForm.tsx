@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -13,6 +12,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 type LoginProvidersProps = Partial<
   Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>

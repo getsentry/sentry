@@ -1,5 +1,4 @@
 import React, {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -12,6 +11,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -108,6 +108,7 @@ export function HTTPLandingPage() {
   const domainsListResponse = useSpanMetrics({
     search: MutableSearch.fromQueryObject(tableFilters),
     fields: [
+      'project',
       'project.id',
       'span.domain',
       'spm()',

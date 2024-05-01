@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
@@ -44,7 +44,7 @@ class UserEmailManager(BaseManager["UserEmail"]):
         return user_email
 
 
-@control_silo_only_model
+@control_silo_model
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
     __relocation_dependencies__ = {"sentry.Email"}

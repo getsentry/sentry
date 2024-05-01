@@ -34,7 +34,7 @@ from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
@@ -476,7 +476,7 @@ class SuperuserTestCase(TestCase):
         assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
 
         # test scope separation
-        with self.feature("auth:enterprise-superuser-read-write"):
+        with self.options({"superuser.read-write.ga-rollout": True}):
             assert get_superuser_scopes(auth_state, user) == SUPERUSER_READONLY_SCOPES
             assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
 
@@ -493,7 +493,7 @@ class SuperuserTestCase(TestCase):
         assert get_superuser_scopes(auth_state, user) == SUPERUSER_SCOPES
         assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
 
-        with self.feature("auth:enterprise-superuser-read-write"):
+        with self.feature({"superuser.read-write.ga-rollout": True}):
             assert get_superuser_scopes(auth_state, user) == SUPERUSER_SCOPES
             assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
 
@@ -517,7 +517,7 @@ class SuperuserTestCase(TestCase):
         assert superuser_has_permission(request)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_has_permission_read_write_get(self):
         request = self.build_request(method="GET")
 
@@ -532,7 +532,7 @@ class SuperuserTestCase(TestCase):
         assert superuser_has_permission(request)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_has_permission_read_write_post(self):
         request = self.build_request(method="POST")
 
@@ -548,7 +548,7 @@ class SuperuserTestCase(TestCase):
         assert superuser_has_permission(request)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_has_permission_read_write_no_request_access(self):
         request = self.build_request(method="GET")
 
