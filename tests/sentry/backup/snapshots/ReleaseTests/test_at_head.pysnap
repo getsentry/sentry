@@ -315,7 +315,6 @@ source: tests/sentry/backup/test_releases.py
   model: sentry.repository
   pk: 1
 - fields:
-    actor: 1
     date_added: '2024-04-17T21:06:29.265Z'
     idp_provisioned: false
     name: test_team_in_test-org
@@ -763,12 +762,6 @@ source: tests/sentry/backup/test_releases.py
   model: sentry.apiapplication
   pk: 1
 - fields:
-    team: 4553851949875201
-    type: 0
-    user_id: null
-  model: sentry.actor
-  pk: 1
-- fields:
     date_hash_added: '2024-04-17T21:06:28.954Z'
     email: owner
     is_verified: true
@@ -1120,7 +1113,6 @@ source: tests/sentry/backup/test_releases.py
     monitor_type: 0
     name: Evolving Mako
     organization: 4553851949875200
-    owner: null
     resolve_threshold: null
     snuba_query: 1
     status: 0
@@ -1138,7 +1130,6 @@ source: tests/sentry/backup/test_releases.py
     monitor_type: 1
     name: Whole Moray
     organization: 4553851949875200
-    owner: null
     resolve_threshold: null
     snuba_query: 2
     status: 0
@@ -1156,7 +1147,6 @@ source: tests/sentry/backup/test_releases.py
     monitor_type: 0
     name: Apparent Colt
     organization: 4553851949875200
-    owner: null
     resolve_threshold: null
     snuba_query: 3
     status: 0
