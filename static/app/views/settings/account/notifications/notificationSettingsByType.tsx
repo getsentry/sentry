@@ -375,7 +375,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     ) {
       notificationDetails.title = t('Spend Notifications');
       notificationDetails.description = t(
-        'Control the notifications you receive for organizations spend.'
+        'Control the notifications you receive for organization spend.'
       );
     }
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
