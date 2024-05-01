@@ -128,6 +128,7 @@ export type MetricsResponse = {
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
 } & {
+  ['project']: string;
   ['project.id']: number;
 } & {
   [Function in RegressionFunctions]: number;
