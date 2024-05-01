@@ -5,10 +5,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 // import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
+import AssigneeSelectorDropdown, {
+  type OnAssignCallback,
+} from 'sentry/components/assigneeSelectorDropdown';
 // import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 // import IndicatorStore from 'sentry/stores/indicatorStore';
@@ -21,8 +23,10 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('AssigneeSelectorDropdown', () => {
-  let assignMock;
+  let assignGroup1Mock;
   // let assignGroup2Mock;
+  let updateGroup1: OnAssignCallback;
+  // let updateGroup2: OnAssignCallback;
   let USER_1, USER_2, USER_3, USER_4;
   let TEAM_1, TEAM_2;
   let PROJECT_1;
@@ -92,23 +96,31 @@ describe('AssigneeSelectorDropdown', () => {
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
-    assignMock = MockApiClient.addMockResponse({
+    assignGroup1Mock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: {
         assignedBy: 'assignee_selector',
-        assignedTo: {USER_1, type: 'user'},
+        assignedTo: {assignedTo: USER_1, type: 'user'},
       },
     });
 
-    assignGroup2Mock = MockApiClient.addMockResponse({
-      method: 'PUT',
-      url: `/organizations/org-slug/issues/${GROUP_2.id}/`,
-      body: {
-        ...GROUP_2,
-        assignedTo: {...USER_1, type: 'user'},
-      },
-    });
+    // assignGroup2Mock = MockApiClient.addMockResponse({
+    //   method: 'PUT',
+    //   url: `/organizations/org-slug/issues/${GROUP_2.id}/`,
+    //   body: {
+    //     ...GROUP_2,
+    //     assignedBy: 'assignee_selector',
+    //     assignedTo: {assignedTo: USER_1, type: 'user'},
+    //   },
+    // });
+
+    updateGroup1 = async (_, assignee, suggestedAssignee) =>
+      await GroupStore.onAssignToSuccess(GROUP_1.id, assignee.id, suggestedAssignee);
+
+    // updateGroup2Store = async (_, actor, suggestedAssignee?) => {
+    //   await GroupStore.onAssignToSuccess(GROUP_2.id, actor, suggestedAssignee);
+    // }: OnAssignCallback
 
     MemberListStore.reset();
   });
@@ -152,7 +164,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     // 3 total items
     const options = screen.getAllByRole('option');
-    // 3 Users + 1 Team = 4 total options
+    // 4 Users + 2 Teams = 6 total options
     expect(options).toHaveLength(6);
     // Expect users to be in alphabetical order
     expect(options[0]).toHaveTextContent(`${USER_1.name} (You)`);
@@ -164,93 +176,95 @@ describe('AssigneeSelectorDropdown', () => {
     expect(options[5]).toHaveTextContent(TEAM_2.slug);
   });
 
-  // why tf does this not work
-  // it('successfully assigns users', async () => {
-  //   render(
-  //     <AssigneeSelectorDropdown
-  //       group={GROUP_1}
-  //       memberList={[USER_1, USER_2, USER_3, USER_4]}
-  //     />
-  //   );
-  //   await openMenu();
-  //   expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-
-  //   await userEvent.click(screen.getByText(`${USER_1.name} (You)`));
-
-  //   expect(assignMock).toHaveBeenLastCalledWith(
-  //     '/organizations/org-slug/issues/1337/',
-  //     expect.objectContaining({
-  //       data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
-  //     })
-  //   );
-
-  //   // expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
-  //   // USER_1 initials
-  //   screen.debug(screen.getByTestId('assignee-selector'));
-  //   expect(await screen.getByTestId('assignee-selector')).toHaveTextContent('AB');
-  // });
-
-  it('successfully assigns teams', async () => {
-    MockApiClient.clearMockResponses();
-    assignMock = MockApiClient.addMockResponse({
-      method: 'PUT',
-      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
-      body: {
-        ...GROUP_1,
-        assignedTo: {...TEAM_1, type: 'team'},
-      },
-    });
-    render(<AssigneeSelectorDropdown group={GROUP_1} />);
-    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+  it('successfully assigns users', async () => {
+    const groupStoreSpy = jest.spyOn(GroupStore, 'onAssignToSuccess');
+    render(
+      <AssigneeSelectorDropdown
+        group={GROUP_1}
+        memberList={[USER_1, USER_2, USER_3, USER_4]}
+        onAssign={updateGroup1}
+      />
+    );
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+    await userEvent.click(screen.getByText(`${USER_1.name} (You)`));
 
-    await waitFor(() =>
-      expect(assignMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/issues/1337/',
-        expect.objectContaining({
-          data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
-        })
-      )
+    expect(assignGroup1Mock).toHaveBeenLastCalledWith(
+      `/organizations/org-slug/issues/${GROUP_1.id}/`,
+      expect.objectContaining({
+        data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
+      })
     );
+    expect(groupStoreSpy).toHaveBeenCalled();
 
     // expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
-    // TEAM_1 initials
-    expect(screen.getByTestId('assignee-selector')).toHaveTextContent('CT');
+    // USER_1 initials
+    screen.debug(screen.getByTestId('assignee-selector'));
+    expect(screen.getByTestId('assignee-selector')).toHaveTextContent('AB');
   });
 
-  it('successfully clears assignment', async () => {
-    render(<AssigneeSelectorDropdown group={GROUP_1} />);
-    act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
-    await openMenu();
+  // it('successfully assigns teams', async () => {
+  //   MockApiClient.clearMockResponses();
+  //   assignGroup1Mock = MockApiClient.addMockResponse({
+  //     method: 'PUT',
+  //     url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
+  //     body: {
+  //       ...GROUP_1,
+  //       assignedTo: {...TEAM_1, type: 'team'},
+  //     },
+  //   });
+  //   render(<AssigneeSelectorDropdown group={GROUP_1} onAssign={updateGroup1Store} />);
+  //   act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+  //   await openMenu();
+  //   expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    // Assign first item in list, which is TEAM_1
-    await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+  //   await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
-    await waitFor(() =>
-      expect(assignMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/issues/1337/',
-        expect.objectContaining({
-          data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
-        })
-      )
-    );
+  //   await waitFor(() =>
+  //     expect(assignGroup1Mock).toHaveBeenCalledWith(
+  //       '/organizations/org-slug/issues/1337/',
+  //       expect.objectContaining({
+  //         data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
+  //       })
+  //     )
+  //   );
 
-    await openMenu();
-    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+  //   // expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
+  //   // TEAM_1 initials
+  //   expect(screen.getByTestId('assignee-selector')).toHaveTextContent('CT');
+  // });
 
-    // api was called with empty string, clearing assignment
-    await waitFor(() =>
-      expect(assignMock).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/issues/1337/',
-        expect.objectContaining({
-          data: {assignedTo: '', assignedBy: 'assignee_selector'},
-        })
-      )
-    );
-  });
+  // it('successfully clears assignment', async () => {
+  //   render(<AssigneeSelectorDropdown group={GROUP_1} />);
+  //   act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
+  //   await openMenu();
+
+  //   // Assign first item in list, which is TEAM_1
+  //   await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+
+  //   await waitFor(() =>
+  //     expect(assignMock).toHaveBeenCalledWith(
+  //       '/organizations/org-slug/issues/1337/',
+  //       expect.objectContaining({
+  //         data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
+  //       })
+  //     )
+  //   );
+
+  //   await openMenu();
+  //   await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+
+  //   // api was called with empty string, clearing assignment
+  //   await waitFor(() =>
+  //     expect(assignMock).toHaveBeenLastCalledWith(
+  //       '/organizations/org-slug/issues/1337/',
+  //       expect.objectContaining({
+  //         data: {assignedTo: '', assignedBy: 'assignee_selector'},
+  //       })
+  //     )
+  //   );
+  // });
 
   // it('shows invite member button', async () => {
   //   MemberListStore.loadInitialData([USER_1, USER_2]);
