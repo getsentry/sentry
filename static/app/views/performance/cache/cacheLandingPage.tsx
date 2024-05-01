@@ -76,7 +76,7 @@ export function CacheLandingPage() {
   } = useSpanMetrics({
     search: MutableSearch.fromQueryObject(BASE_FILTERS),
     fields: [
-      'project.id',
+      'project',
       'transaction',
       'spm()',
       `${CACHE_MISS_RATE}()`,

@@ -16,7 +16,6 @@ import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TransactionCell} from 'sentry/views/performance/cache/tables/transactionCell';
-import {ProjectIdCell} from 'sentry/views/performance/http/tables/projectIdCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {type MetricsResponse, SpanFunction} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -26,17 +25,21 @@ const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Row = Pick<
   MetricsResponse,
-  | 'project.id'
+  | 'project'
   | 'transaction'
   | 'spm()'
   | 'cache_miss_rate()'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
-  | 'project.id'
 >;
 
 type Column = GridColumnHeader<
-  'transaction' | 'spm()' | 'cache_miss_rate()' | 'time_spent_percentage()' | 'project.id'
+  | 'transaction'
+  | 'spm()'
+  | 'cache_miss_rate()'
+  | 'time_spent_percentage()'
+  | 'project.id'
+  | 'project'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -46,7 +49,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'project.id',
+    key: 'project',
     name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -156,11 +159,6 @@ function renderBodyCell(
         transactionMethod={row['transaction.method']}
       />
     );
-  }
-
-  // TODO - use field renderer and remove this
-  if (column.key === 'project.id') {
-    return <ProjectIdCell projectId={row['project.id']?.toString()} />;
   }
 
   if (!meta?.fields) {
