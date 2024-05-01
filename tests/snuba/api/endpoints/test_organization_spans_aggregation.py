@@ -10,8 +10,8 @@ from sentry.api.endpoints.organization_spans_aggregation import NULL_GROUP
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.samples import load_data
-from src.sentry.testutils.pytest.fixtures import django_db_all
 
 MOCK_SNUBA_RESPONSE = {
     "data": [
