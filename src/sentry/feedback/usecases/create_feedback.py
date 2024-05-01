@@ -35,6 +35,7 @@ class FeedbackCreationSource(Enum):
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
+    UPDATE_USER_REPORTS_TASK = "update_user_reports_task"
 
     @classmethod
     def new_feedback_category_values(cls) -> set[str]:
@@ -54,6 +55,7 @@ class FeedbackCreationSource(Enum):
                 cls.CRASH_REPORT_EMBED_FORM,
                 cls.USER_REPORT_ENVELOPE,
                 cls.USER_REPORT_DJANGO_ENDPOINT,
+                cls.UPDATE_USER_REPORTS_TASK,
             ]
         }
 
