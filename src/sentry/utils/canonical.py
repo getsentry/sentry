@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Iterator, Mapping, MutableMapping
-from typing import Generic, Self, TypedDict, TypeVar
-
-from django.conf import settings
+from typing import Self, TypeVar
 
 V = TypeVar("V")
 
@@ -48,10 +46,6 @@ def get_canonical_name(key: str) -> str:
     return CANONICAL_KEY_MAPPING.get(key, (key,))[0]
 
 
-def get_legacy_name(key: str) -> str:
-    return LEGACY_KEY_MAPPING.get(key, (key,))[0]
-
-
 class CanonicalKeyView(Mapping[str, V]):
     def __init__(self, data: dict[str, V]) -> None:
         self.data = data
@@ -87,38 +81,16 @@ class CanonicalKeyView(Mapping[str, V]):
         return f"CanonicalKeyView({self.data!r})"
 
 
-class _PickleState(TypedDict, Generic[V]):
-    legacy: bool | None
-    data: dict[str, V]
-
-
 class CanonicalKeyDict(MutableMapping[str, V]):
-    def __init__(self, data: Mapping[str, V], legacy: bool | None = None) -> None:
-        self.legacy = legacy
-        self.__init(data)
-
-    def __init(self, data: Mapping[str, V]) -> None:
-        legacy = self.legacy
-        if legacy is None:
-            legacy = settings.PREFER_CANONICAL_LEGACY_KEYS
-        norm_func = get_legacy_name if legacy else get_canonical_name
-        self._norm_func = norm_func
+    def __init__(self, data: Mapping[str, V]) -> None:
         self.data: dict[str, V] = {}
         for key, value in data.items():
-            canonical_key = norm_func(key)
+            canonical_key = get_canonical_name(key)
             if key == canonical_key or canonical_key not in self.data:
                 self.data[canonical_key] = value
 
-    def __getstate__(self) -> _PickleState[V]:
-        return {"legacy": self.legacy, "data": self.data}
-
-    def __setstate__(self, state: _PickleState[V]) -> None:
-        self.__dict__.update(state)
-        self.__init(state["data"])
-
     def copy(self) -> Self:
         rv = object.__new__(self.__class__)
-        rv._norm_func = self._norm_func
         rv.data = copy.copy(self.data)
         return rv
 
@@ -131,16 +103,16 @@ class CanonicalKeyDict(MutableMapping[str, V]):
         return iter(self.data)
 
     def __contains__(self, key: object) -> bool:
-        return isinstance(key, str) and self._norm_func(key) in self.data
+        return isinstance(key, str) and get_canonical_name(key) in self.data
 
     def __getitem__(self, key: str) -> V:
-        return self.data[self._norm_func(key)]
+        return self.data[get_canonical_name(key)]
 
     def __setitem__(self, key: str, value: V) -> None:
-        self.data[self._norm_func(key)] = value
+        self.data[get_canonical_name(key)] = value
 
     def __delitem__(self, key: str) -> None:
-        del self.data[self._norm_func(key)]
+        del self.data[get_canonical_name(key)]
 
     def __repr__(self) -> str:
         return f"CanonicalKeyDict({self.data!r})"
