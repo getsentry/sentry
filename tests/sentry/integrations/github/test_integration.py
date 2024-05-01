@@ -326,7 +326,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             reverse(
                 "sentry-organization-integrations-setup",
                 kwargs={
-                    "organization_slug": self.organization_2.slug,
+                    "organization_id_or_slug": self.organization_2.slug,
                     "provider_id": self.provider.key,
                 },
             ),
@@ -404,7 +404,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             reverse(
                 "sentry-organization-integrations-setup",
                 kwargs={
-                    "organization_slug": self.organization.slug,
+                    "organization_id_or_slug": self.organization.slug,
                     "provider_id": self.provider.key,
                 },
             ),
@@ -433,7 +433,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             reverse(
                 "sentry-organization-integrations-setup",
                 kwargs={
-                    "organization_slug": org_2.slug,
+                    "organization_id_or_slug": org_2.slug,
                     "provider_id": self.provider.key,
                 },
             ),

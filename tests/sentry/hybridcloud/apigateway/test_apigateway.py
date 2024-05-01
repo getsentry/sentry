@@ -27,7 +27,9 @@ class ApiGatewayTest(ApiGatewayTestCase):
             verify_request_params(query_params, headers),
         )
 
-        base_url = reverse("region-endpoint", kwargs={"organization_slug": self.organization.slug})
+        base_url = reverse(
+            "region-endpoint", kwargs={"organization_id_or_slug": self.organization.slug}
+        )
         encoded_params = urlencode(query_params, doseq=True)
         url = f"{base_url}?{encoded_params}"
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
@@ -50,7 +52,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             status=302,
         )
 
-        url = reverse("region-endpoint", kwargs={"organization_slug": self.organization.slug})
+        url = reverse("region-endpoint", kwargs={"organization_id_or_slug": self.organization.slug})
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.post(url)
         assert resp.status_code == 302
@@ -89,10 +91,10 @@ class ApiGatewayTest(ApiGatewayTestCase):
         )
 
         region_url = reverse(
-            "region-endpoint", kwargs={"organization_slug": self.organization.slug}
+            "region-endpoint", kwargs={"organization_id_or_slug": self.organization.slug}
         )
         control_url = reverse(
-            "control-endpoint", kwargs={"organization_slug": self.organization.slug}
+            "control-endpoint", kwargs={"organization_id_or_slug": self.organization.slug}
         )
 
         with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
@@ -192,7 +194,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         # and not sentry.web.urls which includes the version prefix
         region_pinned = "/builtin-symbol-sources/"
         control_url = reverse(
-            "control-endpoint", kwargs={"organization_slug": self.organization.slug}
+            "control-endpoint", kwargs={"organization_id_or_slug": self.organization.slug}
         )
 
         with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):

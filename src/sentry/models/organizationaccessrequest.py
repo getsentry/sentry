@@ -45,7 +45,7 @@ class OrganizationAccessRequest(Model):
             "url": organization.absolute_url(
                 reverse(
                     "sentry-organization-teams",
-                    kwargs={"organization_slug": organization.slug},
+                    kwargs={"organization_id_or_slug": organization.slug},
                 )
             ),
         }

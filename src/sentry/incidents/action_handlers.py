@@ -432,7 +432,7 @@ def generate_incident_trigger_email_context(
         reverse(
             "sentry-metric-alert",
             kwargs={
-                "organization_slug": organization.slug,
+                "organization_id_or_slug": organization.slug,
                 "incident_id": incident.identifier,
             },
         ),

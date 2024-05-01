@@ -116,7 +116,7 @@ def build_activity_context(
             reverse(
                 "sentry-metric-alert",
                 kwargs={
-                    "organization_slug": incident.organization.slug,
+                    "organization_id_or_slug": incident.organization.slug,
                     "incident_id": incident.identifier,
                 },
             )

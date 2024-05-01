@@ -24,7 +24,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_id_or_slug": self.alert_rule.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -59,7 +59,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": self.alert_rule.organization.slug,
+                        "organization_id_or_slug": self.alert_rule.organization.slug,
                         "alert_rule_id": self.alert_rule.id,
                     },
                 )
@@ -96,7 +96,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_id_or_slug": self.alert_rule.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -132,7 +132,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_id_or_slug": self.alert_rule.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -165,7 +165,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_id_or_slug": self.alert_rule.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -204,7 +204,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_id_or_slug": self.alert_rule.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )

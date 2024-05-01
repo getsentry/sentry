@@ -136,7 +136,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         the issue (title, last seen, first seen), some overall numbers (number
         of comments, user reports) as well as the summarized event data.
 
-        :pparam string organization_slug: The slug of the organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """

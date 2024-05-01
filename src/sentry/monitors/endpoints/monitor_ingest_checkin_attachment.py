@@ -63,7 +63,7 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
         request: Request,
         monitor_id_or_slug: int | str,
         checkin_id: str,
-        organization_slug: str | int | None = None,
+        organization_id_or_slug: int | str | None = None,
         *args,
         **kwargs,
     ):
@@ -87,23 +87,27 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
         else:
 
             # When using DSN auth we're able to infer the organization slug
-            if not organization_slug and using_dsn_auth:
-                organization_slug = request.auth.project.organization.slug
+            if not organization_id_or_slug and using_dsn_auth:
+                organization_id_or_slug = request.auth.project.organization.slug
 
             # The only monitor endpoints that do not have the org slug in their
             # parameters are the GUID-style checkin endpoints
-            if organization_slug:
+            if organization_id_or_slug:
                 try:
                     # Try lookup by slug first. This requires organization context.
                     if (
                         id_or_slug_path_params_enabled(
-                            self.convert_args.__qualname__, str(organization_slug)
+                            self.convert_args.__qualname__, str(organization_id_or_slug)
                         )
-                        and str(organization_slug).isdecimal()
+                        and str(organization_id_or_slug).isdecimal()
                     ):
-                        organization = Organization.objects.get_from_cache(id=organization_slug)
+                        organization = Organization.objects.get_from_cache(
+                            id=organization_id_or_slug
+                        )
                     else:
-                        organization = Organization.objects.get_from_cache(slug=organization_slug)
+                        organization = Organization.objects.get_from_cache(
+                            slug=organization_id_or_slug
+                        )
 
                     monitor = get_monitor_by_org_id_or_slug(organization, monitor_id_or_slug)
                 except (Organization.DoesNotExist, Monitor.DoesNotExist):
@@ -143,12 +147,12 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
         # When looking up via GUID we do not check the organization slug,
         # validate that the slug matches the org of the monitors project
 
-        # We only raise if the organization_slug was set and it doesn't match.
+        # We only raise if the organization_id_or_slug was set and it doesn't match.
         # We don't check the api.id-or-slug-enabled option here because slug and id are unique
         if (
-            organization_slug
-            and project.organization.slug != organization_slug
-            and project.organization.id != organization_slug
+            organization_id_or_slug
+            and project.organization.slug != organization_id_or_slug
+            and project.organization.id != organization_id_or_slug
         ):
             raise ResourceDoesNotExist
 

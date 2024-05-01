@@ -79,7 +79,10 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def url(self, dashboard_id):
         return reverse(
             "sentry-api-0-organization-dashboard-details",
-            kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
         )
 
     def assert_serialized_dashboard(self, data, dashboard):
@@ -1901,7 +1904,10 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id):
         return reverse(
             "sentry-api-0-organization-dashboard-visit",
-            kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
         )
 
     def test_visit_dashboard(self):
