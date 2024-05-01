@@ -98,7 +98,6 @@ function GroupRelatedIssues({params}: Props) {
                       <LinkButton
                         to={`/organizations/${orgSlug}/issues/?query=issue.id:[${groupId},${sameRootCauseIssues}]`}
                         size="xs"
-                        external
                       >
                         {t('Open in Issues')}
                       </LinkButton>
@@ -109,6 +108,8 @@ function GroupRelatedIssues({params}: Props) {
                       queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
                       query=""
                       source="related-issues-tab"
+                      canSelectGroups={false}
+                      withChart={false}
                     />
                   </div>
                 ) : (
@@ -125,15 +126,14 @@ function GroupRelatedIssues({params}: Props) {
                       <small>
                         {t('These are the issues belonging to ')}
                         <Link
-                          to={`/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
+                          to={`/organizations/${orgSlug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
                         >
                           {t('this trace')}
                         </Link>
                       </small>
                       <LinkButton
-                        href={`/issues/?query=issue.id:[${groupId},${traceConnectedIssues}]`}
+                        to={`/organizations/${orgSlug}/issues/?query=trace:${traceMeta.trace_id}`}
                         size="xs"
-                        external
                       >
                         {t('Open in Issues')}
                       </LinkButton>
@@ -144,6 +144,8 @@ function GroupRelatedIssues({params}: Props) {
                       queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
                       query=""
                       source="related-issues-tab"
+                      canSelectGroups={false}
+                      withChart={false}
                     />
                   </div>
                 ) : (
