@@ -216,9 +216,9 @@ export function Trace({
     const queryParams = qs.parse(location.search);
     const maybeQueue = decodeScrollQueue(queryParams.node);
 
-    if (maybeQueue || queryParams.event_id) {
+    if (maybeQueue || queryParams.eventId) {
       scrollQueueRef.current = {
-        eventId: queryParams.event_id as string,
+        eventId: queryParams.eventId as string,
         path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
       };
     }
