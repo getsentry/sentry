@@ -96,7 +96,7 @@ function GroupRelatedIssues({params}: Props) {
                     <TextButtonWrapper>
                       <div />
                       <LinkButton
-                        href={`/issues/?query=issue.id:[${groupId},${sameRootCauseIssues}]`}
+                        to={`/organizations/${orgSlug}/issues/?query=issue.id:[${groupId},${sameRootCauseIssues}]`}
                         size="xs"
                         external
                       >
