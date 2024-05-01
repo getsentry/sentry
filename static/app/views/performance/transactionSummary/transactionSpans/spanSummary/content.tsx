@@ -129,8 +129,6 @@ function SpanSummaryContent(props: ContentProps) {
     referrer: 'api.starfish.span-summary-page',
   });
 
-  console.dir(spanHeaderData);
-
   const description = spanHeaderData[0]?.['span.description'] ?? t('unknown');
   const timeSpent = spanHeaderData[0]?.['sum(span.self_time)'];
   const avgDuration = spanHeaderData[0]?.['avg(span.self_time)'];
@@ -147,8 +145,6 @@ function SpanSummaryContent(props: ContentProps) {
       </Feature>
       <SpanSummaryHeader
         spanOp={spanOp}
-        groupId={groupId}
-        transactionName={transactionName}
         spanDescription={description}
         avgDuration={avgDuration}
         timeSpent={timeSpent}

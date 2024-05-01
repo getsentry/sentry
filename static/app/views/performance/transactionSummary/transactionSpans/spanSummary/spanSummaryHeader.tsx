@@ -7,18 +7,10 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
   spanOp: string;
-  groupId: string;
-  transactionName: string;
   spanDescription: string;
   avgDuration: number;
   timeSpent: number;
@@ -26,15 +18,7 @@ type Props = {
 };
 
 export default function SpanSummaryHeader(props: Props) {
-  const {
-    groupId,
-    spanOp,
-    transactionName,
-    spanDescription,
-    avgDuration,
-    timeSpent,
-    spanCount,
-  } = props;
+  const {spanOp, spanDescription, avgDuration, timeSpent, spanCount} = props;
 
   return (
     <ContentHeader>
@@ -46,7 +30,7 @@ export default function SpanSummaryHeader(props: Props) {
         <SectionSubtext data-test-id="operation-name">{spanOp}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-avg-duration">
-        <StyledSectionHeading>{t('Avg Duration')}</StyledSectionHeading>
+        <StyledSectionHeading>{DataTitles.avg}</StyledSectionHeading>
         <SectionBody>
           {defined(avgDuration)
             ? formatMetricUsingUnit(avgDuration, 'milliseconds')
@@ -54,7 +38,7 @@ export default function SpanSummaryHeader(props: Props) {
         </SectionBody>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
-        <StyledSectionHeading>{t('Time Spent')}</StyledSectionHeading>
+        <StyledSectionHeading>{DataTitles.timeSpent}</StyledSectionHeading>
         <SectionBody>
           {defined(timeSpent) ? (
             <PerformanceDuration abbreviation milliseconds={timeSpent} />
