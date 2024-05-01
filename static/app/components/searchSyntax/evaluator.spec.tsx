@@ -223,6 +223,10 @@ describe('Search Syntax Evaluator', () => {
         );
         expect(tokensToString(tokens)).toBe('is:unresolved is:resolved is:dead AND AND');
       });
+      it('parentheses respect precedence', () => {
+        const tokens = toPostFix(parseSearch('is:unresolved OR (is:dead AND is:alive)')!);
+        expect(tokensToString(tokens)).toBe('is:unresolved is:dead is:alive AND OR');
+      });
     });
   });
 });

@@ -98,6 +98,12 @@ function processTokenResults(tokens: TokenResult<Token>[]): ProcessedTokenResult
   return withImplicitAnd;
 }
 
+function isBooleanOR(token: ProcessedTokenResult): boolean {
+  return (
+    token && token.type === Token.LOGIC_BOOLEAN && token.value === BooleanOperator.OR
+  );
+}
+
 // https://en.wikipedia.org/wiki/Shunting_yard_algorithm
 export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
   const processed = processTokenResults(tokens);
@@ -108,15 +114,15 @@ export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] 
 
   for (const token of processed) {
     switch (token.type) {
-      // @TODO Jonas: AND precedence has to be higher than or.
       case Token.LOGIC_BOOLEAN: {
-        while (stack.length > 0) {
-          const top = stack[stack.length - 1];
-          if (top.type === Token.LOGIC_BOOLEAN) {
-            result.push(stack.pop() as ProcessedTokenResult);
-          } else {
-            break;
-          }
+        while (
+          stack.length > 0 &&
+          token.value === BooleanOperator.AND &&
+          stack[stack.length - 1].type === Token.LOGIC_BOOLEAN &&
+          stack[stack.length - 1].type !== 'L_PAREN' &&
+          isBooleanOR(stack[stack.length - 1])
+        ) {
+          result.push(stack.pop() as ProcessedTokenResult);
         }
         stack.push(token);
         break;
@@ -131,6 +137,8 @@ export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] 
             stack.pop();
             break;
           }
+          // we dont need to check for balanced parens as the parser grammar will only succeed
+          // in parsing the input string if the parens are balanced.
           result.push(stack.pop() as ProcessedTokenResult);
         }
         break;
