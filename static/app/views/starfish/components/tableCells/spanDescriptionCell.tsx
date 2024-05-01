@@ -72,7 +72,7 @@ export function SpanDescriptionCell({
     );
   }
 
-  if (moduleName === ModuleName.HTTP) {
+  if (moduleName === ModuleName.RESOURCE) {
     return (
       <WiderHovercard
         position="right"

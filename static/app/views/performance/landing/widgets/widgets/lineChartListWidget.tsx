@@ -587,7 +587,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               const isQueriesWidget =
                 props.chartSetting ===
                 PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
-              const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.HTTP;
+              const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.RESOURCE;
               const timeSpentOp = isQueriesWidget ? 'op' : undefined;
               const routingContextBaseURL = isQueriesWidget
                 ? '/performance/database'
