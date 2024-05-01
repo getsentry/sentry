@@ -133,6 +133,7 @@ function DefaultGroupEventDetailsContent({
             report={event.userReport}
             orgSlug={organization.slug}
             issueId={group.id}
+            showLink={false}
           />
         </EventDataSection>
       )}
