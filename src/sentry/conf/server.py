@@ -2151,11 +2151,6 @@ SENTRY_FILESTORE_ALIASES = {
     "gcs": "sentry.filestore.gcs.GoogleCloudStorage",
 }
 
-SENTRY_ANALYTICS_ALIASES = {
-    "noop": "sentry.analytics.Analytics",
-    "pubsub": "sentry.analytics.pubsub.PubSubAnalytics",
-}
-
 # set of backends that do not support needing SMTP mail.* settings
 # This list is a bit fragile and hardcoded, but it's unlikely that
 # a user will be using a different backend that also mandates SMTP

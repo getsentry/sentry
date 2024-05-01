@@ -594,7 +594,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - actor
     - group
     - organization
     - project
