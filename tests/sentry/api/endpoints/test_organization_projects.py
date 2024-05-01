@@ -109,6 +109,13 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         )
         self.check_valid_response(response, [project_bar, project_foo])
 
+    def test_search_by_ids_invalid(self):
+        response = self.get_error_response(self.organization.slug, qs_params={"query": "id:"})
+        assert response.status_code == 400
+
+        response = self.get_error_response(self.organization.slug, qs_params={"query": "id:bababa"})
+        assert response.status_code == 400
+
     def test_search_by_slugs(self):
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
         project_foo = self.create_project(teams=[self.team], name="foo", slug="foo")
