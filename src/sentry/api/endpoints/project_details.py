@@ -456,7 +456,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: DetailedProjectSerializer,
@@ -500,7 +500,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Update a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectAdminSerializer,
@@ -891,7 +891,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Delete a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,

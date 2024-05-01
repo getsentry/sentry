@@ -88,12 +88,12 @@ urlpatterns = [
         name="concurrent-ratelimit-endpoint",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/stats_v2/$",
         MyOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-stats-v2",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/members/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/members/$",
         MyControlOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-members",
     ),

@@ -636,7 +636,7 @@ def request_access(request):
             "organization": org,
             "team": team,
             "url": org.absolute_url(
-                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
+                reverse("sentry-organization-teams", kwargs={"organization_id_or_slug": org.slug})
             ),
         },
     ).render(request)
@@ -656,7 +656,7 @@ def request_access_for_another_member(request):
             "organization": org,
             "team": team,
             "url": org.absolute_url(
-                reverse("sentry-organization-teams", kwargs={"organization_slug": org.slug})
+                reverse("sentry-organization-teams", kwargs={"organization_id_or_slug": org.slug})
             ),
             "requester": request.user.get_display_name(),
         },

@@ -25,7 +25,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
 
     @deprecated(
         datetime.fromisoformat("2024-05-01T00:00:00Z"),
-        "Activities for each issue at 'GET /api/0/organizations/{organization_slug}/issues/{issue_id}/activities/'",
+        "Activities for each issue at 'GET /api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/activities/'",
     )
     def get(self, request: Request, organization, member) -> Response:
         # There is an activity record created for both sides of the unmerge

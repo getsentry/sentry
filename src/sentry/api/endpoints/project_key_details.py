@@ -40,7 +40,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Retrieve a Client Key",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the client key"),
         ],
@@ -68,7 +68,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Update a Client Key",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the key to update."),
         ],
@@ -172,7 +172,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Delete a Client Key",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the key to delete."),
         ],

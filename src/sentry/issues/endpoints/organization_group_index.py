@@ -250,7 +250,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         :qparam bool savedSearch:  if this is set to False, then we are making the request without
                                    a saved search and will look for the default search from this endpoint.
         :qparam string searchId:   if passed in, this is the selected search
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :auth: required
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
@@ -432,7 +432,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
                                ``"ignored"``.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
@@ -508,7 +508,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                         parameter shall be repeated for each issue, e.g.
                         `?id=1&id=2&id=3`. If this parameter is not provided,
                         it will attempt to remove the first 1000 issues.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :auth: required
         """

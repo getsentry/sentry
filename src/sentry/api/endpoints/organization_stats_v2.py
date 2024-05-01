@@ -151,7 +151,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
-        parameters=[GlobalParams.ORG_SLUG, OrgStatsQueryParamsSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),

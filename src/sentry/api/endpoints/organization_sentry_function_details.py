@@ -24,8 +24,8 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def convert_args(self, request, organization_slug, function_id_or_slug, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
+    def convert_args(self, request, organization_id_or_slug, function_id_or_slug, *args, **kwargs):
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
             if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
