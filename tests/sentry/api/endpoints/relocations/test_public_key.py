@@ -41,7 +41,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         response = self.get_success_response(status_code=200)
 
         assert response.status_code == 200
-        assert bytes(response.data["public_key"], "utf-8") == self.pub_key_pem
+        assert response.data["public_key"].encode() == self.pub_key_pem
         assert fake_kms_client.get_public_key.call_count == 1
 
     def test_good_superuser_when_feature_disabled(
@@ -53,7 +53,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         response = self.get_success_response(status_code=200)
 
         assert response.status_code == 200
-        assert bytes(response.data["public_key"], "utf-8") == self.pub_key_pem
+        assert response.data["public_key"].encode() == self.pub_key_pem
         assert fake_kms_client.get_public_key.call_count == 1
 
     @override_options({"relocation.enabled": True, "staff.ga-rollout": True})
@@ -64,7 +64,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         response = self.get_success_response(status_code=200)
 
         assert response.status_code == 200
-        assert bytes(response.data["public_key"], "utf-8") == self.pub_key_pem
+        assert response.data["public_key"].encode() == self.pub_key_pem
         assert fake_kms_client.get_public_key.call_count == 1
 
     @override_options({"staff.ga-rollout": True})
@@ -77,7 +77,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         response = self.get_success_response(status_code=200)
 
         assert response.status_code == 200
-        assert bytes(response.data["public_key"], "utf-8") == self.pub_key_pem
+        assert response.data["public_key"].encode() == self.pub_key_pem
         assert fake_kms_client.get_public_key.call_count == 1
 
     @override_options({"relocation.enabled": True})
@@ -89,7 +89,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         response = self.get_success_response(status_code=200)
 
         assert response.status_code == 200
-        assert bytes(response.data["public_key"], "utf-8") == self.pub_key_pem
+        assert response.data["public_key"].encode() == self.pub_key_pem
         assert fake_kms_client.get_public_key.call_count == 1
 
     def test_bad_regular_user_when_feature_disabled(

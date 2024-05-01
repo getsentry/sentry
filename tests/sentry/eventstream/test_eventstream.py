@@ -362,7 +362,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
         assert ("queue", b"post_process_issue_platform") in headers
-        assert ("occurrence_id", bytes(group_event.occurrence.id, encoding="utf-8")) in headers
+        assert ("occurrence_id", group_event.occurrence.id.encode()) in headers
         assert body["queue"] == "post_process_issue_platform"
 
     def test_insert_generic_event_contexts(self):

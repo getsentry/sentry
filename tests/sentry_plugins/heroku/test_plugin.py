@@ -146,7 +146,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
@@ -167,7 +167,7 @@ class HookHandleTest(TestCase):
             },
             "action": "create",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         hook.handle(req)
         assert not Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 0
@@ -188,7 +188,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
@@ -208,7 +208,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
 
@@ -226,6 +226,6 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         with pytest.raises(HookValidationError):
             hook.handle(req)

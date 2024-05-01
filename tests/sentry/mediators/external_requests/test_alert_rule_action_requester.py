@@ -108,7 +108,7 @@ class TestAlertRuleActionRequester(TestCase):
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=200,
-            body=bytes(self.success_message, encoding="utf-8"),
+            body=self.success_message.encode(),
         )
         result = AlertRuleActionRequester.run(
             install=self.install,
@@ -184,7 +184,7 @@ class TestAlertRuleActionRequester(TestCase):
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=401,
-            body=bytes(self.error_message, encoding="utf-8"),
+            body=self.error_message.encode(),
         )
         result = AlertRuleActionRequester.run(
             install=self.install,

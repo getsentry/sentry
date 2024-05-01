@@ -1307,7 +1307,7 @@ class OnDemandMetricSpec:
     @cached_property
     def query_hash(self) -> str:
         str_to_hash = self._query_str_for_hash
-        hash = hashlib.shake_128(bytes(str_to_hash, encoding="utf-8")).hexdigest(4)
+        hash = hashlib.shake_128(str_to_hash.encode()).hexdigest(4)
         return hash
 
     def _field_for_hash(self) -> str | None:
