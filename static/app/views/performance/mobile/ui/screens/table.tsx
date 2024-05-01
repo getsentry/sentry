@@ -119,6 +119,7 @@ export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
         `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
       ]}
+      // TODO: Add default sort on count column
       defaultSort={[
         {
           key: `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,

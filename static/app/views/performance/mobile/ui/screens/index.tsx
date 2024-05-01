@@ -15,6 +15,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {getFreeTextFromQuery} from 'sentry/views/performance/mobile/screenload/screens';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
 import {UIScreensTable} from 'sentry/views/performance/mobile/ui/screens/table';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -76,7 +77,7 @@ export function UIScreens() {
   } = useTableQuery({
     eventView: tableEventView,
     enabled: !isReleasesLoading,
-    referrer: 'api.performance.mobile.ui.screen-table',
+    referrer: Referrer.OVERVIEW_SCREENS_TABLE,
   });
 
   // TODO: Add transaction.op:ui.load when collecting begins
