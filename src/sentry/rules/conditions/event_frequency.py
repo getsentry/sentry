@@ -122,6 +122,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def __init__(
         self,
+        # Data specifically takes on this typeddict form for the
+        # Event Frequency condition classes.
         data: EventFrequencyConditionData | None = None,
         *args: Any,
         **kwargs: Any,
@@ -140,10 +142,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 ],
             },
         }
+        kwargs["data"] = data
 
-        # MyPy refuses to make TypedDict compatible with MutableMapping
-        # https://github.com/python/mypy/issues/4976
-        super().__init__(data=data, *args, **kwargs)  # type:ignore[arg-type, misc]
+        super().__init__(*args, **kwargs)
 
     def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None
