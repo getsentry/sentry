@@ -607,6 +607,7 @@ def query_trace_data(
             "transaction",
             "issue",
             "title",
+            "message",
             "tags[level]",
         ],
         # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
@@ -903,6 +904,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "project_slug": event["project"],
             "title": event["title"],
             "level": event["tags[level]"],
+            "message": event["message"],
             "timestamp": datetime.fromisoformat(event["timestamp"]).timestamp(),
             "event_type": "error",
             "generation": 0,
