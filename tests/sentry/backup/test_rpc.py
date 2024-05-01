@@ -84,7 +84,10 @@ class RpcImportRetryTests(TestCase):
             assert result.min_source_pk == 5
             assert result.max_source_pk == 5
             assert result.min_inserted_pk == result.max_inserted_pk
-            assert len(result.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]) == 1
+
+            mapping = result.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]
+            assert len(mapping) == 1
+            assert mapping.get(5, None) is not None
 
             assert Option.objects.count() == option_count + 1
             assert RegionImportChunk.objects.count() == import_chunk_count + 1
@@ -99,10 +102,23 @@ class RpcImportRetryTests(TestCase):
             assert len(import_chunk.existing_map) == 0
             assert len(import_chunk.overwrite_map) == 0
 
+            existing_import_chunk = get_existing_import_chunk(
+                OPTION_MODEL_NAME,
+                ImportFlags(import_uuid=import_uuid),
+                RegionImportChunk,
+                1,
+            )
+            assert existing_import_chunk is not None
+
+            mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]
+            assert len(mapping) == 1
+            assert mapping.get(5, None) is not None
+
+            return import_chunk
+
         # Doing the write twice should produce identical results from the sender's point of view,
         # and should not result in multiple `RegionImportChunk`s being written.
-        verify_option_write()
-        verify_option_write()
+        assert verify_option_write() == verify_option_write()
 
     def test_good_remote_retry_idempotent(self):
         # If the response gets lost on the way to the caller, it will try again. Make sure it is
@@ -161,10 +177,25 @@ class RpcImportRetryTests(TestCase):
                 assert len(import_chunk.existing_map) == 0
                 assert len(import_chunk.overwrite_map) == 0
 
+                existing_import_chunk = get_existing_import_chunk(
+                    CONTROL_OPTION_MODEL_NAME,
+                    ImportFlags(import_uuid=import_uuid),
+                    ControlImportChunk,
+                    1,
+                )
+                assert existing_import_chunk is not None
+
+                mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[
+                    str(CONTROL_OPTION_MODEL_NAME)
+                ]
+                assert len(mapping) == 1
+                assert mapping.get(7, None) is not None
+
+                return import_chunk
+
         # Doing the write twice should produce identical results from the sender's point of view,
         # and should not result in multiple `ControlImportChunk`s being written.
-        verify_control_option_write()
-        verify_control_option_write()
+        assert verify_control_option_write() == verify_control_option_write()
 
     # This is a bit of a hacky way in which to "simulate" a race that occurs between when we first
     # try to detect the duplicate chunk and when we try to send our actual write.
@@ -250,6 +281,20 @@ class RpcImportRetryTests(TestCase):
                 assert len(import_chunk.inserted_map) == 1
                 assert len(import_chunk.existing_map) == 0
                 assert len(import_chunk.overwrite_map) == 0
+
+                existing_import_chunk = get_existing_import_chunk(
+                    CONTROL_OPTION_MODEL_NAME,
+                    ImportFlags(import_uuid=import_uuid),
+                    ControlImportChunk,
+                    1,
+                )
+                assert existing_import_chunk is not None
+
+                mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[
+                    str(CONTROL_OPTION_MODEL_NAME)
+                ]
+                assert len(mapping) == 1
+                assert mapping.get(9, None) is not None
 
                 assert ControlImportChunk.objects.count() == import_chunk_count + 1
 

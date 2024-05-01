@@ -102,6 +102,7 @@ function getTagTreeRows({
       tagKey={tagKey}
       content={content}
       spacerCount={spacerCount}
+      data-test-id="tag-tree-row"
       {...props}
     />,
     ...subtreeRows,

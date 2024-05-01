@@ -20,6 +20,14 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 DEPRECATED_INGEST_API_MESSAGE = "We have removed this deprecated API. Please migrate to using DSN instead: https://docs.sentry.io/product/crons/legacy-endpoint-migration/#am-i-using-legacy-endpoints"
 
 
+def is_uuid(monitor_id_or_slug: str | int) -> bool:
+    try:
+        uuid_obj = UUID(str(monitor_id_or_slug), version=4)
+        return str(uuid_obj) == str(monitor_id_or_slug)
+    except ValueError:
+        return False
+
+
 class OrganizationMonitorPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -50,7 +58,7 @@ class MonitorEndpoint(Endpoint):
         self,
         request: Request,
         organization_slug: str,
-        monitor_slug: str | int,
+        monitor_id_or_slug: int | str,
         environment: str | None = None,
         checkin_id: str | None = None,
         *args,
@@ -61,7 +69,7 @@ class MonitorEndpoint(Endpoint):
                 id_or_slug_path_params_enabled(
                     self.convert_args.__qualname__, str(organization_slug)
                 )
-                and str(organization_slug).isnumeric()
+                and str(organization_slug).isdigit()
             ):
                 organization = Organization.objects.get_from_cache(id=organization_slug)
             else:
@@ -70,7 +78,7 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            monitor = get_monitor_by_org_id_or_slug(organization, monitor_slug)
+            monitor = get_monitor_by_org_id_or_slug(organization, monitor_id_or_slug)
         except Monitor.DoesNotExist:
             raise ResourceDoesNotExist
         project = Project.objects.get_from_cache(id=monitor.project_id)
@@ -120,19 +128,21 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
     def convert_args(
         self,
         request: Request,
-        monitor_slug: str | int,
+        monitor_id_or_slug: int | str,
         *args,
         **kwargs,
     ):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
-            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
+            if id_or_slug_path_params_enabled(self.convert_args.__qualname__) and is_uuid(
+                monitor_id_or_slug
+            ):
                 kwargs["monitor"] = Monitor.objects.get(
-                    project_id=kwargs["project"].id, slug__id_or_slug=monitor_slug
+                    project_id=kwargs["project"].id, guid=monitor_id_or_slug
                 )
             else:
                 kwargs["monitor"] = Monitor.objects.get(
-                    project_id=kwargs["project"].id, slug=monitor_slug
+                    project_id=kwargs["project"].id, slug=monitor_id_or_slug
                 )
         except Monitor.DoesNotExist:
             raise ResourceDoesNotExist
@@ -195,19 +205,23 @@ class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
         return args, kwargs
 
 
-def get_monitor_by_org_id_or_slug(organization: Organization, monitor_slug: str | int) -> Monitor:
+def get_monitor_by_org_id_or_slug(
+    organization: Organization, monitor_id_or_slug: int | str
+) -> Monitor:
     # Since we have changed our unique constraints to be on unique on (project, slug) we can
     # end up with multiple monitors here. Since we have no idea which project the user wants,
     # we just get the oldest monitor and use that.
     # This is a temporary measure until we remove these org level endpoints
     if id_or_slug_path_params_enabled(
         ProjectMonitorEnvironmentEndpoint.convert_args.__qualname__, str(organization.slug)
-    ):
+    ) and is_uuid(monitor_id_or_slug):
         monitors = list(
-            Monitor.objects.filter(organization_id=organization.id, slug__id_or_slug=monitor_slug)
+            Monitor.objects.filter(organization_id=organization.id, guid=monitor_id_or_slug)
         )
     else:
-        monitors = list(Monitor.objects.filter(organization_id=organization.id, slug=monitor_slug))
+        monitors = list(
+            Monitor.objects.filter(organization_id=organization.id, slug=monitor_id_or_slug)
+        )
     if not monitors:
         raise Monitor.DoesNotExist
 

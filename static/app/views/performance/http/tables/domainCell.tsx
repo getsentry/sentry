@@ -1,7 +1,7 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

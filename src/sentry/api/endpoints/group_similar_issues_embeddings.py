@@ -11,8 +11,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.endpoints.event_grouping_info import get_grouping_info
 from sentry.api.serializers import serialize
+from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.seer.utils import (
@@ -107,7 +107,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     }
 
     def get_formatted_results(
-        self, responses: Sequence[SimilarIssuesEmbeddingsData | None], user: User | AnonymousUser
+        self, responses: Sequence[SimilarIssuesEmbeddingsData], user: User | AnonymousUser
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
         Format the responses using to be used by the frontend by changing the  field names and
@@ -115,13 +115,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         """
         group_data = {}
         for response in responses:
-            if response:
-                formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                    "message": 1 - response["message_distance"],
-                    "exception": 1 - response["stacktrace_distance"],
-                    "shouldBeGrouped": "Yes" if response["should_group"] else "No",
-                }
-                group_data.update({response["parent_group_id"]: formatted_response})
+            formatted_response: FormattedSimilarIssuesEmbeddingsData = {
+                "message": 1 - response["message_distance"],
+                "exception": 1 - response["stacktrace_distance"],
+                "shouldBeGrouped": "Yes" if response["should_group"] else "No",
+            }
+            group_data.update({response["parent_group_id"]: formatted_response})
 
         serialized_groups = {
             int(g["id"]): g
@@ -146,9 +145,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
         if latest_event.data.get("exception"):
-            grouping_info = get_grouping_info(
-                None, project=group.project, event_id=latest_event.event_id
-            )
+            grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
         if stacktrace_string == "":

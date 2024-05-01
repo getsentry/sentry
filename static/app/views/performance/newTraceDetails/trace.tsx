@@ -1000,7 +1000,9 @@ function RenderRow(props: {
               {ERROR_LEVEL_LABELS[props.node.value.level ?? 'error']}
             </span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.node.value.title}</span>
+            <span className="TraceDescription">
+              {props.node.value.message ?? props.node.value.title}
+            </span>
           </div>
         </div>
         <div
@@ -1744,7 +1746,7 @@ const TraceStylingWrapper = styled('div')`
     height: 100%;
     background-color: transparent;
     top: 0;
-    cursor: col-resize;
+    cursor: ew-resize;
     z-index: 10;
 
     &:before {

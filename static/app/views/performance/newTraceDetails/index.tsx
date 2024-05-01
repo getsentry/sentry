@@ -14,6 +14,7 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -42,7 +43,6 @@ import {
   type DispatchingReducerMiddleware,
   useDispatchingReducer,
 } from 'sentry/utils/useDispatchingReducer';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -56,6 +56,7 @@ import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -72,9 +73,26 @@ import {TraceReducer, type TraceReducerState} from './traceState';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
+function logTraceType(type: TraceType, organization: Organization) {
+  switch (type) {
+    case TraceType.BROKEN_SUBTRACES:
+    case TraceType.EMPTY_TRACE:
+    case TraceType.MULTIPLE_ROOTS:
+    case TraceType.ONE_ROOT:
+    case TraceType.NO_ROOT:
+    case TraceType.ONLY_ERRORS:
+      traceAnalytics.trackTraceShape(type, organization);
+      break;
+    default: {
+      Sentry.captureMessage('Unknown trace type');
+    }
+  }
+}
+
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
+  const hasNewTagsUI = useHasNewTagsUI();
 
   const traceSlug = useMemo(() => {
     const slug = params.traceSlug?.trim() ?? '';
@@ -88,6 +106,20 @@ export function TraceView() {
     }
     return slug;
   }, [params.traceSlug]);
+
+  useLayoutEffect(() => {
+    if (hasNewTagsUI) {
+      return;
+    }
+
+    // Enables the new trace tags/contexts ui for the trace view
+    const queryString = qs.parse(window.location.search);
+    queryString.traceView = '1';
+    browserHistory.replace({
+      pathname: window.location.pathname,
+      query: queryString,
+    });
+  }, [traceSlug, hasNewTagsUI]);
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
@@ -449,6 +481,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      if (traceStateRef.current.preferences.drawer.minimized) {
+        traceDispatch({type: 'minimize drawer', payload: false});
+      }
       setRowAsFocused(node, event, traceStateRef.current.search.resultsLookup, null, 0);
 
       if (traceStateRef.current.search.resultsLookup.has(node)) {
@@ -718,32 +753,18 @@ function TraceViewContent(props: TraceViewContentProps) {
     storeTraceViewPreferences(traceState.preferences);
   }, [traceState.preferences]);
 
-  // Setup outside click handler so that we can clear the currently clicked node
-  const onOutsideTraceContainerClick = useCallback(() => {
-    if (tree.type !== 'trace') {
-      // Dont clear the URL in case the trace is still loading or failed for some reason,
-      // we want to keep the eventId in the URL so the user can share the URL with support
-      return;
-    }
-    // we will drop eventId such that after users clicks outside and shares the URL
-    const {
-      node: _node,
-      eventId: _eventId,
-      ...queryParamsWithoutNode
-    } = qs.parse(location.search);
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query: queryParamsWithoutNode,
-    });
-
-    traceDispatch({type: 'clear'});
-  }, [tree, traceDispatch]);
-
-  const [clickOutsideRef, setClickOutsideRef] = useState<HTMLElement | null>(null);
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
-  useOnClickOutside(clickOutsideRef, onOutsideTraceContainerClick);
+  // Memoized because it requires tree traversal
+  const shape = useMemo(() => tree.shape, [tree]);
+
+  useEffect(() => {
+    if (tree.type !== 'trace') {
+      return;
+    }
+
+    logTraceType(shape, organization);
+  }, [tree, shape, organization]);
 
   return (
     <TraceExternalLayout>
@@ -763,7 +784,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         traces={props.trace}
         traceID={props.traceSlug}
       />
-      <TraceInnerLayout ref={setClickOutsideRef}>
+      <TraceInnerLayout>
         <TraceToolbar>
           <TraceSearchInput
             trace_state={traceState}
@@ -798,6 +819,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
             traces={props.trace}
@@ -960,6 +982,11 @@ function TraceLoading() {
 function TraceError() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
+
+  useEffect(() => {
+    traceAnalytics.trackFailedToFetchTraceState();
+  }, []);
+
   return (
     <LoadingContainer animate error>
       <div>{t('Ughhhhh, we failed to load your trace...')}</div>
@@ -982,6 +1009,11 @@ function TraceError() {
 function TraceEmpty() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
+
+  useEffect(() => {
+    traceAnalytics.trackEmptyTraceState();
+  }, []);
+
   return (
     <LoadingContainer animate>
       <div>{t('This trace does not contain any data?!')}</div>

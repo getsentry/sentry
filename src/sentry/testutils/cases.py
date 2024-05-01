@@ -2174,7 +2174,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_span_metric(
         self,
-        value: list[int] | int,
+        value: dict[str, int] | list[int] | int,
         metric: str = "span.self_time",
         internal_metric: str | None = None,
         entity: str | None = None,
@@ -3124,7 +3124,6 @@ class MonitorTestCase(APITestCase):
         ]
         rule = Creator(
             name="New Cool Rule",
-            owner=None,
             project=self.project,
             conditions=conditions,
             filterMatch="all",

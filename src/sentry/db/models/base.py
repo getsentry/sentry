@@ -32,8 +32,8 @@ __all__ = (
     "DefaultFieldsModel",
     "sane_repr",
     "get_model_if_available",
-    "control_silo_only_model",
-    "region_silo_only_model",
+    "control_silo_model",
+    "region_silo_model",
 )
 
 
@@ -440,13 +440,13 @@ class ModelSiloLimit(SiloLimit):
         return model_class
 
 
-control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
+control_silo_model = ModelSiloLimit(SiloMode.CONTROL)
 """
 Apply to models that are shared by multiple organizations or
 require strong consistency with other Control silo resources.
 """
 
-region_silo_only_model = ModelSiloLimit(SiloMode.REGION)
+region_silo_model = ModelSiloLimit(SiloMode.REGION)
 """
 Apply to models that belong to a single organization or
 require strong consistency with other Region silo resources.
