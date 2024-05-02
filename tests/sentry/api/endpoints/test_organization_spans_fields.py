@@ -71,7 +71,8 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         with self.feature(features):
             return self.client.get(
                 reverse(
-                    self.view, kwargs={"organization_slug": self.organization.slug, "key": key}
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
                 ),
                 format="json",
                 **kwargs,
