@@ -55,6 +55,7 @@ class SpanMessageWithMetadata:
     timestamp: int
     partition: int
     span: bytes
+    num_spans: int | None
 
 
 def get_project_id(headers: Headers) -> int | None:
@@ -119,12 +120,19 @@ def _process_message(message: Message[KafkaPayload]) -> SpanMessageWithMetadata 
         if segment_id is None:
             return FILTERED_PAYLOAD
 
+        num_spans: int | None = None
+
+        if "measurements" in span:
+            if "num_of_spans" in span["measurements"]:
+                num_spans = span["measurements"]["num_of_spans"]["value"]
+
     return SpanMessageWithMetadata(
         segment_id=segment_id,
         project_id=project_id,
         timestamp=timestamp,
         partition=partition,
         span=payload_value,
+        num_spans=num_spans,
     )
 
 
@@ -147,19 +155,24 @@ def _batch_write_to_redis(message: Message[ValuesBatch[SpanMessageWithMetadata]]
         latest_ts_by_partition: dict[int, int] = {}
         spans_map: dict[SegmentKey, list[bytes]] = defaultdict(list)
         segment_first_seen_ts: dict[SegmentKey, int] = {}
+        expected_num_spans: dict[SegmentKey, int] = {}
 
         for item in batch:
-            payload = item.payload
+            payload: SpanMessageWithMetadata = item.payload
             partition = payload.partition
             segment_id = payload.segment_id
             project_id = payload.project_id
             span = payload.span
             timestamp = payload.timestamp
+            num_spans = payload.num_spans
 
             key = SegmentKey(segment_id, project_id, partition)
 
             # Collects spans for each segment_id
             spans_map[key].append(span)
+
+            if num_spans is not None:
+                expected_num_spans[key] = num_spans
 
             # Collects "first_seen" timestamps for each segment in batch.
             # Batch step doesn't guarantee order, so pick lowest ts.
@@ -176,6 +189,10 @@ def _batch_write_to_redis(message: Message[ValuesBatch[SpanMessageWithMetadata]]
                 latest_ts_by_partition[partition] = timestamp
 
         client = RedisSpansBuffer()
+
+        for key, num_spans in expected_num_spans:
+            if num_spans == len(spans_map[key]):
+                metrics.incr("spans.consumers.process.full_segment_detected.count")
 
         return client.batch_write_and_check_processing(
             spans_map=spans_map,

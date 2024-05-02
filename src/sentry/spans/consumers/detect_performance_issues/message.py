@@ -25,7 +25,6 @@ from sentry.utils.dates import to_datetime
 logger = logging.getLogger(__name__)
 
 
-@metrics.wraps("save_event.send_occurrence_to_platform")
 def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         event = job["event"]
@@ -130,6 +129,7 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
 
 def transform_spans_to_event_dict(spans):
     processed_spans: list[dict[str, Any]] = []
+    expected_num_spans: int | None = None
 
     span = spans[0]
     sentry_tags = span.get("sentry_tags", {})
@@ -156,6 +156,11 @@ def transform_spans_to_event_dict(spans):
     for span in spans:
         sentry_tags = span.get("sentry_tags", {})
 
+        if span["is_segment"]:
+            if "measurements" in span:
+                if "num_of_spans" in span["measurements"]:
+                    expected_num_spans = span["measurements"]["num_of_spans"]["value"]
+
         if (op := sentry_tags.get("op")) is not None:
             span["op"] = op
 
@@ -163,6 +168,9 @@ def transform_spans_to_event_dict(spans):
         span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
 
         processed_spans.append(span)
+
+    if expected_num_spans and len(processed_spans) != expected_num_spans:
+        metrics.incr("spans.detect_performance_issues.incomplete_segment.count")
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
