@@ -149,7 +149,7 @@ type HydratedTimestamp = {
   timestampMs: number;
 };
 
-export interface ReplayTapFrame {
+interface RawTapFrame {
   category: 'ui.tap';
   data: any;
   message: string;
@@ -158,7 +158,7 @@ export interface ReplayTapFrame {
 }
 
 // mirrors ReplayBreadcrumbFrame
-export type MobileBreadcrumbFrame = ReplayTapFrame; // TODO: add more types here when more breadcrumb types are defined
+export type MobileBreadcrumbFrame = RawTapFrame; // TODO: add more types here when more breadcrumb types are defined
 
 type HydratedBreadcrumb<Category extends string> = Overwrite<
   Extract<
