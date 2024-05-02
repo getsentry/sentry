@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Optional
@@ -822,20 +821,6 @@ def convert_user_tag_to_query(key: str, value: str) -> str | None:
         if KEYWORD_MAP.get_key(sub_key, None):
             return 'user.{}:"{}"'.format(sub_key, value.replace('"', '\\"'))
     return None
-
-
-@dataclass
-class SupportedConditions:
-    field_name: str
-    operators: frozenset[str] | None = None
-
-
-supported_cdc_conditions = [
-    SupportedConditions("status", frozenset(["IN"])),
-]
-supported_cdc_conditions_lookup = {
-    condition.field_name: condition for condition in supported_cdc_conditions
-}
 
 
 # Mapping of device class to the store corresponding tag value
