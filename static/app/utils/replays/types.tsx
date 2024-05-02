@@ -148,8 +148,23 @@ type HydratedTimestamp = {
    */
   timestampMs: number;
 };
+
+export interface ReplayTapFrame {
+  category: 'ui.tap';
+  data: any;
+  message: string;
+  timestamp: number;
+  type: string;
+}
+
+// mirrors ReplayBreadcrumbFrame
+export type MobileBreadcrumbFrame = ReplayTapFrame; // TODO: add more types here when more breadcrumb types are defined
+
 type HydratedBreadcrumb<Category extends string> = Overwrite<
-  Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
+  Extract<
+    TRawBreadcrumbFrame | ExtraBreadcrumbTypes | MobileBreadcrumbFrame,
+    {category: Category}
+  >,
   HydratedTimestamp
 >;
 
@@ -209,6 +224,7 @@ export type FeedbackFrame = {
 
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
+export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type InputFrame = HydratedBreadcrumb<'ui.input'>;
@@ -228,6 +244,7 @@ export const BreadcrumbCategories = [
   'replay.hydrate-error',
   'ui.blur',
   'ui.click',
+  'ui.tap',
   'ui.focus',
   'ui.input',
   'ui.keyDown',
