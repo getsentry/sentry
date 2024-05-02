@@ -1,6 +1,6 @@
 import type {RefObject} from 'react';
 import {useEffect} from 'react';
-import {type Feedback, getClient} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -13,9 +13,7 @@ interface Props {
 
 export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props) {
   const config = useLegacyStore(ConfigStore);
-  const client = getClient();
-  // Note that this is only defined in environments where Feedback is enabled (getsentry)
-  const feedback = client?.getIntegrationByName?.<Feedback>('Feedback');
+  const feedback = Sentry.getFeedback();
 
   useEffect(() => {
     if (!feedback) {
@@ -32,15 +30,12 @@ export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props
 
     if (buttonRef) {
       if (buttonRef.current) {
-        const widget = feedback.attachTo(buttonRef.current, options);
-        return () => {
-          feedback.removeWidget(widget);
-        };
+        return feedback.attachTo(buttonRef.current, options);
       }
     } else {
       const widget = feedback.createWidget(options);
       return () => {
-        feedback.removeWidget(widget);
+        widget.removeFromDom();
       };
     }
 
