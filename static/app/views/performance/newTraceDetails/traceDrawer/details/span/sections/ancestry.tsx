@@ -22,6 +22,7 @@ import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -39,20 +40,14 @@ type TransactionResult = {
 };
 
 function SpanChild({
-  node,
+  childTransaction,
   organization,
   location,
 }: {
+  childTransaction: TraceTreeNode<TraceFullDetailed>;
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
 }) {
-  const childTransaction = node.value.childTransactions?.[0];
-
-  if (!childTransaction) {
-    return null;
-  }
-
   const transactionResult: TransactionResult = {
     'project.name': childTransaction.value.project_slug,
     transaction: childTransaction.value.transaction,
@@ -216,11 +211,21 @@ export function getSpanAncestryAndGroupingItems({
     subject: t('Parent Span ID'),
   });
 
-  items.push({
-    key: 'transaction_name',
-    value: <SpanChild node={node} organization={organization} location={location} />,
-    subject: t('Child Transaction'),
-  });
+  const childTransaction = node.value.childTransactions?.[0];
+
+  if (childTransaction) {
+    items.push({
+      key: 'transaction_name',
+      value: (
+        <SpanChild
+          childTransaction={childTransaction}
+          organization={organization}
+          location={location}
+        />
+      ),
+      subject: t('Child Transaction'),
+    });
+  }
 
   if (span.same_process_as_parent) {
     items.push({
