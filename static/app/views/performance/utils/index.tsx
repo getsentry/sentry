@@ -18,7 +18,7 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
-import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -290,7 +290,7 @@ export function removeTracingKeysFromSearch(
 }
 
 export function addRoutePerformanceContext(selection: PageFilters) {
-  const transaction = getCurrentSentryReactTransaction();
+  const transaction = getCurrentSentryReactRootSpan();
   const days = statsPeriodToDays(
     selection.datetime.period,
     selection.datetime.start,
@@ -299,7 +299,7 @@ export function addRoutePerformanceContext(selection: PageFilters) {
   const oneDay = 86400;
   const seconds = Math.floor(days * oneDay);
 
-  transaction?.setTag('query.period', seconds.toString());
+  transaction?.setAttribute('query.period', seconds.toString());
   let groupedPeriod = '>30d';
   if (seconds <= oneDay) {
     groupedPeriod = '<=1d';
@@ -310,7 +310,7 @@ export function addRoutePerformanceContext(selection: PageFilters) {
   } else if (seconds <= oneDay * 30) {
     groupedPeriod = '<=30d';
   }
-  transaction?.setTag('query.period.grouped', groupedPeriod);
+  transaction?.setAttribute('query.period.grouped', groupedPeriod);
 }
 
 export function getTransactionName(location: Location): string | undefined {

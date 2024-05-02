@@ -17,8 +17,19 @@ export function getIntervalForMetricFunction(
   metricFunction: Aggregate | SpanFunctions | string,
   datetimeObj: DateTimeObject
 ) {
+  const {start, end, period, utc} = datetimeObj;
+
   const interval = Sentry.startSpan(
-    {op: 'function', name: 'getIntervalForMetricFunction', data: {...datetimeObj}},
+    {
+      op: 'function',
+      name: 'getIntervalForMetricFunction',
+      attributes: {
+        start: start ? start.toString() : undefined,
+        end: end ? end.toString() : undefined,
+        period: period || undefined,
+        utc: utc || undefined,
+      },
+    },
     () => {
       const ladder = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;
       return ladder.getInterval(getDiffInMinutes(datetimeObj));

@@ -1,5 +1,4 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
-import * as Sentry from '@sentry/react';
 import Jed from 'jed';
 import {sprintf} from 'sprintf-js';
 
@@ -71,8 +70,8 @@ function getClient(): Jed | null {
   if (!i18n) {
     // If this happens, it could mean that an import was added/changed where
     // locale initialization does not happen soon enough.
-    const warning = new Error('Locale not set, defaulting to English');
-    Sentry.captureException(warning);
+    // eslint-disable-next-line no-console
+    console.warn('Locale not set, defaulting to English');
     return setLocale(DEFAULT_LOCALE_DATA);
   }
 

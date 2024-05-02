@@ -1,12 +1,11 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
 import {Fragment, Profiler, useEffect, useRef} from 'react';
-import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/types';
 import {
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
-  timestampWithMs,
+  timestampInSeconds,
 } from '@sentry/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,7 +27,13 @@ export {Profiler};
  * This will return an interaction-type transaction held onto by a class static if one exists.
  */
 export function getPerformanceTransaction(): Span | undefined {
-  return PerformanceInteraction.getSpan() ?? Sentry.getActiveTransaction();
+  const span = PerformanceInteraction.getSpan();
+  if (span) {
+    return span;
+  }
+
+  const activeSpan = Sentry.getActiveSpan();
+  return activeSpan ? Sentry.getRootSpan(activeSpan) : undefined;
 }
 
 /**
@@ -36,14 +41,16 @@ export function getPerformanceTransaction(): Span | undefined {
  */
 export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDuration) => {
   try {
-    const transaction = getPerformanceTransaction();
-    if (transaction && actualDuration > MIN_UPDATE_SPAN_TIME) {
-      const now = timestampWithMs();
-      transaction.startChild({
-        description: `<${id}>`,
-        op: `ui.react.${phase}`,
-        startTimestamp: now - actualDuration / 1000,
-        endTimestamp: now,
+    const parentSpan = getPerformanceTransaction();
+    if (parentSpan && actualDuration > MIN_UPDATE_SPAN_TIME) {
+      const now = timestampInSeconds();
+
+      Sentry.withActiveSpan(parentSpan, () => {
+        Sentry.startInactiveSpan({
+          name: `<${id}>`,
+          op: `ui.react.${phase}`,
+          startTime: now - actualDuration / 1000,
+        }).end(now);
       });
     }
   } catch (_) {
@@ -61,11 +68,15 @@ export class PerformanceInteraction {
 
   static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
     try {
-      const currentIdleTransaction = Sentry.getActiveTransaction();
-      if (currentIdleTransaction) {
+      const currentSpan = Sentry.getActiveSpan();
+      if (currentSpan) {
+        const currentIdleSpan = Sentry.getRootSpan(currentSpan);
         // If interaction is started while idle still exists.
-        currentIdleTransaction.setTag('finishReason', 'sentry.interactionStarted'); // Override finish reason so we can capture if this has effects on idle timeout.
-        currentIdleTransaction.end();
+        currentIdleSpan.setAttribute(
+          'sentry.idle_span_finish_reason',
+          'sentry.interactionStarted'
+        );
+        currentIdleSpan.end();
       }
       PerformanceInteraction.finishInteraction(immediate);
 
@@ -82,11 +93,14 @@ export class PerformanceInteraction {
         if (!PerformanceInteraction.interactionSpan) {
           return;
         }
-        PerformanceInteraction.interactionSpan.setTag('ui.interaction.finish', 'timeout');
+        PerformanceInteraction.interactionSpan.setAttribute(
+          'ui.interaction.finish',
+          'timeout'
+        );
         PerformanceInteraction.finishInteraction(true);
       }, timeout);
     } catch (e) {
-      captureMessage(e);
+      Sentry.captureMessage(e);
     }
   }
 
@@ -110,7 +124,7 @@ export class PerformanceInteraction {
 
       return;
     } catch (e) {
-      captureMessage(e);
+      Sentry.captureMessage(e);
     }
   }
 }
@@ -179,10 +193,12 @@ export function VisuallyCompleteWithData({
       return;
     }
     try {
-      const transaction: any = Sentry.getActiveTransaction(); // Using any to override types for private api.
-      if (!transaction) {
+      const span = Sentry.getActiveSpan();
+
+      if (!span) {
         return;
       }
+      const rootSpan = Sentry.getRootSpan(span);
 
       if (!isDataCompleteSet.current && _hasData) {
         isDataCompleteSet.current = true;
@@ -197,7 +213,7 @@ export function VisuallyCompleteWithData({
           const startMarks = performance.getEntriesByName(`${id}-${VCD_START}`);
           const endMarks = performance.getEntriesByName(`${id}-${VCD_END}`);
           if (startMarks.length > 1 || endMarks.length > 1) {
-            transaction.setTag('vcd_extra_recorded_marks', true);
+            rootSpan.setAttribute('vcd_extra_recorded_marks', true);
           }
 
           const startMark = startMarks.at(-1);
@@ -415,11 +431,11 @@ const customMeasurements: Record<
    */
   bundle_load: ({transaction, ttfb}) => {
     const span = getBundleLoadSpan(transaction);
-    if (!span?.endTimestamp || !span?.startTimestamp || !ttfb) {
+    if (!span?.timestamp || !span?.start_timestamp || !ttfb) {
       return undefined;
     }
     return {
-      value: (span?.endTimestamp - span?.startTimestamp) * 1000,
+      value: (span?.timestamp - span?.start_timestamp) * 1000,
       unit: 'millisecond',
     };
   },
@@ -434,10 +450,10 @@ const customMeasurements: Record<
    */
   visually_complete_with_data: ({transaction, ttfb, transactionStart}) => {
     const vcdSpan = getVCDSpan(transaction);
-    if (!vcdSpan?.endTimestamp || !ttfb) {
+    if (!vcdSpan?.timestamp || !ttfb) {
       return undefined;
     }
-    const value = (vcdSpan?.endTimestamp - transactionStart) * 1000;
+    const value = (vcdSpan?.timestamp - transactionStart) * 1000;
     return {
       value,
       unit: 'millisecond',
@@ -457,17 +473,17 @@ const customMeasurements: Record<
   init_to_vcd: ({transaction, transactionOp, transactionStart}) => {
     const bundleSpan = getBundleLoadSpan(transaction);
     const vcdSpan = getVCDSpan(transaction);
-    if (!vcdSpan?.endTimestamp || !['navigation', 'pageload'].includes(transactionOp)) {
+    if (!vcdSpan?.timestamp || !['navigation', 'pageload'].includes(transactionOp)) {
       return undefined;
     }
 
     const startTimestamp =
-      transactionOp === 'navigation' ? transactionStart : bundleSpan?.endTimestamp;
+      transactionOp === 'navigation' ? transactionStart : bundleSpan?.timestamp;
     if (!startTimestamp) {
       return undefined;
     }
     return {
-      value: (vcdSpan.endTimestamp - startTimestamp) * 1000,
+      value: (vcdSpan.timestamp - startTimestamp) * 1000,
       unit: 'millisecond',
     };
   },
@@ -497,7 +513,7 @@ export const setGroupedEntityTag = (
   n: number,
   buckets = [1, 2, 5]
 ) => {
-  setExtra(tagName, n);
+  Sentry.setExtra(tagName, n);
   let groups = [0];
   loop: for (let m = 1, mag = 0; m <= max; m *= 10, mag++) {
     for (const i of buckets) {
@@ -509,7 +525,7 @@ export const setGroupedEntityTag = (
     }
   }
   groups = [...groups, +Infinity];
-  setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
+  Sentry.setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
 };
 
 export const addSlowAppInit = (transaction: TransactionEvent) => {
@@ -522,9 +538,9 @@ export const addSlowAppInit = (transaction: TransactionEvent) => {
   const longTaskSpans = transaction.spans.filter(
     s =>
       s.op === 'ui.long-task' &&
-      s.endTimestamp &&
-      appInitSpan.endTimestamp &&
-      s.startTimestamp < appInitSpan.startTimestamp
+      s.timestamp &&
+      appInitSpan.timestamp &&
+      s.start_timestamp < appInitSpan.start_timestamp
   );
   longTaskSpans.forEach(s => {
     s.op = `ui.long-task.app-init`;
@@ -532,7 +548,7 @@ export const addSlowAppInit = (transaction: TransactionEvent) => {
   if (longTaskSpans.length) {
     const sum = longTaskSpans.reduce(
       (acc, span) =>
-        span.endTimestamp ? acc + (span.endTimestamp - span.startTimestamp) * 1000 : acc,
+        span.timestamp ? acc + (span.timestamp - span.start_timestamp) * 1000 : acc,
       0
     );
     transaction.measurements = {

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {BrowserClient, defaultStackParser, makeFetchTransport} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -40,8 +39,8 @@ describe('FeatureFeedback', function () {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       const feedbackClient = new Sentry.BrowserClient({
-        transport: makeFetchTransport,
-        stackParser: defaultStackParser,
+        transport: Sentry.makeFetchTransport,
+        stackParser: Sentry.defaultStackParser,
         integrations: Sentry.getDefaultIntegrations({}),
       });
 
@@ -156,7 +155,7 @@ describe('FeatureFeedback', function () {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       // Mock implementation of the Sentry Browser SDK
-      BrowserClient.prototype.captureEvent = jest.fn();
+      Sentry.BrowserClient.prototype.captureEvent = jest.fn();
 
       renderGlobalModal();
 
