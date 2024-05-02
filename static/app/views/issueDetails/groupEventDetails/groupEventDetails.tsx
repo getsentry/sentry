@@ -70,11 +70,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     eventError,
     params,
   } = props;
-  const eventWithMeta = withMeta(event);
   // Reprocessing
   const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
-  const {activity: activities} = group;
-  const mostRecentActivity = getGroupMostRecentActivity(activities);
   const projectId = project.id;
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
@@ -162,6 +159,12 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
+  // TODO(scttcper): In some cases it seems like the event is not loaded yet
+  if (!group) {
+    return <LoadingIndicator />;
+  }
+
+  const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
@@ -179,7 +182,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           {hasReprocessingV2Feature &&
           groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
-              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
+              totalEvents={
+                (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
+                  .data.eventCount
+              }
               pendingEvents={
                 (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
               }
