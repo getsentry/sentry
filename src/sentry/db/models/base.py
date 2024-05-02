@@ -18,6 +18,7 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models.fields.uuid import UUIDField
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils.json import JSONData
 
@@ -211,6 +212,9 @@ class BaseModel(models.Model):
         fields = cls._meta.get_fields()
         field_names = [f.name for f in fields]
 
+        str_field_types = [models.CharField, models.TextField]
+        sensitive_words = ["password", "token", "secret"]
+
         # All `models.CharField` fields called "slug" and "name" can be auto-sanitized as strings.
         if "name" in field_names and "slug" in field_names:
             sanitizer.set_name_and_slug_pair(
@@ -227,6 +231,29 @@ class BaseModel(models.Model):
             # Auto-sanitize all `models.EmailField` fields on this class.
             if isinstance(f, models.EmailField):
                 sanitizer.set_email(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all IP Address fields.
+            if isinstance(f, models.IPAddressField) or isinstance(f, models.GenericIPAddressField):
+                sanitizer.set_ip(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all URL fields.
+            if isinstance(f, models.URLField) or f.name.endswith("url") or f.name.endswith("uri"):
+                sanitizer.set_url(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all UUID fields.
+            if (
+                isinstance(f, models.UUIDField)
+                or isinstance(f, UUIDField)
+                or f.name.endswith("guid")
+                or f.name.endswith("uuid")
+            ):
+                sanitizer.set_uuid(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all string fields that contain any sensitive words in their name.
+            is_str_field_type = next(filter(lambda t: isinstance(f, t), str_field_types), None)
+            contains_sensitive_word = next(filter(lambda w: w in f.name, sensitive_words), None)
+            if is_str_field_type and contains_sensitive_word:
+                sanitizer.set_string(json, SanitizableField(model_name, f.name))
 
         return None
 
