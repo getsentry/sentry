@@ -214,29 +214,25 @@ def get_context(group: Group) -> str:
     context_text = ""
 
     context = group.issue_type.notification_config.context.copy()
-    context_dict = {}
 
     # for errors, non-regression performance, and rage click issues
     # always show state and first seen
     # only show event count and user count if event count > 1 or state != new
 
-    # check state first, if it's New we can skip getting events and user count to avoid hitting Snuba
+    state = None
+    event_count = ModuleNotFoundError
     if "State" in context:
         state = SUPPORTED_CONTEXT_DATA["State"](group)
-        context_dict["State"] = state
-        if state == "New":
-            if "Events" in context:
-                context.remove("Events")
-            if "Users Affected" in context:
-                context.remove("Users Affected")
-
-    # check events, if it's <= 1 we can skip getting user count
     if "Events" in context:
         event_count = SUPPORTED_CONTEXT_DATA["Events"](group)
-        if int(event_count) <= 1:
+
+    if (state and state == "New") or (event_count and int(event_count) <= 1):
+        if "Events" in context:
             context.remove("Events")
-            if "Users Affected" in context:
-                context.remove("Users Affected")
+
+        # avoid hitting Snuba for user count if we don't need it
+        if "Users Affected" in context:
+            context.remove("Users Affected")
 
     for c in context:
         if c in SUPPORTED_CONTEXT_DATA:
