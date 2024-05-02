@@ -1342,6 +1342,31 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
+    def test_user_report_gets_environment_with_new_link_features(self):
+        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
+            project = self.create_project()
+            environment = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            environment.add_project(project)
+
+            event_id = "a" * 32
+
+            UserReport.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name="foo",
+                email="bar@example.com",
+                comments="It Broke!!!",
+            )
+
+            self.store_event(
+                data=make_event(environment=environment.name, event_id=event_id),
+                project_id=project.id,
+            )
+
+            assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
+
     def test_default_event_type(self):
         manager = EventManager(make_event(message="foo bar"))
         manager.normalize()

@@ -263,13 +263,6 @@ def handle_owner_assignment(job):
                         )
 
                     if assignees_exists:
-                        logger.info(
-                            "handle_owner_assignment.assignee_exists",
-                            extra={
-                                **basic_logging_details,
-                                "reason": "assignee_exists",
-                            },
-                        )
                         metrics.incr(
                             "sentry.task.post_process.handle_owner_assignment.assignee_exists"
                         )
@@ -282,13 +275,6 @@ def handle_owner_assignment(job):
                     debounce_issue_owners = cache.get(issue_owners_key)
 
                     if debounce_issue_owners:
-                        logger.info(
-                            "handle_owner_assignment.issue_owners_exist",
-                            extra={
-                                **basic_logging_details,
-                                "reason": "issue_owners_exist",
-                            },
-                        )
                         metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
                         return
 
@@ -1005,11 +991,11 @@ def process_replay_link(job: PostProcessJob) -> None:
         kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
     except ValueError:
         metrics.incr("post_process.process_replay_link.id_invalid")
-
-    publisher.publish(
-        "ingest-replay-events",
-        json.dumps(kafka_payload),
-    )
+    else:
+        publisher.publish(
+            "ingest-replay-events",
+            json.dumps(kafka_payload),
+        )
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -1454,15 +1440,7 @@ def detect_new_escalation(job: PostProcessJob):
         or not has_valid_status
         or times_seen < MIN_EVENTS_FOR_NEW_ESCALATION
     ):
-        logger.warning(
-            "tasks.post_process.detect_new_escalation.skipping_detection",
-            extra={
-                **extra,
-                "group_age_hours": group_age_hours,
-                "group_status": group.substatus,
-                "times_seen": times_seen,
-            },
-        )
+        metrics.incr("tasks.post_process.detect_new_escalation.skipping_detection")
         return
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.

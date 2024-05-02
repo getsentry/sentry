@@ -67,11 +67,11 @@ def get_existing_import_chunk(
     out_pk_map = PrimaryKeyMap()
     for old_pk, new_pk in found_data["inserted_map"].items():
         identifier = found_data["inserted_identifiers"].get(old_pk, None)
-        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Inserted, identifier)
+        out_pk_map.insert(model_name, int(old_pk), int(new_pk), ImportKind.Inserted, identifier)
     for old_pk, new_pk in found_data["existing_map"].items():
-        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Existing)
+        out_pk_map.insert(model_name, int(old_pk), int(new_pk), ImportKind.Existing)
     for old_pk, new_pk in found_data["overwrite_map"].items():
-        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Overwrite)
+        out_pk_map.insert(model_name, int(old_pk), int(new_pk), ImportKind.Overwrite)
 
     return RpcImportOk(
         mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
@@ -281,9 +281,9 @@ class UniversalImportExportService(ImportExportService):
                                         reason=str(e),
                                     )
 
-                # If the `counter` is at 0, no model instances were actually imported, so we can
-                # return early.
+                # If the `last_seen_ordinal` has not been incremented, no actual writes were done.
                 if last_seen_ordinal == min_ordinal - 1:
+                    logger.info("import_by_model.none_imported", extra=extra)
                     return RpcImportOk(
                         mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
                         min_ordinal=None,

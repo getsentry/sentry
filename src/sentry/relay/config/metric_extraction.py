@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 # GENERIC METRIC EXTRACTION
 
 # Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 2
+_METRIC_EXTRACTION_VERSION = 3
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
@@ -780,35 +780,42 @@ def _convert_aggregate_and_query_to_metrics(
         "query": query,
         "groupbys": groupbys,
     }
-    # Create as many specs as we support
-    for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
-        try:
-            on_demand_spec = OnDemandMetricSpec(
-                field=aggregate,
-                query=query,
-                environment=environment,
-                groupbys=groupbys,
-                spec_type=spec_type,
-                spec_version=spec_version,
-            )
-            metric_spec = on_demand_spec.to_metric_spec(project)
-            # TODO: switch to validate_rule_condition
-            if (condition := metric_spec.get("condition")) is not None:
-                validate_sampling_condition(json.dumps(condition))
-            else:
-                metrics.incr(
-                    "on_demand_metrics.missing_condition_spec", tags={"prefilling": prefilling}
-                )
 
-            metric_specs_and_hashes.append((on_demand_spec.query_hash, metric_spec, spec_version))
-        except ValueError:
-            # raised by validate_sampling_condition or metric_spec lacking "condition"
-            metrics.incr("on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling})
-            logger.exception("Invalid on-demand metric spec", extra=extra)
-        except Exception:
-            # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
-            metrics.incr("on_demand_metrics.invalid_metric_spec.other")
-            logger.exception("Failed on-demand metric spec creation.", extra=extra)
+    with sentry_sdk.start_span(op="converting_aggregate_and_query") as span:
+        span.set_data("widget_query_args", {"query": query, "aggregate": aggregate})
+        # Create as many specs as we support
+        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+            try:
+                on_demand_spec = OnDemandMetricSpec(
+                    field=aggregate,
+                    query=query,
+                    environment=environment,
+                    groupbys=groupbys,
+                    spec_type=spec_type,
+                    spec_version=spec_version,
+                )
+                metric_spec = on_demand_spec.to_metric_spec(project)
+                # TODO: switch to validate_rule_condition
+                if (condition := metric_spec.get("condition")) is not None:
+                    validate_sampling_condition(json.dumps(condition))
+                else:
+                    metrics.incr(
+                        "on_demand_metrics.missing_condition_spec", tags={"prefilling": prefilling}
+                    )
+
+                metric_specs_and_hashes.append(
+                    (on_demand_spec.query_hash, metric_spec, spec_version)
+                )
+            except ValueError:
+                # raised by validate_sampling_condition or metric_spec lacking "condition"
+                metrics.incr(
+                    "on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling}
+                )
+                logger.exception("Invalid on-demand metric spec", extra=extra)
+            except Exception:
+                # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
+                metrics.incr("on_demand_metrics.invalid_metric_spec.other")
+                logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
 

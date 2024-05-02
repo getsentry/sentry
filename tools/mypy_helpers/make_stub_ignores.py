@@ -39,8 +39,8 @@ def main() -> int:
                 seen.add(match[1])
 
     # google's weird namespace package breaks mypy's errors
-    assert {s for s in seen if s.startswith("google.cloud.")}, "google.cloud got typed!"
-    seen.add("google.cloud")
+    assert {s for s in seen if s.startswith("google.")}, "google got typed!"
+    seen.add("google")
 
     mods: list[str] = []
     for mod in sorted(seen):

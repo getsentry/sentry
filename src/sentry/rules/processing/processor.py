@@ -15,6 +15,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
@@ -64,7 +65,9 @@ def get_rule_type(condition: Mapping[str, Any]) -> str | None:
     return rule_type
 
 
-def split_conditions_and_filters(rule_condition_list):
+def split_conditions_and_filters(
+    rule_condition_list,
+) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
     condition_list = []
     filter_list = []
     for rule_cond in rule_condition_list:
@@ -80,7 +83,9 @@ def build_rule_status_cache_key(rule_id: int, group_id: int) -> str:
     return "grouprulestatus:1:%s" % hash_values([group_id, rule_id])
 
 
-def bulk_get_rule_status(rules: Sequence[Rule], group: Group) -> Mapping[int, GroupRuleStatus]:
+def bulk_get_rule_status(
+    rules: Sequence[Rule], group: Group, project: Project
+) -> Mapping[int, GroupRuleStatus]:
     keys = [build_rule_status_cache_key(rule.id, group.id) for rule in rules]
     cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
     missing_rule_ids: set[int] = set()
@@ -107,7 +112,7 @@ def bulk_get_rule_status(rules: Sequence[Rule], group: Group) -> Mapping[int, Gr
             # might be created between when we queried above and attempt to create the rows now.
             GroupRuleStatus.objects.bulk_create(
                 [
-                    GroupRuleStatus(rule_id=rule_id, group=group, project=group.project)
+                    GroupRuleStatus(rule_id=rule_id, group=group, project=project)
                     for rule_id in missing_rule_ids
                 ],
                 ignore_conflicts=True,
@@ -338,7 +343,7 @@ class RuleProcessor:
         snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
             "rule", flat=True
         )
-        rule_statuses = bulk_get_rule_status(rules, self.group)
+        rule_statuses = bulk_get_rule_status(rules, self.group, self.project)
         for rule in rules:
             if rule.id not in snoozed_rules:
                 self.apply_rule(rule, rule_statuses[rule.id])

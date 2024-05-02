@@ -5,13 +5,14 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from functools import lru_cache
 
-import msgpack
 from arroyo import Partition
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
-from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse, IngestMonitorMessage
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
@@ -25,6 +26,8 @@ from sentry.utils.kafka_config import (
 )
 
 logger = logging.getLogger("sentry")
+
+MONITOR_CODEC: Codec[IngestMonitorMessage] = get_codec("ingest-monitors")
 
 
 def _get_producer() -> KafkaProducer:
@@ -72,7 +75,7 @@ def clock_pulse(current_datetime=None):
         "message_type": "clock_pulse",
     }
 
-    payload = KafkaPayload(None, msgpack.packb(message), [])
+    payload = KafkaPayload(None, MONITOR_CODEC.encode(message), [])
 
     # We create a clock-pulse (heart-beat) for EACH available partition in the
     # topic. This is a requirement to ensure that none of the partitions stall,

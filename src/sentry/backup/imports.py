@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import IO
@@ -47,6 +48,8 @@ __all__ = (
     "import_in_global_scope",
 )
 
+logger = logging.getLogger(__name__)
+
 # We have to be careful when removing fields from our model schemas, since exports created using
 # the old-but-still-in-the-support-window versions could have those fields set in the data they
 # provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
@@ -59,12 +62,16 @@ __all__ = (
 # around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
 # each entry in this dict, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[
-    str, set[str]
-] = {  # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
-    "sentry.team": {"org_role"},
+DELETED_FIELDS: dict[str, set[str]] = {
+    # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+    # The actor field should be retained until 24.6.0
+    "sentry.team": {"org_role", "actor"},
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
     "sentry.rule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.alertrule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.grouphistory": {"actor"},
 }
 
 # The maximum number of models that may be sent at a time.
@@ -310,6 +317,15 @@ def _import(
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
         model_name_str = str(model_name)
+        min_ordinal = offset + 1
+
+        extra = {
+            "model_name": model_name_str,
+            "import_uuid": flags.import_uuid,
+            "min_ordinal": min_ordinal,
+        }
+        logger.info("import_by_model.request_import", extra=extra)
+
         result = import_by_model(
             model_name=model_name_str,
             scope=import_write_context.scope,
@@ -317,7 +333,7 @@ def _import(
             filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
-            min_ordinal=offset + 1,
+            min_ordinal=min_ordinal,
         )
 
         if isinstance(result, RpcImportError):
@@ -342,7 +358,9 @@ def _import(
             existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
                 import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
             ).first()
-            if existing_control_import_chunk_replica is None:
+            if existing_control_import_chunk_replica is not None:
+                logger.info("import_by_model.control_replica_already_exists", extra=extra)
+            else:
                 # If `min_ordinal` is not null, these values must not be either.
                 assert result.max_ordinal is not None
                 assert result.min_source_pk is not None

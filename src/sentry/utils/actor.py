@@ -9,7 +9,6 @@ from rest_framework import serializers
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models.actor import Actor
     from sentry.models.team import Team
     from sentry.models.user import User
 
@@ -98,17 +97,6 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     def resolve(self) -> Team | RpcUser:
         return fetch_actor_by_id(self.type, self.id)
-
-    def resolve_to_actor(self) -> Actor:
-        from sentry.models.actor import Actor, get_actor_for_user
-        from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
-
-        obj = self.resolve()
-        if isinstance(obj, (User, RpcUser)):
-            return get_actor_for_user(obj)
-        # Team case. Teams have actors generated as a post_save signal
-        return Actor.objects.get(id=obj.actor_id)
 
     @classmethod
     def resolve_many(cls, actors: Sequence[ActorTuple]) -> Sequence[Team | RpcUser]:

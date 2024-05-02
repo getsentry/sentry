@@ -2,6 +2,7 @@ from collections.abc import Generator, Mapping
 from typing import TypeVar
 
 from django.core.cache import cache
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
 
 from sentry.hybridcloud.models.cacheversion import (
     CacheVersionBase,
@@ -25,8 +26,12 @@ def _consume_generator(g: Generator[None, None, _V]) -> _V:
             return e.value
 
 
-def _set_cache(key: str, value: str | None, version: int) -> Generator[None, None, bool]:
-    result = cache.add(_versioned_key(key, version), value)
+def _set_cache(
+    key: str, value: str | None, version: int, timeout: int | None = None
+) -> Generator[None, None, bool]:
+    if timeout is None:
+        timeout = DEFAULT_TIMEOUT
+    result = cache.add(_versioned_key(key, version), value, timeout=timeout)
     yield
     return result
 
