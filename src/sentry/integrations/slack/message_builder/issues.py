@@ -596,7 +596,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 "Unresolve",
                 "Resolve...",
             ):
-                actions.append(self.get_button_action(action))
+                actions.append(action.get_button())
             elif action.name == "assign":
                 actions.append(
                     self.get_external_select_action(

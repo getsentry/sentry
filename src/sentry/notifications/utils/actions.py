@@ -4,6 +4,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from sentry.integrations.slack import SlackBlock
+
 
 @dataclass(kw_only=True)
 class _BaseMessageAction:
@@ -22,6 +24,27 @@ class _BaseMessageAction:
     block_id: str | None = None
     selected_options: Sequence[Mapping[str, Any]] | None = None
 
+    def _get_button_text(self) -> str:
+        return self.name
+
+    def get_button(self) -> SlackBlock:
+        button = {
+            "type": "button",
+            "text": {"type": "plain_text", "text": self._get_button_text()},
+        }
+        if self.value:
+            button["action_id"] = self.value
+            button["value"] = self.value
+
+        if self.action_id:
+            button["action_id"] = self.action_id
+
+        if self.url:
+            button["url"] = self.url
+            button["value"] = "link_clicked"
+
+        return button
+
 
 @dataclass
 class MessageAction(_BaseMessageAction):
@@ -31,7 +54,13 @@ class MessageAction(_BaseMessageAction):
     option_groups: Sequence[Mapping[str, Any]] | None = None
     elements: Sequence[Mapping[str, Any]] | None = None
 
+    def _get_button_text(self) -> str:
+        return self.label or self.name
+
 
 @dataclass
 class BlockKitMessageAction(_BaseMessageAction):
     label: str
+
+    def _get_button_text(self) -> str:
+        return self.label or self.name

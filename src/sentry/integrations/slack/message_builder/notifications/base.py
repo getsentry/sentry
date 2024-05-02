@@ -59,7 +59,7 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
 
         actions_block = []
         for action in actions:
-            actions_block.append(self.get_button_action(action))
+            actions_block.append(action.get_button())
 
         if actions_block:
             blocks.append({"type": "actions", "elements": [action for action in actions_block]})
