@@ -111,10 +111,18 @@ class ProjectEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_id_or_slug: int | str,
         *args,
         **kwargs,
     ):
+        if args and args[0] is not None:
+            organization_id_or_slug: int | str = args[0]
+            # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
+            args = args[1:]
+        else:
+            organization_id_or_slug = kwargs.pop("organization_id_or_slug", None) or kwargs.pop(
+                "organization_slug"
+            )
+
         if args and args[0] is not None:
             project_id_or_slug: int | str = args[0]
             # Required so it behaves like the original convert_args, where project_id_or_slug was another parameter
