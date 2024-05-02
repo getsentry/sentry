@@ -532,7 +532,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             name="test",
-            owner=other_team.actor.get_actor_identifier(),
+            owner=f"team:{other_team.id}",
             actionMatch="any",
             filterMatch="any",
             actions=[],
