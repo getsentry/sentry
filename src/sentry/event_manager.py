@@ -573,7 +573,7 @@ class EventManager:
         if features.has(
             "organizations:user-feedback-event-link-ingestion-changes", project.organization
         ):
-            _update_user_reports_with_event_link(job, group_info)
+            _update_user_reports_with_group(job, group_info)
         else:
             UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
                 group_id=group_info.group.id, environment_id=job["environment"].id
@@ -2843,8 +2843,8 @@ def _detect_performance_problems(
 
 
 @sentry_sdk.tracing.trace
-def _update_user_reports_with_event_link(job: Job, group_info: GroupInfo) -> None:
-    metrics.incr("event_manager.save._update_user_reports_with_event_link")
+def _update_user_reports_with_group(job: Job, group_info: GroupInfo) -> None:
+    metrics.incr("event_manager.save._update_user_reports_with_group_called")
     event = job["event"]
     project = event.project
     user_reports_without_group = UserReport.objects.filter(
@@ -2868,11 +2868,11 @@ def _update_user_reports_with_event_link(job: Job, group_info: GroupInfo) -> Non
             FeedbackCreationSource.USER_REPORT_ENVELOPE,
         )
 
-    user_reports_updated = user_reports_without_group.update(
+    num_user_reports_updated = user_reports_without_group.update(
         group_id=group_info.group.id, environment_id=job["environment"].id
     )
-    if user_reports_updated:
-        metrics.incr("event_manager.save._update_user_reports_with_event_link")
+    if num_user_reports_updated:
+        metrics.incr("event_manager.save._update_user_reports_with_group_updated")
 
 
 class PerformanceJob(TypedDict, total=False):
