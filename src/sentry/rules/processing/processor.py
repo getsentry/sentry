@@ -13,7 +13,6 @@ from django.utils import timezone
 from sentry import analytics, features
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -259,17 +258,13 @@ class RuleProcessor:
 
         return fast_conditions, slow_conditions
 
-    def get_occurrence(self) -> IssueOccurrence | None:
-        if self.event.occurrence_id:
-            return IssueOccurrence.fetch(self.event.occurrence_id, project_id=self.project.id)
-        return None
-
     def enqueue_rule(self, rule: Rule) -> None:
         self.buffer = RedisBuffer()
         self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
-        occurrence_id = self.get_occurrence()
-        value = json.dumps({"event_id": self.event.event_id, "occurrence_id": occurrence_id})
+        value = json.dumps(
+            {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
+        )
         self.buffer.push_to_hash(
             model=Project,
             filters={"project_id": rule.project.id},
@@ -318,11 +313,9 @@ class RuleProcessor:
         process_slow_conditions_later = features.has(
             "organizations:process-slow-alerts", self.project.organization
         )
-        if process_slow_conditions_later:
-            condition_list = fast_conditions
-        else:
-            fast_conditions.extend(slow_conditions)  # type: ignore[arg-type]
-            condition_list = fast_conditions
+        condition_list = fast_conditions
+        if not process_slow_conditions_later:
+            condition_list = fast_conditions + slow_conditions  # type: ignore[operator]
 
         for predicate_list, match, name in (
             (filter_list, filter_match, "filter"),
