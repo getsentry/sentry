@@ -483,12 +483,20 @@ const SpanTablePanelItem = styled(StyledPanelItem)`
 const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string}>`
   ${p =>
     p.highlightedSliceName
-      ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;`
+      ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
+         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(-1px);
+       `
       : null}
   ${p =>
     p.highlightedSliceName
-      ? `--defaultSlice-opacity: 0.3;`
-      : `--defaultSlice-opacity: 1.0;`}
+      ? `
+        --defaultSlice-opacity: 0.3;
+        --defaultSlice-transform: translateY(1px);
+        `
+      : `
+        --defaultSlice-opacity: 1.0;
+        --defaultSlice-transform: translateY(0px);
+        `}
 `;
 
 const EmptyValueContainer = styled('span')`
