@@ -8,6 +8,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
@@ -43,10 +44,8 @@ export default function EventTagsTreeRow({
   config = {},
   ...props
 }: EventTagsTreeRowProps) {
-  const organization = useOrganization();
   const originalTag = content.originalTag;
-  const tagMeta = content.meta?.value?.[''];
-  const tagErrors = tagMeta?.err ?? [];
+  const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
   const hasStem = !isLast && objectIsEmpty(content.subtree);
 
@@ -66,20 +65,6 @@ export default function EventTagsTreeRow({
       </TreeRow>
     );
   }
-  const tagValue =
-    originalTag.key === 'release' && !config?.disableRichValue ? (
-      <VersionHoverCard
-        organization={organization}
-        projectSlug={projectSlug}
-        releaseVersion={content.value}
-        showUnderline
-        underlineColor="linkUnderline"
-      >
-        <Version version={content.value} truncate />
-      </VersionHoverCard>
-    ) : (
-      <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
-    );
 
   const tagActions = hasTagErrors ? (
     <TreeValueErrors data-test-id="tag-tree-row-errors">
@@ -104,7 +89,13 @@ export default function EventTagsTreeRow({
         </TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
-        <TreeValue hasErrors={hasTagErrors}>{tagValue}</TreeValue>
+        <TreeValue hasErrors={hasTagErrors}>
+          <EventTagsTreeValue
+            config={config}
+            content={content}
+            projectSlug={projectSlug}
+          />
+        </TreeValue>
         {!config?.disableActions && tagActions}
       </TreeValueTrunk>
     </TreeRow>
@@ -217,6 +208,59 @@ function EventTagsTreeRowDropdown({
   );
 }
 
+function EventTagsTreeValue({
+  content,
+  projectSlug,
+  config,
+}: Pick<EventTagsTreeRowProps, 'content' | 'projectSlug' | 'config'>) {
+  const organization = useOrganization();
+  const {originalTag} = content;
+  const tagMeta = content.meta?.value?.[''];
+  if (!originalTag) {
+    return null;
+  }
+
+  const defaultValue = (
+    <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
+  );
+
+  if (config?.disableRichValue) {
+    return defaultValue;
+  }
+
+  let tagValue = defaultValue;
+  switch (originalTag.key) {
+    case 'release':
+      tagValue = (
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={projectSlug}
+          releaseVersion={content.value}
+          showUnderline
+          underlineColor="linkUnderline"
+        >
+          <Version version={content.value} truncate />
+        </VersionHoverCard>
+      );
+      break;
+    default:
+      tagValue = defaultValue;
+  }
+
+  return !isUrl(content.value) ? (
+    tagValue
+  ) : (
+    <TagExternalLink
+      onClick={e => {
+        e.preventDefault();
+        openNavigateToExternalLinkModal({linkText: content.value});
+      }}
+    >
+      {tagValue}
+    </TagExternalLink>
+  );
+}
+
 const TreeRow = styled('div')<{hasErrors: boolean}>`
   border-radius: ${space(0.5)};
   padding-left: ${space(1)};
@@ -252,6 +296,7 @@ const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
   margin-right: -1px;
   height: 100%;
+  width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
@@ -269,8 +314,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   display: grid;
   height: 100%;
   align-items: center;
-  grid-template-columns: ${p =>
-    p.spacerCount > 0 ? `${(p.spacerCount - 1) * 20 + 3}px 1rem 1fr` : '1fr'};
+  grid-template-columns: ${p => (p.spacerCount > 0 ? `auto 1rem 1fr` : '1fr')};
 `;
 
 const TreeValueTrunk = styled('div')`
@@ -320,4 +364,9 @@ const TreeValueDropdown = styled(DropdownMenu)`
 const TreeValueErrors = styled('div')`
   height: 20px;
   margin-right: ${space(0.75)};
+`;
+
+const TagExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.linkColor};
+  margin: 0;
 `;
