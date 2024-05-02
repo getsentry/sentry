@@ -12,6 +12,7 @@ import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -28,12 +29,6 @@ public override void Configure(SentryUnityOptions options)
       EnableCodeLocations = true
     };
 }`;
-
-const getMetricsVerifySnippet = () => `
-SentrySdk.Metrics.Increment(
-  "drank-drinks",
-  tags:new Dictionary<string, string> {{"kind", "coffee"}}
-);`;
 
 const onboarding: OnboardingConfig = {
   install: params => [
@@ -213,8 +208,32 @@ const metricsOnboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'csharp',
-          code: getMetricsVerifySnippet(),
+          code: [
+            {
+              label: 'Counter',
+              value: 'counter',
+              language: 'csharp',
+              code: exampleSnippets.dotnet.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'csharp',
+              code: exampleSnippets.dotnet.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'csharp',
+              code: exampleSnippets.dotnet.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'csharp',
+              code: exampleSnippets.dotnet.gauge,
+            },
+          ],
         },
         {
           description: t(

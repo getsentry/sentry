@@ -1,5 +1,5 @@
 ---
-created: '2023-09-05T08:13:14.082794Z'
+created: '2024-04-29T10:23:50.727988+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -920,4 +920,4 @@ transactionMetrics:
   customMeasurements:
     limit: 10
   extractCustomTags: []
-  version: 3
+  version: 5
