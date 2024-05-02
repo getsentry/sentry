@@ -103,6 +103,7 @@ describe('SentryAppExternalInstallation', () => {
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
       expect(
         await screen.findByText(
@@ -136,6 +137,7 @@ describe('SentryAppExternalInstallation', () => {
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
       await userEvent.click(await screen.findByTestId('install')); // failing currently
 
@@ -194,6 +196,7 @@ describe('SentryAppExternalInstallation', () => {
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
       expect(getAppMock).toHaveBeenCalled();
       expect(getOrgsMock).toHaveBeenCalled();
@@ -235,6 +238,7 @@ describe('SentryAppExternalInstallation', () => {
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
       await selectEvent.select(screen.getByRole('textbox'), 'org2');
       expect(window.location.assign).toHaveBeenCalledWith(generateOrgSlugUrl('org2'));
