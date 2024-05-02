@@ -21,6 +21,7 @@ from sentry.integrations.message_builder import (
     get_title_link,
 )
 from sentry.integrations.slack.message_builder import (
+    ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
@@ -534,22 +535,23 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             if features.has("organizations:slack-improvements", self.group.project.organization):
                 action_level = "_actioned_issue"
 
-        # if issue is resolved, archived, or assigned, replace circle emojis with white circle
-        if self.group.issue_category == GroupCategory.ERROR:
+        is_error_issue = self.group.issue_category == GroupCategory.ERROR
+        if action_level:
+            # if issue is resolved, archived, or assigned, replace circle emojis with white circle
+            title_emoji = (
+                LEVEL_TO_EMOJI.get(action_level)
+                if is_error_issue
+                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            )
+        elif is_error_issue:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
                     level_text = k
 
-            title_emoji = (
-                LEVEL_TO_EMOJI.get(action_level) if action_level else LEVEL_TO_EMOJI.get(level_text)
-            )
+            title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
-            title_emojis = CATEGORY_TO_EMOJI.get(self.group.issue_category)
-            if action_level:
-                title_emoji = action_level + " " + title_emojis[-1]
-            else:
-                title_emoji = " ".join(title_emojis)
+            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"

@@ -38,7 +38,13 @@ LEVEL_TO_EMOJI = {
 }
 
 CATEGORY_TO_EMOJI = {
-    GroupCategory.PERFORMANCE: [":large_blue_circle:", ":chart_with_upwards_trend:"],
-    GroupCategory.FEEDBACK: [":large_blue_circle:", ":busts_in_silhouette:"],
-    GroupCategory.CRON: [":large_yellow_circle:", ":spiral_calendar_pad:"],
+    GroupCategory.PERFORMANCE: ":large_blue_circle: :chart_with_upwards_trend:",
+    GroupCategory.FEEDBACK: ":large_blue_circle: :busts_in_silhouette:",
+    GroupCategory.CRON: ":large_yellow_circle: :spiral_calendar_pad:",
+}
+
+ACTIONED_CATEGORY_TO_EMOJI = {
+    GroupCategory.PERFORMANCE: ":white_circle: :chart_with_upwards_trend:",
+    GroupCategory.FEEDBACK: ":white_circle: :busts_in_silhouette:",
+    GroupCategory.CRON: ":white_circle: :spiral_calendar_pad:",
 }
