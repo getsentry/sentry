@@ -191,19 +191,32 @@ def get_rules_to_fire(
     return rules_to_fire
 
 
+def parse_rulegroup_to_event_data(
+    rulegroup_to_event_data: dict[str, str]
+) -> dict[tuple[str, str], dict[str, str]]:
+    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]] = {}
+
+    for rule_group, instance_data in rulegroup_to_event_data.items():
+        event_data = json.loads(instance_data)
+        rule_id, group_id = rule_group.split(":")
+        parsed_rulegroup_to_event_data[(rule_id, group_id)] = event_data
+    return parsed_rulegroup_to_event_data
+
+
 def get_group_to_groupevent(
-    rulegroup_to_event_data: dict[str, str], project_id: int, group_ids: set[int]
+    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    project_id: int,
+    group_ids: set[int],
 ) -> dict[Group, GroupEvent]:
     group_to_groupevent: dict[Group, GroupEvent] = {}
     groups = Group.objects.filter(id__in=group_ids)
     group_id_to_group = {group.id: group for group in groups}
-    for rule_group, instance_data in rulegroup_to_event_data.items():
-        event_data = json.loads(instance_data)
-        event_id = event_data.get("event_id")
-        occurrence_id = event_data.get("occurrence_id")
-        _, group_id = rule_group.split(":")
+    for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
+        event_id = instance_data.get("event_id")
+        occurrence_id = instance_data.get("occurrence_id")
+        group_id = rule_group[1]
         group = group_id_to_group.get(int(group_id))
-        if group:
+        if group and event_id:
             # TODO: fetch events and occurrences in batches
             event = Event(
                 event_id=event_id,
@@ -276,11 +289,13 @@ def apply_delayed(project_id: int) -> None:
     # Step 7: Fire the rule's actions
     now = timezone.now()
     # TODO: check rulesnooze table again before firing
+    parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
+
     for rule, group_ids in rules_to_fire.items():
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         freq_offset = now - timedelta(minutes=frequency)
         group_to_groupevent = get_group_to_groupevent(
-            rulegroup_to_event_data, project.id, group_ids
+            parsed_rulegroup_to_event_data, project.id, group_ids
         )
         for group, groupevent in group_to_groupevent.items():
             rule_statuses = bulk_get_rule_status(alert_rules, group, project)
