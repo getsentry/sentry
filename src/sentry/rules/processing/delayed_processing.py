@@ -14,6 +14,7 @@ from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
     BaseEventFrequencyCondition,
@@ -288,10 +289,14 @@ def apply_delayed(project_id: int) -> None:
         )
     # Step 7: Fire the rule's actions
     now = timezone.now()
-    # TODO: check rulesnooze table again before firing
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
-
+    snoozed_rules = RuleSnooze.objects.filter(
+        rule__in=rules_to_fire.keys(), user_id=None
+    ).values_list("rule", flat=True)
     for rule, group_ids in rules_to_fire.items():
+        if rule.id in snoozed_rules:
+            continue
+
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         freq_offset = now - timedelta(minutes=frequency)
         group_to_groupevent = get_group_to_groupevent(

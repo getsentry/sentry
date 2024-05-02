@@ -238,6 +238,34 @@ class ProcessDelayedAlertConditionsTest(
             assert (self.rule1.id, self.group1.id) in rule_fire_histories
             assert (rule5.id, group5.id) in rule_fire_histories
 
+    def test_apply_delayed_snoozed_rule(self):
+        """
+        Test that we do not fire a rule that's been snoozed (aka muted)
+        """
+        rule5 = self.create_project_rule(
+            project=self.project,
+            condition_match=[self.event_frequency_condition2],
+            environment_id=self.environment.id,
+        )
+        self.snooze_rule(owner_id=self.user.id, rule=rule5)
+        event5 = self.create_event(self.project, self.now, "group-5", self.environment.name)
+        self.create_event(self.project, self.now, "group-5", self.environment.name)
+        self.create_event(self.project, self.now, "group-5", self.environment.name)
+        group5 = event5.group
+        assert group5
+        assert self.group1
+        self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
+
+        with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
+            apply_delayed(self.project.id)
+            rule_fire_histories = RuleFireHistory.objects.filter(
+                rule__in=[rule5],
+                group__in=[self.group1, group5],
+                event_id__in=[self.event1.event_id, event5.event_id],
+                project=self.project,
+            ).values_list("rule", "group")
+            assert len(rule_fire_histories) == 0
+
     def test_apply_delayed_same_condition_diff_value(self):
         """
         Test that two rules with the same condition and interval but a different value are both fired
