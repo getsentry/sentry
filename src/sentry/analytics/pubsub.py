@@ -4,8 +4,8 @@ __all__ = ("PubSubAnalytics",)
 
 import logging
 
+import google.cloud.pubsub_v1 as pubsub_v1  # weird import for python/mypy#10360
 from google.auth.exceptions import GoogleAuthError
-from google.cloud import pubsub_v1
 
 from sentry.utils.json import dumps
 
