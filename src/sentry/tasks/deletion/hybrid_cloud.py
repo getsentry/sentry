@@ -77,7 +77,12 @@ def set_watermark(
 
 
 def _chunk_watermark_batch(
-    prefix: str, field: HybridCloudForeignKey, manager: BaseManager, *, batch_size: int
+    prefix: str,
+    field: HybridCloudForeignKey,
+    manager: BaseManager,
+    *,
+    batch_size: int,
+    model: type[Model],
 ) -> WatermarkBatch:
     lower, transaction_id = get_watermark(prefix, field)
     agg = manager.aggregate(Min("id"), Max("id"))
@@ -89,6 +94,16 @@ def _chunk_watermark_batch(
     capped = upper
     if upper >= batch_upper:
         capped = batch_upper
+
+    watermark_delta = max(upper - lower, 0)
+    metric_field_name = f"{model._meta.db_table}:{field.name}"
+    metric_tags = dict(field_name=metric_field_name, watermark_type=prefix)
+    metrics.gauge(
+        "deletion.hybrid_cloud.watermark_delta",
+        value=watermark_delta,
+        tags=metric_tags,
+        sample_rate=1.0,
+    )
 
     return WatermarkBatch(
         low=lower, up=capped, has_more=batch_upper < upper, transaction_id=transaction_id
@@ -257,7 +272,7 @@ def _process_tombstone_reconciliation(
         watermark_manager = field.model.objects
 
     watermark_batch = _chunk_watermark_batch(
-        prefix, field, watermark_manager, batch_size=get_batch_size()
+        prefix, field, watermark_manager, batch_size=get_batch_size(), model=model
     )
     has_more = watermark_batch.has_more
     if watermark_batch.low < watermark_batch.up:
