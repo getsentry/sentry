@@ -7,7 +7,6 @@ export enum Tab {
   EVENTS = 'events',
   MERGED = 'merged',
   SIMILAR_ISSUES = 'similar-issues',
-  RELATED_ISSUES = 'related-issues',
   REPLAYS = 'Replays',
 }
 
@@ -20,6 +19,5 @@ export const TabPaths: Record<Tab, string> = {
   [Tab.EVENTS]: 'events/',
   [Tab.MERGED]: 'merged/',
   [Tab.SIMILAR_ISSUES]: 'similar/',
-  [Tab.RELATED_ISSUES]: 'related/',
   [Tab.REPLAYS]: 'replays/',
 };
