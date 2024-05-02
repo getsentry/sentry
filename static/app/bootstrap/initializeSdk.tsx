@@ -118,9 +118,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
       // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
       if (event.spans) {
-        const newEndTimestamp = Math.max(
-          ...event.spans.map(span => span.endTimestamp ?? 0)
-        );
+        const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
         event.timestamp = newEndTimestamp;
       }
 
