@@ -1618,7 +1618,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
 
         data = []
-        count = 0
+        count: int = 0
         # get the query data and the query counts
         k = 0
         for _ in range(len(entities_to_check)):
@@ -1628,20 +1628,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 count += bulk_result[k]["data"][0]["count"]
             k += 1
 
-        hits = 0
         paginator_results = SequencePaginator(
             [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
-        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
+        ).get_result(limit, cursor, known_hits=count, max_hits=max_hits)
 
-        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
-        # Since replay between Postgres and Clickhouse can happen, we might get back results that
-        # have changed state in Postgres. By rechecking them we guarantee than any returned results
-        # have the correct state.
-        # TODO: This can result in us returning less than a full page of results, but shouldn't
-        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
-        # full page. In practice, this will likely only skip a couple of results at worst, and
+        # TODO: do we need to set has_results for the next cursor?
+
+        if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
+            # If the user passed a cursor, and it isn't already a 0 result `is_prev`
+            # cursor, then it's worth allowing them to go back a page to check for
+            # more results.
+            paginator_results.prev.has_results = True
+
+        # We filter against `group_queryset` here to ensure we only return groups that aren't being migrated
+        # or being deleted before snuba is updated. This can result in us returning less than a full page of
+        # results, but we can't do much about that without a more complex solution such as asking for more results
+        # In practice, this will likely only skip a couple of results at worst, and
         # probably not be noticeable to the user, so holding off for now to reduce complexity.
 
         groups = group_queryset.in_bulk(paginator_results.results)
