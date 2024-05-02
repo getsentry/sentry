@@ -24,8 +24,6 @@ import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import usePrevious from 'sentry/utils/usePrevious';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -186,33 +184,18 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             />
           ) : (
             <Fragment>
-              <QuickTraceQuery
-                event={eventWithMeta}
-                location={location}
-                orgSlug={organization.slug}
-              >
-                {results => {
-                  return (
-                    <StyledLayoutMain>
-                      {renderGroupStatusBanner()}
-                      <EscalatingIssuesFeedback
-                        organization={organization}
-                        group={group}
-                      />
-                      <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && issueTypeConfig.stats.enabled && (
-                          <GroupEventHeader
-                            group={group}
-                            event={eventWithMeta}
-                            project={project}
-                          />
-                        )}
-                        {renderContent()}
-                      </QuickTraceContext.Provider>
-                    </StyledLayoutMain>
-                  );
-                }}
-              </QuickTraceQuery>
+              <StyledLayoutMain>
+                {renderGroupStatusBanner()}
+                <EscalatingIssuesFeedback organization={organization} group={group} />
+                {eventWithMeta && issueTypeConfig.stats.enabled && (
+                  <GroupEventHeader
+                    group={group}
+                    event={eventWithMeta}
+                    project={project}
+                  />
+                )}
+                {renderContent()}
+              </StyledLayoutMain>
               <StyledLayoutSide>
                 <GroupSidebar
                   organization={organization}
