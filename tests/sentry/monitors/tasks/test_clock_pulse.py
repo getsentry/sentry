@@ -1,13 +1,12 @@
 from collections.abc import MutableMapping
 from unittest import mock
 
-import msgpack
 from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
 from confluent_kafka.admin import PartitionMetadata
 from django.test import override_settings
 
-from sentry.monitors.tasks.clock_pulse import clock_pulse
+from sentry.monitors.tasks.clock_pulse import MONITOR_CODEC, clock_pulse
 
 
 @override_settings(KAFKA_TOPIC_OVERRIDES={"ingest-monitors": "monitors-test-topic"})
@@ -31,7 +30,7 @@ def test_clock_pulse(checkin_producer_mock):
             Partition(Topic("monitors-test-topic"), idx),
             KafkaPayload(
                 None,
-                msgpack.packb({"message_type": "clock_pulse"}),
+                MONITOR_CODEC.encode({"message_type": "clock_pulse"}),
                 [],
             ),
         )
