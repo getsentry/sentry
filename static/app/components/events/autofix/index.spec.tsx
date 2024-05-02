@@ -21,6 +21,18 @@ describe('Autofix', () => {
       body: {
         genAIConsent: {ok: true},
         integration: {ok: true},
+        githubWriteIntegration: {
+          ok: true,
+          repos: [
+            {
+              provider: 'integrations:github',
+              owner: 'getsentry',
+              name: 'sentry',
+              external_id: '123',
+            },
+          ],
+        },
+        codebaseIndexing: {ok: true},
       },
     });
   });

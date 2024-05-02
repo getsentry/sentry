@@ -275,6 +275,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Superuser read/write
+register(
+    "superuser.read-write.ga-rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # API
 # GA Option for endpoints to work with id or slug as path parameters
@@ -489,14 +496,6 @@ register(
     "relay.span-extraction.sample-rate",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# React concurrent renderer
-register(
-    "frontend.react-concurrent-renderer-enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Analytics
@@ -1745,6 +1744,8 @@ register(
 register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2358,12 +2359,39 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "standalone-spans.buffer-ttl.seconds",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "standalone-spans.detect-performance-issues-consumer.enable",
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "standalone-spans.send-occurrence-to-platform.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.profile-process-messages.rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.deserialize-spans-rapidjson.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.deserialize-spans-orjson.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "indexed-spans.agg-span-waterfall.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2437,13 +2465,5 @@ register(
     "issue_platform.use_kafka_partition_key",
     type=Bool,
     default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-register(
-    "issue_platform.use_kafka_partition_key.rollout",
-    type=Float,
-    default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

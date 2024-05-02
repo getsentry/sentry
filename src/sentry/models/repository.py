@@ -12,7 +12,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.array import ArrayField
@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import pending_delete
 
 
-@region_silo_only_model
+@region_silo_model
 class Repository(Model, PendingDeletionMixin):
     __relocation_scope__ = RelocationScope.Global
 

@@ -8,14 +8,14 @@ from django.utils import timezone
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.log import UserIpEvent, log_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.geo import geo_by_addr
 
 
-@control_silo_only_model
+@control_silo_model
 class UserIP(Model):
     # There is an absolutely massive number of `UserIP` models in any sufficiently long-lived
     # install of Sentry. So while it would probably make semantic sense to have this be

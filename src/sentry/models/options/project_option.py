@@ -9,7 +9,7 @@ from sentry import projectoptions
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.utils.cache import cache
@@ -147,7 +147,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.

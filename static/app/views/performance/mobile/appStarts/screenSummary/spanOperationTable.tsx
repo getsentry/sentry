@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -11,6 +10,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -35,6 +35,7 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -161,6 +162,15 @@ export function SpanOperationTable({
         <Link to={`${pathname}?${qs.stringify(query)}`}>
           <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
+      );
+    }
+
+    if (data.meta.fields[column.key] === 'percent_change') {
+      return (
+        <PercentChangeCell
+          deltaValue={parseFloat(row[column.key] as string)}
+          preferredPolarity="-"
+        />
       );
     }
 

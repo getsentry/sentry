@@ -6,6 +6,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import {feedbackOnboardingCrashApiDart} from 'sentry/gettingStartedDocs/dart/dart';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -159,12 +160,28 @@ const metricsOnboarding: OnboardingConfig = {
             {
               code: [
                 {
-                  label: 'Dart',
-                  value: 'dart',
+                  label: 'Counter',
+                  value: 'counter',
                   language: 'dart',
-                  code: `
-// Add 4 to a counter named "hits"
-Sentry.metrics().increment("hits", value: 4);`,
+                  code: exampleSnippets.dart.counter,
+                },
+                {
+                  label: 'Distribution',
+                  value: 'distribution',
+                  language: 'dart',
+                  code: exampleSnippets.dart.distribution,
+                },
+                {
+                  label: 'Set',
+                  value: 'set',
+                  language: 'dart',
+                  code: exampleSnippets.dart.set,
+                },
+                {
+                  label: 'Gauge',
+                  value: 'gauge',
+                  language: 'dart',
+                  code: exampleSnippets.dart.gauge,
                 },
               ],
             },

@@ -133,6 +133,7 @@ function DefaultGroupEventDetailsContent({
             report={event.userReport}
             orgSlug={organization.slug}
             issueId={group.id}
+            showEventLink={false}
           />
         </EventDataSection>
       )}
@@ -174,7 +175,11 @@ function DefaultGroupEventDetailsContent({
         <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
       )}
       {showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+        <ResourcesAndMaybeSolutionsIssueDetailsContent
+          event={event}
+          project={project}
+          group={group}
+        />
       )}
       <EventEvidence event={event} group={group} project={project} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
@@ -199,7 +204,11 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
       {!showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+        <ResourcesAndMaybeSolutionsIssueDetailsContent
+          event={event}
+          project={project}
+          group={group}
+        />
       )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
@@ -235,6 +244,18 @@ function DefaultGroupEventDetailsContent({
         />
       )}
     </Fragment>
+  );
+}
+
+function ResourcesAndMaybeSolutionsIssueDetailsContent({
+  event,
+  project,
+  group,
+}: Required<GroupEventDetailsContentProps>) {
+  return (
+    <ErrorBoundary mini>
+      <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+    </ErrorBoundary>
   );
 }
 

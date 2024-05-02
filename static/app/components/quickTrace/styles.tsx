@@ -8,7 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
 import Truncate from 'sentry/components/truncate';
 import {space} from 'sentry/styles/space';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 export const SectionSubtext = styled('div')`

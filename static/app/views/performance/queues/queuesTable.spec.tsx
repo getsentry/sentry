@@ -13,9 +13,14 @@ describe('queuesTable', () => {
 
   let eventsMock;
 
+  const pageLinks =
+    '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
+    '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
+
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
+      headers: {Link: pageLinks},
       method: 'GET',
       body: {
         data: [
@@ -77,8 +82,9 @@ describe('queuesTable', () => {
       })
     );
     await screen.findByText('celery.backend_cleanup');
-    screen.getByText('3.00ms');
-    screen.getByText(2);
-    screen.getByText('6.00ms');
+    expect(screen.getByText('3.00ms')).toBeInTheDocument();
+    expect(screen.getByText(2)).toBeInTheDocument();
+    expect(screen.getByText('6.00ms')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
   });
 });

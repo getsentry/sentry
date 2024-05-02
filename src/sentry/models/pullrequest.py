@@ -16,7 +16,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils.groupreference import find_referenced_groups
@@ -50,7 +50,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
         return affected, created
 
 
-@region_silo_only_model
+@region_silo_model
 class PullRequest(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -84,7 +84,7 @@ class PullRequest(Model):
         return find_referenced_groups(text, self.organization_id)
 
 
-@region_silo_only_model
+@region_silo_model
 class PullRequestCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
     pull_request = FlexibleForeignKey("sentry.PullRequest")
@@ -105,7 +105,7 @@ class CommentType:
         return ((cls.MERGED_PR, "merged_pr"), (cls.OPEN_PR, "open_pr"))
 
 
-@region_silo_only_model
+@region_silo_model
 class PullRequestComment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

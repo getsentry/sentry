@@ -542,14 +542,7 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded as err:
-            logger.info(
-                "event_manager.save.discard",
-                extra={
-                    "reason": err.reason,
-                    "tombstone_id": err.tombstone_id,
-                },
-            )
+        except HashDiscarded:
             discard_event(job, attachments)
             raise
 
@@ -2036,6 +2029,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             group=group,
             transition_type="automatic",
             sender="handle_regression",
+            new_substatus=GroupSubStatus.REGRESSED,
         )
         if not options.get("groups.enable-post-update-signal"):
             post_save.send(
@@ -2412,15 +2406,9 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         # Fall back to using just the title for events without an exception.
         title = event.title
 
-    # If the event hasn't yet been given a helpful title, attempt to calculate one
+    # If all we have is `<unlabeled event>` (or one of its equally unhelpful friends), bail
     if title in PLACEHOLDER_EVENT_TITLES:
-        title = event_type.get_title(metadata)
-
-    # If there's still nothing helpful to be had, bail
-    if title in PLACEHOLDER_EVENT_TITLES:
-        logger_data.update(
-            {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
-        )
+        logger_data.update({"event_type": event_type.key, "title": title})
         logger.warning(
             "Unable to get severity score because of unusable `message` value '%s'",
             title,

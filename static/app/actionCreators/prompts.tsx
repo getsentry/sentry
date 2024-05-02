@@ -138,14 +138,16 @@ export function usePrompt({
   organization,
   projectId,
   daysToSnooze,
+  options,
 }: {
   feature: string;
   organization: Organization;
   daysToSnooze?: number;
+  options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
 }) {
   const api = useApi({persistInFlight: true});
-  const prompt = usePromptsCheck({feature, organization, projectId});
+  const prompt = usePromptsCheck({feature, organization, projectId}, options);
   const queryClient = useQueryClient();
 
   const isPromptDismissed =
