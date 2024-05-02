@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -48,6 +49,16 @@ export default function AiMonitoringPage() {
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        label: t('Dashboard'),
+                      },
+                      {
+                        label: t('AI Monitoring'),
+                      },
+                    ]}
+                  />
                   <Layout.Title>
                     {t('AI Monitoring')}
                     <PageHeadingQuestionTooltip
