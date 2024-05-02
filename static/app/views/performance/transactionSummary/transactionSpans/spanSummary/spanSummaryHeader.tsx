@@ -32,27 +32,31 @@ export default function SpanSummaryHeader(props: Props) {
 
       <HeaderInfo data-test-id="header-avg-duration">
         <StyledSectionHeading>{DataTitles.avg}</StyledSectionHeading>
-        <SectionBody>
-          {defined(avgDuration)
-            ? formatMetricUsingUnit(avgDuration, 'milliseconds')
-            : '\u2014'}
-        </SectionBody>
+        <NumericSectionWrapper>
+          <SectionBody>
+            {defined(avgDuration)
+              ? formatMetricUsingUnit(avgDuration, 'milliseconds')
+              : '\u2014'}
+          </SectionBody>
+        </NumericSectionWrapper>
       </HeaderInfo>
 
       <HeaderInfo data-test-id="header-total-exclusive-time">
         <StyledSectionHeading>{DataTitles.timeSpent}</StyledSectionHeading>
-        <SectionBody>
-          {defined(timeSpent) ? (
-            <PerformanceDuration abbreviation milliseconds={timeSpent} />
-          ) : (
-            '\u2014'
-          )}
-        </SectionBody>
-        <SectionSubtext>
-          {defined(spanCount)
-            ? tct('[spanCount] spans', {spanCount: <Count value={spanCount} />})
-            : '\u2014'}
-        </SectionSubtext>
+        <NumericSectionWrapper>
+          <SectionBody>
+            {defined(timeSpent) ? (
+              <PerformanceDuration abbreviation milliseconds={timeSpent} />
+            ) : (
+              '\u2014'
+            )}
+          </SectionBody>
+          <SectionSubtext>
+            {defined(spanCount)
+              ? tct('[spanCount] spans', {spanCount: <Count value={spanCount} />})
+              : '\u2014'}
+          </SectionSubtext>
+        </NumericSectionWrapper>
       </HeaderInfo>
     </ContentHeader>
   );
@@ -76,6 +80,10 @@ const HeaderInfo = styled('div')`
 
 const StyledSectionHeading = styled(SectionHeading)`
   margin: 0;
+`;
+
+const NumericSectionWrapper = styled('div')`
+  text-align: right;
 `;
 
 const SectionBody = styled('div')<{overflowEllipsis?: boolean}>`
