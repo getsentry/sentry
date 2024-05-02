@@ -29,7 +29,8 @@ from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
-SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
+
+SPANS_CODEC: Codec[SpanEvent] = get_codec("snuba-spans")
 MAX_PAYLOAD_SIZE = 10 * 1000 * 1000  # 10 MB
 
 BATCH_SIZE = 100
@@ -79,7 +80,7 @@ def _deserialize_span(value: bytes, use_orjson=False, use_rapidjson=False) -> Ma
         sentry_sdk.set_tag("json_lib", "rapidjson")
         return rapidjson.loads(value)
 
-    return SPAN_SCHEMA.decode(value)
+    return SPANS_CODEC.decode(value)
 
 
 def _process_message(message: Message[KafkaPayload]) -> SpanMessageWithMetadata | FilteredPayload:

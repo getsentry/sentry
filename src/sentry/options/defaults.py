@@ -498,13 +498,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# React concurrent renderer
-register(
-    "frontend.react-concurrent-renderer-enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -1703,6 +1696,12 @@ register(
     "performance.traces.trace-explorer-buffer-hours",
     type=Float,
     default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # hours
+register(
+    "performance.traces.trace-explorer-max-trace-ids-per-chunk",
+    type=Int,
+    default=2500,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
