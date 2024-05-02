@@ -251,11 +251,8 @@ function renderBodyCell(
       );
     }
 
-    const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    let rendered = fieldRenderer(dataRow, {location, organization});
-
     if (column.key === SpanIndexedField.ID) {
-      rendered = (
+      return (
         <SpanIdCell
           projectSlug={project}
           spanId={span_id}
@@ -265,6 +262,9 @@ function renderBodyCell(
         />
       );
     }
+
+    const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
+    const rendered = fieldRenderer(dataRow, {location, organization});
 
     return rendered;
   };
