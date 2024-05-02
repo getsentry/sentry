@@ -274,7 +274,7 @@ const appConfig: Configuration = {
         use: {
           loader: 'po-catalog-loader',
           options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
+            referenceExtensions: ['.js', '.tsx'],
             domain: 'sentry',
           },
         },
@@ -464,7 +464,7 @@ const appConfig: Configuration = {
     },
 
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.js', '.json', '.ts', '.tsx', '.less'],
     symlinks: false,
   },
   output: {
