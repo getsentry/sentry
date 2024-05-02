@@ -1367,6 +1367,82 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_user_report_shims_to_feedback(self, mock_produce_occurrence_to_kafka):
+        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
+            project = self.create_project()
+            environment = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            environment.add_project(project)
+
+            event_id = "a" * 32
+
+            UserReport.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name="Foo Bar",
+                email="bar@example.com",
+                comments="It Broke!!!",
+            )
+
+            event = self.store_event(
+                data=make_event(environment=environment.name, event_id=event_id),
+                project_id=project.id,
+            )
+
+            report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+            assert report1.group_id == event.group_id
+            assert report1.environment_id == event.get_environment().id
+
+            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+            mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+
+            assert mock_event_data["contexts"]["feedback"]["contact_email"] == "bar@example.com"
+            assert mock_event_data["contexts"]["feedback"]["message"] == "It Broke!!!"
+            assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+            assert mock_event_data["environment"] == environment.name
+            assert mock_event_data["tags"] == [
+                ["environment", environment.name],
+                ["level", "error"],
+                ["logger", "default"],
+            ]
+
+            assert mock_event_data["platform"] == "other"
+            assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
+            assert mock_event_data["level"] == "error"
+
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_user_reports_no_shim_if_group_exists_on_report(self, mock_produce_occurrence_to_kafka):
+        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
+            project = self.create_project()
+            environment = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            environment.add_project(project)
+
+            event_id = "a" * 32
+
+            UserReport.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name="Foo Bar",
+                email="bar@example.com",
+                comments="It Broke!!!",
+                environment_id=environment.id,
+            )
+
+            event = self.store_event(
+                data=make_event(environment=environment.name, event_id=event_id),
+                project_id=project.id,
+            )
+
+            # since the environment already exists on this user report, we know that
+            # the report and the event have already been linked, so no feedback shim should be produced
+            report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+            assert report1.environment_id == event.get_environment().id
+            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
     def test_default_event_type(self):
         manager = EventManager(make_event(message="foo bar"))
         manager.normalize()

@@ -43,6 +43,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.grouping.api import (
     NULL_GROUPHASH_INFO,
     GroupHashInfo,
@@ -2841,6 +2842,7 @@ def _detect_performance_problems(
         )
 
 
+@sentry_sdk.tracing.trace
 def _update_user_reports_with_event_link(job: Job, group_info: GroupInfo) -> None:
     metrics.incr("event_manager.save._update_user_reports_with_event_link")
     event = job["event"]
@@ -2852,10 +2854,23 @@ def _update_user_reports_with_event_link(job: Job, group_info: GroupInfo) -> Non
         environment_id__isnull=True,
     )
 
+    for report in user_reports_without_group:
+        shim_to_feedback(
+            {
+                "name": report.name,
+                "email": report.email,
+                "comments": report.comments,
+                "event_id": report.event_id,
+                "level": "error",
+            },
+            event,
+            project,
+            FeedbackCreationSource.USER_REPORT_ENVELOPE,
+        )
+
     user_reports_updated = user_reports_without_group.update(
         group_id=group_info.group.id, environment_id=job["environment"].id
     )
-
     if user_reports_updated:
         metrics.incr("event_manager.save._update_user_reports_with_event_link")
 
