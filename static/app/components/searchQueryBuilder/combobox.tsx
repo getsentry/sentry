@@ -162,7 +162,6 @@ export function SearchQueryBuilderCombobox({
         onClick={handleInputClick}
         value={inputValue}
         onChange={onInputChange}
-        autoFocus
       />
       <StyledPositionWrapper
         {...overlayProps}
