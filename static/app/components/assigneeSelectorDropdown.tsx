@@ -264,7 +264,7 @@ export default function AssigneeSelectorDropdown({
   };
 
   const handleSelect = (selectedOption: SelectOption<string> | null) => {
-    // selectedOption is falsey when the option selected is already selected
+    // selectedOption is falsey when the option selected is already selected, or when the clear button is clicked
     if (!selectedOption) {
       if (onClear && group.assignedTo) {
         onClear(group.assignedTo);

@@ -7,8 +7,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
+import AssigneeSelectorDropdown, {
+  type AssignableEntity,
+} from 'sentry/components/assigneeSelectorDropdown';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -103,6 +106,7 @@ describe('AssigneeSelectorDropdown', () => {
 
   afterEach(() => {
     ProjectsStore.reset();
+    GroupStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -111,10 +115,33 @@ describe('AssigneeSelectorDropdown', () => {
     await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
 
+  const updateGroupSpy = jest.fn();
+
+  const updateGroup = async (group: Group, newAssignee: AssignableEntity | null) => {
+    updateGroupSpy(group, newAssignee);
+    if (newAssignee) {
+      await assignToActor({
+        id: group.id,
+        orgSlug: 'org-slug',
+        actor: {id: newAssignee.id, type: newAssignee.type},
+        assignedBy: 'assignee_selector',
+      });
+    } else {
+      await clearAssignment(group.id, 'org-slug', 'assignee_selector');
+    }
+  };
+
   describe('render with props', () => {
     it('renders members from the prop when present', async () => {
       MemberListStore.loadInitialData([USER_1]);
-      render(<AssigneeSelectorDropdown group={GROUP_1} memberList={[USER_2, USER_3]} />);
+      render(
+        <AssigneeSelectorDropdown
+          group={GROUP_1}
+          memberList={[USER_2, USER_3]}
+          loading={false}
+          onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
+        />
+      );
       await openMenu();
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -129,7 +156,13 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('shows all user and team assignees in the correct order', async () => {
-    render(<AssigneeSelectorDropdown group={GROUP_1} />);
+    render(
+      <AssigneeSelectorDropdown
+        group={GROUP_1}
+        loading={false}
+        onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
+      />
+    );
     act(() => MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]));
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -152,7 +185,6 @@ describe('AssigneeSelectorDropdown', () => {
     // This is necessary in addition to passing in the same member list into the component
     // because the avatar component uses the member list store to get the user's avatar
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
-    const onAssign = jest.fn();
     const assignedGroup: Group = {
       ...GROUP_1,
       assignedTo: {...USER_1, type: 'user'},
@@ -167,8 +199,9 @@ describe('AssigneeSelectorDropdown', () => {
     const {rerender} = render(
       <AssigneeSelectorDropdown
         group={GROUP_1}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
       />
     );
 
@@ -185,12 +218,18 @@ describe('AssigneeSelectorDropdown', () => {
         })
       )
     );
-    expect(onAssign).toHaveBeenCalledWith('user', USER_1, undefined);
+    expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
+      assignee: USER_1,
+      id: `${USER_1.id}`,
+      type: 'user',
+      suggestedAssignee: undefined,
+    });
     rerender(
       <AssigneeSelectorDropdown
         group={assignedGroup}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(assignedGroup, newAssignee)}
       />
     );
 
@@ -200,7 +239,6 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('successfully assigns teams', async () => {
-    const onAssign = jest.fn();
     const assignedGroup: Group = {
       ...GROUP_1,
       assignedTo: {...TEAM_1, type: 'team'},
@@ -215,8 +253,9 @@ describe('AssigneeSelectorDropdown', () => {
     const {rerender} = render(
       <AssigneeSelectorDropdown
         group={GROUP_1}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
       />
     );
     await openMenu();
@@ -233,16 +272,23 @@ describe('AssigneeSelectorDropdown', () => {
         })
       )
     );
-    expect(onAssign).toHaveBeenCalledWith(
-      'team',
-      {id: `team:${TEAM_1.id}`, name: TEAM_1.slug, type: 'team'},
-      undefined
-    );
+    expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
+      assignee: {
+        id: `team:${TEAM_1.id}`,
+        name: TEAM_1.slug,
+        type: 'team',
+      },
+      id: `${TEAM_1.id}`,
+      type: 'team',
+      suggestedAssignee: undefined,
+    });
+
     rerender(
       <AssigneeSelectorDropdown
         group={assignedGroup}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(assignedGroup, newAssignee)}
       />
     );
 
@@ -252,7 +298,6 @@ describe('AssigneeSelectorDropdown', () => {
 
   it('successfully switches an assignee', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
-    const onAssign = jest.fn();
     const assignedGroupUser1: Group = {
       ...GROUP_1,
       assignedTo: {...USER_1, type: 'user'},
@@ -271,8 +316,9 @@ describe('AssigneeSelectorDropdown', () => {
     const {rerender} = render(
       <AssigneeSelectorDropdown
         group={GROUP_1}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
       />
     );
     await openMenu();
@@ -288,12 +334,20 @@ describe('AssigneeSelectorDropdown', () => {
         })
       )
     );
-    expect(onAssign).toHaveBeenCalledWith('user', USER_1, undefined);
+
+    expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
+      assignee: USER_1,
+      id: `${USER_1.id}`,
+      type: 'user',
+      suggestedAssignee: undefined,
+    });
+
     rerender(
       <AssigneeSelectorDropdown
         group={assignedGroupUser1}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(assignedGroupUser1, newAssignee)}
       />
     );
 
@@ -312,19 +366,24 @@ describe('AssigneeSelectorDropdown', () => {
         })
       )
     );
-    expect(onAssign).toHaveBeenCalledWith('user', USER_2, undefined);
+    expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
+      assignee: USER_1,
+      id: `${USER_1.id}`,
+      type: 'user',
+      suggestedAssignee: undefined,
+    });
     rerender(
       <AssigneeSelectorDropdown
         group={assignedGroupUser2}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(assignedGroupUser2, newAssignee)}
       />
     );
     expect(screen.getByTestId('assignee-selector')).toHaveTextContent('CD');
   });
 
   it('successfully clears assignment', async () => {
-    const onAssign = jest.fn();
     const assignedGroup: Group = {
       ...GROUP_1,
       assignedTo: {...USER_2, type: 'user'},
@@ -339,8 +398,9 @@ describe('AssigneeSelectorDropdown', () => {
     const {rerender} = render(
       <AssigneeSelectorDropdown
         group={GROUP_1}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
       />
     );
     await openMenu();
@@ -358,8 +418,10 @@ describe('AssigneeSelectorDropdown', () => {
     rerender(
       <AssigneeSelectorDropdown
         group={assignedGroup}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(assignedGroup, newAssignee)}
+        onClear={() => updateGroup(assignedGroup, null)}
       />
     );
 
@@ -379,7 +441,6 @@ describe('AssigneeSelectorDropdown', () => {
 
   it('filters user by email and selects with keyboard', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
-    const onAssign = jest.fn();
     const assignedGroup: Group = {
       ...GROUP_2,
       assignedTo: {...USER_2, type: 'user'},
@@ -394,8 +455,9 @@ describe('AssigneeSelectorDropdown', () => {
     const {rerender} = render(
       <AssigneeSelectorDropdown
         group={GROUP_2}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(GROUP_2, newAssignee)}
       />
     );
     await openMenu();
@@ -421,8 +483,9 @@ describe('AssigneeSelectorDropdown', () => {
     rerender(
       <AssigneeSelectorDropdown
         group={assignedGroup}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(assignedGroup, newAssignee)}
       />
     );
     expect(await screen.findByTestId('letter_avatar-avatar')).toBeInTheDocument();
@@ -432,7 +495,7 @@ describe('AssigneeSelectorDropdown', () => {
 
   it('successfully shows suggested assignees and suggestion reason', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
-    const onAssign = jest.fn();
+
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
 
     const assignedGroup: Group = {
@@ -451,7 +514,11 @@ describe('AssigneeSelectorDropdown', () => {
     });
 
     const {rerender} = render(
-      <AssigneeSelectorDropdown group={GROUP_2} onAssign={onAssign} />
+      <AssigneeSelectorDropdown
+        group={GROUP_2}
+        loading={false}
+        onAssign={newAssignee => updateGroup(GROUP_2, newAssignee)}
+      />
     );
 
     expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
@@ -481,25 +548,35 @@ describe('AssigneeSelectorDropdown', () => {
     rerender(
       <AssigneeSelectorDropdown
         group={assignedGroup}
+        loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
-        onAssign={onAssign}
+        onAssign={newAssignee => updateGroup(assignedGroup, newAssignee)}
       />
     );
 
     // Suggested assignees shouldn't show anymore because we assigned to the suggested actor
     expect(screen.queryByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
-    expect(onAssign).toHaveBeenCalledWith(
-      'user',
-      expect.objectContaining({id: USER_1.id}),
-      expect.objectContaining({id: USER_1.id})
-    );
+
+    expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_2, {
+      assignee: USER_1,
+      id: `${USER_1.id}`,
+      type: 'user',
+      suggestedAssignee: expect.objectContaining({id: USER_1.id}),
+    });
   });
 
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
-    render(<AssigneeSelectorDropdown group={GROUP_1} />, {
-      context: RouterContextFixture(),
-    });
+    render(
+      <AssigneeSelectorDropdown
+        group={GROUP_1}
+        loading={false}
+        onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
+      />,
+      {
+        context: RouterContextFixture(),
+      }
+    );
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     await openMenu();
@@ -511,7 +588,13 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('renders unassigned', async () => {
-    render(<AssigneeSelectorDropdown group={GROUP_1} />);
+    render(
+      <AssigneeSelectorDropdown
+        group={GROUP_1}
+        loading={false}
+        onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
+      />
+    );
 
     await userEvent.hover(screen.getByTestId('unassigned'));
     expect(await screen.findByText('Unassigned')).toBeInTheDocument();
