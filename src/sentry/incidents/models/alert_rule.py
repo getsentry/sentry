@@ -595,6 +595,15 @@ def update_alert_activations(
     )
 
     if now > subscription_end:
+        logger.info(
+            "alert activation monitor finishing",
+            extra={
+                "subscription_window": subscription.snuba_query.time_window,
+                "date_added": subscription.date_added,
+                "now": now,
+            },
+        )
+
         alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
             metric_value=value, finished_at=now
         )
