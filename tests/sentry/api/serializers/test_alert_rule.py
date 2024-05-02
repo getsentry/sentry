@@ -203,7 +203,9 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_owner(self):
         user = self.create_user("foo@example.com")
         alert_rule = self.create_alert_rule(
-            environment=self.environment, user=user, owner=self.team.actor.get_actor_tuple()
+            environment=self.environment,
+            user=user,
+            owner=ActorTuple.from_id(team_id=self.team.id, user_id=None),
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)

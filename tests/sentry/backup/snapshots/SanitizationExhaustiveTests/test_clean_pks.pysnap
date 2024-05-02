@@ -343,9 +343,6 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - name
-- model_name: sentry.actor
-  ordinal: 1
-  sanitized_fields: []
 - model_name: sentry.useremail
   ordinal: 1
   sanitized_fields:

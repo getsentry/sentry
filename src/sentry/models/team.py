@@ -10,9 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.helpers import ImportFlags
-from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -182,13 +180,6 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         ),
         default=TeamStatus.ACTIVE,
     )
-    actor = FlexibleForeignKey(
-        "sentry.Actor",
-        related_name="team_from_actor",
-        db_index=True,
-        unique=True,
-        null=True,
-    )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
@@ -251,31 +242,3 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
 
     def get_member_user_ids(self):
         return self.member_set.values_list("user_id", flat=True)
-
-    # TODO(hybrid-cloud): actor refactor. Remove this method when done. For now, we do no filtering
-    # on teams.
-    @classmethod
-    def query_for_relocation_export(cls, q: models.Q, _: PrimaryKeyMap) -> models.Q:
-        return q
-
-    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
-    def normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> int | None:
-        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
-        # `Actor` and `Team` have a direct circular dependency between them for the time being due
-        # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`
-        # foreign keys directly into `Actor`). If we use `INSERT` database calls naively, they will
-        # always fail, because one half of the cycle will always be missing.
-        #
-        # Because `Team` ends up first in the dependency sorting (see:
-        # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
-        # out the `actor_id` field of the `Team` when we import it, and then make sure to circle
-        # back and update the relevant `Team` after we create the `Actor` models later on (see the
-        # `write_relocation_import` method override on that class for details).
-        self.actor_id = None
-
-        return old_pk

@@ -87,7 +87,6 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
@@ -254,11 +253,6 @@ def clear_database(*, reset_pks: bool = False):
     Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors.
     """
-
-    # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
-    with unguarded_write(using=router.db_for_write(Team)):
-        Team.objects.update(actor=None)
-
     reversed = reversed_dependencies()
     for model in reversed:
         if is_control_model(model):

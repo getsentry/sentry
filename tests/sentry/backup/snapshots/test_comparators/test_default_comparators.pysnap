@@ -1,5 +1,5 @@
 ---
-created: '2024-04-29T16:10:44.191647+00:00'
+created: '2024-05-01T20:30:02.246280+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -86,11 +86,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: DateUpdatedComparator
     fields:
     - date_modified
-  - class: EqualOrRemovedComparator
-    fields:
-    - owner
-    - team
-    - user_id
   - class: DatetimeEqualityComparator
     fields:
     - date_added
@@ -1474,10 +1469,6 @@ source: tests/sentry/backup/test_comparators.py
     - organization_id
   model_name: sentry.stringindexer
 - comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - actor
-    - organization
   - class: IgnoredComparator
     fields:
     - org_role
