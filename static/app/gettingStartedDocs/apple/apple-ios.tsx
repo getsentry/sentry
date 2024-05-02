@@ -70,6 +70,31 @@ SentrySDK.metrics
     .increment(key: "button_login_click",
                value: 1.0,
                tags: ["screen": "login"]
+    )
+
+// Add '150' to a distribution used to track the loading time.
+SentrySDK.metrics
+    .distribution(key: "image_download_duration",
+                value: 150.0,
+                unit: MeasurementUnitDuration.millisecond,
+                tags: ["screen": "login"]
+    )
+
+// Adding '1' to a gauge used to track the loading time.
+SentrySDK.metrics
+    .gauge(key: "page_load",
+          value: 1.0,
+          unit: MeasurementUnitDuration.millisecond,
+          tags: ["screen": "login"]
+    )
+
+// Add 'jane' to a set
+// used for tracking the number of users that viewed a page.
+SentrySDK.metrics
+    .set(key: "user_view",
+          value: "jane",
+          unit: MeasurementUnit(unit: "username"),
+          tags: ["screen": "login"]
     )`;
 
 const getVerifyMetricsSnippetObjC = () => `
@@ -81,6 +106,31 @@ const getVerifyMetricsSnippetObjC = () => `
     value: 1.0
     unit: SentryMeasurementUnit.none
     tags: @{ @"screen" : @"login" }
+];
+
+// Add '150' to a distribution used to track the loading time.
+[SentrySDK.metrics
+    distributionWithKey: @"image_download_duration"
+    value: 150.0
+    unit: SentryMeasurementUnitDuration.millisecond
+    tags: @{ @"screen" : @"login" }
+];
+
+// Adding '1' to a gauge used to track the loading time.
+[SentrySDK.metrics
+    gaugeWithKey: @"page_load"
+    value: 1.0
+    unit: SentryMeasurementUnitDuration.millisecond
+    tags: @{ @"screen" : @"login" }
+];
+
+// Add 'jane' to a set
+// used for tracking the number of users that viewed a page.
+[SentrySDK.metrics
+  setWithKey :@"user_view"
+  value: @"jane"
+  unit: [[SentryMeasurementUnit alloc] initWithUnit:@"username"]
+  tags: @{ @"screen" : @"login" }
 ];`;
 
 const onboarding: OnboardingConfig = {

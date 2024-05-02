@@ -279,28 +279,89 @@ const getJvmPropertiesConfigureSnippet = (_: DocsParams) => `
 sentry.enable-metrics=true`;
 
 const getJvmJavaVerifySnippet = () => `
-// Incrementing a counter by one for each button click.
 final Map<String, String> tags = new HashMap<>();
-tags.put("provider", "e-mail");
+tags.put("app-version", "1.0.0");
 
+// Incrementing a counter by one for each button click.
 Sentry.metrics().increment(
     "button_login_click", // key
     1.0,                  // value
     null,                 // unit
     tags                  // tags
-);`;
+);
+
+// Add '150' to a distribution
+// used to track the loading time of an image.
+Sentry.metrics().distribution(
+  "image_download_duration",
+  150.0,
+  MeasurementUnit.Duration.MILLISECOND,
+  tags
+);
+
+// Add '15.0' to a gauge
+// used for tracking the loading times for a page.
+Sentry.metrics().gauge(
+  "page_load",
+  15.0,
+  MeasurementUnit.Duration.MILLISECOND,
+  tags
+);
+
+// Add 'jane' to a set
+// used for tracking the number of users that viewed a page.
+Sentry.metrics().set(
+  "user_view",
+  "jane",
+  new MeasurementUnit.Custom("username"),
+  tags
+);
+
+`;
 
 const getJvmKotlinVerifySnippet = () => `
 // Incrementing a counter by one for each button click.
-Sentry.metrics()
-    .increment(
-        "button_login_click", // key
-        1.0,                  // value
-        null,                 // unit
-        mapOf(                // tags
-            "provider" to "e-mail"
-        )
-    )`;
+Sentry.metrics().increment(
+    "button_login_click", // key
+    1.0,                  // value
+    null,                 // unit
+    mapOf(                // tags
+        "provider" to "e-mail"
+    )
+)
+
+// Add '150' to a distribution
+// used to track the loading time of an image.
+Sentry.metrics().distribution(
+  "image_download_duration",
+  150.0,
+  MeasurementUnit.Duration.MILLISECOND,
+  mapOf(
+      "type" to "thumbnail"
+  )
+)
+
+// Add '15.0' to a gauge
+// used for tracking the loading times for a page.
+Sentry.metrics().gauge(
+  "page_load",
+  15.0,
+  MeasurementUnit.Duration.MILLISECOND,
+  mapOf(
+      "page" to "/home"
+  )
+)
+
+// Add 'jane' to a set
+// used for tracking the number of users that viewed a page.
+Sentry.metrics().set(
+  "user_view",
+  "jane",
+  MeasurementUnit.Custom("username"),
+  mapOf(
+      "page" to "home"
+  )
+)`;
 
 export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
   install: (params: DocsParams) => [
