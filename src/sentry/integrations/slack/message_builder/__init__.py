@@ -28,7 +28,6 @@ INCIDENT_COLOR_MAPPING = {
 SLACK_URL_FORMAT = "<{url}|{text}>"
 
 LEVEL_TO_EMOJI = {
-    "_actioned_issue": ":white_check_mark:",
     "_incident_resolved": ":green_circle:",
     "debug": ":bug:",
     "error": ":red_circle:",
@@ -37,8 +36,16 @@ LEVEL_TO_EMOJI = {
     "warning": ":large_yellow_circle:",
 }
 
+ACTION_EMOJI = ":white_circle:"
+
 CATEGORY_TO_EMOJI = {
     GroupCategory.PERFORMANCE: ":large_blue_circle: :chart_with_upwards_trend:",
     GroupCategory.FEEDBACK: ":large_blue_circle: :busts_in_silhouette:",
     GroupCategory.CRON: ":large_yellow_circle: :spiral_calendar_pad:",
+}
+
+ACTIONED_CATEGORY_TO_EMOJI = {
+    GroupCategory.PERFORMANCE: ACTION_EMOJI + " :chart_with_upwards_trend:",
+    GroupCategory.FEEDBACK: ACTION_EMOJI + " :busts_in_silhouette:",
+    GroupCategory.CRON: ACTION_EMOJI + " :spiral_calendar_pad:",
 }
