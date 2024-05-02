@@ -32,6 +32,7 @@ describe('latencyChart', () => {
           yAxis: [
             'avg_if(span.self_time,span.op,queue.publish)',
             'avg_if(span.self_time,span.op,queue.process)',
+            'avg(messaging.message.receive.latency)',
             'count_op(queue.publish)',
             'count_op(queue.process)',
           ],
