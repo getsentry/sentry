@@ -126,7 +126,6 @@ function SpanSummaryCharts() {
             type={ChartType.LINE}
             definedAxisTicks={4}
             aggregateOutputFormat="duration"
-            stacked
             error={avgDurationError}
             chartColors={[AVG_COLOR]}
           />
@@ -143,7 +142,6 @@ function SpanSummaryCharts() {
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
-            stacked
             error={throughputError}
             chartColors={[THROUGHPUT_COLOR]}
             tooltipFormatterOptions={{
@@ -163,7 +161,6 @@ function SpanSummaryCharts() {
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
-            stacked
             error={txnThroughputError}
             chartColors={[TXN_THROUGHPUT_COLOR]}
             tooltipFormatterOptions={{
