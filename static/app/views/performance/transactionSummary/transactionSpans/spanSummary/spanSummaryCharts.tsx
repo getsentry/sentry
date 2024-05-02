@@ -174,29 +174,4 @@ function SpanSummaryCharts() {
   );
 }
 
-/**
- * Ensures a series has no zeros between two non-zero datapoints. This is useful in
- * @param series the series to fill
- * @returns a reference to the initial series filled
- */
-export const fillSeries = (series: Series): Series => {
-  if (!series.data.length) {
-    return series;
-  }
-
-  let lastSeenValue = series.data[0].value;
-
-  return {
-    ...series,
-    data: series.data.map(dataPoint => {
-      const value = dataPoint.value;
-      if (value !== lastSeenValue && value !== 0) {
-        lastSeenValue = value;
-        return {...dataPoint};
-      }
-      return {...dataPoint, value: lastSeenValue};
-    }),
-  };
-};
-
 export default SpanSummaryCharts;
