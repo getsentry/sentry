@@ -2,6 +2,7 @@ from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -65,3 +66,35 @@ class DatabaseBackedUserService(TestCase):
         assert user2.id == fetched_user.id
         assert user1.id != fetched_user.id
         assert created is False
+
+    def test_verify_user_emails(self):
+        user1 = self.create_user(email="test@email.com")
+        user2 = self.create_user(email="test2@email.com")
+        verified_emails = user_service.verify_user_emails(
+            user_id_emails=[
+                {"user_id": user1.id, "email": "test@email.com"},
+                {"user_id": user2.id, "email": "non-existent@email.com"},
+            ],
+            only_verified=False,
+        )
+
+        # Tests that matching emails to user ids exist
+        assert verified_emails[user1.id].exists
+        assert not verified_emails[user2.id].exists
+
+    def test_verify_user_emails_only_verified(self):
+        user1 = self.create_user(email="test@email.com")
+        user2 = self.create_user(email="test2@email.com")
+        UserEmail.objects.filter(user=user2, email="test2@email.com").update(is_verified=False)
+
+        verified_emails = user_service.verify_user_emails(
+            user_id_emails=[
+                {"user_id": user1.id, "email": "test@email.com"},
+                {"user_id": user2.id, "email": "test2@email.com"},
+            ],
+            only_verified=True,
+        )
+
+        # Tests that only verified emails are returned
+        assert verified_emails[user1.id].exists
+        assert not verified_emails[user2.id].exists

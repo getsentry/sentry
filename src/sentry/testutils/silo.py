@@ -370,8 +370,8 @@ def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = T
     """Potentially swap to the silo mode to match the provided model classes.
 
     The argument should be one or more model classes that are scoped to exactly one
-    non-monolith mode. That is, they must be tagged with `control_silo_only_model` or
-    `region_silo_only_model`. The enclosed context is swapped into the appropriate
+    non-monolith mode. That is, they must be tagged with `control_silo_model` or
+    `region_silo_model`. The enclosed context is swapped into the appropriate
     mode, allowing the model to be accessed.
 
     If no silo-scoped models are provided, no mode swap is performed.

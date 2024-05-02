@@ -244,7 +244,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         operation_id="Retrieve a Project's Symbol Sources",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id(
                 "The ID of the source to look up. If this is not provided, all sources are returned.",
                 False,
@@ -278,7 +278,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         operation_id="Delete a Symbol Source from a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id("The ID of the source to delete.", True),
         ],
         responses={
@@ -310,7 +310,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Add a Symbol Source to a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SourceSerializer,
         responses={
             201: REDACTED_SOURCE_SCHEMA,
@@ -351,7 +351,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         operation_id="Update a Project's Symbol Source",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id("The ID of the source to update.", True),
         ],
         request=SourceSerializer,

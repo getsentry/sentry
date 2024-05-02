@@ -11,11 +11,11 @@ import type {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import toArray from 'sentry/utils/array/toArray';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import domId from 'sentry/utils/domId';
 import type {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
-import toArray from 'sentry/utils/toArray';
 
 interface Props
   extends Pick<

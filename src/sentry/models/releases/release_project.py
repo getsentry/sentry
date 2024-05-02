@@ -12,7 +12,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
@@ -73,7 +73,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         self._on_post(project=instance.project, trigger="releaseproject.post_delete")
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

@@ -27,6 +27,7 @@ export enum SpanMetricsField {
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
+  PROJECT = 'project',
   PROJECT_ID = 'project.id',
   TRANSACTION = 'transaction',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
@@ -60,7 +61,8 @@ export type SpanStringFields =
   | 'release'
   | 'os.name'
   | 'span.status_code'
-  | 'span.ai.pipeline.group';
+  | 'span.ai.pipeline.group'
+  | 'project';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -126,6 +128,7 @@ export type MetricsResponse = {
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
 } & {
+  ['project']: string;
   ['project.id']: number;
 } & {
   [Function in RegressionFunctions]: number;
@@ -155,6 +158,7 @@ export enum SpanIndexedField {
   SPAN_OP = 'span.op',
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
+  SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
   TRACE = 'trace',
   TRANSACTION_ID = 'transaction.id',
   TRANSACTION_METHOD = 'transaction.method',
@@ -189,6 +193,7 @@ export type IndexedResponse = {
   [SpanIndexedField.SPAN_MODULE]: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
+  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
   [SpanIndexedField.ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;

@@ -15,7 +15,7 @@ from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
-from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apiscopes import HasApiScopes
@@ -100,7 +100,7 @@ class ApiTokenManager(ControlOutboxProducingManager):
         return api_token
 
 
-@control_silo_only_model
+@control_silo_model
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
     category = OutboxCategory.API_TOKEN_UPDATE

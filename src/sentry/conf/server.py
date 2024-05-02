@@ -848,6 +848,7 @@ CELERY_QUEUES_REGION = [
     Queue("commits", routing_key="commits"),
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
+    Queue("delayed_rules", routing_key="delayed_rules"),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
@@ -1454,8 +1455,6 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
-    # Enables superuser read vs. write separation
-    "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
     # Enables activated alert rules
@@ -1578,8 +1577,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
-    # Enable caching group counts in GroupSnooze
-    "organizations:groupsnooze-cached-counts": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -1657,8 +1654,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-threshold-period": False,
     # Enables the metrics metadata.
     "organizations:metric-meta": False,
-    # Extract metrics for sessions during ingestion.
-    "organizations:metrics-extraction": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
     # Enables the search bar for metrics samples list
@@ -1748,8 +1743,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
     "organizations:performance-screens-platform-selector": False,
-    # Enable API aka HTTP aka Network Performance module
-    "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable histogram view in span details
@@ -1815,8 +1808,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:relay-cardinality-limiter": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # True if Relay should drop raw session payloads after extracting metrics from them.
-    "organizations:release-health-drop-sessions": False,
     # Enable new release UI
     "organizations:releases-v2": False,
     "organizations:releases-v2-banner": False,
@@ -1880,6 +1871,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
+    # Enable improvements to Slack notifications
+    "organizations:slack-improvements": False,
+    # Add regression chart as image to slack message
+    "organizations:slack-endpoint-regression-image": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1959,6 +1954,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enabled unresolved issue webhook for organization
+    "organizations:webhooks-unresolved": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -2137,7 +2134,6 @@ SENTRY_INTERFACES = {
     "debug_meta": "sentry.interfaces.debug_meta.DebugMeta",
     "spans": "sentry.interfaces.spans.Spans",
 }
-PREFER_CANONICAL_LEGACY_KEYS = False
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
     "smtp": "django.core.mail.backends.smtp.EmailBackend",
@@ -2150,11 +2146,6 @@ SENTRY_FILESTORE_ALIASES = {
     "filesystem": "django.core.files.storage.FileSystemStorage",
     "s3": "sentry.filestore.s3.S3Boto3Storage",
     "gcs": "sentry.filestore.gcs.GoogleCloudStorage",
-}
-
-SENTRY_ANALYTICS_ALIASES = {
-    "noop": "sentry.analytics.Analytics",
-    "pubsub": "sentry.analytics.pubsub.PubSubAnalytics",
 }
 
 # set of backends that do not support needing SMTP mail.* settings
@@ -2896,12 +2887,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-                if not ARM64
-                # altinity provides clickhouse support to other companies
-                # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-                # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-                else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm"
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:22.8.15.25.altinitystable"
             ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -3071,7 +3057,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.1"
+SELF_HOSTED_STABLE_VERSION = "24.4.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3476,6 +3462,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-replay-recordings": "default",
     "ingest-occurrences": "default",
     "ingest-monitors": "default",
+    "monitors-clock-tick": "default",
+    "monitors-clock-tasks": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -3970,7 +3958,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-relays-details",
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
-    "sentry-error-page-embed",
     "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",

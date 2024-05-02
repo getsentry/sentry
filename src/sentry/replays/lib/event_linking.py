@@ -5,8 +5,6 @@ import uuid
 from hashlib import md5
 from typing import TYPE_CHECKING, TypedDict, Union
 
-from sentry.utils import json
-
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent
 
@@ -17,7 +15,9 @@ class EventLinkKafkaMessage(TypedDict):
     replay_id: str
     project_id: int
     segment_id: None
-    payload: list[int]
+    payload: list[
+        int
+    ] | EventLinkPayloadDebugId | EventLinkPayloadInfoId | EventLinkPayloadWarningId | EventLinkPayloadErrorId | EventLinkPayloadFatalId
     retention_days: int
 
 
@@ -133,7 +133,7 @@ def transform_event_for_linking_payload(replay_id: str, event: BaseEvent) -> Eve
         "project_id": event.project.id,
         "segment_id": None,
         "retention_days": 90,
-        "payload": list(bytes(json.dumps(_make_json_binary_payload()).encode())),
+        "payload": _make_json_binary_payload(),
     }
 
 

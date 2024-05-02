@@ -16,9 +16,16 @@ type Props = {
   orgSlug: string;
   report: UserReport;
   className?: string;
+  showEventLink?: boolean;
 };
 
-export function EventUserFeedback({className, report, orgSlug, issueId}: Props) {
+export function EventUserFeedback({
+  className,
+  report,
+  orgSlug,
+  issueId,
+  showEventLink = true,
+}: Props) {
   const user = report.user || {
     name: report.name,
     email: report.email,
@@ -50,7 +57,7 @@ export function EventUserFeedback({className, report, orgSlug, issueId}: Props) 
               {report.email}
             </CopyButton>
 
-            {report.eventID && (
+            {report.eventID && showEventLink && (
               <ViewEventLink
                 to={`/organizations/${orgSlug}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
               >

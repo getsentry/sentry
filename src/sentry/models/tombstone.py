@@ -7,8 +7,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     Model,
-    control_silo_only_model,
-    region_silo_only_model,
+    control_silo_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.silo.base import SiloMode
@@ -51,7 +51,7 @@ class TombstoneBase(Model):
             pass
 
 
-@region_silo_only_model
+@region_silo_model
 class RegionTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"
@@ -60,7 +60,7 @@ class RegionTombstone(TombstoneBase):
     __repr__ = sane_repr("id", "table_name", "object_identifier")
 
 
-@control_silo_only_model
+@control_silo_model
 class ControlTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"

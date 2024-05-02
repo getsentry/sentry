@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
@@ -56,12 +56,22 @@ def get_profile_ids(
     return {"profile_ids": [row["profile.id"] for row in data]}
 
 
+class StartEnd(TypedDict):
+    start: str
+    end: str
+
+
+class ProfileIdsWithSpans(TypedDict):
+    profile_ids: list[str]
+    spans: list[list[StartEnd]]
+
+
 def get_profile_ids_with_spans(
     organization_id: int,
     project_id: int,
     params: ParamsType,
     span_group: str,
-):
+) -> ProfileIdsWithSpans:
     query = Query(
         match=Entity(EntityKey.Spans.value),
         select=[
@@ -110,7 +120,7 @@ def get_profile_ids_with_spans(
     profile_ids = []
     spans = []
     for row in data:
-        transformed_intervals = []
+        transformed_intervals: list[StartEnd] = []
         profile_ids.append(row["profile_id"].replace("-", ""))
         for interval in row["intervals"]:
             start_timestamp, start_ms, end_timestamp, end_ms = interval
@@ -125,13 +135,17 @@ def get_profile_ids_with_spans(
     return {"profile_ids": profile_ids, "spans": spans}
 
 
+class ProfileIds(TypedDict):
+    profile_ids: list[str]
+
+
 def get_profiles_with_function(
     organization_id: int,
     project_id: int,
     function_fingerprint: int,
     params: ParamsType,
     query: str,
-):
+) -> ProfileIds:
     conditions = [query, f"fingerprint:{function_fingerprint}"]
 
     result = functions.query(

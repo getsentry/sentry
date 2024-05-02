@@ -4,8 +4,10 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {LinkButton} from 'sentry/components/button';
 import GroupList from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -23,6 +25,10 @@ type RelatedIssuesResponse = {
   data: [
     {
       data: number[];
+      meta: {
+        event_id: string;
+        trace_id: string;
+      };
       type: string;
     },
   ];
@@ -44,15 +50,19 @@ function GroupRelatedIssues({params}: Props) {
     staleTime: 0,
   });
 
+  let traceMeta = {
+    trace_id: '',
+    event_id: '',
+  };
   const {
     same_root_cause: sameRootCauseIssues = [],
     trace_connected: traceConnectedIssues = [],
   } = (relatedIssues?.data ?? []).reduce(
     (mapping, item) => {
-      // If the group we're looking related issues for shows up in the table,
-      // it will trigger a bug in getGroupReprocessingStatus because activites would be empty,
-      // thus, we excude it from the list of related issues
-      const issuesList = item.data.filter(id => id.toString() !== groupId);
+      if (item.type === 'trace_connected') {
+        traceMeta = {...item.meta};
+      }
+      const issuesList = item.data;
       mapping[item.type] = issuesList;
       return mapping;
     },
@@ -82,13 +92,26 @@ function GroupRelatedIssues({params}: Props) {
               <HeaderWrapper>
                 <Title>{t('Issues caused by the same root cause')}</Title>
                 {sameRootCauseIssues.length > 0 ? (
-                  <GroupList
-                    endpointPath={`/organizations/${orgSlug}/issues/`}
-                    orgSlug={orgSlug}
-                    queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
-                    query=""
-                    source="related-issues-tab"
-                  />
+                  <div>
+                    <TextButtonWrapper>
+                      <div />
+                      <LinkButton
+                        to={`/organizations/${orgSlug}/issues/?query=issue.id:[${groupId},${sameRootCauseIssues}]`}
+                        size="xs"
+                      >
+                        {t('Open in Issues')}
+                      </LinkButton>
+                    </TextButtonWrapper>
+                    <GroupList
+                      endpointPath={`/organizations/${orgSlug}/issues/`}
+                      orgSlug={orgSlug}
+                      queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
+                      query=""
+                      source="related-issues-tab"
+                      canSelectGroups={false}
+                      withChart={false}
+                    />
+                  </div>
                 ) : (
                   <small>{t('No same-root-cause related issues were found.')}</small>
                 )}
@@ -99,17 +122,30 @@ function GroupRelatedIssues({params}: Props) {
                 <Title>{t('Trace connected issues')}</Title>
                 {traceConnectedIssues.length > 0 ? (
                   <div>
-                    <small>
-                      {t(
-                        'These are the issues belonging to the same trace (TODO: add link to trace).'
-                      )}
-                    </small>
+                    <TextButtonWrapper>
+                      <small>
+                        {t('These are the issues belonging to ')}
+                        <Link
+                          to={`/organizations/${orgSlug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
+                        >
+                          {t('this trace')}
+                        </Link>
+                      </small>
+                      <LinkButton
+                        to={`/organizations/${orgSlug}/issues/?query=trace:${traceMeta.trace_id}`}
+                        size="xs"
+                      >
+                        {t('Open in Issues')}
+                      </LinkButton>
+                    </TextButtonWrapper>
                     <GroupList
                       endpointPath={`/organizations/${orgSlug}/issues/`}
                       orgSlug={orgSlug}
                       queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
                       query=""
                       source="related-issues-tab"
+                      canSelectGroups={false}
+                      withChart={false}
                     />
                   </div>
                 ) : (
@@ -146,4 +182,10 @@ const HeaderWrapper = styled('div')`
   small {
     color: ${p => p.theme.subText};
   }
+`;
+
+const TextButtonWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
 `;

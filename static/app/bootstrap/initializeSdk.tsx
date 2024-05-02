@@ -117,6 +117,15 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
+
+      // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
+      if (event.spans) {
+        const newEndTimestamp = Math.max(
+          ...event.spans.map(span => span.endTimestamp ?? 0)
+        );
+        event.timestamp = newEndTimestamp;
+      }
+
       if (event.transaction) {
         event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
       }
@@ -233,6 +242,9 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
+
+  // TODO: Remove once we've finished rolling out the new renderer
+  Sentry.setTag('isConcurrentRenderer', true);
 }
 
 export function isFilteredRequestErrorEvent(event: Event): boolean {
