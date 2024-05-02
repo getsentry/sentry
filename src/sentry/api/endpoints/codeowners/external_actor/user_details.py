@@ -27,7 +27,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
     }
     owner = ApiOwner.ENTERPRISE
 
-    def convert_args(  # type: ignore[override]
+    def convert_args(
         self,
         request: Request,
         organization_id_or_slug: int | str,
