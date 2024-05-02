@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
-    view = "sentry-api-0-organization-spans-tags"
+    view = "sentry-api-0-organization-spans-fields"
 
     def setUp(self):
         super().setUp()
@@ -59,7 +59,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
-    view = "sentry-api-0-organization-spans-tagkey-values"
+    view = "sentry-api-0-organization-spans-fields-values"
 
     def setUp(self):
         super().setUp()

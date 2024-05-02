@@ -20,7 +20,7 @@ from sentry.tagstore.types import TagKey, TagValue
 
 
 @region_silo_endpoint
-class OrganizationSpansFieldsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansTagsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -69,7 +69,6 @@ class OrganizationSpansFieldsEndpoint(OrganizationEventsV2EndpointBase):
 
         paginator = SequencePaginator(
             [
-                # TODO: prepend the list of sentry defined fields here
                 (row["array_join(tags.key)"], TagKey(row["array_join(tags.key)"]))
                 for row in results["data"]
             ]
@@ -85,7 +84,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationEventsV2EndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansTagValuesEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -118,9 +117,10 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
                 selected_columns=[key, "count()", "min(timestamp)", "max(timestamp)"],
                 orderby="-count()",
                 limit=max_span_tags,
-                sample_rate=options.get("performance.spans-tags-key.sample-rate"),
+                sample_rate=options.get("performance.spans-tags-value.sample-rate"),
                 config=QueryBuilderConfig(
                     transform_alias_to_input_format=True,
+                    functions_acl=["array_join"],
                 ),
             )
 
