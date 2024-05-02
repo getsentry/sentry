@@ -49,17 +49,18 @@ class AbstractSamplesListExecutor(ABC):
 
     def __init__(
         self,
+        *,
         mri: str,
         params: ParamsType,
         snuba_params: SnubaParams,
-        fields: list[str],
-        operation: str | None,
-        query: str | None,
-        min: float | None,
-        max: float | None,
-        sort: str | None,
-        rollup: int,
         referrer: Referrer,
+        fields: list[str],
+        operation: str | None = None,
+        query: str | None = None,
+        min: float | None = None,
+        max: float | None = None,
+        sort: str | None = None,
+        rollup: int | None = None,
     ):
         self.mri = mri
         self.params = params
@@ -82,19 +83,33 @@ class AbstractSamplesListExecutor(ABC):
     def supports_sort(cls, column: str) -> bool:
         return column in cls.sortable_columns
 
-    def execute(self, offset, limit):
-        if self.sort is None:
-            execute_fn = self.execute_unsorted
-        else:
-            execute_fn = self.execute_sorted
-        return execute_fn(offset, limit)
-
     @abstractmethod
-    def execute_sorted(self, offset, limit):
+    def get_matching_traces(self, limit: int) -> tuple[datetime, datetime, list[str]]:
         raise NotImplementedError
 
     @abstractmethod
-    def execute_unsorted(self, offset, limit):
+    def get_matching_spans_from_traces(
+        self,
+        trace_ids: list[str],
+        max_spans_per_trace: int,
+    ) -> list[SpanKey]:
+        raise NotImplementedError
+
+    def get_matching_spans(self, offset, limit):
+        assert self.rollup is not None
+
+        if self.sort is None:
+            execute_fn = self.get_matching_spans_unsorted
+        else:
+            execute_fn = self.get_matching_spans_sorted
+        return execute_fn(offset, limit)
+
+    @abstractmethod
+    def get_matching_spans_sorted(self, offset, limit):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_matching_spans_unsorted(self, offset, limit):
         raise NotImplementedError
 
     def get_spans_by_key(
@@ -195,6 +210,92 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
     def supports_mri(cls, mri: str) -> bool:
         return cls.mri_to_column(mri) is not None
 
+    def get_matching_traces(self, limit: int) -> tuple[datetime, datetime, list[str]]:
+        column = self.mri_to_column(self.mri)
+        assert column
+
+        builder = SpansIndexedQueryBuilder(
+            Dataset.Transactions,
+            params=self.params,
+            snuba_params=self.snuba_params,
+            query=self.query,
+            selected_columns=["trace", "timestamp"],
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby=None,
+            limit=limit,
+            limitby=("trace", 1),
+        )
+
+        additional_conditions = self.get_additional_conditions(builder)
+        min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
+        builder.add_conditions([*additional_conditions, *min_max_conditions])
+
+        query_results = builder.run_query(self.referrer.value)
+        results = builder.process_results(query_results)
+
+        matching_trace_ids: list[str] = []
+        min_timestamp = self.snuba_params.end
+        max_timestamp = self.snuba_params.start
+        assert min_timestamp is not None
+        assert max_timestamp is not None
+
+        for row in results["data"]:
+            matching_trace_ids.append(row["trace"])
+            timestamp = datetime.fromisoformat(row["timestamp"])
+            if timestamp < min_timestamp:
+                min_timestamp = timestamp
+            if timestamp > max_timestamp:
+                max_timestamp = timestamp
+
+        return min_timestamp, max_timestamp, matching_trace_ids
+
+    def get_matching_spans_from_traces(
+        self,
+        trace_ids: list[str],
+        max_spans_per_trace: int,
+    ) -> list[SpanKey]:
+        column = self.mri_to_column(self.mri)
+        assert column is not None
+
+        builder = SpansIndexedQueryBuilder(
+            Dataset.Transactions,
+            params=self.params,
+            snuba_params=self.snuba_params,
+            query=self.query,
+            selected_columns=["timestamp", "span_id"],
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby=None,
+            limit=len(trace_ids) * max_spans_per_trace,
+            limitby=("trace", 1),
+        )
+
+        trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
+        additional_conditions = self.get_additional_conditions(builder)
+        min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
+        builder.add_conditions(
+            [
+                trace_id_condition,
+                *additional_conditions,
+                *min_max_conditions,
+            ]
+        )
+
+        query_results = builder.run_query(self.referrer.value)
+        results = builder.process_results(query_results)
+
+        return [
+            SpanKey(
+                group="00",  # all segments have a group of `00` currently
+                timestamp=row["timestamp"],
+                span_id=row["span_id"],
+            )
+            for row in results["data"]
+        ]
+
     def _get_spans(
         self,
         span_keys: list[SpanKey],
@@ -221,7 +322,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
         return result
 
-    def execute_sorted(self, offset, limit):
+    def get_matching_spans_sorted(self, offset, limit):
         span_keys, summaries = self.get_sorted_span_keys(offset, limit)
         return self._get_spans(span_keys, summaries)
 
@@ -308,7 +409,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
         return span_keys, summaries
 
-    def execute_unsorted(self, offset, limit):
+    def get_matching_spans_unsorted(self, offset, limit):
         span_keys, summaries = self.get_unsorted_span_keys(offset, limit)
         return self._get_spans(span_keys, summaries)
 
@@ -472,7 +573,93 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
     def supports_mri(cls, mri: str) -> bool:
         return cls.mri_to_column(mri) is not None
 
-    def execute_sorted(self, offset, limit):
+    def get_matching_traces(self, limit: int) -> tuple[datetime, datetime, list[str]]:
+        column = self.mri_to_column(self.mri)
+        assert column is not None
+
+        builder = SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            params=self.params,
+            snuba_params=self.snuba_params,
+            query=self.query,
+            selected_columns=["trace", "timestamp"],
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby=None,
+            limit=limit,
+            limitby=("trace", 1),
+        )
+
+        additional_conditions = self.get_additional_conditions(builder)
+        min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
+        builder.add_conditions([*additional_conditions, *min_max_conditions])
+
+        query_results = builder.run_query(self.referrer.value)
+        results = builder.process_results(query_results)
+
+        matching_trace_ids: list[str] = []
+        min_timestamp = self.snuba_params.end
+        max_timestamp = self.snuba_params.start
+        assert min_timestamp is not None
+        assert max_timestamp is not None
+
+        for row in results["data"]:
+            matching_trace_ids.append(row["trace"])
+            timestamp = datetime.fromisoformat(row["timestamp"])
+            if timestamp < min_timestamp:
+                min_timestamp = timestamp
+            if timestamp > max_timestamp:
+                max_timestamp = timestamp
+
+        return min_timestamp, max_timestamp, matching_trace_ids
+
+    def get_matching_spans_from_traces(
+        self,
+        trace_ids: list[str],
+        max_spans_per_trace: int,
+    ) -> list[SpanKey]:
+        column = self.mri_to_column(self.mri)
+        assert column is not None
+
+        builder = SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            params=self.params,
+            snuba_params=self.snuba_params,
+            query=self.query,
+            selected_columns=["span.group", "timestamp", "id"],
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby=None,
+            limit=len(trace_ids) * max_spans_per_trace,
+            limitby=("trace", 1),
+        )
+
+        trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
+        additional_conditions = self.get_additional_conditions(builder)
+        min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
+        builder.add_conditions(
+            [
+                trace_id_condition,
+                *additional_conditions,
+                *min_max_conditions,
+            ]
+        )
+
+        query_results = builder.run_query(self.referrer.value)
+        results = builder.process_results(query_results)
+
+        return [
+            SpanKey(
+                group=row["span.group"],
+                timestamp=row["timestamp"],
+                span_id=row["id"],
+            )
+            for row in results["data"]
+        ]
+
+    def get_matching_spans_sorted(self, offset, limit):
         """
         Since we're already querying the spans table sorted on some column,
         there's no reason to split this into 2 queries. We can go ahead and
@@ -524,7 +711,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
 
         return result
 
-    def execute_unsorted(self, offset, limit):
+    def get_matching_spans_unsorted(self, offset, limit):
         span_keys = self.get_unsorted_span_keys(offset, limit)
 
         column = self.mri_to_column(self.mri)
@@ -738,6 +925,79 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             return True
         return False
 
+    def get_matching_traces(self, limit: int) -> tuple[datetime, datetime, list[str]]:
+        builder = MetricsSummariesQueryBuilder(
+            Dataset.MetricsSummaries,
+            self.params,
+            snuba_params=self.snuba_params,
+            query=self.query,
+            selected_columns=["trace", "timestamp"],
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby=None,
+            limit=limit,
+            limitby=("trace", 1),
+        )
+
+        additional_conditions = self.get_additional_conditions(builder)
+        min_max_conditions = self.get_min_max_conditions(builder)
+        builder.add_conditions([*additional_conditions, *min_max_conditions])
+
+        query_results = builder.run_query(self.referrer.value)
+        results = builder.process_results(query_results)
+
+        matching_trace_ids: list[str] = []
+        min_timestamp = self.snuba_params.end
+        max_timestamp = self.snuba_params.start
+        assert min_timestamp is not None
+        assert max_timestamp is not None
+
+        for row in results["data"]:
+            matching_trace_ids.append(row["trace"])
+            timestamp = datetime.fromisoformat(row["timestamp"])
+            if timestamp < min_timestamp:
+                min_timestamp = timestamp
+            if timestamp > max_timestamp:
+                max_timestamp = timestamp
+
+        return min_timestamp, max_timestamp, matching_trace_ids
+
+    def get_matching_spans_from_traces(
+        self,
+        trace_ids: list[str],
+        max_spans_per_trace: int,
+    ) -> list[SpanKey]:
+        builder = MetricsSummariesQueryBuilder(
+            Dataset.MetricsSummaries,
+            self.params,
+            snuba_params=self.snuba_params,
+            query=self.query,
+            selected_columns=["span.group", "timestamp", "id"],
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby=None,
+            limit=len(trace_ids) * max_spans_per_trace,
+            limitby=("trace", 1),
+        )
+
+        additional_conditions = self.get_additional_conditions(builder)
+        min_max_conditions = self.get_min_max_conditions(builder)
+        builder.add_conditions([*additional_conditions, *min_max_conditions])
+
+        query_results = builder.run_query(self.referrer.value)
+        results = builder.process_results(query_results)
+
+        return [
+            SpanKey(
+                group=row["span.group"],
+                timestamp=row["timestamp"],
+                span_id=row["id"],
+            )
+            for row in results["data"]
+        ]
+
     def _get_spans(
         self,
         span_keys: list[SpanKey],
@@ -759,7 +1019,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
 
         return result
 
-    def execute_sorted(self, offset, limit):
+    def get_matching_spans_sorted(self, offset, limit):
         span_keys, summaries = self.get_sorted_span_keys(offset, limit)
         return self._get_spans(span_keys, summaries)
 
@@ -835,7 +1095,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
 
         return span_keys, summaries
 
-    def execute_unsorted(self, offset, limit):
+    def get_matching_spans_unsorted(self, offset, limit):
         span_keys, summaries = self.get_unsorted_span_keys(offset, limit)
         return self._get_spans(span_keys, summaries)
 
