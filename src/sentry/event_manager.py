@@ -569,9 +569,14 @@ class EventManager:
         _get_or_create_group_release_many(jobs)
         _tsdb_record_all_metrics(jobs)
 
-        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-            group_id=group_info.group.id, environment_id=job["environment"].id
-        )
+        if features.has(
+            "organizations:user-feedback-event-link-ingestion-changes", project.organization
+        ):
+            _update_user_reports_with_event_link(job, group_info)
+        else:
+            UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
+                group_id=group_info.group.id, environment_id=job["environment"].id
+            )
 
         if attachments:
             attachments = filter_attachments_for_group(attachments, job)
@@ -2834,6 +2839,25 @@ def _detect_performance_problems(
         job["performance_problems"] = detect_performance_problems(
             job["data"], projects[job["project_id"]], is_standalone_spans=is_standalone_spans
         )
+
+
+def _update_user_reports_with_event_link(job: Job, group_info: GroupInfo) -> None:
+    metrics.incr("event_manager.save._update_user_reports_with_event_link")
+    event = job["event"]
+    project = event.project
+    user_reports_without_group = UserReport.objects.filter(
+        project_id=project.id,
+        event_id=event.event_id,
+        group_id__isnull=True,
+        environment_id__isnull=True,
+    )
+
+    user_reports_updated = user_reports_without_group.update(
+        group_id=group_info.group.id, environment_id=job["environment"].id
+    )
+
+    if user_reports_updated:
+        metrics.incr("event_manager.save._update_user_reports_with_event_link")
 
 
 class PerformanceJob(TypedDict, total=False):
