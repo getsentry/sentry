@@ -19,6 +19,7 @@ import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidg
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -51,6 +52,7 @@ import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TRACE_SEARCH_CONFIG} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
 import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
 import {
   loadTraceViewPreferences,
@@ -64,7 +66,7 @@ import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
-import {searchInTraceTree} from './traceState/traceSearch';
+import {searchInTraceTreeText, searchInTraceTreeTokens} from './traceState/traceSearch';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
 import {TraceHeader} from './traceHeader';
@@ -366,52 +368,55 @@ function TraceViewContent(props: TraceViewContentProps) {
         window.cancelAnimationFrame(searchingRaf.current.id);
       }
 
-      searchingRaf.current = searchInTraceTree(
-        tree,
-        query,
-        activeNode,
-        ([matches, lookup, activeNodeSearchResult]) => {
-          // If the previous node is still in the results set, we want to keep it
-          if (activeNodeSearchResult) {
-            traceDispatch({
-              type: 'set results',
-              results: matches,
-              resultsLookup: lookup,
-              resultIteratorIndex: activeNodeSearchResult?.resultIteratorIndex,
-              resultIndex: activeNodeSearchResult?.resultIndex,
-              previousNode: activeNodeSearchResult,
-              node: activeNode,
-            });
-            return;
-          }
-
-          if (activeNode && behavior === 'persist') {
-            traceDispatch({
-              type: 'set results',
-              results: matches,
-              resultsLookup: lookup,
-              resultIteratorIndex: undefined,
-              resultIndex: undefined,
-              previousNode: activeNodeSearchResult,
-              node: activeNode,
-            });
-            return;
-          }
-
-          const resultIndex: number | undefined = matches?.[0]?.index;
-          const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
-          const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
+      function done([matches, lookup, activeNodeSearchResult]) {
+        // If the previous node is still in the results set, we want to keep it
+        if (activeNodeSearchResult) {
           traceDispatch({
             type: 'set results',
             results: matches,
             resultsLookup: lookup,
-            resultIteratorIndex: resultIteratorIndex,
-            resultIndex: resultIndex,
+            resultIteratorIndex: activeNodeSearchResult?.resultIteratorIndex,
+            resultIndex: activeNodeSearchResult?.resultIndex,
             previousNode: activeNodeSearchResult,
-            node,
+            node: activeNode,
           });
+          return;
         }
-      );
+
+        if (activeNode && behavior === 'persist') {
+          traceDispatch({
+            type: 'set results',
+            results: matches,
+            resultsLookup: lookup,
+            resultIteratorIndex: undefined,
+            resultIndex: undefined,
+            previousNode: activeNodeSearchResult,
+            node: activeNode,
+          });
+          return;
+        }
+
+        const resultIndex: number | undefined = matches?.[0]?.index;
+        const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
+        const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
+        traceDispatch({
+          type: 'set results',
+          results: matches,
+          resultsLookup: lookup,
+          resultIteratorIndex: resultIteratorIndex,
+          resultIndex: resultIndex,
+          previousNode: activeNodeSearchResult,
+          node,
+        });
+      }
+
+      const tokens = parseSearch(query, {...TRACE_SEARCH_CONFIG, parse: true});
+
+      if (tokens) {
+        searchingRaf.current = searchInTraceTreeTokens(tree, tokens, activeNode, done);
+      } else {
+        searchingRaf.current = searchInTraceTreeText(tree, query, activeNode, done);
+      }
     },
     [traceDispatch, tree]
   );
