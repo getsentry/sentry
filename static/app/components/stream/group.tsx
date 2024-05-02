@@ -153,18 +153,18 @@ function BaseGroupRow({
       newAssignee: AssignableEntity | null
     ): Promise<AssignableEntity | null> => {
       setAssigneeLoading(true);
-      if (newAssignee === null) {
-        await clearAssignment(group.id, organization.slug, 'assignee_selector');
-        return Promise.resolve(null);
+      if (newAssignee) {
+        await assignToActor({
+          id: group.id,
+          orgSlug: organization.slug,
+          actor: {id: newAssignee.id, type: newAssignee.type},
+          assignedBy: 'assignee_selector',
+        });
+        return Promise.resolve(newAssignee);
       }
 
-      await assignToActor({
-        id: group.id,
-        orgSlug: organization.slug,
-        actor: {id: newAssignee.id, type: newAssignee.type},
-        assignedBy: 'assignee_selector',
-      });
-      return Promise.resolve(newAssignee);
+      await clearAssignment(group.id, organization.slug, 'assignee_selector');
+      return Promise.resolve(null);
     },
     onSuccess: (newAssignee: AssignableEntity | null) => {
       if (query !== undefined && newAssignee) {
