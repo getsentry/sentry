@@ -333,10 +333,8 @@ class RuleProcessor:
             predicate_iter = (self.condition_matches(f, state, rule) for f in predicate_list)
             predicate_func = get_match_function(match)
             if predicate_func:
-                if not predicate_func(predicate_iter):
-                    if slow_conditions:
-                        # prevent return here if slow_conditions exist, because we have more evaluation to do
-                        continue
+                if not predicate_func(predicate_iter) and not slow_conditions:
+                    # prevent return here if slow_conditions exist, because we have more evaluation to do
                     return
             else:
                 log_string = f"Unsupported {name}_match {match!r} for rule {rule.id}"
