@@ -22,7 +22,6 @@ from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
 from sentry.monitors.consumers.monitor_consumer import (
     CheckinValidationError,
     ProcessingError,
-    ProcessingErrorType,
     StoreMonitorCheckInStrategyFactory,
 )
 from sentry.monitors.models import (
@@ -34,6 +33,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.processing_errors import ProcessingErrorType
 from sentry.monitors.types import CheckinItem
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
