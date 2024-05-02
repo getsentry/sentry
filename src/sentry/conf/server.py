@@ -2990,7 +2990,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "chartcuterie": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/chartcuterie:latest",
+            "image": "us-central1-docker.pkg.dev/sentryio/chartcuterie/image:latest",
             "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
             "environment": {
                 "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
