@@ -62,10 +62,10 @@ logger = logging.getLogger(__name__)
 # around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
 # each entry in this dict, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[
-    str, set[str]
-] = {  # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
-    "sentry.team": {"org_role"},
+DELETED_FIELDS: dict[str, set[str]] = {
+    # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+    # The actor field should be retained until 24.6.0
+    "sentry.team": {"org_role", "actor"},
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
     "sentry.rule": {"owner"},
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
