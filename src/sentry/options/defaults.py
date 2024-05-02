@@ -1699,6 +1699,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
+    "performance.traces.trace-explorer-max-trace-ids-per-chunk",
+    type=Int,
+    default=2500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # hours
+register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
     default=10000,
