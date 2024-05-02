@@ -1321,7 +1321,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         team = self.create_team(organization=self.organization, members=[self.user])
         project = self.create_project(name="boo", organization=self.organization, teams=[team])
         alert_rule = self.create_alert_rule(projects=[project])
-        alert_rule.ownert_team = team
         alert_rule.team_id = team.id
         alert_rule.save()
 
