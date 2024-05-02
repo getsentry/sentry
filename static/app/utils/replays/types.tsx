@@ -19,17 +19,26 @@ import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
 /**
  * Extra breadcrumb types not included in `@sentry/replay`
+ * Also includes mobile frames
  */
-type ExtraBreadcrumbTypes = {
-  category: 'navigation';
-  data: {
-    from: string;
-    to: string;
-  };
-  message: string;
-  timestamp: number;
-  type: string; // For compatibility reasons
-};
+type ExtraBreadcrumbTypes =
+  | {
+      category: 'navigation';
+      data: {
+        from: string;
+        to: string;
+      };
+      message: string;
+      timestamp: number;
+      type: string; // For compatibility reasons
+    }
+  | {
+      category: 'ui.tap';
+      data: any;
+      message: string;
+      timestamp: number;
+      type: string;
+    };
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
@@ -149,22 +158,8 @@ type HydratedTimestamp = {
   timestampMs: number;
 };
 
-interface RawTapFrame {
-  category: 'ui.tap';
-  data: any;
-  message: string;
-  timestamp: number;
-  type: string;
-}
-
-// mirrors ReplayBreadcrumbFrame
-export type MobileBreadcrumbFrame = RawTapFrame; // TODO: add more types here when more breadcrumb types are defined
-
 type HydratedBreadcrumb<Category extends string> = Overwrite<
-  Extract<
-    TRawBreadcrumbFrame | ExtraBreadcrumbTypes | MobileBreadcrumbFrame,
-    {category: Category}
-  >,
+  Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
 >;
 
