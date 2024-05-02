@@ -77,7 +77,7 @@ const onboarding: OnboardingConfig = {
               language: 'powershell',
               label: 'Install Module',
               value: 'powershellget',
-              code: `Install-Module -Name Sentry -Repository PSGallery -RequiredVersion ${getPackageVersion(params, 'sentry.powershell', '1.0.0')} -Force`,
+              code: `Install-Module -Name Sentry -Repository PSGallery -RequiredVersion ${getPackageVersion(params, 'sentry.dotnet.powershell', '0.0.2')} -Force`,
             },
           ],
         },

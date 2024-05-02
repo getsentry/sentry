@@ -8,7 +8,7 @@ describe('powershell onboarding docs', function () {
   it('renders docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
-        'sentry.powershell': {
+        'sentry.dotnet.powershell': {
           version: '1.99.9',
         },
       },
