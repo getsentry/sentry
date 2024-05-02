@@ -145,18 +145,26 @@ def loads(
             return _default_decoder.decode(value)
 
 
+def loads_orjson(data: str | bytes, skip_trace: bool = False) -> JSONData:
+    with contextlib.ExitStack() as ctx:
+        if not skip_trace:
+            ctx.enter_context(sentry_sdk.start_span(op="sentry.utils.json.loads"))
+        return orjson.loads(data)
+
+
 # loads JSON with `orjson` or the default function depending on `option_name`
 # TODO: remove this once we're confident that orjson is working as expected
 def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = False) -> JSONData:
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        with contextlib.ExitStack() as ctx:
-            if not skip_trace:
-                ctx.enter_context(sentry_sdk.start_span(op="sentry.utils.json.loads"))
-            return orjson.loads(data)
+        return loads_orjson(data, skip_trace)
     else:
         return loads(data, skip_trace)
+
+
+def dumps_orjson(data: JSONData) -> str:
+    return orjson.dumps(data).decode()
 
 
 # dumps JSON with `orjson` or the default function depending on `option_name`
@@ -165,7 +173,7 @@ def dumps_experimental(option_name: str, data: JSONData) -> str:
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        return orjson.dumps(data).decode()
+        return dumps_orjson(data)
     else:
         return dumps(data)
 
