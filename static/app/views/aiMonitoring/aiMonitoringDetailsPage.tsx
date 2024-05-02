@@ -31,7 +31,6 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 function NoAccessComponent() {
   return (
@@ -125,13 +124,6 @@ export default function AiMonitoringPage({params}: Props) {
                         </PageFilterBar>
                         <MetricsRibbon>
                           <MetricReadout
-                            title={t('Total Runs')}
-                            value={spanMetrics['count()']}
-                            unit={'count'}
-                            isLoading={areSpanMetricsLoading}
-                          />
-
-                          <MetricReadout
                             title={t('Total Tokens Used')}
                             value={tokenUsedMetric['ai_total_tokens_used()']}
                             unit={'count'}
@@ -139,18 +131,18 @@ export default function AiMonitoringPage({params}: Props) {
                           />
 
                           <MetricReadout
-                            title={t('Runs Per Minute')}
-                            value={spanMetrics?.[`${SpanFunction.SPM}()`]}
-                            unit={RateUnit.PER_MINUTE}
-                            isLoading={areSpanMetricsLoading}
-                          />
-
-                          <MetricReadout
-                            title={DataTitles.avg}
+                            title={t('Pipeline Duration')}
                             value={
                               spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]
                             }
                             unit={DurationUnit.MILLISECOND}
+                            isLoading={areSpanMetricsLoading}
+                          />
+
+                          <MetricReadout
+                            title={t('Pipeline Runs Per Minute')}
+                            value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                            unit={RateUnit.PER_MINUTE}
                             isLoading={areSpanMetricsLoading}
                           />
                         </MetricsRibbon>
