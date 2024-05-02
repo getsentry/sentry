@@ -81,19 +81,18 @@ describe('messageConsumerSamplesPanel', () => {
           environment: [],
           field: [
             'count()',
-            'count_op(queue.submit.celery)',
-            'count_op(queue.task.celery)',
+            'count_op(queue.publish)',
+            'count_op(queue.process)',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'avg_if(span.self_time,span.op,queue.submit.celery)',
-            'avg_if(span.self_time,span.op,queue.task.celery)',
+            'avg_if(span.self_time,span.op,queue.publish)',
+            'avg_if(span.self_time,span.op,queue.process)',
+            'avg(messaging.message.receive.latency)',
           ],
           per_page: 10,
           project: [],
-          // TODO: This query filters on transaction twice because `destination` is not an implemented tag yet, and `transaction` is being used as a substitute.
-          // Update this test to check for filtering on `destination` when available.
           query:
-            'span.op:[queue.task.celery,queue.submit.celery] transaction:event-queue transaction:sentry.tasks.store.save_event',
+            'span.op:[queue.process,queue.publish] messaging.destination.name:event-queue transaction:sentry.tasks.store.save_event',
           statsPeriod: '10d',
         }),
       })

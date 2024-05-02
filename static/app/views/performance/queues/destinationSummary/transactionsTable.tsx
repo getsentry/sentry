@@ -26,9 +26,9 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
   MetricsResponse,
-  | 'avg_if(span.self_time,span.op,queue.task.celery)'
-  | 'count_op(queue.submit.celery)'
-  | 'count_op(queue.task.celery)'
+  | 'avg_if(span.self_time,span.op,queue.process)'
+  | 'count_op(queue.publish)'
+  | 'count_op(queue.process)'
   | 'sum(span.self_time)'
   | 'transaction'
 >;
@@ -42,17 +42,17 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'span.op', // TODO
     name: t('Type'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'avg(messaging.message.receive.latency)',
     name: t('Avg Time in Queue'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.self_time,span.op,queue.task.celery)',
+    key: 'avg_if(span.self_time,span.op,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -62,12 +62,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.submit.celery)',
+    key: 'count_op(queue.publish)',
     name: t('Published'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.task.celery)',
+    key: 'count_op(queue.process)',
     name: t('Processed'),
     width: COL_WIDTH_UNDEFINED,
   },
