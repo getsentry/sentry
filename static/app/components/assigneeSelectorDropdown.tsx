@@ -167,11 +167,8 @@ export default function AssigneeSelectorDropdown({
   onClear,
   owners,
 }: AssigneeSelectorDropdownProps) {
-  // const organization = useOrganization();
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
-
-  // const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const currentMemberList = (): User[] | undefined => {
     return memberList ?? memberLists?.members;
@@ -292,7 +289,7 @@ export default function AssigneeSelectorDropdown({
         type: 'team',
       };
     }
-
+    // Assignee is guaranteed to exist here, but we check to satisfy the type-checker
     if (assignee && onAssign) {
       const suggestedAssignee = getSuggestedAssignees().find(
         actor => actor.type === type && actor.id === assignee.id
@@ -375,8 +372,8 @@ export default function AssigneeSelectorDropdown({
     let assignableTeamList = getAssignableTeams();
     let suggestedAssignees = getSuggestedAssignees();
 
-    // If the group is already assigned, extract the assigned
-    // user/team from the member-list/assignedTeam-list and add to the top of the menu
+    // If the group is already assigned, extract the assigned user/team
+    // from the member-list/assignedTeam-list and add to the top of the menu
     if (group.assignedTo) {
       if (group.assignedTo.type === 'team') {
         const assignedTeam = assignableTeamList.find(
