@@ -21,7 +21,7 @@ from sentry.models.notificationsettingprovider import NotificationSettingProvide
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, FineTuningAPIKey
 from sentry.ownership.grammar import Matcher, Owner
 from sentry.ownership.grammar import Rule as GrammarRule
 from sentry.ownership.grammar import dump_schema
@@ -132,7 +132,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             event.project.slug,
             event.group,
             "issue_alert-slack",
-            alert_type="alerts",
+            alert_type=FineTuningAPIKey.ALERTS,
             issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
         )
 
