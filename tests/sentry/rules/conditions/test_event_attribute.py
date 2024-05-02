@@ -768,3 +768,12 @@ class EventAttributeConditionTest(RuleTestCase):
             data={"match": MatchType.EQUAL, "attribute": "unreal.crash_type", "value": "NoCrash"}
         )
         self.assertDoesNotPass(rule, event)
+
+    def test_does_not_error_with_none(self):
+        event = self.get_event()
+        event["exception"]["values"].append(None)
+
+        rule = self.get_rule(
+            data={"match": MatchType.CONTAINS, "attribute": "message", "value": "SyntaxError"}
+        )
+        self.assertPasses(rule, event)
