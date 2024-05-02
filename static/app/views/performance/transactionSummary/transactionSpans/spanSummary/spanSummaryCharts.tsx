@@ -127,9 +127,6 @@ function SpanSummaryCharts() {
             stacked
             error={avgDurationError}
             chartColors={[AVG_COLOR]}
-            // tooltipFormatterOptions={{
-            //   valueFormatter: value => formatDuration({duration: value, DurationUnit.MINUTE}),
-            // }}
           />
         </ChartPanel>
       </Block>
@@ -173,45 +170,6 @@ function SpanSummaryCharts() {
           />
         </ChartPanel>
       </Block>
-
-      {/* //
-        // <Block>
-        // <ChartPanel title={getDurationChartTitle('http')}>
-        // <Chart
-        //       height={160}
-        //       data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
-        //       loading={areSpanMetricsSeriesLoading}
-        //       chartColors={[AVG_COLOR]}
-        //       type={ChartType.LINE}
-        //       definedAxisTicks={4}
-        // />
-        // </ChartPanel>
-        // </Block>
-        // <Block>
-        // <ChartPanel title={t('Average Resource Size')}>
-        // <Chart
-        //       height={160}
-        //       aggregateOutputFormat="size"
-        //       data={[
-        //         spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
-        //         spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
-        //         spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
-        //       ]}
-        //       loading={areSpanMetricsSeriesLoading}
-        //       chartColors={[AVG_COLOR]}
-        //       type={ChartType.LINE}
-        //       definedAxisTicks={4}
-        //       tooltipFormatterOptions={{
-        //         valueFormatter: bytes =>
-        //           getDynamicText({
-        //             value: formatBytesBase2(bytes),
-        //             fixed: 'xx KiB',
-        //           }),
-        //         nameFormatter: name => DataTitles[name],
-        //       }}
-        // />
-        // </ChartPanel>
-        // </Block> */}
     </BlockContainer>
   );
 }
