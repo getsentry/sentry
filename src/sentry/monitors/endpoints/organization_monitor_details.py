@@ -74,7 +74,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         return self.update_monitor(request, project, monitor)
 
     @extend_schema(
-        operation_id="Delete a Monitor or Monitor Environments",
+        operation_id="Delete a Monitor or Monitor Environment",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
@@ -90,6 +90,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
     )
     def delete(self, request: Request, organization, project, monitor) -> Response:
         """
-        Delete a monitor or monitor environments.
+        Delete a monitor or monitor environment.
         """
         return self.delete_monitor(request, project, monitor)

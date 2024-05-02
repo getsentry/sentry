@@ -202,7 +202,7 @@ class ReplayExamples:
 
     GET_REPLAY_VIEWED_BY = [
         OpenApiExample(
-            "Get list of users who have viewed a replay",
+            "List replay viewers",
             value={
                 "data": {
                     "viewed_by": [
