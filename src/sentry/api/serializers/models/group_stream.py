@@ -406,8 +406,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 return self.respond(status=404)
 
             for item in item_list:
-                attachments = EventAttachment.objects.filter(group_id=item.id)
-                attrs[item].update({"hasAttachments": len(attachments) > 0})
+                num_attachments = EventAttachment.objects.filter(group_id=item.id).count()
+                attrs[item].update({"hasAttachments": num_attachments > 0})
 
         return attrs
 

@@ -244,8 +244,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 ):
                     return self.respond(status=404)
 
-                attachments = EventAttachment.objects.filter(group_id=group.id)
-                data.update({"hasAttachments": len(attachments) > 0})
+                num_attachments = EventAttachment.objects.filter(group_id=group.id).count()
+                data.update({"hasAttachments": num_attachments > 0})
 
             data.update(
                 {
