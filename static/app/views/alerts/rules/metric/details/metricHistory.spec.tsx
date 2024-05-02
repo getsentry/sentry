@@ -70,30 +70,4 @@ describe('MetricHistory', () => {
     expect(screen.getAllByText('Start monitoring.').length).toBe(2);
     expect(screen.getAllByText('Finish monitoring.').length).toBe(1);
   });
-
-  // RTL should not be testing position of elements. Only that they are rendering and
-  // can be engaged as expected with expected results
-  // it.skip('renders incidents _within_ appropriate starts and ends', () => {
-  //   const activations = [
-  //     MetricRuleActivationFixture({
-  //       id: `1`,
-  //       activator: '1',
-  //       dateCreated: '2024-05-02T12:00:00.123Z',
-  //       isComplete: true,
-  //       finishedAt: '2024-05-02T13:00:00.123Z',
-  //     }),
-  //   ];
-  //   const incidentFix = IncidentFixture({
-  //     dateCreated: '2024-05-02T12:30:00.123Z',
-  //   });
-  //   render(<MetricHistory incidents={[incidentFix]} activations={activations} />);
-
-  //   const table = screen.getAllByTestId('history-table');
-  //   const start = screen.getByText('Start monitoring.');
-  //   const finish = screen.getByText('Start monitoring.');
-  //   const incident = screen.getByText('Number of errors above 70 within 1 hour');
-
-  //   expect(start.compareDocumentPosition(incident)).toBe(2);
-  //   expect(incident.compareDocumentPosition(finish)).toBe(2);
-  // });
 });

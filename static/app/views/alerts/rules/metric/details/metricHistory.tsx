@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -21,31 +22,32 @@ type Props = {
 
 function MetricHistory({incidents, activations}: Props) {
   const organization = useOrganization();
-  const filteredIncidents = (incidents ?? []).filter(
-    incident => incident.activities?.length
-  );
-
-  const activationTriggers: ActivationTriggerActivity[] = [];
-  activations?.forEach(activation => {
-    activationTriggers.push({
-      type: ActivationTrigger.ACTIVATED,
-      activator: activation.activator,
-      conditionType: activation.conditionType,
-      dateCreated: activation.dateCreated,
-    });
-    if (activation.isComplete) {
+  const sortedActivity = useMemo(() => {
+    const filteredIncidents = (incidents ?? []).filter(
+      incident => incident.activities?.length
+    );
+    const activationTriggers: ActivationTriggerActivity[] = [];
+    activations?.forEach(activation => {
       activationTriggers.push({
-        type: ActivationTrigger.FINISHED,
+        type: ActivationTrigger.ACTIVATED,
         activator: activation.activator,
         conditionType: activation.conditionType,
-        dateCreated: activation.finishedAt,
+        dateCreated: activation.dateCreated,
       });
-    }
-  });
+      if (activation.isComplete) {
+        activationTriggers.push({
+          type: ActivationTrigger.FINISHED,
+          activator: activation.activator,
+          conditionType: activation.conditionType,
+          dateCreated: activation.finishedAt,
+        });
+      }
+    });
 
-  const sortedActivity = [...filteredIncidents, ...activationTriggers].sort((a, b) =>
-    a.dateCreated > b.dateCreated ? -1 : 1
-  );
+    return [...filteredIncidents, ...activationTriggers].sort((a, b) =>
+      a.dateCreated > b.dateCreated ? -1 : 1
+    );
+  }, [incidents, activations]);
 
   const numOfActivities = sortedActivity.length;
 
