@@ -1652,8 +1652,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-load-shedding": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
-    # Extract metrics for sessions during ingestion.
-    "organizations:metrics-extraction": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
     # Enables the search bar for metrics samples list
