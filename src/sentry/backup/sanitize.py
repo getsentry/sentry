@@ -39,16 +39,16 @@ UPPER_CASE_NON_HEX = {
 LOWER_CASE_HEX = {c.lower() for c in UPPER_CASE_HEX}
 LOWER_CASE_NON_HEX = {c.lower() for c in UPPER_CASE_NON_HEX}
 
-MAX_IPV4 = ipaddress.IPv4Address._ALL_ONES  # 2 ** 32 - 1
-MAX_IPV6 = ipaddress.IPv6Address._ALL_ONES  # 2 ** 128 - 1
+MAX_IPV4 = (2**ipaddress.IPV4LENGTH) - 1
+MAX_IPV6 = (2**ipaddress.IPV6LENGTH) - 1
 
 
 def random_ipv4():
-    return ipaddress.IPv4Address._string_from_ip_int(randint(0, MAX_IPV4))
+    return str(ipaddress.IPv4Address(randint(0, MAX_IPV4)))
 
 
 def random_ipv6():
-    return ipaddress.IPv6Address._string_from_ip_int(randint(0, MAX_IPV6))
+    return str(ipaddress.IPv6Address(randint(0, MAX_IPV6)))
 
 
 class SanitizationError(Exception):
