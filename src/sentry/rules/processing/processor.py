@@ -314,13 +314,15 @@ class RuleProcessor:
 
         state = self.get_state()
         condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
-        slow_conditions = None
-        if features.has("organizations:process-slow-alerts", self.project.organization):
-            fast_conditions, slow_conditions = self.group_conditions_by_speed(condition_list)
+        fast_conditions, slow_conditions = self.group_conditions_by_speed(condition_list)
+        process_slow_conditions_later = features.has(
+            "organizations:process-slow-alerts", self.project.organization
+        )
+        if process_slow_conditions_later:
             condition_list = fast_conditions
         else:
-            # Sort `condition_list` so that most expensive conditions run last.
-            condition_list.sort(key=lambda condition: is_condition_slow(condition))
+            fast_conditions.extend(slow_conditions)
+            condition_list = fast_conditions
 
         for predicate_list, match, name in (
             (filter_list, filter_match, "filter"),
@@ -347,7 +349,7 @@ class RuleProcessor:
                 return
 
         # If we've reached here we have slow conditions to evaluate
-        if slow_conditions:
+        if process_slow_conditions_later and slow_conditions:
             self.enqueue_rule(rule)
             return
 
