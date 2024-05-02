@@ -1,11 +1,4 @@
-import {
-  type Key,
-  type MouseEventHandler,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import {type Key, type MouseEventHandler, useCallback, useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -22,8 +15,6 @@ import {
 } from 'sentry/components/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {focusIsWithinToken} from 'sentry/components/searchQueryBuilder/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -34,10 +25,11 @@ type SearchQueryBuilderComboboxProps = {
   inputValue: string;
   items: SelectOptionWithKey<string>[];
   onCustomValueSelected: (value: string) => void;
-  onExit: () => void;
   onOptionSelected: (value: string) => void;
   token: TokenResult<Token>;
+  autoFocus?: boolean;
   filterValue?: string;
+  onExit?: () => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
@@ -51,24 +43,16 @@ export function SearchQueryBuilderCombobox({
   placeholder,
   onCustomValueSelected,
   onOptionSelected,
-  token,
   inputLabel,
   onExit,
   onKeyDown,
   onInputChange,
+  autoFocus,
 }: SearchQueryBuilderComboboxProps) {
   const theme = useTheme();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-
-  const {focus} = useSearchQueryBuilder();
-
-  useEffect(() => {
-    if (focusIsWithinToken(focus, token)) {
-      inputRef.current?.focus();
-    }
-  }, [focus, token]);
 
   const hiddenOptions = useMemo(() => {
     return getHiddenOptions(items, filterValue, 10);
@@ -94,7 +78,7 @@ export function SearchQueryBuilderCombobox({
   const state = useComboBoxState<SelectOptionWithKey<string>>({
     children,
     items,
-    autoFocus: true,
+    autoFocus,
     inputValue: filterValue,
     onSelectionChange,
     disabledKeys,
@@ -108,12 +92,12 @@ export function SearchQueryBuilderCombobox({
       items,
       inputValue: filterValue,
       onSelectionChange,
-      autoFocus: true,
+      autoFocus,
       onBlur: () => {
         if (inputValue) {
           onCustomValueSelected(inputValue);
         } else {
-          onExit();
+          onExit?.();
         }
         state.close();
       },
@@ -122,7 +106,7 @@ export function SearchQueryBuilderCombobox({
         switch (e.key) {
           case 'Escape':
             state.close();
-            onExit();
+            onExit?.();
             return;
           case 'Enter':
             if (!state.inputValue || state.selectionManager.focusedKey) {
@@ -152,7 +136,7 @@ export function SearchQueryBuilderCombobox({
       if (state.inputValue) {
         onCustomValueSelected(inputValue);
       } else {
-        onExit();
+        onExit?.();
       }
       state.close();
     },
@@ -160,6 +144,7 @@ export function SearchQueryBuilderCombobox({
 
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
     e => {
+      e.stopPropagation();
       inputProps.onClick?.(e);
       state.open();
     },
@@ -187,9 +172,6 @@ export function SearchQueryBuilderCombobox({
         <Overlay ref={popoverRef}>
           <ListBox
             {...listBoxProps}
-            overlayIsOpen={isOpen}
-            hasSearch={!!filterValue}
-            hiddenOptions={hiddenOptions}
             ref={listBoxRef}
             listState={state}
             keyDownHandler={() => true}
@@ -205,6 +187,7 @@ const Wrapper = styled('div')`
   position: relative;
   display: flex;
   align-items: stretch;
+  height: 100%;
 `;
 
 const UnstyledInput = styled(GrowingInput)`
@@ -216,7 +199,7 @@ const UnstyledInput = styled(GrowingInput)`
   height: auto;
   min-height: auto;
   resize: none;
-  min-width: 10px;
+  min-width: 1px;
   border-radius: 0;
 
   &:focus {

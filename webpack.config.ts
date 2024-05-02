@@ -67,10 +67,6 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 // features in the Sentry UI.
 const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
 
-// Enable react 18 concurrent mode
-const USE_REACT_CONCURRENT_MODE =
-  (DEV_MODE || IS_ACCEPTANCE_TEST) && !env.DISABLE_REACT_CONCURRENT_MODE;
-
 // Environment variables that are used by other tooling and should
 // not be user configurable.
 //
@@ -360,7 +356,6 @@ const appConfig: Configuration = {
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
         SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
         USE_REACT_QUERY_DEVTOOL: JSON.stringify(USE_REACT_QUERY_DEVTOOL),
-        USE_REACT_CONCURRENT_MODE: JSON.stringify(USE_REACT_CONCURRENT_MODE),
       },
     }),
 

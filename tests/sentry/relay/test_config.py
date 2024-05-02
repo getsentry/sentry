@@ -480,27 +480,22 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
 
 @django_db_all
 @region_silo_test
-@pytest.mark.parametrize("has_metrics_extraction", (True, False))
 @pytest.mark.parametrize("abnormal_mechanism_rollout", (0, 1))
 def test_project_config_with_organizations_metrics_extraction(
-    default_project, set_sentry_option, abnormal_mechanism_rollout, has_metrics_extraction
+    default_project, set_sentry_option, abnormal_mechanism_rollout
 ):
     with set_sentry_option(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
     ):
-        with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
-            project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
         session_metrics = get_path(cfg, "config", "sessionMetrics")
-        if has_metrics_extraction:
-            assert session_metrics == {
-                "version": 2 if abnormal_mechanism_rollout else 1,
-            }
-        else:
-            assert session_metrics is None
+        assert session_metrics == {
+            "version": 2 if abnormal_mechanism_rollout else 1,
+        }
 
 
 @django_db_all
@@ -744,7 +739,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
         config = get_project_config(default_project).to_dict()["config"]
         validate_project_config(json.dumps(config), strict=False)
         assert config["metricExtraction"] == {
-            "version": 2,
+            "version": 3,
             "metrics": [
                 {
                     "category": "transaction",

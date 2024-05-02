@@ -1,10 +1,10 @@
 import {useCallback, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import dropRightWhile from 'lodash/dropRightWhile';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 
 interface Props<K extends string> {

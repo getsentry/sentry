@@ -8,7 +8,6 @@ from collections.abc import Iterable, MutableMapping
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Union
 
-from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -88,65 +87,47 @@ class RpcActor(RpcModel):
         return result
 
     @classmethod
-    def from_object(cls, obj: ActorTarget, fetch_actor: bool = True) -> "RpcActor":
+    def from_object(cls, obj: ActorTarget) -> "RpcActor":
         """
         fetch_actor: whether to make an extra query or call to fetch the actor id
                      Without the actor_id the RpcActor acts as a tuple of id and type.
         """
-        from sentry.models.actor import Actor
         from sentry.models.team import Team
         from sentry.models.user import User
 
         if isinstance(obj, cls):
             return obj
         if isinstance(obj, User):
-            return cls.from_orm_user(obj, fetch_actor=fetch_actor)
+            return cls.from_orm_user(obj)
         if isinstance(obj, Team):
             return cls.from_orm_team(obj)
         if isinstance(obj, RpcUser):
-            return cls.from_rpc_user(obj, fetch_actor=fetch_actor)
+            return cls.from_rpc_user(obj)
         if isinstance(obj, RpcTeam):
             return cls.from_rpc_team(obj)
-        if isinstance(obj, Actor):
-            return cls.from_orm_actor(obj)
         raise TypeError(f"Cannot build RpcActor from {type(obj)}")
 
     @classmethod
-    def from_orm_user(cls, user: "User", fetch_actor: bool = True) -> "RpcActor":
+    def from_orm_user(cls, user: "User") -> "RpcActor":
         return cls(
             id=user.id,
             actor_type=ActorType.USER,
         )
 
     @classmethod
-    def from_orm_actor(cls, actor: "Actor") -> "RpcActor":
-        actor_type = ActorType.USER if actor.type == ACTOR_TYPES["user"] else ActorType.TEAM
-        model_id = actor.user_id if actor_type == ActorType.USER else actor.team_id
-
-        return cls(
-            id=model_id,
-            actor_id=actor.id,
-            actor_type=actor_type,
-        )
-
-    @classmethod
-    def from_rpc_user(cls, user: RpcUser, fetch_actor: bool = True) -> "RpcActor":
-        actor_id = None
-        if fetch_actor:
-            actor_id = get_actor_for_user(user).id
+    def from_rpc_user(cls, user: RpcUser) -> "RpcActor":
         return cls(
             id=user.id,
-            actor_id=actor_id,
             actor_type=ActorType.USER,
         )
 
     @classmethod
     def from_orm_team(cls, team: "Team") -> "RpcActor":
-        return cls(id=team.id, actor_id=team.actor_id, actor_type=ActorType.TEAM, slug=team.slug)
+        return cls(id=team.id, actor_type=ActorType.TEAM, slug=team.slug)
 
     @classmethod
     def from_rpc_team(cls, team: RpcTeam) -> "RpcActor":
-        return cls(id=team.id, actor_id=team.actor_id, actor_type=ActorType.TEAM, slug=team.slug)
+        return cls(id=team.id, actor_type=ActorType.TEAM, slug=team.slug)
 
     def __eq__(self, other: Any) -> bool:
         return (

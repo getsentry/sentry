@@ -9,10 +9,8 @@ from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
-from sentry.utils import json, redis
+from sentry.utils import redis
 from sentry.utils.iterators import chunked
-
-SEGMENT_TTL = 5 * 60  # 5 min TTL in seconds
 
 
 @dataclasses.dataclass
@@ -64,6 +62,7 @@ class RedisSpansBuffer:
         """
         keys = list(spans_map.keys())
         spans_written_per_segment = []
+        ttl = options.get("standalone-spans.buffer-ttl.seconds")
 
         # Batch write spans in a segment
         with self.client.pipeline() as p:
@@ -96,7 +95,7 @@ class RedisSpansBuffer:
                     bucket = get_unprocessed_segments_key(partition)
 
                     timestamp = segment_first_seen_ts[key]
-                    p.expire(segment_key, SEGMENT_TTL)
+                    p.expire(segment_key, ttl)
                     p.rpush(bucket, timestamp, segment_key)
 
             timestamp_results = p.execute()
@@ -115,39 +114,6 @@ class RedisSpansBuffer:
             )
 
         return process_segments_contexts
-
-    def write_span_and_check_processing(
-        self,
-        project_id: str | int,
-        segment_id: str,
-        timestamp: int,
-        partition: int,
-        span: bytes,
-    ) -> bool:
-        segment_key = get_segment_key(project_id, segment_id)
-        timestamp_key = get_last_processed_timestamp_key(partition)
-
-        with self.client.pipeline() as p:
-            # RPUSH is atomic
-            p.rpush(segment_key, span)
-            # GETSET is atomic
-            p.getset(timestamp_key, timestamp)
-            results = p.execute()
-
-        new_key = results[0] == 1
-        last_processed_timestamp: bytes | None = results[1]
-
-        if new_key:
-            bucket = get_unprocessed_segments_key(partition)
-            with self.client.pipeline() as p:
-                p.expire(segment_key, SEGMENT_TTL)
-                p.rpush(bucket, json.dumps([timestamp, segment_key]))
-                p.execute()
-
-        if last_processed_timestamp is None:
-            return False
-
-        return timestamp > int(last_processed_timestamp)
 
     def read_and_expire_many_segments(self, keys: list[str]) -> list[list[str | bytes]]:
         values = []

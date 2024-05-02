@@ -79,7 +79,7 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.mark_checkin_timeout": 0.05,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
@@ -201,6 +201,22 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+def profiles_sampler(sampling_context):
+    PROFILES_SAMPLING_RATE = {
+        "spans.process.process_message": options.get(
+            "standalone-spans.profile-process-messages.rate"
+        )
+    }
+    if "transaction_context" in sampling_context:
+        transaction_name = sampling_context["transaction_context"].get("name")
+
+        if transaction_name in PROFILES_SAMPLING_RATE:
+            return PROFILES_SAMPLING_RATE[transaction_name]
+
+    # Default to the sampling rate in settings
+    return float(settings.SENTRY_PROFILES_SAMPLE_RATE or 0)
+
+
 def before_send_transaction(event: Event, _: Hint) -> Event | None:
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
@@ -300,7 +316,7 @@ def configure_sdk():
         experimental_transport = None
 
     if settings.SENTRY_PROFILING_ENABLED:
-        sdk_options["profiles_sample_rate"] = settings.SENTRY_PROFILES_SAMPLE_RATE
+        sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):

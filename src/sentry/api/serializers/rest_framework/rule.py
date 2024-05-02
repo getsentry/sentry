@@ -46,7 +46,7 @@ class RuleNodeField(serializers.Field):
             msg = "Invalid node. Could not find '%s'"
             raise ValidationError(msg % data["id"])
 
-        node = cls(self.context["project"], data)
+        node = cls(project=self.context["project"], data=data)
 
         # Nodes with user-declared fields will manage their own validation
         if node.id in SENTRY_APP_ACTIONS:

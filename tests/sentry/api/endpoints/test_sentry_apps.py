@@ -21,6 +21,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -73,6 +74,7 @@ class SentryAppsTest(APITestCase):
         organization: Organization,
         has_features: bool = False,
         mask_secret: bool = False,
+        scopes: list[str] | None = None,
     ) -> None:
         assert sentry_app.application is not None
         data = {
@@ -90,7 +92,7 @@ class SentryAppsTest(APITestCase):
             "popularity": self.default_popularity,
             "redirectUrl": sentry_app.redirect_url,
             "schema": {},
-            "scopes": [],
+            "scopes": scopes if scopes else [],
             "slug": sentry_app.slug,
             "status": sentry_app.get_status_display(),
             "uuid": sentry_app.uuid,
@@ -100,7 +102,6 @@ class SentryAppsTest(APITestCase):
         }
 
         if mask_secret:
-            data["scopes"] = ["project:write"]
             data["clientSecret"] = MASKED_VALUE
 
         if has_features:
@@ -191,7 +192,7 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
             self.get_success_response(status_code=200)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_sees_all_apps(self):
         self.get_success_response(status_code=200)
 
@@ -285,14 +286,36 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_client_secret_is_masked(self):
-        user = self.create_user(email="bloop@example.com")
-        self.create_member(organization=self.organization, user=user)
-        # Create an app with higher permissions that what the member role has.
+    def test_client_secret_is_not_masked(self):
+        manager_user = self.create_user(email="bleep@example.com")
+        self.create_member(organization=self.organization, user=manager_user, role="manager")
+
+        # Create an app with the same permission that what the manager role has.
         sentry_app = self.create_sentry_app(
-            name="Boo Far", organization=self.organization, scopes=("project:write",)
+            name="Boo Far", organization=self.organization, scopes=("org:write",)
         )
 
+        self.login_as(manager_user)
+        response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
+        self.assert_response_has_serialized_sentry_app(
+            response=response,
+            sentry_app=sentry_app,
+            organization=self.organization,
+            has_features=True,
+            mask_secret=False,
+            scopes=["org:write"],
+        )
+
+    def test_client_secret_is_masked(self):
+        manager_user = self.create_user(email="bloop@example.com")
+        self.create_member(organization=self.organization, user=manager_user, role="manager")
+
+        # Create an app with higher permissions that what the manager role has.
+        sentry_app = self.create_sentry_app(
+            name="Boo Far", organization=self.organization, scopes=("org:admin",)
+        )
+
+        self.login_as(manager_user)
         response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
@@ -300,6 +323,7 @@ class GetSentryAppsTest(SentryAppsTest):
             organization=self.organization,
             has_features=True,
             mask_secret=True,
+            scopes=["org:admin"],
         )
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
@@ -357,12 +381,12 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
             )
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_cannot_create(self):
         self.get_error_response(**self.get_data(name="POPULARITY"))
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_can_create(self):
         self.add_user_permission(self.superuser, "superuser.write")
         self.get_success_response(**self.get_data(popularity=POPULARITY), status_code=201)

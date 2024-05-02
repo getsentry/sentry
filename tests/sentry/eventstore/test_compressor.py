@@ -1,6 +1,15 @@
 import copy
 
+import pytest
+
 from sentry.eventstore.compressor import assemble, deduplicate
+from sentry.testutils.helpers import override_options
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"eventstore.enable-orjson": 0.0}):
+        yield
 
 
 def _assert_roundtrip(data, assert_extra_keys=None):

@@ -1,12 +1,13 @@
 from urllib.parse import urlencode
 
+import pytest
 import responses
 from django.conf import settings
 from django.test import override_settings
 from django.urls import get_resolver, reverse
 from rest_framework.response import Response
 
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
@@ -260,6 +261,57 @@ class ApiGatewayTest(ApiGatewayTestCase):
             resp_json = json.loads(close_streaming_response(resp))
             assert resp_json["proxy"] is True
             assert resp_json["events"]
+
+    @responses.activate
+    def test_proxy_error_embed_dsn(self):
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/api/embed/error-page/",
+            json={"proxy": True, "name": "error-embed"},
+        )
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            # no dsn
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get("/api/embed/error-page/")
+
+            # invalid dsn
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get("/api/embed/error-page/", data={"dsn": "lolnope"})
+
+            # invalid DSN that doesn't match our domain
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get(
+                    "/api/embed/error-page/", data={"dsn": "https://abc123@nope.com/123"}
+                )
+
+            # Older DSN with no region -> monolith region
+            resp = self.client.get(
+                "/api/embed/error-page/", data={"dsn": "https://abc123@testserver/123"}
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.sentry.io style hosts
+            resp = self.client.get(
+                "/api/embed/error-page/", data={"dsn": "https://abc123@o123.ingest.testserver/123"}
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.us.sentry.io style hosts
+            resp = self.client.get(
+                "/api/embed/error-page/",
+                data={"dsn": "https://abc123@o123.ingest.us.testserver/123"},
+            )
+            assert resp.status_code == 200
+            self._check_response(resp, "error-embed")
+
+            # DSN with o123.ingest.us.sentry.io style hosts with a garbage region
+            with pytest.raises(SiloLimit.AvailabilityError):
+                self.client.get(
+                    "/api/embed/error-page/",
+                    data={"dsn": "https://abc123@o123.ingest.zz.testserver/123"},
+                )
 
     @staticmethod
     def _check_response(resp: Response, expected_name: str) -> None:

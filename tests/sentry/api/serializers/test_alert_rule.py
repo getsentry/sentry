@@ -14,6 +14,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.rule import Rule
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
@@ -107,12 +109,12 @@ class BaseAlertRuleSerializerTest:
         if data.get("date_added"):
             rule.date_added = data["date_added"]
         if data.get("owner"):
-            # TODO(mark) This will need to change when Actor is removed.
-            actor = ActorTuple.from_actor_identifier(data["owner"]).resolve_to_actor()
+            actor = ActorTuple.from_actor_identifier(data["owner"])
             assert actor, "Should not be None"
-            rule.owner_id = actor.id
-            rule.owner_user_id = actor.user_id
-            rule.owner_team_id = actor.team_id
+            if actor.type == User:
+                rule.owner_user_id = actor.id
+            if actor.type == Team:
+                rule.owner_team_id = actor.id
 
         rule.save()
         return rule
@@ -207,7 +209,6 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result)
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
-        assert alert_rule.owner == self.team.actor
 
     def test_comparison_delta_above(self):
         alert_rule = self.create_alert_rule(comparison_delta=60, resolve_threshold=110)

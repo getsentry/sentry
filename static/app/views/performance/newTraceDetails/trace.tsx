@@ -213,12 +213,12 @@ export function Trace({
       trace.root.space[1] !== manager.trace_space.width)
   ) {
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    const maybeQueue = decodeScrollQueue(qs.parse(location.search).node);
-    const maybeEventId = qs.parse(location.search)?.eventId;
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
 
-    if (maybeQueue || maybeEventId) {
+    if (maybeQueue || queryParams.eventId) {
       scrollQueueRef.current = {
-        eventId: maybeEventId as string,
+        eventId: queryParams.eventId as string,
         path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
       };
     }
@@ -1000,7 +1000,9 @@ function RenderRow(props: {
               {ERROR_LEVEL_LABELS[props.node.value.level ?? 'error']}
             </span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.node.value.title}</span>
+            <span className="TraceDescription">
+              {props.node.value.message ?? props.node.value.title}
+            </span>
           </div>
         </div>
         <div
@@ -1259,13 +1261,6 @@ function TraceBar(props: TraceBarProps) {
   return (
     <Fragment>
       <div ref={registerSpanBarRef} className="TraceBar">
-        {props.profiles.length > 0 ? (
-          <ProfileIcons
-            node_space={props.node_space}
-            profiles={props.profiles}
-            manager={props.manager}
-          />
-        ) : null}
         {props.errors.size > 0 ? (
           <ErrorIcons
             node_space={props.node_space}
@@ -1286,7 +1281,6 @@ function TraceBar(props: TraceBarProps) {
           <BackgroundPatterns
             node_space={props.node_space}
             performance_issues={props.performance_issues}
-            profiles={props.profiles}
             errors={props.errors}
             manager={props.manager}
           />
@@ -1391,7 +1385,6 @@ interface BackgroundPatternsProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
   performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
-  profiles: TraceTree.Profile[];
 }
 
 function BackgroundPatterns(props: BackgroundPatternsProps) {
@@ -1409,7 +1402,7 @@ function BackgroundPatterns(props: BackgroundPatternsProps) {
     return getMaxErrorSeverity(errors);
   }, [errors]);
 
-  if (!props.performance_issues.size && !props.errors.size && !props.profiles.length) {
+  if (!props.performance_issues.size && !props.errors.size) {
     return null;
   }
 
@@ -1458,16 +1451,6 @@ function BackgroundPatterns(props: BackgroundPatternsProps) {
             );
           })}
         </Fragment>
-      ) : props.profiles.length > 0 ? (
-        <div
-          className="TracePatternContainer"
-          style={{
-            left: 0,
-            width: '100%',
-          }}
-        >
-          <div className="TracePattern profile" />
-        </div>
       ) : null}
     </Fragment>
   );
@@ -1563,40 +1546,6 @@ function PerformanceIssueIcons(props: PerformanceIssueIconsProps) {
   );
 }
 
-interface ProfileIconsProps {
-  manager: VirtualizedViewManager;
-  node_space: [number, number] | null;
-  profiles: TraceTree.Profile[];
-}
-
-function ProfileIcons(props: ProfileIconsProps) {
-  if (!props.profiles.length) {
-    return null;
-  }
-  return (
-    <Fragment>
-      {props.profiles.map((profile, i) => {
-        const timestamp = profile.space[0];
-        // Clamp the profile timestamp to the span's timestamp
-        const left = props.manager.computeRelativeLeftPositionFromOrigin(
-          clamp(
-            timestamp,
-            props.node_space![0],
-            props.node_space![0] + props.node_space![1]
-          ),
-          props.node_space!
-        );
-
-        return (
-          <div key={i} className="TraceIcon profile" style={{left: left * 100 + '%'}}>
-            <TraceIcons.Icon event={profile} />
-          </div>
-        );
-      })}
-    </Fragment>
-  );
-}
-
 interface AutogroupedTraceBarProps {
   color: string;
   entire_space: [number, number] | null;
@@ -1675,13 +1624,6 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         })}
         {/* Autogrouped bars only render icons. That is because in the case of multiple bars
             with tiny gaps, the background pattern looks broken as it does not repeat nicely */}
-        {props.profiles.length > 0 ? (
-          <ProfileIcons
-            node_space={props.entire_space}
-            profiles={props.profiles}
-            manager={props.manager}
-          />
-        ) : null}
         {props.errors.size > 0 ? (
           <ErrorIcons
             node_space={props.entire_space}
@@ -1804,7 +1746,7 @@ const TraceStylingWrapper = styled('div')`
     height: 100%;
     background-color: transparent;
     top: 0;
-    cursor: col-resize;
+    cursor: ew-resize;
     z-index: 10;
 
     &:before {

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import IO
@@ -47,6 +48,8 @@ __all__ = (
     "import_in_global_scope",
 )
 
+logger = logging.getLogger(__name__)
+
 # We have to be careful when removing fields from our model schemas, since exports created using
 # the old-but-still-in-the-support-window versions could have those fields set in the data they
 # provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
@@ -62,7 +65,13 @@ __all__ = (
 DELETED_FIELDS: dict[
     str, set[str]
 ] = {  # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
-    "sentry.team": {"org_role"}
+    "sentry.team": {"org_role"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.rule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.alertrule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.grouphistory": {"actor"},
 }
 
 # The maximum number of models that may be sent at a time.
@@ -164,7 +173,7 @@ def _import(
         # Parse the content JSON and remove and fields that we have marked for deletion in the
         # function.
         shimmed_models = set(DELETED_FIELDS.keys())
-        content_as_json = json.loads(content)  # type: ignore[arg-type]
+        content_as_json = json.loads_experimental("backup.enable-orjson", content)  # type: ignore[arg-type]
         for json_model in content_as_json:
             if json_model["model"] in shimmed_models:
                 fields_to_remove = DELETED_FIELDS[json_model["model"]]
@@ -172,7 +181,7 @@ def _import(
                     json_model["fields"].pop(field, None)
 
         # Return the content to byte form, as that is what the Django deserializer expects.
-        content = json.dumps(content_as_json)
+        content = json.dumps_experimental("backup.enable-orjson", content_as_json)
 
     filters = []
     if filter_by is not None:
@@ -254,7 +263,7 @@ def _import(
     # NOT including the current instance.
     def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
-        models = json.loads(content)
+        models = json.loads_experimental("backup.enable-orjson", content)
         last_seen_model_name: NormalizedModelName | None = None
         batch: list[type[Model]] = []
         num_current_model_instances_yielded = 0
@@ -264,7 +273,7 @@ def _import(
                 if last_seen_model_name is not None and len(batch) > 0:
                     yield (
                         last_seen_model_name,
-                        json.dumps(batch),
+                        json.dumps_experimental("backup.enable-orjson", batch),
                         num_current_model_instances_yielded,
                     )
 
@@ -279,7 +288,11 @@ def _import(
             batch.append(model)
 
         if last_seen_model_name is not None and batch:
-            yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
+            yield (
+                last_seen_model_name,
+                json.dumps_experimental("backup.enable-orjson", batch),
+                num_current_model_instances_yielded,
+            )
 
     # A wrapper for some immutable state we need when performing a single `do_write().
     @dataclass(frozen=True)
@@ -304,6 +317,15 @@ def _import(
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
         model_name_str = str(model_name)
+        min_ordinal = offset + 1
+
+        extra = {
+            "model_name": model_name_str,
+            "import_uuid": flags.import_uuid,
+            "min_ordinal": min_ordinal,
+        }
+        logger.info("import_by_model.request_import", extra=extra)
+
         result = import_by_model(
             model_name=model_name_str,
             scope=import_write_context.scope,
@@ -311,7 +333,7 @@ def _import(
             filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
-            min_ordinal=offset + 1,
+            min_ordinal=min_ordinal,
         )
 
         if isinstance(result, RpcImportError):
@@ -329,35 +351,46 @@ def _import(
         # the RPC divide, we create a replica of the `ControlImportChunk` that successful import
         # would have generated in the calling region as well.
         if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
-            # If `min_ordinal` is not null, these values must not be either.
-            assert result.max_ordinal is not None
-            assert result.min_source_pk is not None
-            assert result.max_source_pk is not None
+            # Maybe we are resuming an import on a retry. Check to see if this
+            # `ControlImportChunkReplica` already exists, and only write it if it does not. There
+            # can't be races here, since there is only one celery task running at a time, pushing
+            # updates in a synchronous manner.
+            existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
+                import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
+            ).first()
+            if existing_control_import_chunk_replica is not None:
+                logger.info("import_by_model.control_replica_already_exists", extra=extra)
+            else:
+                # If `min_ordinal` is not null, these values must not be either.
+                assert result.max_ordinal is not None
+                assert result.min_source_pk is not None
+                assert result.max_source_pk is not None
 
-            inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
-                model_name_str
-            ]
-            existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
-                model_name_str
-            ]
-            overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
-                model_name_str
-            ]
-            control_import_chunk_replica = ControlImportChunkReplica(
-                import_uuid=flags.import_uuid,
-                model=model_name_str,
-                min_ordinal=result.min_ordinal,
-                max_ordinal=result.max_ordinal,
-                min_source_pk=result.min_source_pk,
-                max_source_pk=result.max_source_pk,
-                min_inserted_pk=result.min_inserted_pk,
-                max_inserted_pk=result.max_inserted_pk,
-                inserted_map={k: v[0] for k, v in inserted.items()},
-                existing_map={k: v[0] for k, v in existing.items()},
-                overwrite_map={k: v[0] for k, v in overwrite.items()},
-                inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
-            )
-            control_import_chunk_replica.save()
+                inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
+                    model_name_str
+                ]
+                existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
+                    model_name_str
+                ]
+                overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
+                    model_name_str
+                ]
+
+                control_import_chunk_replica = ControlImportChunkReplica(
+                    import_uuid=flags.import_uuid,
+                    model=model_name_str,
+                    min_ordinal=result.min_ordinal,
+                    max_ordinal=result.max_ordinal,
+                    min_source_pk=result.min_source_pk,
+                    max_source_pk=result.max_source_pk,
+                    min_inserted_pk=result.min_inserted_pk,
+                    max_inserted_pk=result.max_inserted_pk,
+                    inserted_map={k: v[0] for k, v in inserted.items()},
+                    existing_map={k: v[0] for k, v in existing.items()},
+                    overwrite_map={k: v[0] for k, v in overwrite.items()},
+                    inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
+                )
+                control_import_chunk_replica.save()
 
     import_write_context = ImportWriteContext(
         scope=RpcImportScope.into_rpc(scope),

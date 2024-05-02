@@ -256,8 +256,32 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "first_seen",
                     snql_aggregate=lambda args, alias: Function(
-                        "min",
-                        [self._resolve_timestamp_with_ms("start_timestamp", "start_ms")],
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "toUInt64",
+                                        [
+                                            self._resolve_partial_timestamp_column(
+                                                "min",
+                                                "start_timestamp",
+                                                "start_ms",
+                                                1,
+                                            ),
+                                        ],
+                                    ),
+                                    1000,
+                                ],
+                            ),
+                            self._resolve_partial_timestamp_column(
+                                "min",
+                                "start_timestamp",
+                                "start_ms",
+                                2,
+                            ),
+                        ],
                         alias,
                     ),
                     default_result_type="duration",
@@ -266,8 +290,32 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "last_seen",
                     snql_aggregate=lambda args, alias: Function(
-                        "max",
-                        [self._resolve_timestamp_with_ms("end_timestamp", "end_ms")],
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "toUInt64",
+                                        [
+                                            self._resolve_partial_timestamp_column(
+                                                "max",
+                                                "end_timestamp",
+                                                "end_ms",
+                                                1,
+                                            ),
+                                        ],
+                                    ),
+                                    1000,
+                                ],
+                            ),
+                            self._resolve_partial_timestamp_column(
+                                "max",
+                                "end_timestamp",
+                                "end_ms",
+                                2,
+                            ),
+                        ],
                         alias,
                     ),
                     default_result_type="duration",
@@ -429,17 +477,21 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             size=int(args["count"]),
         )
 
-    def _resolve_timestamp_with_ms(self, timestamp_column: str, ms_column: str) -> SelectType:
+    def _resolve_partial_timestamp_column(
+        self, aggregate: str, timestamp_column: str, ms_column: str, index: int
+    ) -> SelectType:
         return Function(
-            "plus",
+            "tupleElement",
             [
                 Function(
-                    "multiply",
+                    aggregate,
                     [
-                        Function("toUInt64", [Column(timestamp_column)]),
-                        1000,
+                        Function(
+                            "tuple",
+                            [Column(timestamp_column), Column(ms_column)],
+                        ),
                     ],
                 ),
-                Column(ms_column),
+                index,
             ],
         )

@@ -51,7 +51,7 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
     permission_classes = (ProjectMonitorPermission,)
 
     """
-    Loosens the base endpoint such that a monitor with the provided monitor_slug
+    Loosens the base endpoint such that a monitor with the provided monitor_id_or_slug
     does not need to exist. This is used for initial checkin creation with
     monitor upsert.
 
@@ -61,7 +61,7 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        monitor_slug: str | int,
+        monitor_id_or_slug: int | str,
         checkin_id: str,
         organization_slug: str | int | None = None,
         *args,
@@ -99,13 +99,13 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
                         id_or_slug_path_params_enabled(
                             self.convert_args.__qualname__, str(organization_slug)
                         )
-                        and str(organization_slug).isnumeric()
+                        and str(organization_slug).isdecimal()
                     ):
                         organization = Organization.objects.get_from_cache(id=organization_slug)
                     else:
                         organization = Organization.objects.get_from_cache(slug=organization_slug)
 
-                    monitor = get_monitor_by_org_id_or_slug(organization, monitor_slug)
+                    monitor = get_monitor_by_org_id_or_slug(organization, monitor_id_or_slug)
                 except (Organization.DoesNotExist, Monitor.DoesNotExist):
                     pass
 
@@ -113,12 +113,12 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
             if not monitor:
                 # Validate GUIDs
                 try:
-                    UUID(monitor_slug)
+                    UUID(monitor_id_or_slug)
                     # When looking up by guid we don't include the org conditional
                     # (since GUID lookup allows orgless routes), we will validate
                     # permissions later in this function
                     try:
-                        monitor = Monitor.objects.get(guid=monitor_slug)
+                        monitor = Monitor.objects.get(guid=monitor_id_or_slug)
                     except Monitor.DoesNotExist:
                         monitor = None
                 except ValueError:

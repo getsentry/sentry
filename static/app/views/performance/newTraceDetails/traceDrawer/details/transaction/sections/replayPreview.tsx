@@ -53,6 +53,12 @@ function ReplayPreview({
   event: EventTransaction;
   organization: Organization;
 }) {
+  const replayId = getReplayIdFromEvent(event);
+
+  if (!replayId) {
+    return null;
+  }
+
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={480}>
       <ReplaySection event={event} organization={organization} />

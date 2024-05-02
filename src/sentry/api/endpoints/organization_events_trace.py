@@ -472,14 +472,16 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
 
 
 @sentry_sdk.tracing.trace
-def update_params_with_trace_timestamp_projects(
+def create_transaction_params(
     trace_id: str,
     params: Mapping[str, str],
-) -> None:
+) -> Mapping[str, str]:
+    """Can't use the transaction params for errors since traces can be errors only"""
+    transaction_params = params.copy()
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
     if not query_metadata:
-        return
+        return params
 
     metadata_query = QueryBuilder(
         Dataset.Discover,
@@ -513,23 +515,28 @@ def update_params_with_trace_timestamp_projects(
 
     # Do not modify the params if anything comes back empty
     if len(project_id_set) == 0 or min_timestamp is None or max_timestamp is None:
-        return
+        return params
 
     project_ids = list(project_id_set)
     # Reusing this option for now
     time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
     if min_timestamp:
-        params["start"] = min_timestamp - timedelta(hours=time_buffer)
+        transaction_params["start"] = min_timestamp - timedelta(hours=time_buffer)
     if max_timestamp:
-        params["end"] = max_timestamp + timedelta(hours=time_buffer)
-    params["project_objects"] = [p for p in params["project_objects"] if p.id in project_ids]
-    params["project_id"] = project_ids
+        transaction_params["end"] = max_timestamp + timedelta(hours=time_buffer)
+    transaction_params["project_objects"] = [
+        p for p in transaction_params["project_objects"] if p.id in project_ids
+    ]
+    transaction_params["project_id"] = project_ids
+
+    return transaction_params
 
 
 @sentry_sdk.tracing.trace
 def query_trace_data(
     trace_id: str,
     params: Mapping[str, str],
+    transaction_params: Mapping[str, str],
     limit: int,
     event_id: str | None,
     use_spans: bool,
@@ -567,7 +574,7 @@ def query_trace_data(
         )
     transaction_query = QueryBuilder(
         Dataset.Transactions,
-        params,
+        transaction_params,
         query=f"trace:{trace_id}",
         selected_columns=transaction_columns,
         orderby=transaction_orderby,
@@ -600,6 +607,7 @@ def query_trace_data(
             "transaction",
             "issue",
             "title",
+            "message",
             "tags[level]",
         ],
         # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
@@ -652,6 +660,19 @@ def query_trace_data(
     return transformed_results[0], transformed_results[1]
 
 
+def strip_span_id(span_id):
+    """Span ids are stored as integers in snuba to save space, but this means if the span id has a 00 prefix the
+    returned value is different
+
+        Need to do this with a while loop cause doing hex(int(span_id, 16)) will turn something like 0abc into abc which
+        differs from the behaviour we're seeing when clickhouse does it
+    """
+    result = span_id
+    while result.startswith("00"):
+        result = result.removeprefix("00")
+    return result
+
+
 def build_span_query(trace_id, spans_params, query_spans):
     parents_query = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
@@ -666,18 +687,25 @@ def build_span_query(trace_id, spans_params, query_spans):
         orderby=["precise.start_ts", "id"],
         limit=10000,
     )
+    # Performance improvement, snuba's parser is extremely slow when we're sending thousands of
+    # span_ids here, using a `splitByChar` means that snuba will not parse the giant list of spans
+    span_minimum = options.get("performance.traces.span_query_minimum_spans")
+    sentry_sdk.set_measurement("trace_view.spans.span_minimum", span_minimum)
+    sentry_sdk.set_tag("trace_view.split_by_char.optimization", len(query_spans) > span_minimum)
+    if len(query_spans) > span_minimum:
+        # TODO because we're not doing an IN on a list of literals, snuba will not optimize the query with the HexInt
+        # column processor which means we won't be taking advantage of the span_id index but if we only do this when we
+        # have a lot of query_spans we should have a great performance improvement still once we do that we can simplify
+        # this code and always apply this optimization
+        span_condition_value = Function(
+            "splitByChar", [",", ",".join(strip_span_id(span_id) for span_id in query_spans)]
+        )
+    else:
+        span_condition_value = Function("tuple", list(query_spans))
     # Building the condition manually, a performance optimization since we might put thousands of span ids
     # and this way we skip both parsimonious and the builder
     parents_query.add_conditions(
-        [
-            Condition(
-                Column(parents_query.resolve_column_name("id")),
-                Op.IN,
-                # Another performance improvement, using a tuple instead of an array will cause clickhouse to use
-                # the bloom filter index
-                Function("tuple", list(query_spans)),
-            )
-        ]
+        [Condition(Column(parents_query.resolve_column_name("id")), Op.IN, span_condition_value)]
     )
     return parents_query
 
@@ -876,6 +904,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             "project_slug": event["project"],
             "title": event["title"],
             "level": event["tags[level]"],
+            "message": event["message"],
             "timestamp": datetime.fromisoformat(event["timestamp"]).timestamp(),
             "event_type": "error",
             "generation": 0,
@@ -961,17 +990,19 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with handle_query_errors():
-            update_params_with_trace_timestamp_projects(trace_id, params)
+            transaction_params = create_transaction_params(trace_id, params)
 
             if use_spans:
                 transactions, errors = query_trace_data(
-                    trace_id, params, limit, event_id, use_spans
+                    trace_id, params, transaction_params, limit, event_id, use_spans
                 )
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
                 )
             else:
-                transactions, errors = query_trace_data(trace_id, params, limit, None, False)
+                transactions, errors = query_trace_data(
+                    trace_id, params, transaction_params, limit, None, False
+                )
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
@@ -1548,7 +1579,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         update_snuba_params_with_timestamp(request, params)
 
         with handle_query_errors():
-            update_params_with_trace_timestamp_projects(trace_id, params)
             result = discover.query(
                 selected_columns=[
                     "count_unique(project_id) as projects",
