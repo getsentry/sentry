@@ -188,12 +188,8 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     return onClose();
   }, [api, organization, sentryApp, onClose]);
 
-  if (sentryAppLoading || orgsLoading) {
+  if (sentryAppLoading || orgsLoading || !sentryApp) {
     return <LoadingIndicator />;
-  }
-
-  if (!sentryApp) {
-    return 'Not Found error';
   }
 
   return (
