@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {generateStats} from 'sentry/components/events/opsBreakdown';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -111,19 +112,23 @@ function GeneralInfo({
     ),
   });
 
-  items.push({
-    key: 'ops_breakdown',
-    subject: (
-      <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
-        {t('Ops Breakdown')}
-        <QuestionTooltip
-          title={t('Applicable to the children of this event only')}
-          size="xs"
-        />
-      </TraceDrawerComponents.FlexBox>
-    ),
-    value: <OpsBreakdown event={event} />,
-  });
+  const breakdown = generateStats(event, {type: 'no_filter'});
+
+  if (breakdown.length > 0) {
+    items.push({
+      key: 'ops_breakdown',
+      subject: (
+        <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
+          {t('Ops Breakdown')}
+          <QuestionTooltip
+            title={t('Applicable to the children of this event only')}
+            size="xs"
+          />
+        </TraceDrawerComponents.FlexBox>
+      ),
+      value: <OpsBreakdown breakdown={breakdown} />,
+    });
+  }
 
   return <TraceDrawerComponents.SectionCard items={items} title={t('General')} />;
 }
