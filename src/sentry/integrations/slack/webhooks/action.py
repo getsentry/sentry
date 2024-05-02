@@ -197,9 +197,7 @@ class SlackActionEndpoint(Endpoint):
             if view:
                 private_metadata = view.get("private_metadata")
                 if private_metadata:
-                    data = json.loads_experimental(
-                        "integrations.slack.enable-orjson", private_metadata
-                    )
+                    data = json.loads_orjson(private_metadata)
                     channel_id = data.get("channel_id")
                     response_url = data.get("orig_response_url")
 
@@ -400,7 +398,7 @@ class SlackActionEndpoint(Endpoint):
         if use_block_kit and slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
             callback_id["rule"] = slack_request.callback_data.get("rule")
-        callback_id = json.dumps_experimental("integrations.slack.enable-orjson", callback_id)
+        callback_id = json.dumps_orjson(callback_id)
 
         dialog = {
             "callback_id": callback_id,
@@ -410,7 +408,7 @@ class SlackActionEndpoint(Endpoint):
         }
 
         payload = {
-            "dialog": json.dumps_experimental("integrations.slack.enable-orjson", dialog),
+            "dialog": json.dumps_orjson(dialog),
             "trigger_id": slack_request.data["trigger_id"],
         }
         slack_client = SlackClient(integration_id=slack_request.integration.id)
@@ -420,15 +418,13 @@ class SlackActionEndpoint(Endpoint):
             modal_payload = self.build_resolve_modal_payload(callback_id)
             try:
                 payload = {
-                    "view": json.dumps_experimental(
-                        "integrations.slack.enable-orjson", modal_payload
-                    ),
+                    "view": json.dumps_orjson(modal_payload),
                     "trigger_id": slack_request.data["trigger_id"],
                 }
                 headers = {"content-type": "application/json; charset=utf-8"}
                 slack_client.post(
                     "/views.open",
-                    data=json.dumps_experimental("integrations.slack.enable-orjson", payload),
+                    data=json.dumps_orjson(payload),
                     headers=headers,
                 )
             except ApiError as e:
@@ -468,19 +464,19 @@ class SlackActionEndpoint(Endpoint):
 
         if slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
-        callback_id = json.dumps_experimental("integrations.slack.enable-orjson", callback_id)
+        callback_id = json.dumps_orjson(callback_id)
 
         slack_client = SlackClient(integration_id=slack_request.integration.id)
         modal_payload = self.build_archive_modal_payload(callback_id)
         try:
             payload = {
-                "view": json.dumps_experimental("integrations.slack.enable-orjson", modal_payload),
+                "view": json.dumps_orjson(modal_payload),
                 "trigger_id": slack_request.data["trigger_id"],
             }
             headers = {"content-type": "application/json; charset=utf-8"}
             slack_client.post(
                 "/views.open",
-                data=json.dumps_experimental("integrations.slack.enable-orjson", payload),
+                data=json.dumps_orjson(payload),
                 headers=headers,
             )
         except ApiError as e:
@@ -583,8 +579,7 @@ class SlackActionEndpoint(Endpoint):
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
-                private_metadata = json.loads_experimental(
-                    "integrations.slack.enable-orjson",
+                private_metadata = json.loads_orjson(
                     slack_request.data["view"]["private_metadata"],
                 )
                 slack_client.post(private_metadata["orig_response_url"], data=body, json=True)

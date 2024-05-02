@@ -96,9 +96,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             if payload_blocks := blocks.get("blocks"):
                 payload = {
                     "text": blocks.get("text"),
-                    "blocks": json.dumps_experimental(
-                        "integrations.slack.enable-orjson", payload_blocks
-                    ),
+                    "blocks": json.dumps_orjson(payload_blocks),
                     "channel": channel,
                     "unfurl_links": False,
                     "unfurl_media": False,
@@ -181,9 +179,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "channel_name": self.get_option("channel"),
                 }
                 # temporarily log the payload so we can debug message failures
-                log_params["payload"] = json.dumps_experimental(
-                    "integrations.slack.enable-orjson", payload
-                )
+                log_params["payload"] = json.dumps_orjson(payload)
 
                 self.logger.info(
                     "rule.fail.slack_post",
@@ -253,9 +249,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps_experimental(
-                "integrations.slack.enable-orjson", blocks.get("blocks")
-            ),
+            "blocks": json.dumps_orjson(blocks.get("blocks")),
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,

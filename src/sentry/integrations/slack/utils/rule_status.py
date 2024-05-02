@@ -38,15 +38,13 @@ class RedisRuleStatus:
     def get_value(self) -> JSONData:
         key = self._get_redis_key()
         value = self.client.get(key)
-        return json.loads_experimental(
-            "integrations.slack.enable-orjson", cast(Union[str, bytes], value)
-        )
+        return json.loads_orjson(cast(Union[str, bytes], value))
 
     def _generate_uuid(self) -> str:
         return uuid4().hex
 
     def _set_initial_value(self) -> None:
-        value = json.dumps_experimental("integrations.slack.enable-orjson", {"status": "pending"})
+        value = json.dumps_orjson({"status": "pending"})
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60, nx=True)
 
     def _get_redis_key(self) -> str:
@@ -66,4 +64,4 @@ class RedisRuleStatus:
         elif status == "failed":
             value["error"] = SLACK_FAILED_MESSAGE
 
-        return json.dumps_experimental("integrations.slack.enable-orjson", value)
+        return json.dumps_orjson(value)

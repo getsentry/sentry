@@ -20,16 +20,11 @@ class SlackOptionsLoadRequest(SlackRequest):
     def group_id(self) -> int:
         if self.data.get("container", {}).get("is_app_unfurl"):
             return int(
-                json.loads_experimental(
-                    "integrations.slack.enable-orjson",
+                json.loads_orjson(
                     self.data["app_unfurl"]["blocks"][0]["block_id"],
                 )["issue"]
             )
-        return int(
-            json.loads_experimental(
-                "integrations.slack.enable-orjson", self.data["message"]["blocks"][0]["block_id"]
-            )["issue"]
-        )
+        return int(json.loads_orjson(self.data["message"]["blocks"][0]["block_id"])["issue"])
 
     @property
     def substring(self) -> str:
@@ -42,9 +37,7 @@ class SlackOptionsLoadRequest(SlackRequest):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            self._data = json.loads_experimental(
-                "integrations.slack.enable-orjson", self.data["payload"]
-            )
+            self._data = json.loads_orjson(self.data["payload"])
         except (KeyError, IndexError, TypeError, ValueError):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 

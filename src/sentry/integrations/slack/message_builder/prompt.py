@@ -13,8 +13,7 @@ class SlackPromptLinkMessageBuilder(BlockSlackMessageBuilder):
 
     def build(self) -> SlackBody:
         return {
-            "blocks": json.dumps_experimental(
-                "integrations.slack.enable-orjson",
+            "blocks": json.dumps_orjson(
                 [
                     self.get_markdown_block(LINK_IDENTITY_MESSAGE),
                     self.get_action_block([("Link", self.url, "link"), ("Cancel", None, "ignore")]),
