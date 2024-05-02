@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {render} from 'react-dom';
+import {createRoot} from 'react-dom/client';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import throttle from 'lodash/throttle';
@@ -104,12 +104,17 @@ export default PasswordStrength;
  * outside of our main react application. Mostly useful since all of our
  * registration pages aren't in the react app.
  */
-export const attachTo = ({input, element}) =>
-  element &&
-  input &&
-  input.addEventListener(
+export const attachTo = ({input, element}) => {
+  if (!element || !input) {
+    return null;
+  }
+
+  const root = createRoot(element);
+
+  return input.addEventListener(
     'input',
     throttle(e => {
-      render(<PasswordStrength value={e.target.value} />, element);
+      root.render(<PasswordStrength value={e.target.value} />);
     })
   );
+};
