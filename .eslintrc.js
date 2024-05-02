@@ -3,6 +3,11 @@
 module.exports = {
   root: true,
   extends: ['sentry-app/strict'],
+
+  parserOptions: {
+    project: './tsconfig.json',
+  },
+
   globals: {
     require: false,
     expect: false,
@@ -10,7 +15,9 @@ module.exports = {
     tick: true,
     jest: true,
   },
+  plugins: ['deprecation'],
   rules: {
+    'deprecation/deprecation': 'warn',
     'react-hooks/exhaustive-deps': [
       'error',
       {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
