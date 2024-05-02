@@ -684,12 +684,16 @@ function Description({
     <DescriptionContainer>
       <DescriptionText>
         {value}
-        <CopyToClipboardButton borderless size="zero" iconSize="xs" text={value} />
+        <StyledCopuToClipboardButton borderless size="zero" iconSize="xs" text={value} />
       </DescriptionText>
       {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
     </DescriptionContainer>
   );
 }
+
+const StyledCopuToClipboardButton = styled(CopyToClipboardButton)`
+  transform: translateY(2px);
+`;
 
 const DescriptionContainer = styled(FlexBox)`
   justify-content: space-between;
