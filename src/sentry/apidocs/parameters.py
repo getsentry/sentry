@@ -111,6 +111,13 @@ For example the following are valid parameters:
 - `/?project=-1`
 """,
     )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=bool,
+        description="""Specify `true` to restricts results to organizations in which you are an owner.""",
+    )
 
 
 class SCIMParams:
