@@ -90,14 +90,6 @@ def parse_duration(value: str, interval: str) -> float:
     return delta.total_seconds() * 1000.0
 
 
-def parse_bool(value: str) -> bool:
-    if value == "1" or value.lower() == "true":
-        return True
-    if value == "0" or value.lower() == "false":
-        return False
-    raise InvalidQuery(f"{value} is not a valid boolean value")
-
-
 def parse_size(value: str, size: str) -> float:
     """Returns in total bytes"""
     try:
