@@ -62,6 +62,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   const project = incident.alertRule.projects[0];
   const activation = incident.activation;
   let activationBlock: ReactElement | null = null;
+  // TODO: Split this string check into a separate component
   if (activation) {
     let condition;
     let activator;
