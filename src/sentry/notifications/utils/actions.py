@@ -8,8 +8,7 @@ from typing import Any, Literal
 @dataclass(kw_only=True)
 class _BaseMessageAction:
     """
-    Base class used to hold the fields for a notification message action.
-    TODO(ecosystem): this class seems to only be used for Slack notifications, can we move this?
+    Base class used to hold the fields for a notification message action
     """
 
     name: str
