@@ -522,6 +522,7 @@ def manage_issue_states(
                 event=event,
                 sender=manage_issue_states,
                 was_until_escalating=True if has_forecast else False,
+                new_substatus=GroupSubStatus.ESCALATING,
             )
             if data and activity_data and has_forecast:  # Redundant checks needed for typing
                 data.update(activity_data)
