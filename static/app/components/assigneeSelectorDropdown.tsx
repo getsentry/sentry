@@ -1,9 +1,7 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
@@ -27,9 +25,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Actor, Group, SuggestedOwnerReason, Team, User} from 'sentry/types';
 import {buildTeamId} from 'sentry/utils';
-import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
@@ -39,11 +34,12 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   codeowners: t('Codeowners'),
 };
 
-export type OnAssignCallback = (
-  type: Actor['type'],
-  assignee: User | Actor,
-  suggestedAssignee?: SuggestedAssignee
-) => Promise<void>;
+export type AssignableEntity = {
+  assignee: User | Actor;
+  id: string;
+  type: Actor['type'];
+  suggestedAssignee?: SuggestedAssignee;
+};
 
 export type SuggestedAssignee = Actor & {
   assignee: AssignableTeam | User;
@@ -58,18 +54,13 @@ type AssignableTeam = {
   team: Team;
 };
 
-type AssignableEntity = {
-  assignee: User | Actor;
-  id: string;
-  type: Actor['type'];
-};
-
 export interface AssigneeSelectorDropdownProps {
   group: Group;
+  loading: boolean;
   memberList?: User[];
   noDropdown?: boolean;
-  onAssign?: OnAssignCallback;
-  onClear?: () => void;
+  onAssign?: (assignedActor: AssignableEntity | null) => void;
+  onClear?: (clearedAssignee: User | Actor) => void;
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
 
@@ -169,57 +160,18 @@ export function AssigneeAvatar({
 
 export default function AssigneeSelectorDropdown({
   group,
+  loading,
   memberList,
   noDropdown = false,
   onAssign,
   onClear,
   owners,
 }: AssigneeSelectorDropdownProps) {
-  const organization = useOrganization();
+  // const organization = useOrganization();
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const {mutate: handleAssigneeChange} = useMutation<
-    AssignableEntity | null,
-    RequestError,
-    AssignableEntity | null
-  >({
-    mutationFn: async (
-      newAssignee: AssignableEntity | null
-    ): Promise<AssignableEntity | null> => {
-      setIsLoading(true);
-      if (newAssignee === null) {
-        await clearAssignment(group.id, organization.slug, 'assignee_selector');
-        return Promise.resolve(null);
-      }
-
-      await assignToActor({
-        id: group.id,
-        orgSlug: organization.slug,
-        actor: {id: newAssignee.id, type: newAssignee.type},
-        assignedBy: 'assignee_selector',
-      });
-      return Promise.resolve(newAssignee);
-    },
-    onSuccess: async (newAssignee: AssignableEntity | null) => {
-      if (!newAssignee && onClear) {
-        onClear();
-      }
-      if (newAssignee && onAssign) {
-        const suggestedAssignee = getSuggestedAssignees().find(
-          actor => actor.type === newAssignee.type && actor.id === newAssignee.id
-        );
-        await onAssign(newAssignee.type, newAssignee.assignee, suggestedAssignee);
-      }
-      setIsLoading(false);
-    },
-    onError: () => {
-      addErrorMessage('Failed to updated assignee');
-      setIsLoading(false);
-    },
-  });
+  // const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const currentMemberList = (): User[] | undefined => {
     return memberList ?? memberLists?.members;
@@ -317,18 +269,14 @@ export default function AssigneeSelectorDropdown({
   const handleSelect = (selectedOption: SelectOption<string> | null) => {
     // selectedOption is falsey when the option selected is already selected
     if (!selectedOption) {
-      handleAssigneeChange(null);
+      if (onClear && group.assignedTo) {
+        onClear(group.assignedTo);
+      }
       return;
     }
     // See makeMemberOption and makeTeamOption for how the value is formatted
     const type = selectedOption.value.startsWith('user:') ? 'user' : 'team';
     const assigneeId = selectedOption.value.split(':')[1];
-
-    if (group.assignedTo && assigneeId === group.assignedTo?.id) {
-      handleAssigneeChange(null);
-      return;
-    }
-
     let assignee: User | Actor;
 
     if (type === 'user') {
@@ -337,6 +285,7 @@ export default function AssigneeSelectorDropdown({
       const assignedTeam = getAssignableTeams().find(
         assignableTeam => assignableTeam.team.id === assigneeId
       ) as AssignableTeam;
+      // Convert AssingableTeam to Actor
       assignee = {
         id: assignedTeam.id,
         name: assignedTeam.team.slug,
@@ -344,11 +293,17 @@ export default function AssigneeSelectorDropdown({
       };
     }
 
-    handleAssigneeChange({
-      assignee: assignee,
-      id: assigneeId,
-      type: type,
-    } as AssignableEntity);
+    if (assignee && onAssign) {
+      const suggestedAssignee = getSuggestedAssignees().find(
+        actor => actor.type === type && actor.id === assignee.id
+      );
+      onAssign({
+        assignee: assignee,
+        id: assigneeId,
+        type: type,
+        suggestedAssignee: suggestedAssignee,
+      });
+    }
   };
 
   const makeMemberOption = (
@@ -495,16 +450,16 @@ export default function AssigneeSelectorDropdown({
     );
     return (
       <Fragment>
-        {isLoading && (
+        {loading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
-        {!isLoading && !noDropdown && (
+        {!loading && !noDropdown && (
           <DropdownButton data-test-id="assignee-selector" {...props}>
             {avatarElement}
             <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
           </DropdownButton>
         )}
-        {!isLoading && noDropdown && avatarElement}
+        {!loading && noDropdown && avatarElement}
       </Fragment>
     );
   };
@@ -514,7 +469,7 @@ export default function AssigneeSelectorDropdown({
       <Button
         size="xs"
         aria-label={t('Invite Member')}
-        disabled={isLoading}
+        disabled={loading}
         onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
@@ -538,7 +493,7 @@ export default function AssigneeSelectorDropdown({
             ? `${group.assignedTo?.type === 'user' ? 'user:' : 'team:'}${group.assignedTo.id}`
             : ''
         }
-        onClear={() => handleAssigneeChange(null)}
+        onClear={() => handleSelect(null)}
         menuTitle={t('Select Assignee')}
         searchPlaceholder="Search users or teams..."
         size="sm"
