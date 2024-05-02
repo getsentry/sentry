@@ -118,6 +118,21 @@ type IssueListProps = {
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
+  const uniqueIssues = useMemo(() => {
+    const unique: TraceErrorOrIssue[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of issues) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }, [issues]);
+
   if (!issues.length) {
     return null;
   }
@@ -125,7 +140,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   return (
     <StyledPanel>
       <IssueListHeader node={node} />
-      {issues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
+      {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
         <Issue key={index} issue={issue} organization={organization} />
       ))}
     </StyledPanel>

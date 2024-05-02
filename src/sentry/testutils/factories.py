@@ -56,7 +56,6 @@ from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
@@ -1744,7 +1743,8 @@ class Factories:
         group: Group,
         status: int,
         release: Release | None = None,
-        actor: Actor | None = None,
+        user_id: int | None = None,
+        team_id: int | None = None,
         prev_history: GroupHistory | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
@@ -1760,9 +1760,8 @@ class Factories:
             group=group,
             project=group.project,
             release=release,
-            actor=actor,
-            user_id=actor.user_id if actor else None,
-            team_id=actor.team_id if actor else None,
+            user_id=user_id,
+            team_id=team_id,
             status=status,
             prev_history=prev_history,
             prev_history_date=prev_history_date,

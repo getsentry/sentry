@@ -28,7 +28,7 @@ from sentry.db.models import (
     BaseManager,
     BaseModel,
     BoundedBigAutoField,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.db.models.utils import unique_db_instance
@@ -84,7 +84,7 @@ class UserManager(BaseManager["User"], DjangoUserManager):
         return self.filter(id__in=Subquery(org_members_with_provider))
 
 
-@control_silo_only_model
+@control_silo_model
 class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
     __relocation_custom_ordinal__ = ["username"]

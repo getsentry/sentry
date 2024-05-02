@@ -1311,8 +1311,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee is None
         assert len(GroupOwner.objects.filter(group_id=event.group)) == 0
 
-    @patch("sentry.tasks.post_process.logger")
-    def test_debounces_handle_owner_assignments(self, logger):
+    @patch("sentry.utils.metrics.incr")
+    def test_debounces_handle_owner_assignments(self, mock_incr):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1329,16 +1329,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        logger.info.assert_any_call(
-            "handle_owner_assignment.issue_owners_exist",
-            extra={
-                "event": event.event_id,
-                "group": event.group_id,
-                "project": event.project_id,
-                "organization": event.project.organization_id,
-                "reason": "issue_owners_exist",
-            },
-        )
+        mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
     @patch("sentry.tasks.post_process.logger")
     def test_issue_owners_should_ratelimit(self, mock_logger):
@@ -1935,11 +1926,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert ret_value["project_id"] == self.project.id
         assert ret_value["segment_id"] is None
         assert ret_value["retention_days"] == 90
-
-        # convert ret_value_payload which is a list of bytes to a string
-        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
-
-        assert ret_value_payload == {
+        assert ret_value["payload"] == {
             "type": "event_link",
             "replay_id": replay_id,
             "error_id": event.event_id,
@@ -1974,11 +1961,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert ret_value["project_id"] == self.project.id
         assert ret_value["segment_id"] is None
         assert ret_value["retention_days"] == 90
-
-        # convert ret_value_payload which is a list of bytes to a string
-        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
-
-        assert ret_value_payload == {
+        assert ret_value["payload"] == {
             "type": "event_link",
             "replay_id": replay_id,
             "error_id": event.event_id,

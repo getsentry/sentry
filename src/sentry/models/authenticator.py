@@ -23,7 +23,7 @@ from sentry.db.models import (
     BoundedAutoField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    control_silo_only_model,
+    control_silo_model,
 )
 from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.db.models.outboxes import ControlOutboxProducingModel
@@ -140,7 +140,7 @@ class AuthenticatorConfig(PickledObjectField):
         return ret
 
 
-@control_silo_only_model
+@control_silo_model
 class Authenticator(ControlOutboxProducingModel):
     # It only makes sense to import/export this data when doing a full global backup/restore, so it
     # lives in the `Global` scope, even though it only depends on the `User` model.

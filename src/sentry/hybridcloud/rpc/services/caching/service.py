@@ -43,14 +43,21 @@ class SiloCacheBackedCallable(Generic[_R]):
     base_key: str
     cb: Callable[[int], _R | None]
     type_: type[_R]
+    timeout: int | None
 
     def __init__(
-        self, base_key: str, silo_mode: SiloMode, cb: Callable[[int], _OptionalR], t: type[_R]
+        self,
+        base_key: str,
+        silo_mode: SiloMode,
+        cb: Callable[[int], _OptionalR],
+        t: type[_R],
+        timeout: int | None = None,
     ):
         self.base_key = base_key
         self.silo_mode = silo_mode
         self.cb = cb
         self.type_ = t
+        self.timeout = timeout
 
     def __call__(self, args: int) -> _OptionalR:
         if (
@@ -81,7 +88,7 @@ class SiloCacheBackedCallable(Generic[_R]):
 
         r = self.cb(i)
         if r is not None:
-            _consume_generator(_set_cache(key, r.json(), version))
+            _consume_generator(_set_cache(key, r.json(), version, self.timeout))
         return r
 
     def get_many(self, ids: Sequence[int]) -> list[_OptionalR]:
@@ -93,10 +100,10 @@ class SiloCacheBackedCallable(Generic[_R]):
 
 
 def back_with_silo_cache(
-    base_key: str, silo_mode: SiloMode, t: type[_R]
+    base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
 ) -> Callable[[Callable[[int], _OptionalR]], "SiloCacheBackedCallable[_R]"]:
     def wrapper(cb: Callable[[int], _OptionalR]) -> "SiloCacheBackedCallable[_R]":
-        return SiloCacheBackedCallable(base_key, silo_mode, cb, t)
+        return SiloCacheBackedCallable(base_key, silo_mode, cb, t, timeout)
 
     return wrapper
 

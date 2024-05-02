@@ -1455,8 +1455,6 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
-    # Enables superuser read vs. write separation
-    "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
     # Enables activated alert rules
@@ -1579,10 +1577,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
-    # Enable caching group counts in GroupSnooze
-    "organizations:groupsnooze-cached-counts": False,
-    # Enable caching group frequency rates in GroupSnooze
-    "organizations:groupsnooze-cached-rates": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -1749,8 +1743,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
     "organizations:performance-screens-platform-selector": False,
-    # Enable API aka HTTP aka Network Performance module
-    "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable histogram view in span details
@@ -1816,8 +1808,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:relay-cardinality-limiter": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # True if Relay should drop raw session payloads after extracting metrics from them.
-    "organizations:release-health-drop-sessions": False,
     # Enable new release UI
     "organizations:releases-v2": False,
     "organizations:releases-v2-banner": False,
@@ -1881,6 +1871,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
+    # Enable improvements to Slack notifications
+    "organizations:slack-improvements": False,
+    # Add regression chart as image to slack message
+    "organizations:slack-endpoint-regression-image": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1960,6 +1954,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enabled unresolved issue webhook for organization
+    "organizations:webhooks-unresolved": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -2138,7 +2134,6 @@ SENTRY_INTERFACES = {
     "debug_meta": "sentry.interfaces.debug_meta.DebugMeta",
     "spans": "sentry.interfaces.spans.Spans",
 }
-PREFER_CANONICAL_LEGACY_KEYS = False
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
     "smtp": "django.core.mail.backends.smtp.EmailBackend",
@@ -2151,11 +2146,6 @@ SENTRY_FILESTORE_ALIASES = {
     "filesystem": "django.core.files.storage.FileSystemStorage",
     "s3": "sentry.filestore.s3.S3Boto3Storage",
     "gcs": "sentry.filestore.gcs.GoogleCloudStorage",
-}
-
-SENTRY_ANALYTICS_ALIASES = {
-    "noop": "sentry.analytics.Analytics",
-    "pubsub": "sentry.analytics.pubsub.PubSubAnalytics",
 }
 
 # set of backends that do not support needing SMTP mail.* settings

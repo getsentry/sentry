@@ -8,12 +8,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
@@ -91,6 +92,7 @@ function logTraceType(type: TraceType, organization: Organization) {
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
+  const hasNewTagsUI = useHasNewTagsUI();
 
   const traceSlug = useMemo(() => {
     const slug = params.traceSlug?.trim() ?? '';
@@ -104,6 +106,20 @@ export function TraceView() {
     }
     return slug;
   }, [params.traceSlug]);
+
+  useLayoutEffect(() => {
+    if (hasNewTagsUI) {
+      return;
+    }
+
+    // Enables the new trace tags/contexts ui for the trace view
+    const queryString = qs.parse(window.location.search);
+    queryString.traceView = '1';
+    browserHistory.replace({
+      pathname: window.location.pathname,
+      query: queryString,
+    });
+  }, [traceSlug, hasNewTagsUI]);
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
@@ -310,13 +326,6 @@ function TraceViewContent(props: TraceViewContentProps) {
 
     const newTabs = [TRACE_TAB];
 
-    if (tree.profiled_events.size > 0) {
-      newTabs.push({
-        node: 'profiles',
-        label: 'Profiles',
-      });
-    }
-
     if (tree.vitals.size > 0) {
       const types = Array.from(tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
@@ -324,6 +333,13 @@ function TraceViewContent(props: TraceViewContentProps) {
       newTabs.push({
         ...VITALS_TAB,
         label,
+      });
+    }
+
+    if (tree.profiled_events.size > 0) {
+      newTabs.push({
+        node: 'profiles',
+        label: 'Profiles',
       });
     }
 
@@ -465,6 +481,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      if (traceStateRef.current.preferences.drawer.minimized) {
+        traceDispatch({type: 'minimize drawer', payload: false});
+      }
       setRowAsFocused(node, event, traceStateRef.current.search.resultsLookup, null, 0);
 
       if (traceStateRef.current.search.resultsLookup.has(node)) {
@@ -614,6 +633,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
+      const query = qs.parse(location.search);
+
+      if (query.fov && typeof query.fov === 'string') {
+        viewManager.maybeInitializeTraceViewFromQS(query.fov);
+      }
+
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
 

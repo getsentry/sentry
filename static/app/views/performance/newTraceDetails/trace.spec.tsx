@@ -120,7 +120,7 @@ function mockTransactionDetailsResponse(id: string, resp?: Partial<ResponseType>
     url: `/organizations/org-slug/events/project_slug:${id}/`,
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? {body: DetailedEventsFixture()[0]}),
   });
 }
 
@@ -129,7 +129,7 @@ function mockTraceRootEvent(id: string, resp?: Partial<ResponseType>) {
     url: `/organizations/org-slug/events/project_slug:${id}/`,
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? {body: DetailedEventsFixture()[0]}),
   });
 }
 
@@ -326,7 +326,7 @@ async function searchTestSetup() {
   mockTraceMetaResponse();
   mockTraceRootFacets();
   mockTraceRootEvent('0', {body: DetailedEventsFixture()[0]});
-  mockTraceEventDetails();
+  mockTraceEventDetails({body: DetailedEventsFixture()[0]});
 
   const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
