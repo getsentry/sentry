@@ -215,7 +215,7 @@ export function getSpanAncestryAndGroupingItems({
 
   if (childTransaction) {
     items.push({
-      key: 'transaction_name',
+      key: 'child_transaction',
       value: (
         <SpanChild
           childTransaction={childTransaction}
