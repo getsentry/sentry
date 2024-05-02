@@ -63,7 +63,7 @@ export function ScreensTable({
     if (data.meta.fields[column.key] === 'percent_change') {
       return (
         <PercentChangeCell
-          deltaValue={parseFloat((row[column.key] as string) ?? 0)}
+          deltaValue={parseFloat(row[column.key] as string) || 0}
           preferredPolarity="-"
         />
       );
