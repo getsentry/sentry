@@ -190,7 +190,7 @@ def _batch_write_to_redis(message: Message[ValuesBatch[SpanMessageWithMetadata]]
 
         client = RedisSpansBuffer()
 
-        for key, num_spans in expected_num_spans:
+        for key, num_spans in expected_num_spans.items():
             if num_spans == len(spans_map[key]):
                 metrics.incr("spans.consumers.process.full_segment_detected.count")
 
