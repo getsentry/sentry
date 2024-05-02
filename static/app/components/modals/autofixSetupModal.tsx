@@ -217,9 +217,8 @@ function AutofixCodebaseIndexingStep({
   const {startIndexing} = useAutofixCodebaseIndexing({projectId, groupId});
 
   const canIndex =
-    autofixSetup.genAIConsent.ok &&
-    autofixSetup.integration.ok &&
-    autofixSetup.githubWriteIntegration.ok;
+    // autofixSetup.genAIConsent.ok &&
+    autofixSetup.integration.ok && autofixSetup.githubWriteIntegration.ok;
 
   return (
     <Fragment>
