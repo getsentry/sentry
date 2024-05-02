@@ -1564,6 +1564,62 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             }
         ]
 
+    def test_resolve_messaging_message_receive_latency_gauge(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            entity="metrics_gauges",
+            metric="messaging.message.receive.latency",
+            timestamp=self.six_min_ago,
+            tags={"messaging.destination.name": "foo", "trace.status": "ok"},
+        )
+        self.store_span_metric(
+            {
+                "min": 10,
+                "max": 10,
+                "sum": 10,
+                "count": 1,
+                "last": 10,
+            },
+            entity="metrics_gauges",
+            metric="messaging.message.receive.latency",
+            timestamp=self.six_min_ago,
+            tags={"messaging.destination.name": "bar", "trace.status": "ok"},
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "messaging.destination.name",
+                    "trace.status",
+                    "avg(messaging.message.receive.latency)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {
+                "messaging.destination.name": "bar",
+                "trace.status": "ok",
+                "avg(messaging.message.receive.latency)": 10.0,
+            },
+            {
+                "messaging.destination.name": "foo",
+                "trace.status": "ok",
+                "avg(messaging.message.receive.latency)": 5.0,
+            },
+        ]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest

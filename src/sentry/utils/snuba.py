@@ -155,6 +155,8 @@ SPAN_COLUMN_MAP = {
     "origin.transaction": "sentry_tags[transaction]",
     "is_transaction": "is_segment",
     "sdk.name": "sentry_tags[sdk.name]",
+    "trace.status": "sentry_tags[trace.status]",
+    "messaging.destination.name": "sentry_tags[messaging.destination.name]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
