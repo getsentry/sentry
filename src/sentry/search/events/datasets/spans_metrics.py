@@ -555,9 +555,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "count_op",
                     required_args=[
-                        SnQLStringArg(
-                            "op", allowed_strings=["queue.task.celery", "queue.submit.celery"]
-                        ),
+                        SnQLStringArg("op"),
                     ],
                     snql_distribution=self._resolve_count_op,
                     default_result_type="integer",
