@@ -467,7 +467,7 @@ from .endpoints.organization_sentry_function_details import (
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
-from .endpoints.organization_spans_tags import (
+from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
 )

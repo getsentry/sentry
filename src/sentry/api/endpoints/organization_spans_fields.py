@@ -20,7 +20,7 @@ from sentry.tagstore.types import TagKey, TagValue
 
 
 @region_silo_endpoint
-class OrganizationSpansTagsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansFieldsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -52,9 +52,6 @@ class OrganizationSpansTagsEndpoint(OrganizationEventsV2EndpointBase):
                 snuba_params=snuba_params,
                 query=None,
                 selected_columns=["array_join(tags.key)"],
-                # The orderby is intentionally `None` here as this query is much faster
-                # if we let Clickhouse decide which order to return the results in.
-                # This also means we cannot order by any columns or paginate.
                 orderby=None,
                 limitby=("array_join(tags.key)", 1),
                 limit=max_span_tags,
@@ -69,6 +66,7 @@ class OrganizationSpansTagsEndpoint(OrganizationEventsV2EndpointBase):
 
         paginator = SequencePaginator(
             [
+                # TODO: prepend the list of sentry defined fields here
                 (row["array_join(tags.key)"], TagKey(row["array_join(tags.key)"]))
                 for row in results["data"]
             ]
@@ -84,7 +82,7 @@ class OrganizationSpansTagsEndpoint(OrganizationEventsV2EndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationSpansTagValuesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -117,10 +115,9 @@ class OrganizationSpansTagValuesEndpoint(OrganizationEventsV2EndpointBase):
                 selected_columns=[key, "count()", "min(timestamp)", "max(timestamp)"],
                 orderby="-count()",
                 limit=max_span_tags,
-                sample_rate=options.get("performance.spans-tags-value.sample-rate"),
+                sample_rate=options.get("performance.spans-tags-key.sample-rate"),
                 config=QueryBuilderConfig(
                     transform_alias_to_input_format=True,
-                    functions_acl=["array_join"],
                 ),
             )
 
