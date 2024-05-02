@@ -1952,6 +1952,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # User Feedback Error Link Ingestion Changes
+    "organizations:user-feedback-event-link-ingestion-changes": False,
     # Enabled unresolved issue webhook for organization
     "organizations:webhooks-unresolved": False,
     # Enable view hierarchies options
