@@ -113,7 +113,7 @@ function GeneralInfo({
     ),
   });
 
-  const breakdown = event && generateStats(event, {type: 'no_filter'});
+  const breakdown = generateStats(event, {type: 'no_filter'});
 
   if (breakdown.length > 0) {
     items.push({
