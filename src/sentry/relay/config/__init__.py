@@ -59,7 +59,6 @@ EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:custom-metrics",
     "organizations:device-class-synthesis",
-    "organizations:metric-meta",
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
