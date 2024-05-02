@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import type {Location} from 'history';
 
-import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -123,13 +122,11 @@ function SpanSummaryContent(props: ContentProps) {
 
   return (
     <Fragment>
-      <Feature features="performance-span-histogram-view">
-        <SpanSummaryControls
-          organization={organization}
-          location={location}
-          eventView={eventView}
-        />
-      </Feature>
+      <SpanSummaryControls
+        organization={organization}
+        location={location}
+        eventView={eventView}
+      />
       <SpanSummaryHeader
         spanOp={spanOp}
         spanDescription={description}
