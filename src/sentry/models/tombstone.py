@@ -26,7 +26,6 @@ class TombstoneBase(Model):
 
     class Meta:
         abstract = True
-        unique_together = ("table_name", "object_identifier")
 
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -56,6 +55,11 @@ class RegionTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regiontombstone"
+        indexes = [
+            models.Index(
+                fields=["table_name", "object_identifier"],
+            )
+        ]
 
     __repr__ = sane_repr("id", "table_name", "object_identifier")
 
@@ -65,5 +69,10 @@ class ControlTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controltombstone"
+        indexes = [
+            models.Index(
+                fields=["table_name", "object_identifier"],
+            )
+        ]
 
     __repr__ = sane_repr("id", "table_name", "object_identifier")
