@@ -54,7 +54,9 @@ type Props = WithRouterProps & {
   orgSlug: string;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   customStatsPeriod?: TimePeriodType;
-  // It defaults to `/organizations/${orgSlug}/issues/`
+  /**
+   * Defaults to `/organizations/${orgSlug}/issues/`
+   */
   endpointPath?: string;
   onFetchSuccess?: (
     groupListState: State,
@@ -65,7 +67,9 @@ type Props = WithRouterProps & {
       pageDiff: number
     ) => void
   ) => void;
-  // Use `query` within `queryParams` for passing the parameter to the endpoint
+  /**
+   * Use `query` within `queryParams` for passing the parameter to the endpoint
+   */
   query?: string;
   queryFilterDescription?: string;
   renderEmptyMessage?: () => React.ReactNode;
