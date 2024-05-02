@@ -25,6 +25,7 @@ from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
@@ -396,6 +397,18 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item].update({"sentryAppIssues": sentry_app_issues})
 
+        if self._expand("hasAttachments"):
+            if not features.has(
+                "organizations:event-attachments",
+                item.project.organization,
+                actor=request.user,
+            ):
+                return self.respond(status=404)
+
+            for item in item_list:
+                num_attachments = EventAttachment.objects.filter(group_id=item.id).count()
+                attrs[item].update({"hasAttachments": num_attachments > 0})
+
         return attrs
 
     def serialize(
@@ -453,6 +466,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("sentryAppIssues"):
             result["sentryAppIssues"] = attrs["sentryAppIssues"]
+
+        if self._expand("hasAttachments"):
+            result["hasAttachments"] = attrs["hasAttachments"]
 
         return result
 
