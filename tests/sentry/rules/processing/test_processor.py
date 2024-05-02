@@ -139,7 +139,9 @@ class RuleProcessorTest(TestCase):
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
         assert rulegroup_to_events == {
-            f"{self.rule.id}:{self.group_event.group.id}": self.group_event.event_id
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
+                {"event_id": self.group_event.event_id, "occurrence_id": None}
+            )
         }
 
     @with_feature("organizations:process-slow-alerts")
@@ -177,7 +179,9 @@ class RuleProcessorTest(TestCase):
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
         assert rulegroup_to_events == {
-            f"{self.rule.id}:{self.group_event.group.id}": self.group_event.event_id
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
+                {"event_id": self.group_event.event_id, "occurrence_id": None}
+            )
         }
 
     @with_feature("organizations:process-slow-alerts")
@@ -214,7 +218,9 @@ class RuleProcessorTest(TestCase):
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
         assert rulegroup_to_events == {
-            f"{self.rule.id}:{self.group_event.group.id}": self.group_event.event_id
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
+                {"event_id": self.group_event.event_id, "occurrence_id": None}
+            )
         }
 
     def test_ignored_issue(self):

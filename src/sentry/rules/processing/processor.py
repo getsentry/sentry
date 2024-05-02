@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry import analytics, features
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import GroupEvent
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -23,8 +24,10 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
+from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
+from sentry.utils import json
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -243,27 +246,35 @@ class RuleProcessor:
         )
 
     def group_conditions_by_speed(
-        self, conditions: list[Mapping[str, str]]
-    ) -> tuple[list[Mapping[str, str]], list[Mapping[str, str]]]:
-        fast_conditions: list[Mapping[str, str]] = []
-        slow_conditions: list[Mapping[str, str]] = []
+        self, conditions: list[MutableMapping[str, Any]]
+    ) -> tuple[list[MutableMapping[str, str]], list[EventFrequencyConditionData]]:
+        fast_conditions = []
+        slow_conditions: list[EventFrequencyConditionData] = []
 
         for condition in conditions:
             if is_condition_slow(condition):
-                slow_conditions.append(condition)
+                slow_conditions.append(condition)  # type: ignore[arg-type]
             else:
                 fast_conditions.append(condition)
 
         return fast_conditions, slow_conditions
 
+    def get_occurrence(self) -> IssueOccurrence | None:
+        if self.event.occurrence_id:
+            return IssueOccurrence.fetch(self.event.occurrence_id, project_id=self.project.id)
+        return None
+
     def enqueue_rule(self, rule: Rule) -> None:
         self.buffer = RedisBuffer()
         self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
+
+        occurrence_id = self.get_occurrence()
+        value = json.dumps({"event_id": self.event.event_id, "occurrence_id": occurrence_id})
         self.buffer.push_to_hash(
             model=Project,
             filters={"project_id": rule.project.id},
             field=f"{rule.id}:{self.group.id}",
-            value=self.event.event_id,
+            value=value,
         )
 
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
@@ -321,8 +332,8 @@ class RuleProcessor:
             predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
-                    # prevent return here if slow_conditions exist, because we have more evaluation to do
                     if slow_conditions:
+                        # prevent return here if slow_conditions exist, because we have more evaluation to do
                         continue
                     return
             else:
