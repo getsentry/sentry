@@ -10,6 +10,7 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -55,13 +56,6 @@ const getMetricsInstallSnippet = () => `
 composer install sentry/sentry-laravel
 
 composer update sentry/sentry-laravel -W`;
-
-const getMetricsVerifySnippet = () => `
-use function \\Sentry\\metrics;
-
-// Add 4 to a counter named 'hits'
-metrics()->increment('hits', 4);
-`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -218,10 +212,28 @@ const customMetricsOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'PHP',
-              value: 'php',
+              label: 'Counter',
+              value: 'counter',
               language: 'php',
-              code: getMetricsVerifySnippet(),
+              code: exampleSnippets.php.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'php',
+              code: exampleSnippets.php.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'php',
+              code: exampleSnippets.php.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'php',
+              code: exampleSnippets.php.gauge,
             },
           ],
         },
