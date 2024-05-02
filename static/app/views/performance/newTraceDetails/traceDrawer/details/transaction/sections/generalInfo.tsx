@@ -3,7 +3,6 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -99,16 +98,16 @@ function GeneralInfo({
     key: 'description',
     subject: t('Description'),
     value: (
-      <Link
-        to={transactionSummaryRouteWithQuery({
+      <TraceDrawerComponents.Description
+        value={node.value.transaction}
+        linkTarget={transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
           transaction: node.value.transaction,
           query: omit(location.query, Object.values(PAGE_URL_PARAM)),
           projectID: String(node.value.project_id),
         })}
-      >
-        {node.value.transaction}
-      </Link>
+        linkText={t('View transaction summary')}
+      />
     ),
   });
 
