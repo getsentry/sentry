@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -100,12 +99,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
       ? [
           {
             value: ResourceSpanOps.IMAGE,
-            label: (
-              <span>
-                {`${t('Image')} (${IMAGE_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`}
-                <FeatureBadge type="new"> </FeatureBadge>
-              </span>
-            ),
+            label: `${t('Image')} (${IMAGE_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`,
           },
         ]
       : []),
