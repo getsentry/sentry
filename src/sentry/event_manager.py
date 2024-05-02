@@ -2857,7 +2857,7 @@ def _update_user_reports_with_event_link(job: Job, group_info: GroupInfo) -> Non
     )
 
     if user_reports_updated:
-        metrics.incr("event_manager.save._update_user_reports_with_event_link")
+        metrics.incr("event_manager.save._update_user_reports_with_event_link_updated")
 
 
 class PerformanceJob(TypedDict, total=False):
