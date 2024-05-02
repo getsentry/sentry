@@ -157,6 +157,7 @@ SPAN_COLUMN_MAP = {
     "sdk.name": "sentry_tags[sdk.name]",
     "trace.status": "sentry_tags[trace.status]",
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
+    "tags.key": "tags.key",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {

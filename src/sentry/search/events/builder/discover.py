@@ -278,9 +278,6 @@ class BaseQueryBuilder:
             self.orderby_converter,
         ) = self.load_config()
 
-        self.limitby = self.resolve_limitby(limitby)
-        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
-
         self.start: datetime | None = None
         self.end: datetime | None = None
         self.resolve_query(
@@ -291,6 +288,9 @@ class BaseQueryBuilder:
             orderby=orderby,
         )
         self.entity = entity
+
+        self.limitby = self.resolve_limitby(limitby)
+        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
     def are_columns_resolved(self) -> bool:
         return self.columns and isinstance(self.columns[0], Function)
@@ -400,6 +400,12 @@ class BaseQueryBuilder:
 
         if isinstance(resolved, Column):
             return LimitBy([resolved], count)
+
+        # Special case to allow limit bys on array joined columns.
+        # Simply allowing any function to be used in a limit by
+        # result in hard to debug issues so be careful.
+        if isinstance(resolved, Function) and resolved.function == "arrayJoin":
+            return LimitBy([Column(resolved.alias)], count)
 
         # TODO: Limit By can only operate on a `Column`. This has the implication
         # that non aggregate transforms are not allowed in the order by clause.
