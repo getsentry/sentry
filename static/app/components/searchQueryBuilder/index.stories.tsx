@@ -9,7 +9,12 @@ import type {TagCollection} from 'sentry/types';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 
 const SUPPORTED_KEYS: TagCollection = {
-  [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
+  [FieldKey.AGE]: {
+    key: FieldKey.AGE,
+    name: 'Age',
+    kind: FieldKind.FIELD,
+    predefined: true,
+  },
   [FieldKey.ASSIGNED]: {
     key: FieldKey.ASSIGNED,
     name: 'Assigned To',
@@ -42,7 +47,7 @@ export default storyBook(SearchQueryBuilder, story => {
         <Alert type="warning">This component and story is a WIP.</Alert>
         <MinHeightSizingWindow>
           <SearchQueryBuilder
-            initialQuery="browser.name:Firefox assigned:me"
+            initialQuery="browser.name:Firefox assigned:me custom_tag_name:123"
             supportedKeys={SUPPORTED_KEYS}
             getTagValues={getTagValues}
           />

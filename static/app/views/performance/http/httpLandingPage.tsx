@@ -1,9 +1,9 @@
 import React, {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -11,6 +11,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -107,6 +108,7 @@ export function HTTPLandingPage() {
   const domainsListResponse = useSpanMetrics({
     search: MutableSearch.fromQueryObject(tableFilters),
     fields: [
+      'project',
       'project.id',
       'span.domain',
       'spm()',
@@ -147,12 +149,15 @@ export function HTTPLandingPage() {
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
-
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <PageFilterBar condensed>
@@ -239,7 +244,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL="/performance/http"
-      features="performance-http-view"
+      features="spans-first-ui"
     >
       <HTTPLandingPage />
     </ModulePageProviders>

@@ -78,6 +78,24 @@ describe('MetricReadout', function () {
     expect(screen.getByText('<0.01%')).toBeInTheDocument();
   });
 
+  describe('percent_change', () => {
+    it('renders negative percent change', () => {
+      render(
+        <MetricReadout title="% Difference" unit="percent_change" value={-0.2352} />
+      );
+
+      expect(screen.getByRole('heading', {name: '% Difference'})).toBeInTheDocument();
+      expect(screen.getByText('-23.52%')).toBeInTheDocument();
+    });
+
+    it('renders positive percent change', () => {
+      render(<MetricReadout title="% Difference" unit="percent_change" value={0.0552} />);
+
+      expect(screen.getByRole('heading', {name: '% Difference'})).toBeInTheDocument();
+      expect(screen.getByText('+5.52%')).toBeInTheDocument();
+    });
+  });
+
   it('renders counts', () => {
     render(<MetricReadout title="Count" unit="count" value={7800123} />);
 

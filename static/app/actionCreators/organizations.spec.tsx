@@ -1,8 +1,8 @@
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 describe('fetchOrganizations', function () {
   const api = new MockApiClient();

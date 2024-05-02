@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
 import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm';
 import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
@@ -26,8 +25,6 @@ interface Props {
 }
 
 export default function DetailsSidebar({monitorEnv, monitor}: Props) {
-  const org = useOrganization();
-
   const {checkin_margin, schedule, schedule_type, max_runtime, timezone} = monitor.config;
   const {onClick, label} = useCopyToClipboard({text: monitor.slug});
 
@@ -102,18 +99,16 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
         {schedule_type === ScheduleType.CRONTAB && (
           <KeyValueTableRow keyName={t('Timezone')} value={timezone} />
         )}
-        {org.features.includes('crons-ownership') && (
-          <KeyValueTableRow
-            keyName={t('Owner')}
-            value={
-              monitor.owner ? (
-                <ActorAvatar size={24} actor={monitor.owner} />
-              ) : (
-                t('Unassigned')
-              )
-            }
-          />
-        )}
+        <KeyValueTableRow
+          keyName={t('Owner')}
+          value={
+            monitor.owner ? (
+              <ActorAvatar size={24} actor={monitor.owner} />
+            ) : (
+              t('Unassigned')
+            )
+          }
+        />
         <KeyValueTableRow
           keyName={t('Date created')}
           value={getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}

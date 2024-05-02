@@ -49,7 +49,6 @@
     "sentry.user"
   ],
   "sentry.alertrule": [
-    "sentry.actor",
     "sentry.organization",
     "sentry.snubaquery",
     "sentry.team",
@@ -326,11 +325,12 @@
     "sentry.project"
   ],
   "sentry.grouphistory": [
-    "sentry.actor",
     "sentry.group",
     "sentry.organization",
     "sentry.project",
-    "sentry.release"
+    "sentry.release",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.groupinbox": [
     "sentry.group",
@@ -398,6 +398,7 @@
   "sentry.identityprovider": [],
   "sentry.incident": [
     "sentry.alertrule",
+    "sentry.alertruleactivations",
     "sentry.organization"
   ],
   "sentry.incidentactivity": [
@@ -732,7 +733,6 @@
     "sentry.project"
   ],
   "sentry.rule": [
-    "sentry.actor",
     "sentry.environment",
     "sentry.project",
     "sentry.team",

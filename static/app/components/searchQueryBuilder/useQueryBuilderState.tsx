@@ -9,7 +9,6 @@ import {
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 
 type QueryBuilderState = {
-  focus: null; // TODO(malwilley): Implement focus state
   query: string;
 };
 
@@ -18,13 +17,29 @@ type DeleteTokenAction = {
   type: 'DELETE_TOKEN';
 };
 
+type UpdateFreeTextAction = {
+  text: string;
+  token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
+  type: 'UPDATE_FREE_TEXT';
+};
+
 type UpdateFilterOpAction = {
   op: TermOperator;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
 };
 
-export type QueryBuilderActions = DeleteTokenAction | UpdateFilterOpAction;
+type UpdateTokenValueAction = {
+  token: TokenResult<Token>;
+  type: 'UPDATE_TOKEN_VALUE';
+  value: string;
+};
+
+export type QueryBuilderActions =
+  | DeleteTokenAction
+  | UpdateFreeTextAction
+  | UpdateFilterOpAction
+  | UpdateTokenValueAction;
 
 function removeQueryToken(query: string, token: TokenResult<Token>): string {
   return (
@@ -50,22 +65,61 @@ function modifyFilterOperator(
   );
 }
 
+function replaceQueryToken(
+  query: string,
+  token: TokenResult<Token>,
+  value: string
+): string {
+  const start = query.substring(0, token.location.start.offset);
+  const end = query.substring(token.location.end.offset);
+
+  return start + value + end;
+}
+
+// Ensures that the replaced token is separated from the rest of the query
+// and cleans up any extra whitespace
+function replaceTokenWithPadding(
+  query: string,
+  token: TokenResult<Token>,
+  value: string
+): string {
+  const start = query.substring(0, token.location.start.offset);
+  const end = query.substring(token.location.end.offset);
+
+  return (start.trimEnd() + ' ' + value.trim() + ' ' + end.trimStart()).trim();
+}
+
+function updateFreeText(
+  state: QueryBuilderState,
+  action: UpdateFreeTextAction
+): QueryBuilderState {
+  const newQuery = replaceTokenWithPadding(state.query, action.token, action.text);
+
+  return {
+    ...state,
+    query: newQuery,
+  };
+}
+
 export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
-  const initialState: QueryBuilderState = {query: initialQuery, focus: null};
+  const initialState: QueryBuilderState = {query: initialQuery};
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
       switch (action.type) {
         case 'DELETE_TOKEN':
           return {
-            ...state,
             query: removeQueryToken(state.query, action.token),
-            focus: null,
           };
+        case 'UPDATE_FREE_TEXT':
+          return updateFreeText(state, action);
         case 'UPDATE_FILTER_OP':
           return {
-            ...state,
             query: modifyFilterOperator(state.query, action.token, action.op),
+          };
+        case 'UPDATE_TOKEN_VALUE':
+          return {
+            query: replaceQueryToken(state.query, action.token, action.value),
           };
         default:
           return state;

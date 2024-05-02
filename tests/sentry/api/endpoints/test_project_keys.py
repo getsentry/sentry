@@ -15,7 +15,10 @@ class ListProjectKeysTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-keys",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url)
         assert response.status_code == 200
@@ -32,7 +35,10 @@ class ListProjectKeysTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-keys",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url)
         assert response.status_code == 200
@@ -53,7 +59,10 @@ class ListProjectKeysTest(APITestCase):
         self.login_as(superuser, superuser=True)
         url = reverse(
             "sentry-api-0-project-keys",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url)
         assert response.status_code == 200
@@ -76,7 +85,10 @@ class CreateProjectKeyTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-keys",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         resp = self.client.post(
             url, data={"name": "hello world", "rateLimit": {"count": 10, "window": 60}}
@@ -97,7 +109,10 @@ class CreateProjectKeyTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-keys",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         resp = self.client.post(url)
         assert resp.status_code == 201, resp.content
@@ -114,7 +129,10 @@ class CreateProjectKeyTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-keys",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         resp = self.client.post(url, data={"public": "a" * 32, "secret": "b" * 32})
         assert resp.status_code == 201, resp.content
@@ -129,7 +147,10 @@ class CreateProjectKeyTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-keys",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         resp = self.client.post(
             url, data={"public": "a" * 32, "secret": "b" * 32, "useCase": "profiling"}

@@ -1,14 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -20,21 +17,12 @@ import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from '../../../guards';
+import {TraceDrawerComponents} from '../styles';
 
 import {IssueSummary} from './issueSummary';
 
@@ -43,9 +31,14 @@ type IssueProps = {
   organization: Organization;
 };
 
-const MAX_DISPLAYED_ISSUES_COUNT = 10;
+const MAX_DISPLAYED_ISSUES_COUNT = 3;
 
-const MIN_ISSUES_TABLE_WIDTH = 600;
+const TABLE_WIDTH_BREAKPOINTS = {
+  FIRST: 800,
+  SECOND: 600,
+  THIRD: 500,
+  FOURTH: 400,
+};
 
 function Issue(props: IssueProps) {
   const {
@@ -89,12 +82,12 @@ function Issue(props: IssueProps) {
           showMarkLine
         />
       </ChartWrapper>
-      <ColumnWrapper>
+      <EventsWrapper>
         <PrimaryCount
           value={fetchedIssue.filtered ? fetchedIssue.filtered.count : fetchedIssue.count}
         />
-      </ColumnWrapper>
-      <ColumnWrapper>
+      </EventsWrapper>
+      <UserCountWrapper>
         <PrimaryCount
           value={
             fetchedIssue.filtered
@@ -102,8 +95,8 @@ function Issue(props: IssueProps) {
               : fetchedIssue.userCount
           }
         />
-      </ColumnWrapper>
-      <ColumnWrapper>
+      </UserCountWrapper>
+      <AssineeWrapper>
         {fetchedIssue.assignedTo ? (
           <ActorAvatar actor={fetchedIssue.assignedTo} hasTooltip size={24} />
         ) : (
@@ -111,7 +104,7 @@ function Issue(props: IssueProps) {
             <IconUser size="md" />
           </StyledIconWrapper>
         )}
-      </ColumnWrapper>
+      </AssineeWrapper>
     </StyledPanelItem>
   ) : isError ? (
     <LoadingError message={t('Failed to fetch issue')} />
@@ -125,6 +118,21 @@ type IssueListProps = {
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
+  const uniqueIssues = useMemo(() => {
+    const unique: TraceErrorOrIssue[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of issues) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }, [issues]);
+
   if (!issues.length) {
     return null;
   }
@@ -132,50 +140,15 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   return (
     <StyledPanel>
       <IssueListHeader node={node} />
-      {issues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
+      {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
         <Issue key={index} issue={issue} organization={organization} />
       ))}
     </StyledPanel>
   );
 }
 
-function getSearchParamFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (isTransactionNode(node) || isTraceErrorNode(node)) {
-    return `id:${node.value.event_id}`;
-  }
-
-  // Issues associated to a span or autogrouped node are not queryable, so we query by
-  // the parent transaction's id
-  const parentTransaction = node.parent_transaction;
-  if ((isSpanNode(node) || isAutogroupedNode(node)) && parentTransaction) {
-    return `id:${parentTransaction.value.event_id}`;
-  }
-
-  if (isMissingInstrumentationNode(node)) {
-    throw new Error('Missing instrumentation nodes do not have associated issues');
-  }
-
-  return '';
-}
-
 function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const {errors, performance_issues} = node;
-  const organization = useOrganization();
-  const params = useParams<{traceSlug?: string}>();
-
-  const traceSlug = params.traceSlug?.trim() ?? '';
-
-  const dateSelection = useMemo(() => {
-    const normalizedParams = normalizeDateTimeParams(qs.parse(window.location.search), {
-      allowAbsolutePageDatetime: true,
-    });
-    const start = decodeScalar(normalizedParams.start);
-    const end = decodeScalar(normalizedParams.end);
-    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-
-    return {start, end, statsPeriod};
-  }, []);
-
   const [singular, plural] = useMemo((): [string, string] => {
     const label = [t('Issue'), t('Issues')] as [string, string];
     for (const event of errors) {
@@ -192,24 +165,7 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
         {errors.size + performance_issues.size > MAX_DISPLAYED_ISSUES_COUNT
           ? tct(`[count]+  issues, [link]`, {
               count: MAX_DISPLAYED_ISSUES_COUNT,
-              link: (
-                <StyledLink
-                  to={{
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    query: {
-                      query: `trace:${traceSlug} ${getSearchParamFromNode(node)}`,
-                      start: dateSelection.start,
-                      end: dateSelection.end,
-                      statsPeriod: dateSelection.statsPeriod,
-                      // If we don't pass the project param, the issues page will filter by the last selected project.
-                      // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
-                      project: -1,
-                    },
-                  }}
-                >
-                  {t('View All')}
-                </StyledLink>
-              ),
+              link: <StyledIssuesLink node={node}>{t('View All')}</StyledIssuesLink>,
             })
           : errors.size > 0 && performance_issues.size === 0
             ? tct('[count] [text]', {
@@ -240,14 +196,14 @@ function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
                 )}
       </IssueHeading>
       <GraphHeading>{t('Graph')}</GraphHeading>
-      <Heading>{t('Events')}</Heading>
+      <EventsHeading>{t('Events')}</EventsHeading>
       <UsersHeading>{t('Users')}</UsersHeading>
-      <Heading>{t('Assignee')}</Heading>
+      <AssigneeHeading>{t('Assignee')}</AssigneeHeading>
     </StyledPanelHeader>
   );
 }
 
-const StyledLink = styled(Link)`
+const StyledIssuesLink = styled(TraceDrawerComponents.IssuesLink)`
   margin-left: ${space(0.5)};
 `;
 
@@ -273,7 +229,13 @@ const GraphHeading = styled(Heading)`
   display: flex;
   justify-content: center;
 
-  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FIRST}px) {
+    display: none;
+  }
+`;
+
+const EventsHeading = styled(Heading)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.SECOND}px) {
     display: none;
   }
 `;
@@ -281,6 +243,16 @@ const GraphHeading = styled(Heading)`
 const UsersHeading = styled(Heading)`
   display: flex;
   justify-content: center;
+
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.THIRD}px) {
+    display: none;
+  }
+`;
+
+const AssigneeHeading = styled(Heading)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FOURTH}px) {
+    display: none;
+  }
 `;
 
 const StyledPanel = styled(Panel)`
@@ -319,21 +291,39 @@ const IssueSummaryWrapper = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')`
-  width: 200px;
-  align-self: center;
-
-  @container (width < ${MIN_ISSUES_TABLE_WIDTH}px) {
-    display: none;
-  }
-`;
-
 const ColumnWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-self: center;
   width: 60px;
   margin: 0 ${space(2)};
+`;
+
+const EventsWrapper = styled(ColumnWrapper)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.SECOND}px) {
+    display: none;
+  }
+`;
+
+const UserCountWrapper = styled(ColumnWrapper)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.THIRD}px) {
+    display: none;
+  }
+`;
+
+const AssineeWrapper = styled(ColumnWrapper)`
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FOURTH}px) {
+    display: none;
+  }
+`;
+
+const ChartWrapper = styled('div')`
+  width: 200px;
+  align-self: center;
+
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FIRST}px) {
+    display: none;
+  }
 `;
 
 const PrimaryCount = styled(Count)`

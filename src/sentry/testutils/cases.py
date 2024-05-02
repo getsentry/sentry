@@ -70,6 +70,7 @@ from sentry.issues.grouptype import (
     NoiseConfig,
     PerformanceFileIOMainThreadGroupType,
     PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
@@ -1483,6 +1484,7 @@ class BaseSpansTestCase(SnubaTestCase):
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
+        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1512,10 +1514,15 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
+        if store_metrics_summary:
+            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
 
         self.store_span(payload)
+
+        if "_metrics_summary" in payload:
+            self.store_metrics_summary(payload)
 
     def store_indexed_span(
         self,
@@ -1709,7 +1716,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         if type == "set":
             # Relay uses a different hashing algorithm, but that's ok
-            value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:8], "big")]
+            value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:4], "big")]
         elif type == "distribution":
             value = [value]
         elif type == "gauge":
@@ -2173,7 +2180,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_span_metric(
         self,
-        value: list[int] | int,
+        value: dict[str, int] | list[int] | int,
         metric: str = "span.self_time",
         internal_metric: str | None = None,
         entity: str | None = None,
@@ -3123,7 +3130,6 @@ class MonitorTestCase(APITestCase):
         ]
         rule = Creator(
             name="New Cool Rule",
-            owner=None,
             project=self.project,
             conditions=conditions,
             filterMatch="all",
@@ -3278,6 +3284,7 @@ class TraceTestCase(SpanTestCase):
         span_id: str | None = None,
         measurements: dict[str, int | float] | None = None,
         file_io_performance_issue: bool = False,
+        slow_db_performance_issue: bool = False,
         start_timestamp: datetime | None = None,
         store_event_kwargs: dict[str, Any] | None = None,
     ) -> Event:
@@ -3311,6 +3318,15 @@ class TraceTestCase(SpanTestCase):
             new_span["data"].update({"duration": 1, "blocked_main_thread": True})
             new_span["span_id"] = "0012" * 4
             data["spans"].append(new_span)
+        if slow_db_performance_issue:
+            new_span = data["spans"][0].copy()
+            if "data" not in new_span:
+                new_span["data"] = {}
+            new_span["op"] = "db"
+            new_span["description"] = "SELECT * FROM table"
+            new_span["data"].update({"duration": 10_000})
+            new_span["span_id"] = "0013" * 4
+            data["spans"].append(new_span)
         with self.feature(self.FEATURES):
             with (
                 mock.patch.object(
@@ -3318,10 +3334,16 @@ class TraceTestCase(SpanTestCase):
                     "noise_config",
                     new=NoiseConfig(0, timedelta(minutes=1)),
                 ),
+                mock.patch.object(
+                    PerformanceSlowDBQueryGroupType,
+                    "noise_config",
+                    new=NoiseConfig(0, timedelta(minutes=1)),
+                ),
                 override_options(
                     {
                         "performance.issues.all.problem-detection": 1.0,
                         "performance-file-io-main-thread-creation": 1.0,
+                        "performance.issues.slow_db_query.problem-creation": 1.0,
                     }
                 ),
             ):
@@ -3369,110 +3391,8 @@ class TraceTestCase(SpanTestCase):
 
         return span_data
 
-    # Move this code within load_trace() once the subclasses do not need to override it
-    def _generate_span_ids(self) -> list[str]:
-        return [uuid4().hex[:16] for _ in range(3)]
-
-    def load_trace(self) -> None:
-        """Generates basic trace data with 3 generations of spans."""
-        self.root_event = self.create_event(
-            trace_id=self.trace_id,
-            transaction="root",
-            spans=[
-                {
-                    "same_process_as_parent": True,
-                    "op": "http",
-                    "description": f"GET gen1-{i}",
-                    "span_id": root_span_id,
-                    "trace_id": self.trace_id,
-                }
-                for i, root_span_id in enumerate(self.root_span_ids)
-            ],
-            measurements={
-                "lcp": 1000,
-                "fcp": 750,
-                "fid": 3.5,
-            },
-            parent_span_id=None,
-            file_io_performance_issue=True,
-            project_id=self.project.id,
-            milliseconds=3000,
-        )
-
-        # First Generation
-        self.populate_project1()
-
-        # Second Generation
-        self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
-        self.gen2_project = self.create_project(organization=self.organization)
-
-        # Intentially pick a span id that starts with 0s
-        self.gen2_span_id = "0011" * 4
-
-        self.gen2_events = [
-            self.create_event(
-                trace_id=self.trace_id,
-                transaction=f"/transaction/gen2-{i}",
-                spans=[
-                    {
-                        "same_process_as_parent": True,
-                        "op": "http",
-                        "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
-                        "span_id": gen2_span_id,
-                        "trace_id": self.trace_id,
-                    }
-                ],
-                parent_span_id=gen1_span_id,
-                span_id=self.gen2_span_id if i == 0 else None,
-                project_id=self.gen2_project.id,
-                milliseconds=1000,
-            )
-            for i, (gen1_span_id, gen2_span_id) in enumerate(
-                zip(self.gen1_span_ids, self.gen2_span_ids)
-            )
-        ]
-
-        # Third generation
-        self.gen3_project = self.create_project(organization=self.organization)
-        self.gen3_event = self.create_event(
-            trace_id=self.trace_id,
-            transaction="/transaction/gen3-0",
-            spans=[],
-            project_id=self.gen3_project.id,
-            parent_span_id=self.gen2_span_id,
-            milliseconds=500,
-        )
-
-    def populate_project1(self) -> None:
-        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
-        self.gen1_span_ids = self._generate_span_ids()
-        self.gen1_project = self.create_project(organization=self.organization)
-        self.gen1_events = [
-            self.create_event(
-                trace_id=self.trace_id,
-                transaction=f"/transaction/gen1-{i}",
-                spans=[
-                    {
-                        "same_process_as_parent": True,
-                        "op": "http",
-                        "description": f"GET gen2-{i}",
-                        "span_id": gen1_span_id,
-                        "trace_id": self.trace_id,
-                    }
-                ],
-                parent_span_id=root_span_id,
-                project_id=self.gen1_project.id,
-                milliseconds=2000,
-            )
-            for i, (root_span_id, gen1_span_id) in enumerate(
-                zip(self.root_span_ids, self.gen1_span_ids)
-            )
-        ]
-
-    def load_errors(self) -> tuple[Event, Event]:
-        """Generates 2 events for gen1 projects."""
-        if not hasattr(self, "gen1_project"):
-            self.populate_project1()
+    def load_errors(self, project: Project, span_id: str) -> list[Event]:
+        """Generates trace with errors across two projects."""
         start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(
             "javascript",
@@ -3481,13 +3401,16 @@ class TraceTestCase(SpanTestCase):
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": self.trace_id,
-            "span_id": self.gen1_span_ids[0],
+            "span_id": span_id,
         }
         error_data["level"] = "fatal"
-        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        error = self.store_event(error_data, project_id=project.id)
         error_data["level"] = "warning"
-        error1 = self.store_event(error_data, project_id=self.gen1_project.id)
-        return error, error1
+        error1 = self.store_event(error_data, project_id=project.id)
+
+        another_project = self.create_project(organization=self.organization)
+        another_project_error = self.store_event(error_data, project_id=another_project.id)
+        return [error, error1, another_project_error]
 
     def load_default(self) -> Event:
         start, _ = self.get_start_end_from_day_ago(1000)

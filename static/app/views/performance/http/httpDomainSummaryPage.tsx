@@ -1,15 +1,18 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -181,11 +184,29 @@ export function HTTPDomainSummaryPage() {
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
+          {domain === '' && (
+            <Alert type="info">
+              {tct(
+                '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
+                      documentation
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            </Alert>
+          )}
 
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
@@ -328,7 +349,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       baseURL="/performance/http"
       title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
-      features="performance-http-view"
+      features="spans-first-ui"
     >
       <HTTPDomainSummaryPage />
     </ModulePageProviders>

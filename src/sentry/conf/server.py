@@ -848,6 +848,7 @@ CELERY_QUEUES_REGION = [
     Queue("commits", routing_key="commits"),
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
+    Queue("delayed_rules", routing_key="delayed_rules"),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
@@ -1454,8 +1455,6 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
-    # Enables superuser read vs. write separation
-    "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
     # Enables activated alert rules
@@ -1500,9 +1499,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
-    # Enables ownership features for cron monitors
-    "organizations:crons-ownership": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui and ddm-sidebar-item-hidden for UI.
+    # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
@@ -1524,15 +1521,11 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enables experimental WIP ddm related features
-    "organizations:ddm-experimental": False,
+    # Enables experimental WIP custom metrics related features
+    "organizations:custom-metrics-experimental": False,
     # Delightful Developer Metrics (DDM):
-    # Enable UI (requires custom-metrics flag as well)
-    "organizations:ddm-ui": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enable the unit normalization in the metrics API
-    "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enables category "metrics" in stats_v2 endpoint
@@ -1655,18 +1648,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
     "organizations:metric-alert-ignore-archived": False,
+    # Enable load shedding for newly created metric alerts
+    "organizations:metric-alert-load-shedding": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
-    # Enables the metrics metadata.
-    "organizations:metric-meta": False,
-    # Extract metrics for sessions during ingestion.
-    "organizations:metrics-extraction": False,
-    # Enables the usage of the new metrics layer in the metrics API.
-    "organizations:metrics-api-new-metrics-layer": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
-    # Enables the new samples list experience
-    "organizations:metrics-samples-list": False,
     # Enables the search bar for metrics samples list
     "organizations:metrics-samples-list-search": False,
     # Enable Session Stats down to a minute resolution
@@ -1754,8 +1741,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
     "organizations:performance-screens-platform-selector": False,
-    # Enable API aka HTTP aka Network Performance module
-    "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable histogram view in span details
@@ -1784,6 +1769,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-streamed-spans-exp-visible": False,
     # Hides some fields and sections in the transaction summary page that are being deprecated
     "organizations:performance-transaction-summary-cleanup": False,
+    # Enables the new UI for span summary and the spans tab
+    "organizations:performance-spans-new-ui": False,
     # Enable processing slow issue alerts
     "organizations:process-slow-alerts": False,
     # Enable profiling
@@ -1819,8 +1806,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:relay-cardinality-limiter": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # True if Relay should drop raw session payloads after extracting metrics from them.
-    "organizations:release-health-drop-sessions": False,
     # Enable new release UI
     "organizations:releases-v2": False,
     "organizations:releases-v2-banner": False,
@@ -1884,6 +1869,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
+    # Enable improvements to Slack notifications
+    "organizations:slack-improvements": False,
+    # Add regression chart as image to slack message
+    "organizations:slack-endpoint-regression-image": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1963,6 +1952,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enabled unresolved issue webhook for organization
+    "organizations:webhooks-unresolved": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -2009,6 +2000,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:similarity-embeddings": False,
     # Enable similarity embeddings grouping
     "projects:similarity-embeddings-grouping": False,
+    # Enable adding seer grouping metadata to new groups
+    "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
@@ -2139,7 +2132,6 @@ SENTRY_INTERFACES = {
     "debug_meta": "sentry.interfaces.debug_meta.DebugMeta",
     "spans": "sentry.interfaces.spans.Spans",
 }
-PREFER_CANONICAL_LEGACY_KEYS = False
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
     "smtp": "django.core.mail.backends.smtp.EmailBackend",
@@ -2152,11 +2144,6 @@ SENTRY_FILESTORE_ALIASES = {
     "filesystem": "django.core.files.storage.FileSystemStorage",
     "s3": "sentry.filestore.s3.S3Boto3Storage",
     "gcs": "sentry.filestore.gcs.GoogleCloudStorage",
-}
-
-SENTRY_ANALYTICS_ALIASES = {
-    "noop": "sentry.analytics.Analytics",
-    "pubsub": "sentry.analytics.pubsub.PubSubAnalytics",
 }
 
 # set of backends that do not support needing SMTP mail.* settings
@@ -2898,12 +2885,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-                if not ARM64
-                # altinity provides clickhouse support to other companies
-                # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-                # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-                else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm"
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:22.8.15.25.altinitystable"
             ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -3073,7 +3055,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.1"
+SELF_HOSTED_STABLE_VERSION = "24.4.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3478,6 +3460,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-replay-recordings": "default",
     "ingest-occurrences": "default",
     "ingest-monitors": "default",
+    "monitors-clock-tick": "default",
+    "monitors-clock-tasks": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -3972,7 +3956,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-relays-details",
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
-    "sentry-error-page-embed",
     "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",

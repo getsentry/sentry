@@ -10,7 +10,7 @@ from urllib3.exceptions import MaxRetryError
 
 from sentry import options
 from sentry.event_manager import (
-    NON_TITLE_EVENT_TITLES,
+    PLACEHOLDER_EVENT_TITLES,
     SEER_ERROR_COUNT_KEY,
     EventManager,
     _get_severity_score,
@@ -203,25 +203,24 @@ class TestGetEventSeverity(TestCase):
         mock_logger_warning: MagicMock,
         mock_urlopen: MagicMock,
     ) -> None:
-        for title in NON_TITLE_EVENT_TITLES:
+        for title in PLACEHOLDER_EVENT_TITLES:
             manager = EventManager(make_event(exception={"values": []}, platform="python"))
             event = manager.save(self.project.id)
-            # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
-            # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
-            event.get_event_metadata()["title"] = title  # type: ignore[index]
+            # `title` is a property with no setter, but it pulls from `data`, so it's equivalent
+            # to set it there
+            event.data["title"] = title
 
             severity, reason = _get_severity_score(event)
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
                 "Unable to get severity score because of unusable `message` value '%s'",
-                "<unlabeled event>",
+                title,
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
                     "event_type": "default",
-                    "event_title": title,
-                    "computed_title": "<unlabeled event>",
+                    "title": title,
                 },
             )
             assert severity == 0.0

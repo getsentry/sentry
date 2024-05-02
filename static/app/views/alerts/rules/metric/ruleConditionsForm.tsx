@@ -68,6 +68,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid) => void;
   onMonitorTypeSelect: (activatedAlertFields: {
@@ -402,12 +403,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderMonitorTypeSelect() {
+    // TODO: disable select on edit
     const {
-      onMonitorTypeSelect,
-      monitorType,
       activationCondition,
-      timeWindow,
+      isEditing,
+      monitorType,
+      onMonitorTypeSelect,
       onTimeWindowChange,
+      timeWindow,
     } = this.props;
 
     return (
@@ -420,25 +423,32 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         <FormRow>
           <MonitorSelect>
             <MonitorCard
+              disabled={isEditing}
               position="left"
               isSelected={monitorType === MonitorType.CONTINUOUS}
               onClick={() =>
-                onMonitorTypeSelect({
-                  monitorType: MonitorType.CONTINUOUS,
-                  activationCondition,
-                })
+                isEditing
+                  ? null
+                  : onMonitorTypeSelect({
+                      monitorType: MonitorType.CONTINUOUS,
+                      activationCondition,
+                    })
               }
             >
               <strong>{t('Continuous')}</strong>
               <div>{t('Continuously monitor trends for the metrics outlined below')}</div>
             </MonitorCard>
             <MonitorCard
+              disabled={isEditing}
               position="right"
               isSelected={monitorType === MonitorType.ACTIVATED}
               onClick={() =>
-                onMonitorTypeSelect({
-                  monitorType: MonitorType.ACTIVATED,
-                })
+                isEditing
+                  ? null
+                  : onMonitorTypeSelect({
+                      monitorType: MonitorType.ACTIVATED,
+                      activationCondition,
+                    })
               }
             >
               <strong>Conditional</strong>
@@ -448,6 +458,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   <SelectControl
                     name="activationCondition"
                     styles={this.selectControlStyles}
+                    disabled={isEditing}
                     options={[
                       {
                         value: ActivationConditionType.RELEASE_CREATION,
@@ -465,6 +476,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }
                     inline={false}
                     flexibleControlStateSize
+                    size="xs"
                   />
                   {` ${t('for')} `}
                   <SelectControl
@@ -475,6 +487,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     onChange={({value}) => onTimeWindowChange(value)}
                     inline={false}
                     flexibleControlStateSize
+                    size="xs"
                   />
                 </ActivatedAlertFields>
               ) : (
@@ -627,6 +640,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         }}
                         searchSource="alert_builder"
                         defaultQuery={initialData?.query ?? ''}
+                        metricAlert
                         {...getSupportedAndOmittedTags(dataset, organization)}
                         includeSessionTagsValues={dataset === Dataset.SESSIONS}
                         disabled={disabled || isErrorMigration}
@@ -771,7 +785,7 @@ const MonitorSelect = styled('div')`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  height: 6rem;
+  height: 5rem;
 `;
 
 type MonitorCardProps = {
@@ -780,21 +794,28 @@ type MonitorCardProps = {
    * Adds hover and focus states to the card
    */
   position: 'left' | 'right';
+  disabled?: boolean;
 };
 
 const MonitorCard = styled('div')<MonitorCardProps>`
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   display: flex;
   flex-grow: 1;
   flex-direction: column;
-  cursor: pointer;
+  cursor: ${p => (p.disabled || p.isSelected ? 'default' : 'pointer')};
   justify-content: center;
+  background-color: ${p =>
+    p.disabled && !p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
 
   &:focus,
   &:hover {
-    outline: 1px solid ${p => p.theme.purple200};
-    background-color: ${p => p.theme.backgroundSecondary};
-    margin: 0;
+    ${p =>
+      p.disabled || p.isSelected
+        ? ''
+        : `
+        outline: 1px solid ${p.theme.purple200};
+        background-color: ${p.theme.backgroundSecondary};
+        `}
   }
 
   border-top-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};

@@ -25,7 +25,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
         Retrieve suggested owners information for an event
         ``````````````````````````````````````````````````
 
-        :pparam string project_slug: the slug of the project the event
+        :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
         :pparam string event_id: the id of the event.
         :auth: required

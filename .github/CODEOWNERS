@@ -421,6 +421,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
 /src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
+/src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-web-sdk-frontend
+/src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-web-sdk-frontend
 ## End of SDK
 
 
@@ -515,8 +517,12 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 
 ## ML & AI
-/static/app/components/events/aiSuggestedSolution/      @getsentry/machine-learning-ai
-/src/sentry/api/endpoints/event_ai_suggested_fix.py     @getsentry/machine-learning-ai
+*autofix*.py                                                @getsentry/machine-learning-ai
+/src/sentry/api/endpoints/event_ai_suggested_fix.py         @getsentry/machine-learning-ai
+/static/app/components/events/aiSuggestedSolution/          @getsentry/machine-learning-ai
+/static/app/components/events/autofix/                      @getsentry/machine-learning-ai
+/static/app/components/modals/autofixSetupModal.spec.tsx    @getsentry/machine-learning-ai
+/static/app/components/modals/autofixSetupModal.tsx         @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Processing

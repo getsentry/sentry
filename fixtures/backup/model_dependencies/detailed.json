@@ -361,11 +361,6 @@
         "model": "sentry.organization",
         "nullable": true
       },
-      "owner": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
       "snuba_query": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.snubaquery",
@@ -2368,11 +2363,6 @@
   "sentry.grouphistory": {
     "dangling": false,
     "foreign_keys": {
-      "actor": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
       "group": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.group",
@@ -2391,6 +2381,16 @@
       "release": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.release",
+        "nullable": true
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
         "nullable": true
       }
     },
@@ -2857,6 +2857,11 @@
   "sentry.incident": {
     "dangling": false,
     "foreign_keys": {
+      "activation": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertruleactivations",
+        "nullable": true
+      },
       "alert_rule": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.alertrule",
@@ -5304,11 +5309,6 @@
       "environment_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.environment",
-        "nullable": true
-      },
-      "owner": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.actor",
         "nullable": true
       },
       "owner_team": {

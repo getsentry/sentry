@@ -3,7 +3,7 @@ from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -101,7 +101,7 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         assert not ApiToken.objects.filter(pk=self.api_token.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_delete(self):
         self.login_as(self.superuser, superuser=True)
 

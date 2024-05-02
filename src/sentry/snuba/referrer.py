@@ -98,6 +98,8 @@ class Referrer(Enum):
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
+    API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
+    API_METRICS_TOTALS = "api.metrics.totals"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
@@ -436,8 +438,17 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
     API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
+    API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
     API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
+
+    # Performance Mobile UI Module
+    API_PERFORMANCE_MOBILE_UI_BAR_CHART = "api.performance.mobile.ui.bar-chart"
+    API_PERFORMANCE_MOBILE_UI_EVENT_SAMPLES = "api.performance.mobile.ui.event-samples"
+    API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON = "api.performance.mobile.ui.metrics-ribbon"
+    API_PERFORMANCE_MOBILE_UI_SCREEN_TABLE = "api.performance.mobile.ui.screen-table"
+    API_PERFORMANCE_MOBILE_UI_SERIES = "api.performance.mobile.ui.series"
+    API_PERFORMANCE_MOBILE_UI_SPAN_TABLE = "api.performance.mobile.ui.span-table"
 
     # Performance Requests Module
     API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"

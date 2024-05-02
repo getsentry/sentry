@@ -116,8 +116,8 @@ class RelocationRetryEndpoint(Endpoint):
             )
 
             relocation_retry_link_promo_code.send_robust(
-                old_relocation_id=relocation_uuid,
-                new_relocation_id=new_relocation.uuid,
+                old_relocation_uuid=relocation_uuid,
+                new_relocation_uuid=new_relocation.uuid,
                 sender=self.__class__,
             )
             RelocationFile.objects.create(

@@ -10,6 +10,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectWithTeamSerializer
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -35,12 +36,45 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ENTERPRISE
     permission_classes = (ProjectTeamsPermission,)
 
+    def convert_args(
+        self,
+        request: Request,
+        organization_slug: str | int,
+        project_id_or_slug: int | str,
+        team_id_or_slug: int | str,
+        *args,
+        **kwargs,
+    ):
+        (args, kwargs) = super().convert_args(
+            request, organization_slug, project_id_or_slug, *args, **kwargs
+        )
+
+        project = kwargs["project"]
+
+        try:
+            if id_or_slug_path_params_enabled(
+                self.convert_args.__qualname__, organization_slug=project.organization.slug
+            ):
+                team = Team.objects.get(
+                    organization__slug__id_or_slug=project.organization.slug,
+                    slug__id_or_slug=team_id_or_slug,
+                )
+            else:
+                team = Team.objects.get(
+                    organization_id=project.organization_id, slug=team_id_or_slug
+                )
+        except Team.DoesNotExist:
+            raise ResourceDoesNotExist(detail="Team does not exist.")
+
+        kwargs["team"] = team
+        return (args, kwargs)
+
     @extend_schema(
         operation_id="Add a Team to a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=None,
         responses={
@@ -50,14 +84,10 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.ADD_TEAM_TO_PROJECT,
     )
-    def post(self, request: Request, project, team_slug) -> Response:
+    def post(self, request: Request, project, team: Team) -> Response:
         """
         Give a team access to a project.
         """
-        try:
-            team = Team.objects.get(organization_id=project.organization_id, slug=team_slug)
-        except Team.DoesNotExist:
-            raise ResourceDoesNotExist(detail="Team does not exist.")
 
         # A user with project:write can grant access to this project to other user/teams
         project.add_team(team)
@@ -66,7 +96,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
             organization_id=project.organization_id,
             target_object=project.id,
             event=audit_log.get_event_id("PROJECT_TEAM_ADD"),
-            data={"team_slug": team_slug, "project_slug": project.slug},
+            data={"team_slug": team.slug, "project_slug": project.slug},
         )
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=201)
 
@@ -74,8 +104,8 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         operation_id="Delete a Team from a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         responses={
             200: ProjectWithTeamSerializer,
@@ -84,16 +114,12 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.DELETE_TEAM_FROM_PROJECT,
     )
-    def delete(self, request: Request, project, team_slug) -> Response:
+    def delete(self, request: Request, project, team: Team) -> Response:
         """
         Revoke a team's access to a project.
 
         Note that Team Admins can only revoke access to teams they are admins of.
         """
-        try:
-            team = Team.objects.get(organization_id=project.organization_id, slug=team_slug)
-        except Team.DoesNotExist:
-            raise ResourceDoesNotExist(detail="Team does not exist.")
 
         if not request.access.has_team_scope(team, "project:write"):
             return Response(
@@ -105,7 +131,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
             organization_id=project.organization_id,
             target_object=project.id,
             event=audit_log.get_event_id("PROJECT_TEAM_REMOVE"),
-            data={"team_slug": team_slug, "project_slug": project.slug},
+            data={"team_slug": team.slug, "project_slug": project.slug},
         )
 
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=200)

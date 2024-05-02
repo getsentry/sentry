@@ -102,6 +102,7 @@ function getTagTreeRows({
       tagKey={tagKey}
       content={content}
       spacerCount={spacerCount}
+      data-test-id="tag-tree-row"
       {...props}
     />,
     ...subtreeRows,
@@ -174,25 +175,21 @@ function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
-    <TreeContainer ref={containerRef}>
-      <TreeGarden columnCount={columnCount}>
-        <TagTreeColumns columnCount={columnCount} {...props} />
-      </TreeGarden>
+    <TreeContainer columnCount={columnCount} ref={containerRef}>
+      <TagTreeColumns columnCount={columnCount} {...props} />
     </TreeContainer>
   );
 }
 
-const TreeContainer = styled('div')`
+export const TreeContainer = styled('div')<{columnCount: number}>`
   margin-top: ${space(1.5)};
-`;
-
-const TreeGarden = styled('div')<{columnCount: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
+  margin-left: -${space(1)};
 `;
 
-const TreeColumn = styled('div')`
+export const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};

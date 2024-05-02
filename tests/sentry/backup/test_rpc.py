@@ -75,6 +75,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert isinstance(result, RpcImportOk)
@@ -83,7 +84,10 @@ class RpcImportRetryTests(TestCase):
             assert result.min_source_pk == 5
             assert result.max_source_pk == 5
             assert result.min_inserted_pk == result.max_inserted_pk
-            assert len(result.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]) == 1
+
+            mapping = result.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]
+            assert len(mapping) == 1
+            assert mapping.get(5, None) is not None
 
             assert Option.objects.count() == option_count + 1
             assert RegionImportChunk.objects.count() == import_chunk_count + 1
@@ -98,10 +102,23 @@ class RpcImportRetryTests(TestCase):
             assert len(import_chunk.existing_map) == 0
             assert len(import_chunk.overwrite_map) == 0
 
+            existing_import_chunk = get_existing_import_chunk(
+                OPTION_MODEL_NAME,
+                ImportFlags(import_uuid=import_uuid),
+                RegionImportChunk,
+                1,
+            )
+            assert existing_import_chunk is not None
+
+            mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]
+            assert len(mapping) == 1
+            assert mapping.get(5, None) is not None
+
+            return import_chunk
+
         # Doing the write twice should produce identical results from the sender's point of view,
         # and should not result in multiple `RegionImportChunk`s being written.
-        verify_option_write()
-        verify_option_write()
+        assert verify_option_write() == verify_option_write()
 
     def test_good_remote_retry_idempotent(self):
         # If the response gets lost on the way to the caller, it will try again. Make sure it is
@@ -135,6 +152,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert isinstance(result, RpcImportOk)
@@ -159,10 +177,25 @@ class RpcImportRetryTests(TestCase):
                 assert len(import_chunk.existing_map) == 0
                 assert len(import_chunk.overwrite_map) == 0
 
+                existing_import_chunk = get_existing_import_chunk(
+                    CONTROL_OPTION_MODEL_NAME,
+                    ImportFlags(import_uuid=import_uuid),
+                    ControlImportChunk,
+                    1,
+                )
+                assert existing_import_chunk is not None
+
+                mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[
+                    str(CONTROL_OPTION_MODEL_NAME)
+                ]
+                assert len(mapping) == 1
+                assert mapping.get(7, None) is not None
+
+                return import_chunk
+
         # Doing the write twice should produce identical results from the sender's point of view,
         # and should not result in multiple `ControlImportChunk`s being written.
-        verify_control_option_write()
-        verify_control_option_write()
+        assert verify_control_option_write() == verify_control_option_write()
 
     # This is a bit of a hacky way in which to "simulate" a race that occurs between when we first
     # try to detect the duplicate chunk and when we try to send our actual write.
@@ -171,16 +204,17 @@ class RpcImportRetryTests(TestCase):
 
         # First call returns `None`, but then, by the time we get around to trying to commit the
         # atomic transaction, another mocked concurrent process has written the same chunk. We
-        # should handle this gracefully by going and getting
+        # should handle this gracefully by going and getting that chunk instead.
         def wrapped_get_existing_import_chunk(
             model_name: NormalizedModelName,
             flags: ImportFlags,
             import_chunk_type: type[models.base.Model],
+            min_ordinal: int,
         ) -> RpcImportOk | None:
             nonlocal mock_call_count
             mock_call_count += 1
             if mock_call_count > 1:
-                return get_existing_import_chunk(model_name, flags, import_chunk_type)
+                return get_existing_import_chunk(model_name, flags, import_chunk_type, min_ordinal)
 
             return None
 
@@ -224,6 +258,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert get_existing_import_chunk_mock.call_count == 2
@@ -247,6 +282,20 @@ class RpcImportRetryTests(TestCase):
                 assert len(import_chunk.existing_map) == 0
                 assert len(import_chunk.overwrite_map) == 0
 
+                existing_import_chunk = get_existing_import_chunk(
+                    CONTROL_OPTION_MODEL_NAME,
+                    ImportFlags(import_uuid=import_uuid),
+                    ControlImportChunk,
+                    1,
+                )
+                assert existing_import_chunk is not None
+
+                mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[
+                    str(CONTROL_OPTION_MODEL_NAME)
+                ]
+                assert len(mapping) == 1
+                assert mapping.get(9, None) is not None
+
                 assert ControlImportChunk.objects.count() == import_chunk_count + 1
 
 
@@ -268,6 +317,20 @@ class RpcImportErrorTests(TestCase):
     def json_of_exhaustive_user_with_minimum_privileges(self) -> json.JSONData:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
+    def test_bad_invalid_min_ordinal(self):
+        result = import_export_service.import_by_model(
+            model_name=str(USER_MODEL_NAME),
+            scope=RpcImportScope.Global,
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
+            filter_by=[],
+            pk_map=RpcPrimaryKeyMap(),
+            json_data="[]",
+            min_ordinal=0,
+        )
+
+        assert isinstance(result, RpcImportError)
+        assert result.get_kind() == RpcImportErrorKind.InvalidMinOrdinal
+
     def test_bad_unknown_model(self):
         result = import_export_service.import_by_model(
             model_name="sentry.doesnotexist",
@@ -276,6 +339,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -290,6 +354,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -302,6 +367,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -315,6 +381,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -328,6 +395,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="_",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -349,6 +417,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data=json_data,
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -364,6 +433,7 @@ class RpcImportErrorTests(TestCase):
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data=json_data,
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
