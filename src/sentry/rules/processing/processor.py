@@ -321,7 +321,7 @@ class RuleProcessor:
         if process_slow_conditions_later:
             condition_list = fast_conditions
         else:
-            fast_conditions.extend(slow_conditions)
+            fast_conditions.extend(slow_conditions)  # type: ignore[arg-type]
             condition_list = fast_conditions
 
         for predicate_list, match, name in (
