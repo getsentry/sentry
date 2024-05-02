@@ -24,7 +24,6 @@ function MetricHistory({incidents, activations}: Props) {
   const filteredIncidents = (incidents ?? []).filter(
     incident => incident.activities?.length
   );
-  const numOfIncidents = filteredIncidents.length;
 
   const activationTriggers: ActivationTriggerActivity[] = [];
   activations?.forEach(activation => {
@@ -48,20 +47,23 @@ function MetricHistory({incidents, activations}: Props) {
     a.dateCreated > b.dateCreated ? -1 : 1
   );
 
+  const numOfActivities = sortedActivity.length;
+
   return (
     <CollapsePanel
-      items={numOfIncidents}
+      items={numOfActivities}
       collapseCount={COLLAPSE_COUNT}
       disableBorder={false}
-      buttonTitle={tn('Hidden Alert', 'Hidden Alerts', numOfIncidents - COLLAPSE_COUNT)}
+      buttonTitle={tn('Hidden Alert', 'Hidden Alerts', numOfActivities - COLLAPSE_COUNT)}
     >
       {({isExpanded, showMoreButton}) => (
         <div>
           <StyledPanelTable
             headers={[t('Alert'), t('Reason'), t('Duration'), t('Date Triggered')]}
-            isEmpty={!numOfIncidents}
+            isEmpty={!numOfActivities}
             emptyMessage={t('No alerts triggered during this time.')}
-            expanded={numOfIncidents <= COLLAPSE_COUNT || isExpanded}
+            expanded={numOfActivities <= COLLAPSE_COUNT || isExpanded}
+            data-test-id={'history-table'}
           >
             {sortedActivity.map((item, idx) => {
               if (idx >= COLLAPSE_COUNT && !isExpanded) {
