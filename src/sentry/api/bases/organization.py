@@ -242,10 +242,19 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_id_or_slug: int | str | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        organization_id_or_slug: int | str | None = None
+        if args and args[0] is not None:
+            organization_id_or_slug = args[0]
+            # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
+            args = args[1:]
+        else:
+            organization_id_or_slug = kwargs.pop("organization_id_or_slug", None) or kwargs.pop(
+                "organization_slug", None
+            )
+
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_id_or_slug:
@@ -538,7 +547,6 @@ class OrganizationEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_id_or_slug: int | str | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
@@ -546,6 +554,16 @@ class OrganizationEndpoint(Endpoint):
         We temporarily allow the organization_id_or_slug to be an integer as it actually can be both slug or id
         Eventually, we will rename this method to organization_id_or_slug
         """
+        organization_id_or_slug: int | str | None = None
+        if args and args[0] is not None:
+            organization_id_or_slug = args[0]
+            # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
+            args = args[1:]
+        else:
+            organization_id_or_slug = kwargs.pop("organization_id_or_slug", None) or kwargs.pop(
+                "organization_slug", None
+            )
+
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_id_or_slug:
