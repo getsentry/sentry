@@ -737,46 +737,53 @@ class SlackActionEndpoint(Endpoint):
         return action_option
 
     @classmethod
-    def get_action_list(
-        cls, slack_request: SlackActionRequest, use_block_kit: bool
+    def _get_default_action_list(
+        cls, slack_request_actions: list[dict[str, Any]]
     ) -> list[MessageAction]:
-        action_data = slack_request.data.get("actions")
-        if use_block_kit and action_data:
-            # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
-            # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
-            if action_data[0].get("action_id"):
-                action_list = []
-                for action_data in action_data:
-                    if action_data.get("type") in ("static_select", "external_select"):
-                        action = BlockKitMessageAction(
-                            name=action_data["action_id"],
-                            label=action_data["selected_option"]["text"]["text"],
-                            type=action_data["type"],
-                            value=action_data["selected_option"]["value"],
-                            action_id=action_data["action_id"],
-                            block_id=action_data["block_id"],
-                            selected_options=[
-                                {"value": action_data.get("selected_option", {}).get("value")}
-                            ],
-                        )
-                        # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
-                    else:
-                        action = BlockKitMessageAction(
-                            name=action_data["action_id"],
-                            label=action_data["text"]["text"],
-                            type=action_data["type"],
-                            value=action_data["value"],
-                            action_id=action_data["action_id"],
-                            block_id=action_data["block_id"],
-                        )
-                    action_list.append(action)
-
-                return action_list
         return [
             MessageAction(**action_data)
-            for action_data in action_data or []
+            for action_data in slack_request_actions
             if "name" in action_data
         ]
+
+    @classmethod
+    def get_action_list(
+        cls, slack_request: SlackActionRequest, use_block_kit: bool
+    ) -> list[MessageAction] | list[BlockKitMessageAction]:
+        slack_request_actions = slack_request.data.get("actions", [])
+        if not use_block_kit or not slack_request_actions:
+            return cls._get_default_action_list(slack_request_actions=slack_request_actions)
+
+        # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
+        # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
+        if not slack_request_actions[0].get("action_id"):
+            return cls._get_default_action_list(slack_request_actions=slack_request_actions)
+
+        action_list = []
+        for slack_request_actions in slack_request_actions:
+            if slack_request_actions.get("type") in ("static_select", "external_select"):
+                label = slack_request_actions["selected_option"]["text"]["text"]
+                value = slack_request_actions["selected_option"]["value"]
+                selected_options = [
+                    {"value": slack_request_actions.get("selected_option", {}).get("value")}
+                ]
+                # TODO(CEO): selected_options is kinda ridiculous, I think this is built to handle multi-select?
+            else:
+                label = slack_request_actions["text"]["text"]
+                value = slack_request_actions["value"]
+                selected_options = None
+
+            action = BlockKitMessageAction(
+                name=slack_request_actions["action_id"],
+                label=label,
+                type=slack_request_actions["type"],
+                value=value,
+                action_id=slack_request_actions["action_id"],
+                block_id=slack_request_actions["block_id"],
+                selected_options=selected_options,
+            )
+            action_list.append(action)
+        return action_list
 
     def post(self, request: Request) -> Response:
         try:

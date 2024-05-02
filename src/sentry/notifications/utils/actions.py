@@ -4,11 +4,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from sentry.integrations.slack import SlackBlock
-
 
 @dataclass(kw_only=True)
-class _BaseMessageAction:
+class BaseMessageAction:
     """
     Base class used to hold the fields for a notification message action
     """
@@ -27,7 +25,7 @@ class _BaseMessageAction:
     def _get_button_text(self) -> str:
         return self.name
 
-    def get_button(self) -> SlackBlock:
+    def get_button(self) -> Mapping[str, Any]:
         button = {
             "type": "button",
             "text": {"type": "plain_text", "text": self._get_button_text()},
@@ -47,7 +45,7 @@ class _BaseMessageAction:
 
 
 @dataclass
-class MessageAction(_BaseMessageAction):
+class MessageAction(BaseMessageAction):
     # Label is optional, if empty it falls back to name
     label: str | None = None
     style: Literal["primary", "danger", "default"] | None = None
@@ -59,7 +57,7 @@ class MessageAction(_BaseMessageAction):
 
 
 @dataclass
-class BlockKitMessageAction(_BaseMessageAction):
+class BlockKitMessageAction(BaseMessageAction):
     label: str
 
     def _get_button_text(self) -> str:
