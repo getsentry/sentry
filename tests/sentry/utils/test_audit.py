@@ -314,6 +314,25 @@ class CreateAuditEntryTest(TestCase):
         assert entry.event == audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT")
         assert audit_log_event.render(entry) == "modified ownership rules"
 
+    def test_audit_entry_project_key_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECTKEY_EDIT"),
+            data={
+                "public_key": "KEY",
+                "rate_limit_count": 6,
+                "rate_limit_window": 60,
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECTKEY_EDIT")
+        assert audit_log_event.render(entry) == "edited project key KEY"
+
     def test_audit_entry_project_key_rate_limit_edit(self):
         entry = create_audit_entry(
             request=self.req,
@@ -336,6 +355,52 @@ class CreateAuditEntryTest(TestCase):
         assert (
             audit_log_event.render(entry)
             == "edited project key KEY: rate limit count from None to 6, rate limit window from None to 60"
+        )
+
+    def test_audit_entry_project_key_rate_limit_window_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECTKEY_EDIT"),
+            data={
+                "public_key": "KEY",
+                "prev_rate_limit_window": None,
+                "rate_limit_count": 6,
+                "rate_limit_window": 60,
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECTKEY_EDIT")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project key KEY: rate limit window from None to 60"
+        )
+
+    def test_audit_entry_project_key_rate_limit_count_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECTKEY_EDIT"),
+            data={
+                "public_key": "KEY",
+                "prev_rate_limit_count": None,
+                "rate_limit_count": 6,
+                "rate_limit_window": 60,
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECTKEY_EDIT")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project key KEY: rate limit count from None to 6"
         )
 
     def test_audit_entry_integration_log(self):
