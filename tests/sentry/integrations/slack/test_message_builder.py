@@ -1151,7 +1151,7 @@ class ActionsTest(TestCase):
 
         assert build_actions(
             group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
-        ) == ([], "", "_actioned_issue")
+        ) == ([], "", True)
 
     def _assert_message_actions_list(self, actions, expected):
         actions_dict = [

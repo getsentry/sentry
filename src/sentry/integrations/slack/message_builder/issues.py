@@ -21,6 +21,7 @@ from sentry.integrations.message_builder import (
     get_title_link,
 )
 from sentry.integrations.slack.message_builder import (
+    ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
@@ -377,11 +378,11 @@ def build_actions(
     text: str,
     actions: Sequence[MessageAction] | None = None,
     identity: RpcIdentity | None = None,
-) -> tuple[Sequence[MessageAction], str, str]:
+) -> tuple[Sequence[MessageAction], str, bool]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
         text = get_action_text(text, actions, identity)
-        return [], text, "_actioned_issue"
+        return [], text, True
 
     status = group.get_status()
 
@@ -428,7 +429,7 @@ def build_actions(
         if a is not None
     ]
 
-    return action_list, text, ""
+    return action_list, text, False
 
 
 class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
@@ -498,15 +499,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, action_text, action_level = build_actions(
+            payload_actions, action_text, has_action = build_actions(
                 self.group, project, text, self.actions, self.identity
             )
         else:
             payload_actions = []
-            action_level = None
+            has_action = False
 
         if not features.has("organizations:slack-improvements", self.group.project.organization):
-            action_level = None
+            has_action = False
 
         rule_id = None
         if self.rules:
@@ -533,13 +534,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions and self.identity and not action_text:
             action_text = get_action_text(text, self.actions, self.identity)
             if features.has("organizations:slack-improvements", self.group.project.organization):
-                action_level = "_actioned_issue"
+                has_action = True
 
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
-        if action_level:
+        if has_action:
             # if issue is resolved, archived, or assigned, replace circle emojis with white circle
             title_emoji = (
-                LEVEL_TO_EMOJI.get(action_level)
+                ACTION_EMOJI
                 if is_error_issue
                 else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
             )
