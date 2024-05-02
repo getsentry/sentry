@@ -52,9 +52,6 @@ class OrganizationSpansFieldsEndpoint(OrganizationEventsV2EndpointBase):
                 snuba_params=snuba_params,
                 query=None,
                 selected_columns=["array_join(tags.key)"],
-                # The orderby is intentionally `None` here as this query is much faster
-                # if we let Clickhouse decide which order to return the results in.
-                # This also means we cannot order by any columns or paginate.
                 orderby=None,
                 limitby=("array_join(tags.key)", 1),
                 limit=max_span_tags,
