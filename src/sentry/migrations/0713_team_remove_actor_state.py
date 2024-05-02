@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0711_backfill_group_attributes_to_self_hosted"),
+        ("sentry", "0712_create_tombstone_compound_indexes"),
     ]
 
     operations = [
