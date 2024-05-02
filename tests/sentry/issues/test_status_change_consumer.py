@@ -229,6 +229,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         assert group.id == self.group.id
         mock_metrics_incr.assert_called_with(
             "occurrence_ingest.grouphash.not_found",
+            sample_rate=1.0,
             tags={
                 "project_id": project2.id,
                 "fingerprint": self.occurrence.fingerprint[0],
