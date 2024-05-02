@@ -241,7 +241,12 @@ class BaseModel(models.Model):
                 sanitizer.set_url(json, SanitizableField(model_name, f.name))
 
             # Auto-sanitize all UUID fields.
-            if isinstance(f, models.UUIDField) or isinstance(f, UUIDField):
+            if (
+                isinstance(f, models.UUIDField)
+                or isinstance(f, UUIDField)
+                or f.name.endswith("guid")
+                or f.name.endswith("uuid")
+            ):
                 sanitizer.set_uuid(json, SanitizableField(model_name, f.name))
 
             # Auto-sanitize all string fields that contain any sensitive words in their name.

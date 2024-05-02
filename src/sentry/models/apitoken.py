@@ -325,6 +325,8 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
         token = generate_token()
         token_last_characters = token[-4:]
         hashed_token = hashlib.sha256(token.encode()).hexdigest()
@@ -348,7 +350,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             SanitizableField(model_name, "hashed_refresh_token"),
             lambda _: hashed_refresh_token,
         )
-        return super().sanitize_relocation_json(json, sanitizer, model_name)
 
     @property
     def organization_id(self) -> int | None:

@@ -32,9 +32,10 @@ class RelayUsage(OverwritableConfigMixin, Model):
         cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
         sanitizer.set_uuid(json, SanitizableField(model_name, "relay_id"))
         sanitizer.set_string(json, SanitizableField(model_name, "public_key"))
-        return super().sanitize_relocation_json(json, sanitizer, model_name)
 
 
 @region_silo_model
@@ -84,6 +85,7 @@ class Relay(OverwritableConfigMixin, Model):
         cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
         sanitizer.set_uuid(json, SanitizableField(model_name, "relay_id"))
         sanitizer.set_string(json, SanitizableField(model_name, "public_key"))
-        return super().sanitize_relocation_json(json, sanitizer, model_name)

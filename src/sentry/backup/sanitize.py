@@ -1,3 +1,4 @@
+import ipaddress
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
@@ -37,6 +38,17 @@ UPPER_CASE_NON_HEX = {
 }
 LOWER_CASE_HEX = {c.lower() for c in UPPER_CASE_HEX}
 LOWER_CASE_NON_HEX = {c.lower() for c in UPPER_CASE_NON_HEX}
+
+MAX_IPV4 = ipaddress.IPv4Address._ALL_ONES  # 2 ** 32 - 1
+MAX_IPV6 = ipaddress.IPv6Address._ALL_ONES  # 2 ** 128 - 1
+
+
+def random_ipv4():
+    return ipaddress.IPv4Address._string_from_ip_int(randint(0, MAX_IPV4))
+
+
+def random_ipv6():
+    return ipaddress.IPv6Address._string_from_ip_int(randint(0, MAX_IPV6))
 
 
 class SanitizationError(Exception):
@@ -241,15 +253,15 @@ class Sanitizer:
 
     def map_ip(self, old: str) -> str:
         """
-        Maps a n IP with some randomly generated alternative.
-        If the `old` IP has already been seen, the already-generated value for that existing key
-        will be used instead. If it has not, we'll generate a new one. This ensures that all
-        identical existing IPs are swapped with identical replacements everywhere they occur.
+        Maps an IP with some randomly generated alternative. If the `old` IP has already been seen,
+        the already-generated value for that existing key will be used instead. If it has not, we'll
+        generate a new one. This ensures that all identical existing IPs are swapped with identical
+        replacements everywhere they occur.
 
         If the `old` string is not a valid IP, it will be treated as a regular string.
 
-        If you wish to update an actual JSON model in-place with this newly generated IP,
-        `set_ip()` is the preferred method for doing so.
+        If you wish to update an actual JSON model in-place with this newly generated IP, `set_ip()`
+        is the preferred method for doing so.
         """
 
         interned = self.interned_strings.get(old)
@@ -262,11 +274,9 @@ class Sanitizer:
             return self.map_string(old)
         else:
             if isinstance(old_ip, IPv4Address):
-                self.interned_strings[old] = ".".join([str(randint(0, 255)) for _ in range(4)])
+                self.interned_strings[old] = random_ipv4()
             elif isinstance(old_ip, IPv6Address):
-                self.interned_strings[old] = ":".join(
-                    [format(randint(0, 65535), "x") for _ in range(8)]
-                )
+                self.interned_strings[old] = random_ipv6()
             return self.interned_strings[old]
 
     def map_name(self, old: str) -> str:

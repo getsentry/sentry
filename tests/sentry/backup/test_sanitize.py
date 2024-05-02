@@ -74,9 +74,10 @@ class FakeSanitizableModel(DefaultFieldsModel):
         cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
         sanitizer.set_name(json, SanitizableField(model_name, "nickname"))
         sanitizer.set_string(json, SanitizableField(model_name, "text"))
-        return super().sanitize_relocation_json(json, sanitizer, model_name)
 
 
 @patch("sentry.backup.dependencies.get_model", Mock(return_value=FakeSanitizableModel))

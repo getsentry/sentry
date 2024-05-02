@@ -155,8 +155,9 @@ class UserEmail(ControlOutboxProducingModel):
         cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
         validation_hash = get_secure_token()
         sanitizer.set_string(
             json, SanitizableField(model_name, "validation_hash"), lambda _: validation_hash
         )
-        return super().sanitize_relocation_json(json, sanitizer, model_name)

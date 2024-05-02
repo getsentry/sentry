@@ -1,5 +1,5 @@
 ---
-created: '2024-04-17T17:43:34.680028+00:00'
+created: '2024-05-02T21:07:54.051381+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -45,8 +45,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
   - password
+  - username
 - model_name: sentry.user
   ordinal: 2
   sanitized_fields:
@@ -54,8 +54,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
   - password
+  - username
 - model_name: sentry.relayusage
   ordinal: 1
   sanitized_fields:

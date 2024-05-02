@@ -1,5 +1,5 @@
 ---
-created: '2024-05-01T18:56:20.461709+00:00'
+created: '2024-05-02T21:07:58.578052+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -160,8 +160,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
   - password
+  - username
 - model_name: sentry.user
   ordinal: 2
   sanitized_fields:
@@ -169,8 +169,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
   - password
+  - username
 - model_name: sentry.user
   ordinal: 3
   sanitized_fields:
@@ -178,8 +178,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
   - password
+  - username
 - model_name: sentry.user
   ordinal: 4
   sanitized_fields:
@@ -187,16 +187,14 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
   - password
+  - username
 - model_name: sentry.user
   ordinal: 5
   sanitized_fields:
   - date_joined
-  - email
   - last_active
-  - name
-  - password
+  - username
 - model_name: sentry.user
   ordinal: 6
   sanitized_fields:
@@ -204,8 +202,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
   - password
+  - username
 - model_name: sentry.userip
   ordinal: 1
   sanitized_fields:
@@ -281,7 +279,6 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - guid
-  - name
   - slug
 - model_name: sentry.environment
   ordinal: 1
@@ -312,7 +309,6 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 5
   sanitized_fields:
   - date_added
-  - email
 - model_name: sentry.email
   ordinal: 6
   sanitized_fields:
@@ -395,7 +391,6 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 5
   sanitized_fields:
   - date_hash_added
-  - email
   - validation_hash
 - model_name: sentry.useremail
   ordinal: 6
@@ -422,6 +417,7 @@ source: tests/sentry/backup/test_sanitize.py
   - date_updated
   - name
   - slug
+  - uuid
   - webhook_url
 - model_name: sentry.rule
   ordinal: 1
@@ -551,6 +547,7 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_updated
+  - uuid
 - model_name: sentry.sentryappcomponent
   ordinal: 1
   sanitized_fields:
@@ -619,12 +616,14 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+  - guid
   - secret
   - url
 - model_name: sentry.servicehook
   ordinal: 2
   sanitized_fields:
   - date_added
+  - guid
   - secret
   - url
 - model_name: sentry.incident
