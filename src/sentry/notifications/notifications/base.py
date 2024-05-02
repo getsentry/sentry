@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 
-def alert_page_needs_org_id(fine_tuning_key: FineTuningAPIKey) -> bool:
+def alert_page_needs_org_id(fine_tuning_key: NotificationSettingEnum | FineTuningAPIKey) -> bool:
     """Determines if the alert setting page needs the organization id in the query params."""
     return fine_tuning_key in (
         FineTuningAPIKey.ALERTS,
@@ -41,7 +41,7 @@ class BaseNotification(abc.ABC):
     }
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it which is why it is optional
-    notification_setting_type_enum: NotificationSettingEnum | FineTuningAPIKey | None = None
+    notification_setting_type_enum: NotificationSettingEnum | None = None
     analytics_event: str = ""
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
@@ -200,7 +200,7 @@ class BaseNotification(abc.ABC):
 
         Also set the organization id query param as needed for specific setting pages, e.g. workflow
         """
-        q_params = {
+        q_params: dict[str, str | int] = {
             "referrer": self.get_referrer(provider, recipient),
             "notification_uuid": self.notification_uuid,
         }
