@@ -253,7 +253,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
             projectID: event.projectID,
           })}
         >
-          {t('View Span Summary')}
+          {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
         </StyledButton>
       </ButtonGroup>
     );
