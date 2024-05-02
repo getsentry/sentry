@@ -89,7 +89,7 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
-MAX_RECENT_ISSUES = 10000
+MAX_RECENT_ISSUES = 5000
 
 
 def format_open_pr_comment(issue_tables: list[str]) -> str:
