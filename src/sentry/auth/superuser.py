@@ -16,6 +16,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import orjson
 from django.conf import settings
 from django.core.signing import BadSignature
 from django.http import HttpRequest
@@ -437,7 +438,7 @@ class Superuser(ElevatedMode):
             try:
                 # need to use json loads as the data is no longer in request.data
                 su_access_json = json.loads_orjson(request.body)
-            except json.JSONDecodeError:
+            except orjson.JSONDecodeError:
                 metrics.incr(
                     "superuser.failure",
                     sample_rate=1.0,
