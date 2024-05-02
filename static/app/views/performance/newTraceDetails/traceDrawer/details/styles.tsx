@@ -1,9 +1,11 @@
 import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import {Button, LinkButton} from 'sentry/components/button';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
@@ -669,6 +671,40 @@ function SectionCard({
   );
 }
 
+function Description({
+  value,
+  linkTarget,
+  linkText,
+}: {
+  value: string;
+  linkTarget?: LocationDescriptor;
+  linkText?: string;
+}) {
+  return (
+    <DescriptionContainer>
+      <DescriptionText>
+        {value}
+        <StyledCopuToClipboardButton borderless size="zero" iconSize="xs" text={value} />
+      </DescriptionText>
+      {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
+    </DescriptionContainer>
+  );
+}
+
+const StyledCopuToClipboardButton = styled(CopyToClipboardButton)`
+  transform: translateY(2px);
+`;
+
+const DescriptionContainer = styled(FlexBox)`
+  justify-content: space-between;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
+const DescriptionText = styled('span')`
+  overflow-wrap: anywhere;
+`;
+
 const Card = styled(Panel)`
   padding: ${space(0.75)};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -735,6 +771,7 @@ const TraceDrawerComponents = {
   TableValueRow,
   IssuesLink,
   SectionCard,
+  Description,
 };
 
 export {TraceDrawerComponents};

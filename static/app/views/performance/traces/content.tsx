@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
@@ -167,6 +168,15 @@ export function Content() {
 
 function TraceRow({trace}: {trace: TraceResult<Field>}) {
   const [expanded, setExpanded] = useState<boolean>(false);
+  const [highlightedSliceName, _setHighlightedSliceName] = useState('');
+
+  const setHighlightedSliceName = useMemo(
+    () =>
+      debounce(sliceName => _setHighlightedSliceName(sliceName), 100, {
+        leading: true,
+      }),
+    [_setHighlightedSliceName]
+  );
   return (
     <Fragment>
       <StyledPanelItem align="center" center>
@@ -195,9 +205,16 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
       <StyledPanelItem align="right">
         <Count value={trace.numSpans} />
       </StyledPanelItem>
-      <StyledPanelItem align="right">
-        <TraceBreakdownRenderer trace={trace} />
-      </StyledPanelItem>
+      <BreakdownPanelItem
+        align="right"
+        highlightedSliceName={highlightedSliceName}
+        onMouseLeave={() => setHighlightedSliceName('')}
+      >
+        <TraceBreakdownRenderer
+          trace={trace}
+          setHighlightedSliceName={setHighlightedSliceName}
+        />
+      </BreakdownPanelItem>
       <StyledPanelItem align="right">
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
       </StyledPanelItem>
@@ -205,7 +222,13 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         <TraceIssuesRenderer trace={trace} />
       </StyledPanelItem>
       <StyledPanelItem style={{padding: '5px'}} />
-      {expanded && <SpanTable spans={trace.spans} trace={trace} />}
+      {expanded && (
+        <SpanTable
+          spans={trace.spans}
+          trace={trace}
+          setHighlightedSliceName={setHighlightedSliceName}
+        />
+      )}
     </Fragment>
   );
 }
@@ -213,7 +236,9 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
 function SpanTable({
   spans,
   trace,
+  setHighlightedSliceName,
 }: {
+  setHighlightedSliceName: (sliceName: string) => void;
   spans: SpanResult<Field>[];
   trace: TraceResult<Field>;
 }) {
@@ -236,7 +261,12 @@ function SpanTable({
           </StyledPanelHeader>
 
           {spans.map(span => (
-            <SpanRow key={span.id} span={span} trace={trace} />
+            <SpanRow
+              key={span.id}
+              span={span}
+              trace={trace}
+              setHighlightedSliceName={setHighlightedSliceName}
+            />
           ))}
         </SpanPanelContent>
       </StyledPanel>
@@ -244,7 +274,16 @@ function SpanTable({
   );
 }
 
-function SpanRow({span, trace}: {span: SpanResult<Field>; trace: TraceResult<Field>}) {
+function SpanRow({
+  span,
+  trace,
+  setHighlightedSliceName,
+}: {
+  setHighlightedSliceName: (sliceName: string) => void;
+  span: SpanResult<Field>;
+
+  trace: TraceResult<Field>;
+}) {
   const theme = useTheme();
   return (
     <Fragment>
@@ -265,7 +304,7 @@ function SpanRow({span, trace}: {span: SpanResult<Field>; trace: TraceResult<Fie
           {span['span.description']}
         </Description>
       </StyledSpanPanelItem>
-      <StyledSpanPanelItem align="right">
+      <StyledSpanPanelItem align="right" onMouseLeave={() => setHighlightedSliceName('')}>
         <TraceBreakdownContainer>
           <SpanBreakdownSliceRenderer
             sliceName={span.project}
@@ -273,6 +312,7 @@ function SpanRow({span, trace}: {span: SpanResult<Field>; trace: TraceResult<Fie
             sliceEnd={Math.floor(span['precise.finish_ts'] * 1000)}
             trace={trace}
             theme={theme}
+            onMouseEnter={() => setHighlightedSliceName(span.project)}
           />
         </TraceBreakdownContainer>
       </StyledSpanPanelItem>
@@ -438,6 +478,25 @@ const StyledSpanPanelItem = styled(StyledPanelItem)`
 
 const SpanTablePanelItem = styled(StyledPanelItem)`
   background-color: ${p => p.theme.gray100};
+`;
+
+const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string}>`
+  ${p =>
+    p.highlightedSliceName
+      ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
+         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(-1px);
+       `
+      : null}
+  ${p =>
+    p.highlightedSliceName
+      ? `
+        --defaultSlice-opacity: 0.3;
+        --defaultSlice-transform: translateY(1px);
+        `
+      : `
+        --defaultSlice-opacity: 1.0;
+        --defaultSlice-transform: translateY(0px);
+        `}
 `;
 
 const EmptyValueContainer = styled('span')`

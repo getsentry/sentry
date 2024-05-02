@@ -17,7 +17,6 @@ from sentry.search.utils import (
     get_first_last_release_for_group,
     get_latest_release,
     get_numeric_field_value,
-    parse_bool,
     parse_duration,
     parse_numeric_value,
     parse_query,
@@ -79,18 +78,6 @@ class TestParseSizeValue(TestCase):
         assert parse_size("1", "KB") == 1000
         assert parse_size("1", "kb") == 1000
         assert parse_size("1", "Kb") == 1000
-
-
-class TestParseBooleanValue(TestCase):
-    def test_true(self):
-        assert parse_bool("1") is True
-        assert parse_bool("TRUE") is True
-        assert parse_bool("true") is True
-
-    def test_false(self):
-        assert parse_bool("0") is False
-        assert parse_bool("FALSE") is False
-        assert parse_bool("false") is False
 
 
 class TestParseDuration(TestCase):

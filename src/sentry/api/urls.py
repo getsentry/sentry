@@ -467,6 +467,10 @@ from .endpoints.organization_sentry_function_details import (
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_spans_fields import (
+    OrganizationSpansFieldsEndpoint,
+    OrganizationSpansFieldValuesEndpoint,
+)
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -1397,6 +1401,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/$",
+        OrganizationSpansFieldsEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-fields",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/(?P<key>[^/]+)/values/$",
+        OrganizationSpansFieldValuesEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-fields-values",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-estimation-stats/$",

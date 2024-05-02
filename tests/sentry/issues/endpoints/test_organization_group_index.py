@@ -2925,6 +2925,60 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert len(response.data) == 0
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_pagination_and_x_hits_header(self):
+        # Create 30 issues
+        for i in range(30):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=i)),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+
+        self.login_as(user=self.user)
+
+        # Request the first page with a limit of 10
+        response = self.get_success_response(limit=10, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+        assert response.headers.get("X-Hits") == "30"
+        assert "Link" in response.headers
+
+        # Parse the Link header to get the cursor for the next page
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "true"
+        cursor = next_obj["cursor"]
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "false"
+
+        # Request the second page using the cursor
+        response = self.get_success_response(limit=10, cursor=cursor, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+
+        # Check for the presence of the next cursor
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "true"
+        cursor = next_obj["cursor"]
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "true"
+
+        # Request the third page using the cursor
+        response = self.get_success_response(limit=10, cursor=cursor, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+
+        # Check that there is no next page
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "false"
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "true"
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"

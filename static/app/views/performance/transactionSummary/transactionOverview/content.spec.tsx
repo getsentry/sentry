@@ -134,6 +134,10 @@ describe('Transaction Summary Content', function () {
       url: `/projects/org-slug/project-slug/profiling/functions/`,
       body: {functions: []},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      body: '',
+    });
   });
 
   afterEach(function () {

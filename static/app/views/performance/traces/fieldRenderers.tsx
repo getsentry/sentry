@@ -12,10 +12,10 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -60,12 +60,30 @@ export const TraceBreakdownContainer = styled('div')`
   background-color: ${p => p.theme.gray100};
 `;
 
-const RectangleTraceBreakdown = styled(RowRectangle)`
+const RectangleTraceBreakdown = styled(RowRectangle)<{
+  sliceColor: string;
+  sliceName: string | null;
+}>`
+  background-color: ${p => p.sliceColor};
   position: relative;
   width: 100%;
+  ${p => `
+    opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
+  `}
+  ${p => `
+    transform: var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0));
+  `}
+  transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
-export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
+export function TraceBreakdownRenderer({
+  trace,
+  setHighlightedSliceName,
+}: {
+  setHighlightedSliceName: (sliceName: string) => void;
+
+  trace: TraceResult<Field>;
+}) {
   const theme = useTheme();
 
   return (
@@ -79,6 +97,9 @@ export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
             sliceEnd={breakdown.end}
             trace={trace}
             theme={theme}
+            onMouseEnter={() =>
+              breakdown.project ? setHighlightedSliceName(breakdown.project) : null
+            }
           />
         );
       })}
@@ -86,13 +107,17 @@ export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
   );
 }
 
+const BREAKDOWN_BAR_SIZE = 150;
+const BREAKDOWN_QUANTIZE_STEP = 3;
 export function SpanBreakdownSliceRenderer({
   trace,
   theme,
   sliceName,
   sliceStart,
   sliceEnd,
+  onMouseEnter,
 }: {
+  onMouseEnter: () => void;
   sliceEnd: number;
   sliceName: string | null;
   sliceStart: number;
@@ -107,22 +132,32 @@ export function SpanBreakdownSliceRenderer({
     return null;
   }
   const sliceColor = sliceName ? pickBarColor(sliceName) : theme.gray100;
-  const slicePercent = toPercent(sliceDuration / traceDuration);
+  const sliceWidth =
+    BREAKDOWN_QUANTIZE_STEP *
+    Math.ceil(
+      (BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * (sliceDuration / traceDuration)
+    );
   const relativeSliceStart = sliceStart - trace.start;
-  const sliceOffset = toPercent(relativeSliceStart / traceDuration);
+  const sliceOffset =
+    BREAKDOWN_QUANTIZE_STEP *
+    Math.floor(
+      ((BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * relativeSliceStart) /
+        traceDuration
+    ); // 150px wide breakdown.
   return (
-    <div
-      style={{
-        width: `max(2px, ${slicePercent})`,
-        left: sliceOffset,
-        position: 'absolute',
-        ...(sliceName ? {} : {zIndex: -1}),
-      }}
+    <BreakdownSlice
+      sliceName={sliceName}
+      sliceOffset={sliceOffset}
+      sliceWidth={sliceWidth}
+      onMouseEnter={onMouseEnter}
     >
       <Tooltip
         title={
           <div>
-            <div>{sliceName}</div>
+            <FlexContainer>
+              {sliceName ? <ProjectRenderer projectSlug={sliceName} hideName /> : null}
+              <div>{sliceName}</div>
+            </FlexContainer>
             <div>
               <PerformanceDuration milliseconds={sliceDuration} abbreviation />
             </div>
@@ -130,16 +165,30 @@ export function SpanBreakdownSliceRenderer({
         }
         containerDisplayMode="block"
       >
-        <RectangleTraceBreakdown
-          style={{
-            backgroundColor: sliceColor,
-          }}
-          onClick={_ => {}}
-        />
+        <RectangleTraceBreakdown sliceColor={sliceColor} sliceName={sliceName} />
       </Tooltip>
-    </div>
+    </BreakdownSlice>
   );
 }
+
+const FlexContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding-bottom: ${space(0.5)};
+`;
+
+const BreakdownSlice = styled('div')<{
+  sliceName: string | null;
+  sliceOffset: number;
+  sliceWidth: number;
+}>`
+  position: absolute;
+  width: max(3px, ${p => p.sliceWidth}px);
+  left: ${p => p.sliceOffset}px;
+  ${p => (p.sliceName ? null : 'z-index: -1;')}
+`;
 
 interface SpanIdRendererProps {
   projectSlug: string;
