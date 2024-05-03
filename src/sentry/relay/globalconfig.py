@@ -20,6 +20,8 @@ RELAY_OPTIONS: list[str] = [
     "feedback.ingest-topic.rollout-rate",
     "feedback.ingest-inline-attachments",
     "relay.span-extraction.sample-rate",
+    "relay.force_full_normalization",
+    "relay.disable_normalization.processing",
 ]
 
 

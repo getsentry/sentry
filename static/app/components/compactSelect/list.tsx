@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useLayoutEffect, useMemo} from 'react';
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -138,7 +145,7 @@ function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, registerListState, saveSelectedOptions, search} =
+  const {overlayState, registerListState, saveSelectedOptions, search, overlayIsOpen} =
     useContext(SelectContext);
 
   const hiddenOptions = useMemo(
@@ -345,18 +352,23 @@ function List<Value extends SelectKey>({
   );
 
   return (
-    <SelectFilterContext.Provider value={hiddenOptions}>
+    <Fragment>
       {grid ? (
-        <GridList
-          {...props}
-          id={listId}
-          listState={listState}
-          sizeLimitMessage={sizeLimitMessage}
-          keyDownHandler={keyDownHandler}
-        />
+        <SelectFilterContext.Provider value={hiddenOptions}>
+          <GridList
+            {...props}
+            id={listId}
+            listState={listState}
+            sizeLimitMessage={sizeLimitMessage}
+            keyDownHandler={keyDownHandler}
+          />
+        </SelectFilterContext.Provider>
       ) : (
         <ListBox
           {...props}
+          hasSearch={!!search}
+          overlayIsOpen={overlayIsOpen}
+          hiddenOptions={hiddenOptions}
           id={listId}
           listState={listState}
           shouldFocusWrap={shouldFocusWrap}
@@ -379,7 +391,7 @@ function List<Value extends SelectKey>({
               />
             )
         )}
-    </SelectFilterContext.Provider>
+    </Fragment>
   );
 }
 

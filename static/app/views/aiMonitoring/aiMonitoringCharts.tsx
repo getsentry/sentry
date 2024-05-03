@@ -57,7 +57,7 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
             formula: '$total',
           },
         ]}
-        displayType={MetricDisplayType.AREA}
+        displayType={MetricDisplayType.LINE}
         chartHeight={200}
       />
     </TokenChartContainer>
@@ -113,7 +113,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
             formula: '$number',
           },
         ]}
-        displayType={MetricDisplayType.AREA}
+        displayType={MetricDisplayType.LINE}
         chartHeight={200}
       />
     </TokenChartContainer>
@@ -151,7 +151,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
   const lastMeta = timeseriesData?.meta?.findLast(_ => true);
   if (lastMeta && lastMeta.length >= 2) {
     // TODO hack: there is a bug somewhere that is dropping the unit
-    (lastMeta[1] as MetricsQueryApiResponseLastMeta).unit = 'millisecond';
+    (lastMeta[1] as MetricsQueryApiResponseLastMeta).unit ??= 'millisecond';
   }
 
   if (!isGlobalSelectionReady) {
@@ -174,7 +174,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
             formula: '$duration',
           },
         ]}
-        displayType={MetricDisplayType.AREA}
+        displayType={MetricDisplayType.LINE}
         chartHeight={200}
       />
     </TokenChartContainer>

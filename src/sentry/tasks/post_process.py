@@ -1401,6 +1401,39 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
         )
 
 
+def link_event_to_user_report(job: PostProcessJob) -> None:
+    from sentry.models.userreport import UserReport
+
+    event = job["event"]
+    project = event.project
+    group = event.group
+
+    if features.has(
+        "organizations:user-feedback-event-link-ingestion-changes", project.organization
+    ):
+        metrics.incr("event_manager.save._update_user_reports_with_event_link")
+        event = job["event"]
+        project = event.project
+        user_reports_without_group = UserReport.objects.filter(
+            project_id=project.id,
+            event_id=event.event_id,
+            group_id__isnull=True,
+            environment_id__isnull=True,
+        )
+
+        user_reports_updated = user_reports_without_group.update(
+            group_id=group.id, environment_id=event.get_environment().id
+        )
+
+        if user_reports_updated:
+            metrics.incr("event_manager.save._update_user_reports_with_event_link_updated")
+
+    else:
+        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
+            group_id=group.id, environment_id=event.get_environment().id
+        )
+
+
 MAX_NEW_ESCALATION_AGE_HOURS = 24
 MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
@@ -1499,6 +1532,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         fire_error_processed,
         sdk_crash_monitoring,
         process_replay_link,
+        link_event_to_user_report,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
