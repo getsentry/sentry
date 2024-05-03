@@ -2503,3 +2503,17 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+
+# default brownout crontab for Organization Events API deprecations
+# TODO: remove once endpoint is removed
+register(
+    "api.organization-activity.brownout-cron",
+    default="*/3 * * * *",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
+register(
+    "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
+)
