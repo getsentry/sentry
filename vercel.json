@@ -11,18 +11,18 @@
       "source": "/region/(\\w+)/(.*)",
       "destination": "https://$1.sentry.io/$2"
     },
-    { "source": "/_assets/(.*)", "destination": "/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {"source": "/_assets/(.*)", "destination": "/$1"},
+    {"source": "/(.*)", "destination": "/index.html"}
   ],
   "headers": [
     {
       "source": "/(api|organization-avatar|avatar|region)/(.*)",
       "headers": [
-        { "key": "Referer", "value": "https://sentry.io/" },
-        { "key": "Document-Policy", "value": "js-profiling" },
-        { "key": "Origin", "value": "https://sentry.io" }
+        {"key": "Referer", "value": "https://sentry.io/"},
+        {"key": "Document-Policy", "value": "js-profiling"},
+        {"key": "Origin", "value": "https://sentry.io"}
       ]
     }
   ],
-  "github": { "silent": true }
+  "github": {"silent": true}
 }
