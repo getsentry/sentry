@@ -14,6 +14,8 @@ class SlackMessageAction(BaseMessageAction):
     Has helper functions that can provide Slack specific outputs for the particular message action
     """
 
+    label: str
+
     @staticmethod
     def to_slack_message_action(original: BaseMessageAction) -> SlackMessageAction:
         """
@@ -22,7 +24,7 @@ class SlackMessageAction(BaseMessageAction):
         return SlackMessageAction(
             name=original.name,
             type=original.type,
-            label=original.label,
+            label=original.label if original.label else "",
             url=original.url,
             value=original.value,
             action_id=original.action_id,

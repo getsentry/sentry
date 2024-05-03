@@ -13,7 +13,8 @@ class BaseMessageAction:
 
     name: str
     type: Literal["button", "select"] = "button"
-    label: str
+    # Label is optional, if empty it falls back to name
+    label: str | None = None
     # If the message action is a button type, the url is required
     url: str | None = None
     # If the message action is a select type, this is the selected value
@@ -27,7 +28,5 @@ class BaseMessageAction:
 
 @dataclass
 class MessageAction(BaseMessageAction):
-    # Label is optional, if empty it falls back to name
-    label: str | None = None
     style: Literal["primary", "danger", "default"] | None = None
     elements: Sequence[Mapping[str, Any]] | None = None
