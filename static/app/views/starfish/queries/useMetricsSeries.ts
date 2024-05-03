@@ -32,7 +32,7 @@ export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   return useSeries<Fields>(options, DiscoverDatasets.METRICS);
 };
 
-export const useSeries = <T extends string[]>(
+const useSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets
 ) => {
