@@ -4,7 +4,6 @@ import {
   isValidElement,
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from 'react';
 import type {RouteComponentProps} from 'react-router';
@@ -316,35 +315,33 @@ function makeFetchGroupQueryKey({
  * Once we remove all references to GroupStore in the issue details page we
  * should remove this.
  */
-function useSyncGroupStore(incomingEnvs: string[]) {
+function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  const environmentsRef = useRef<string[]>(incomingEnvs);
-  environmentsRef.current = incomingEnvs;
-
-  const unlisten = useRef<Function>();
-  if (unlisten.current === undefined) {
-    unlisten.current = GroupStore.listen(() => {
+  // It's possible the overview page is still unloading the store
+  useEffect(() => {
+    return GroupStore.listen(() => {
       const [storeGroup] = GroupStore.getState();
-      const environments = environmentsRef.current;
-      if (defined(storeGroup)) {
+      if (
+        defined(storeGroup) &&
+        storeGroup.id === groupId &&
+        // Check for properties that are only set after the group has been loaded
+        defined(storeGroup.participants) &&
+        defined(storeGroup.activity)
+      ) {
         setApiQueryData(
           queryClient,
           makeFetchGroupQueryKey({
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
-            environments,
+            environments: incomingEnvs,
           }),
           storeGroup
         );
       }
-    }, undefined);
-  }
-
-  useEffect(() => {
-    return () => unlisten.current?.();
-  }, []);
+    }, undefined) as () => void;
+  }, [groupId, incomingEnvs, organization.slug, queryClient]);
 }
 
 function useFetchGroupDetails(): FetchGroupDetailsState {
@@ -408,7 +405,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [groupId, group]);
 
-  useSyncGroupStore(environments);
+  useSyncGroupStore(groupId, environments);
 
   useEffect(() => {
     if (group && event) {
