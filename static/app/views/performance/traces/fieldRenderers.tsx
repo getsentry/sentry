@@ -245,7 +245,6 @@ export function TraceIdRenderer({
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {},
     stringOrNumberTimestamp,
     transactionId
   );

@@ -146,7 +146,6 @@ export function generateTraceTarget(
       organization,
       traceId,
       dateSelection,
-      {},
       getEventTimestamp(event),
       event.eventID
     );

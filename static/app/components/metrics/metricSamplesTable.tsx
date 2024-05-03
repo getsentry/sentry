@@ -669,7 +669,6 @@ function TraceId({
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {},
     stringOrNumberTimestamp,
     eventId
   );

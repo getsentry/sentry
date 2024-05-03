@@ -36,7 +36,6 @@ function TraceDetailsRouting(props: Props) {
         organization,
         traceId,
         datetimeSelection,
-        location.query,
         getEventTimestamp(event),
         event.eventID
       );

@@ -428,7 +428,6 @@ function renderTraceAsLinkable(
     organization,
     String(data.trace),
     dateSelection,
-    {},
     getTimeStampFromTableDateField(data.timestamp),
     data.id || data.eventID
   );
