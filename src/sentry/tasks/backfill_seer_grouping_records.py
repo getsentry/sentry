@@ -10,7 +10,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import features, nodestore
-from sentry.api.endpoints.event_grouping_info import get_grouping_info
+from sentry.grouping.grouping_info import get_grouping_info
 from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import ErrorGroupType
