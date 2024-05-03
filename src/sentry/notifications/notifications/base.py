@@ -11,7 +11,7 @@ import sentry_sdk
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.models.environment import Environment
-from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
+from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -20,6 +20,16 @@ from sentry.utils.safe import safe_execute
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+
+
+def alert_page_needs_org_id(fine_tuning_key: NotificationSettingEnum | FineTuningAPIKey) -> bool:
+    """Determines if the alert setting page needs the organization id in the query params."""
+    return fine_tuning_key in (
+        FineTuningAPIKey.ALERTS,
+        FineTuningAPIKey.WORKFLOW,
+        FineTuningAPIKey.EMAIL,
+        FineTuningAPIKey.SPIKE_PROTECTION,
+    )
 
 
 # TODO: add abstractmethod decorators
@@ -178,35 +188,47 @@ class BaseNotification(abc.ABC):
         return referrer
 
     def get_sentry_query_params(
-        self, provider: ExternalProviders, recipient: RpcActor | None = None
+        self,
+        provider: ExternalProviders,
+        recipient: RpcActor | None = None,
+        set_organization_id: bool = False,
     ) -> str:
         """
         Returns the query params that allow us to track clicks into Sentry links.
         If the recipient is not necessarily a user (ex: sending to an email address associated with an account),
         The recipient may be omitted.
+
+        Also set the organization id query param as needed for specific setting pages, e.g. workflow
         """
-        query = urlencode(
-            {
-                "referrer": self.get_referrer(provider, recipient),
-                "notification_uuid": self.notification_uuid,
-            }
-        )
+        q_params: dict[str, str | int] = {
+            "referrer": self.get_referrer(provider, recipient),
+            "notification_uuid": self.notification_uuid,
+        }
+        if set_organization_id:
+            q_params["organizationId"] = self.organization.id
+
+        query = urlencode(q_params)
         return f"?{query}"
 
     def get_settings_url(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+        set_organization_id = False
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if recipient.actor_type == ActorType.TEAM:
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
+
             if self.notification_setting_type_enum:
-                fine_tuning_key = self.notification_setting_type_enum.value
+                fine_tuning_key = self.notification_setting_type_enum
                 if fine_tuning_key:
-                    url_str += f"{fine_tuning_key}/"
+                    url_str += f"{fine_tuning_key.value}/"
+
+                set_organization_id = alert_page_needs_org_id(fine_tuning_key)
 
         return str(
             self.organization.absolute_url(
-                url_str, query=self.get_sentry_query_params(provider, recipient)
+                url_str,
+                query=self.get_sentry_query_params(provider, recipient, set_organization_id),
             )
         )
 

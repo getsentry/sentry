@@ -46,7 +46,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         )
         assert (
             blocks[2]["elements"][0]["text"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -80,5 +80,5 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         )
         assert (
             blocks[2]["elements"][0]["text"]
-            == f"{self.project.slug} | <http://{self.organization.slug}.testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://{self.organization.slug}.testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
