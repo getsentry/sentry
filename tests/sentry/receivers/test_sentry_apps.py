@@ -6,11 +6,13 @@ from unittest.mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import SentryAppInstallationStatus
+from sentry.issues.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.grouplink import GroupLink
 from sentry.models.release import Release
 from sentry.models.repository import Repository
@@ -95,6 +97,26 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="unresolved",
             user_id=None,
             data={"substatus": "ongoing"},
+        )
+        assert delay.call_count == 2
+
+    @with_feature("organizations:webhooks-unresolved")
+    def test_notify_after_escalating(self, delay):
+        # First we need to have an ignored issue
+        self.update_issue({"status": "ignored", "substatus": "until_escalating"})
+        event = self.issue.get_latest_event()
+        manage_issue_states(
+            group=self.issue,
+            group_inbox_reason=GroupInboxReason.ESCALATING,
+            event=event,
+            activity_data={},
+        )
+        delay.assert_any_call(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="unresolved",
+            user_id=None,
+            data={"substatus": "escalating"},
         )
         assert delay.call_count == 2
 
