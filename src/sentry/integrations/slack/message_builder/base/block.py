@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.notifications.utils.actions import MessageAction
 
 
 class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
@@ -81,6 +82,23 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             action["initial_option"] = initial_option
 
         return action
+
+    @staticmethod
+    def get_link_button(action: MessageAction) -> SlackBlock:
+        return {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": action.label,
+            },
+            "accessory": {
+                "type": "button",
+                "text": {"type": "plain_text", "text": action.name, "emoji": True},
+                "style": action.style,
+                "value": action.value,
+                "url": action.url,
+            },
+        }
 
     @staticmethod
     def get_action_block(actions: Sequence[tuple[str, str | None, str]]) -> SlackBlock:
