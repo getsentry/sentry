@@ -163,3 +163,90 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 count_errors=1,
             )
             assert_expected_response(response_data["data"], expected_response)
+
+    def test_get_replay_varying_projects(self):
+        """Test replay with varying project-ids returns its whole self."""
+        project2 = self.create_project()
+
+        replay1_id = self.replay_id
+        replay2_id = uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=25)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=7)
+        seq3_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=4)
+
+        trace_id_1 = uuid4().hex
+        trace_id_2 = uuid4().hex
+        # Assert values from this non-returned replay do not pollute the returned
+        # replay.
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay2_id))
+        self.store_replays(mock_replay(seq3_timestamp, self.project.id, replay2_id))
+
+        self.store_replays(
+            mock_replay(
+                seq1_timestamp,
+                self.project.id,
+                replay1_id,
+                trace_ids=[trace_id_1],
+                urls=["http://localhost:3000/"],
+            )
+        )
+        # The initial segment's project-id is different from the following segments. This
+        # difference does not influence the response.
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp,
+                project2.id,
+                "error",
+                replay1_id,
+                "a3a62ef6ac86415b83c2416fc2f76db1",
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp,
+                project2.id,
+                replay1_id,
+                segment_id=1,
+                trace_ids=[trace_id_2],
+                urls=["http://www.sentry.io/"],
+                error_ids=[],
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                seq3_timestamp,
+                project2.id,
+                replay1_id,
+                segment_id=2,
+                trace_ids=[trace_id_2],
+                urls=["http://localhost:3000/"],
+                error_ids=[],
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+
+            expected_response = mock_expected_response(
+                self.project.id,
+                replay1_id,
+                seq1_timestamp,
+                seq3_timestamp,
+                trace_ids=[
+                    trace_id_1,
+                    trace_id_2,
+                ],
+                urls=[
+                    "http://localhost:3000/",
+                    "http://www.sentry.io/",
+                    "http://localhost:3000/",
+                ],
+                count_segments=3,
+                activity=4,
+                count_errors=1,
+            )
+            assert_expected_response(response_data["data"], expected_response)
