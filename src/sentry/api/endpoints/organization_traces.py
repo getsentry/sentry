@@ -234,7 +234,13 @@ class TraceSamplesExecutor:
                 traces_breakdown_categories_results = all_results[idx]
                 idx += 1
             else:
-                traces_breakdown_categories_results = {"data": []}
+                traces_breakdown_categories_results = {
+                    "data": [],
+                    "meta": {
+                        "fields": {},
+                        "tips": {},
+                    },
+                }
 
             user_spans_results = all_results[idx]
             idx += 1
