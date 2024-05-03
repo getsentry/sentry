@@ -9,14 +9,14 @@ AUTHENTICATOR_INTERFACES_BY_TYPE = {}
 AUTHENTICATOR_CHOICES = []
 
 
-def register_authenticator(cls):
+def register_authenticator(cls: type[AuthenticatorInterface]) -> None:
     AUTHENTICATOR_INTERFACES[cls.interface_id] = cls
     AUTHENTICATOR_INTERFACES_BY_TYPE[cls.type] = cls
     AUTHENTICATOR_CHOICES.append((cls.type, cls.name))
     AUTHENTICATOR_CHOICES.sort(key=lambda x: x[0])
 
 
-def available_authenticators(ignore_backup=False):
+def available_authenticators(ignore_backup: bool = False) -> list[type[AuthenticatorInterface]]:
     interfaces = AUTHENTICATOR_INTERFACES.values()
     if not ignore_backup:
         return [v for v in interfaces if v.is_available]
