@@ -522,7 +522,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         else:
             title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
-        title_text = (title_emoji + " " or "") + f"<{title_link}|*{escape_slack_text(title)}*>"
+        title_emoji = title_emoji + " " if title_emoji else ""
+        title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
 
         return self.get_markdown_block(title_text)
 
