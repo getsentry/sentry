@@ -46,7 +46,7 @@ def dispatch_check_timeout(ts: datetime):
         # setup. If we backlogged clock-ticks we may produce multiple timeout
         # tasks for the same monitor_environment. These MUST happen in-order.
         payload = KafkaPayload(
-            checkin.monitor_environment_id.to_bytes(),
+            str(checkin.monitor_environment_id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
