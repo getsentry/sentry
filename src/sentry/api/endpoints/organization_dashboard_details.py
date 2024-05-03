@@ -84,6 +84,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
+        self.check_object_permissions(request, dashboard)
+
         num_dashboards = Dashboard.objects.filter(organization=organization).count()
         num_tombstones = DashboardTombstone.objects.filter(organization=organization).count()
 
