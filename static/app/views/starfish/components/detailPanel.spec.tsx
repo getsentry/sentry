@@ -12,4 +12,11 @@ describe('DetailPanel', function () {
 
     expect(screen.getByText('Content')).toBeInTheDocument();
   });
+
+  it('does not render content when closed', function () {
+    render(<DetailPanel detailKey={undefined}>Content</DetailPanel>);
+
+    expect(screen.queryByRole('button', {name: 'Close Details'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Content')).not.toBeInTheDocument();
+  });
 });
