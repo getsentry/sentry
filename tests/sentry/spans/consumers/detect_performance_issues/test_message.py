@@ -14,8 +14,8 @@ class TestSpansTask(TestCase):
         self.project = self.create_project()
 
     def generate_n_plus_one_spans(self):
-        segment_span = build_mock_span(project_id=self.project.id)
-        child_span = build_mock_span(
+        _, segment_span = build_mock_span(project_id=self.project.id)
+        _, child_span = build_mock_span(
             project_id=self.project.id,
             description="OrganizationNPlusOne.get",
             is_segment=False,
@@ -23,7 +23,7 @@ class TestSpansTask(TestCase):
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
         )
-        cause_span = build_mock_span(
+        _, cause_span = build_mock_span(
             project_id=self.project.id,
             span_op="db",
             description='SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project"',
@@ -35,7 +35,7 @@ class TestSpansTask(TestCase):
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
         def repeating_span():
-            return build_mock_span(
+            _, s = build_mock_span(
                 project_id=self.project.id,
                 span_op="db",
                 description=repeating_span_description,
@@ -44,6 +44,7 @@ class TestSpansTask(TestCase):
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
             )
+            return s
 
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans
@@ -83,8 +84,8 @@ class TestSpansTask(TestCase):
         ]
 
     def test_n_plus_one_issue_detection_without_segment_span(self):
-        segment_span = build_mock_span(project_id=self.project.id, is_segment=False)
-        child_span = build_mock_span(
+        _, segment_span = build_mock_span(project_id=self.project.id, is_segment=False)
+        _, child_span = build_mock_span(
             project_id=self.project.id,
             description="OrganizationNPlusOne.get",
             is_segment=False,
@@ -92,7 +93,7 @@ class TestSpansTask(TestCase):
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
         )
-        cause_span = build_mock_span(
+        _, cause_span = build_mock_span(
             project_id=self.project.id,
             span_op="db",
             description='SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project"',
@@ -104,7 +105,7 @@ class TestSpansTask(TestCase):
         repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
 
         def repeating_span():
-            return build_mock_span(
+            _, s = build_mock_span(
                 project_id=self.project.id,
                 span_op="db",
                 description=repeating_span_description,
@@ -113,6 +114,7 @@ class TestSpansTask(TestCase):
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
             )
+            return s
 
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans

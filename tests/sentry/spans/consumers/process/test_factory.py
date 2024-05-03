@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from unittest import mock
 
+import orjson
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
@@ -17,6 +18,10 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
+
+
+def strip_whitespace_after_separators(value):
+    return value.replace(", ", ",").replace(": ", ":")
 
 
 def build_mock_span(project_id, span_op=None, **kwargs):
@@ -43,13 +48,34 @@ def build_mock_span(project_id, span_op=None, **kwargs):
             "user": "id:1",
             "platform": "python",
         },
+        "data": {
+            "file.path": "path/to/file",
+            "another.key": "foo",
+        },
         "span_id": "a49b42af9fb69da0",
         "start_timestamp_ms": 1707953018865,
         "trace_id": "94576097f3a64b68b85a59c7d4e3ee2a",
     }
-
     span.update(**kwargs)
-    return span
+
+    expected_output = span.copy()
+    expected_output.pop("data")
+    expected_output["data"] = {
+        "file.path": "path/to/file",
+    }
+    expected_output.pop("sentry_tags")
+    expected_output["sentry_tags"] = {
+        "transaction": "/api/0/organizations/{organization_slug}/n-plus-one/",
+        "transaction.method": "GET",
+        "transaction.op": "http.server",
+        "release": "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+        "environment": "development",
+        "platform": "python",
+        "op": span_op or "base.dispatch.sleep",
+        "browser.name": "Google Chrome",
+    }
+
+    return span, expected_output
 
 
 def build_mock_message(data, topic=None):
@@ -104,11 +130,11 @@ def test_consumer_pushes_to_redis():
         partitions={},
     )
 
-    span_data = build_mock_span(project_id=1, is_segment=True)
+    span_data, expected_1 = build_mock_span(project_id=1, is_segment=True)
     message1 = build_mock_message(span_data, topic)
     strategy.submit(make_payload(message1, partition))
 
-    span_data = build_mock_span(project_id=1)
+    span_data, expected_2 = build_mock_span(project_id=1)
     message2 = build_mock_message(span_data, topic)
     strategy.submit(make_payload(message2, partition))
 
@@ -117,8 +143,8 @@ def test_consumer_pushes_to_redis():
     strategy.terminate()
 
     assert redis_client.lrange("segment:a49b42af9fb69da0:1:process-segment", 0, -1) == [
-        message1.value().encode("utf-8"),
-        message2.value().encode("utf-8"),
+        orjson.dumps(expected_1),
+        orjson.dumps(expected_2),
     ]
 
 
@@ -143,11 +169,11 @@ def test_produces_valid_segment_to_kafka():
             partitions={},
         )
 
-        span_data = build_mock_span(project_id=1, is_segment=True)
+        span_data, _ = build_mock_span(project_id=1, is_segment=True)
         message1 = build_mock_message(span_data, topic)
         strategy.submit(make_payload(message1, partition, 1, datetime.now() - timedelta(minutes=3)))
 
-        span_data = build_mock_span(project_id=1)
+        span_data, _ = build_mock_span(project_id=1)
         message2 = build_mock_message(span_data, topic)
         strategy.submit(make_payload(message2, partition))
 
@@ -184,13 +210,13 @@ def test_rejects_large_message_size_to_kafka():
             partitions={},
         )
 
-        span_data = build_mock_span(
+        span_data, _ = build_mock_span(
             project_id=1, is_segment=True, description="a" * 1000 * 1000 * 10
         )
         message1 = build_mock_message(span_data, topic)
         strategy.submit(make_payload(message1, partition, 1, datetime.now() - timedelta(minutes=3)))
 
-        span_data = build_mock_span(project_id=1)
+        span_data, _ = build_mock_span(project_id=1)
         message2 = build_mock_message(span_data, topic)
         strategy.submit(make_payload(message2, partition))
 
@@ -250,7 +276,7 @@ def test_option_project_rollout_rate_discard(mock_buffer):
         partitions={},
     )
 
-    span_data = build_mock_span(project_id=1)
+    span_data, _ = build_mock_span(project_id=1)
     message = build_mock_message(span_data, topic)
     strategy.submit(make_payload(message, partition))
 
@@ -275,7 +301,7 @@ def test_option_project_rollout(mock_buffer):
         partitions={},
     )
 
-    span_data = build_mock_span(project_id=1)
+    span_data, _ = build_mock_span(project_id=1)
     message = build_mock_message(span_data, topic)
     strategy.submit(make_payload(message, partition))
 
@@ -308,10 +334,10 @@ def test_commit_and_produce_with_multiple_partitions():
             partitions={},
         )
 
-        span_data = build_mock_span(project_id=1, is_segment=True)
+        span_data, _ = build_mock_span(project_id=1, is_segment=True)
         message1 = build_mock_message(span_data, topic)
 
-        span_data = build_mock_span(project_id=1)
+        span_data, _ = build_mock_span(project_id=1)
         message2 = build_mock_message(span_data, topic)
 
         offsets = {partition_1: 0, partition_2: 0}
@@ -390,11 +416,11 @@ def test_with_multiple_partitions():
             )
 
             segment_1 = "89225fa064375ee5"
-            span_data = build_mock_span(project_id=1, segment_id=segment_1)
+            span_data, expected_1 = build_mock_span(project_id=1, segment_id=segment_1)
             message1 = build_mock_message(span_data, topic)
 
             segment_2 = "a96c2bcd49de0c43"
-            span_data = build_mock_span(project_id=1, segment_id=segment_2)
+            span_data, expected_2 = build_mock_span(project_id=1, segment_id=segment_2)
             message2 = build_mock_message(span_data, topic)
 
             now = datetime.now()
@@ -430,14 +456,14 @@ def test_with_multiple_partitions():
             assert mock_batch_write_and_check_processing.call_count == 3
 
             assert redis_client.lrange("segment:89225fa064375ee5:1:process-segment", 0, -1) == [
-                message1.value().encode("utf-8"),
-                message1.value().encode("utf-8"),
+                orjson.dumps(expected_1),
+                orjson.dumps(expected_1),
             ]
 
             assert redis_client.lrange("segment:a96c2bcd49de0c43:1:process-segment", 0, -1) == [
-                message2.value().encode("utf-8"),
-                message2.value().encode("utf-8"),
-                message2.value().encode("utf-8"),
+                orjson.dumps(expected_2),
+                orjson.dumps(expected_2),
+                orjson.dumps(expected_2),
             ]
 
             mock_producer.assert_not_called()
@@ -467,11 +493,11 @@ def test_with_expand_segment():
         )
 
         segment_1 = "89225fa064375ee5"
-        span_data = build_mock_span(project_id=1, segment_id=segment_1)
+        span_data, expected_1 = build_mock_span(project_id=1, segment_id=segment_1)
         message1 = build_mock_message(span_data, topic)
 
         segment_2 = "a96c2bcd49de0c43"
-        span_data = build_mock_span(project_id=1, segment_id=segment_2)
+        span_data, _ = build_mock_span(project_id=1, segment_id=segment_2)
         message2 = build_mock_message(span_data, topic)
 
         now = datetime.now()
@@ -495,8 +521,8 @@ def test_with_expand_segment():
 
         assert mock_expand_segments.call_count == 3
         assert redis_client.lrange("segment:89225fa064375ee5:1:process-segment", 0, -1) == [
-            message1.value().encode("utf-8"),
-            message1.value().encode("utf-8"),
+            orjson.dumps(expected_1),
+            orjson.dumps(expected_1),
         ]
 
         assert redis_client.ttl("segment:a96c2bcd49de0c43:1:process-segment") == -2

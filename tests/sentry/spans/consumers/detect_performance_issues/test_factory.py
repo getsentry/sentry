@@ -45,7 +45,7 @@ def test_segment_deserialized_correctly(mock_process_segment):
         partitions={},
     )
 
-    span_data = build_mock_span(project_id=1, is_segment=True)
+    _, span_data = build_mock_span(project_id=1, is_segment=True)
     segment_data = {"spans": [span_data]}
     message = build_mock_message(segment_data, topic)
 

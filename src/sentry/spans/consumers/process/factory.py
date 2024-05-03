@@ -48,12 +48,15 @@ SPAN_DATA_KEYS = [
 
 SENTRY_TAG_KEYS = [
     "transaction",
+    "transaction.method",
+    "transaction.op",
     "release",
     "environment",
     "platform",
     "environment",
     "op",
     "sdk.name",
+    "browser.name",
 ]
 
 
