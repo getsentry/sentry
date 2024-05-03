@@ -116,14 +116,7 @@ default_manager.add(
         template="added project key {public_key}",
     )
 )
-default_manager.add(
-    AuditLogEvent(
-        event_id=51,
-        name="PROJECTKEY_EDIT",
-        api_name="projectkey.edit",
-        template="edited project key {public_key}",
-    )
-)
+default_manager.add(events.ProjectKeyEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=52,

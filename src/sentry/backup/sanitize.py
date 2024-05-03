@@ -12,6 +12,7 @@ import petname
 from dateutil.parser import parse as parse_datetime
 from django.utils.text import slugify
 
+from sentry.utils import json
 from sentry.utils.json import JSONData
 
 UPPER_CASE_HEX = {"A", "B", "C", "D", "E", "F"}
@@ -279,6 +280,26 @@ class Sanitizer:
                 self.interned_strings[old] = random_ipv6()
             return self.interned_strings[old]
 
+    def map_json(self, old_json: JSONData, new_json: JSONData) -> JSONData:
+        """
+        Maps a JSON object. If the `old` JSON object has already been seen, the already-generated
+        value for that existing key will be used instead. If it has not, we'll generate a new one.
+        This ensures that all identical existing JSON objects are swapped with identical
+        replacements everywhere they occur.
+
+        If you wish to update an actual model in-place with this newly generated name,
+        `set_json()` is the preferred method for doing so.
+        """
+
+        old_serialized = json.dumps(old_json)
+        interned = self.interned_strings.get(old_serialized)
+        if interned is not None:
+            return json.loads(interned)
+
+        new_serialized = json.dumps(new_json)
+        self.interned_strings[old_serialized] = new_serialized
+        return new_json
+
     def map_name(self, old: str) -> str:
         """
         Maps a proper noun name with some randomly generated "petname" value (ex: "Hairy Tortoise").
@@ -454,6 +475,33 @@ class Sanitizer:
             raise TypeError("Existing value must be a string")
 
         return _set_field_value(json, field, self.map_ip(old))
+
+    def set_json(
+        self,
+        json: JSONData,
+        field: SanitizableField,
+        replace_with: JSONData,
+    ) -> JSONData | None:
+        """
+        Replaces a JSON object with a randomly generated value. If the existing value of the JSON
+        object has already been seen, the already-generated value for that existing key will be used
+        instead. If it has not, we'll generate a new one. This ensures that all identical existing
+        JSON objects are swapped with identical replacements everywhere they occur.
+
+        This method updates the owning model in-place if the specified field is a non-null value,
+        then returns the newly generated replacement. If the specified field could not be found in
+        the supplied owning model, `None` is returned instead.
+
+        If you wish to merely generate a string without updating the owning model in-place, consider
+        using `map_json()` instead.
+        """
+
+        field.validate_json_model(json)
+        old = _get_field_value(json, field)
+        if old is None:
+            return None
+
+        return _set_field_value(json, field, self.map_json(old, replace_with))
 
     def set_name(
         self,

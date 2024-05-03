@@ -1,12 +1,20 @@
-import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
+import {
+  Children,
+  Fragment,
+  type PropsWithChildren,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
@@ -132,63 +140,6 @@ const HeaderContainer = styled(Title)`
   z-index: 10;
   flex: 1 1 auto;
 `;
-
-interface EventDetailsLinkProps {
-  node: TraceTreeNode<TraceTree.NodeValue>;
-  organization: Organization;
-}
-
-function EventDetailsLink(props: EventDetailsLinkProps) {
-  const params = useMemo((): {
-    eventId: string | undefined;
-    projectSlug: string | undefined;
-  } => {
-    const eventId = props.node.metadata.event_id;
-    const projectSlug = props.node.metadata.project_slug;
-
-    if (eventId && projectSlug) {
-      return {eventId, projectSlug};
-    }
-
-    if (isSpanNode(props.node) || isAutogroupedNode(props.node)) {
-      const parent = props.node.parent_transaction;
-      if (parent?.metadata.event_id && parent?.metadata.project_slug) {
-        return {
-          eventId: parent.metadata.event_id,
-          projectSlug: parent.metadata.project_slug,
-        };
-      }
-    }
-
-    return {eventId: undefined, projectSlug: undefined};
-  }, [props.node]);
-
-  const locationDescriptor = useMemo(() => {
-    const query = {...qs.parse(location.search), legacy: 1};
-
-    return {
-      query: query,
-      pathname: `/performance/${params.projectSlug}:${params.eventId}/`,
-      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
-    };
-  }, [params.eventId, params.projectSlug, props.node]);
-
-  return (
-    <LinkButton
-      disabled={!params.eventId || !params.projectSlug}
-      title={
-        !params.eventId || !params.projectSlug
-          ? t('Event ID or Project Slug missing')
-          : undefined
-      }
-      size="xs"
-      to={locationDescriptor}
-      onClick={() => traceAnalytics.trackViewEventDetails(props.organization)}
-    >
-      {t('View Event Details')}
-    </LinkButton>
-  );
-}
 
 const DURATION_COMPARISON_STATUS_COLORS: {
   equal: {light: ColorOrAlias; normal: ColorOrAlias};
@@ -443,22 +394,6 @@ function NodeActions(props: {
     const projectSlug =
       props.node.metadata.project_slug ??
       props.node.parent_transaction?.metadata.project_slug;
-    const query = {...qs.parse(location.search), legacy: 1};
-
-    const eventDetailsLink = {
-      query: query,
-      pathname: `/performance/${projectSlug}:${eventId}/`,
-      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
-    };
-
-    const viewEventDetails: MenuItemProps = {
-      key: 'view-event-details',
-      label: t('View Event Details'),
-      to: eventDetailsLink,
-      onAction: () => {
-        traceAnalytics.trackViewEventDetails(props.organization);
-      },
-    };
 
     const eventSize = props.eventSize;
     const jsonDetails: MenuItemProps = {
@@ -476,10 +411,10 @@ function NodeActions(props: {
     };
 
     if (isTransactionNode(props.node)) {
-      return [showInView, viewEventDetails, jsonDetails];
+      return [showInView, jsonDetails];
     }
     if (isSpanNode(props.node)) {
-      return [showInView, viewEventDetails];
+      return [showInView];
     }
     if (isMissingInstrumentationNode(props.node)) {
       return [showInView];
@@ -512,12 +447,6 @@ function NodeActions(props: {
         >
           {t('Show in view')}
         </Button>
-
-        {isTransactionNode(props.node) ||
-        isSpanNode(props.node) ||
-        isTraceErrorNode(props.node) ? (
-          <EventDetailsLink node={props.node} organization={props.organization} />
-        ) : null}
 
         {isTransactionNode(props.node) ? (
           <Button
@@ -671,6 +600,37 @@ function SectionCard({
   );
 }
 
+function SectionCardGroup({children}: {children: React.ReactNode}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useIssueDetailsColumnCount(containerRef);
+
+  const columns: React.ReactNode[] = [];
+  const cards = Children.toArray(children);
+
+  // Evenly distributing the cards into columns.
+  const columnSize = Math.ceil(cards.length / columnCount);
+  for (let i = 0; i < cards.length; i += columnSize) {
+    columns.push(<CardsColumn key={i}>{cards.slice(i, i + columnSize)}</CardsColumn>);
+  }
+
+  return (
+    <CardsWrapper columnCount={columnCount} ref={containerRef}>
+      {columns}
+    </CardsWrapper>
+  );
+}
+
+const CardsWrapper = styled('div')<{columnCount: number}>`
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
+  gap: 10px;
+`;
+
+const CardsColumn = styled('div')`
+  grid-column: span 1;
+`;
+
 function Description({
   value,
   linkTarget,
@@ -706,6 +666,7 @@ const DescriptionText = styled('span')`
 `;
 
 const Card = styled(Panel)`
+  margin-bottom: 10px;
   padding: ${space(0.75)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -762,7 +723,6 @@ const TraceDrawerComponents = {
   Table,
   IconTitleWrapper,
   IconBorder,
-  EventDetailsLink,
   TitleText,
   Duration,
   TableRow,
@@ -772,6 +732,7 @@ const TraceDrawerComponents = {
   IssuesLink,
   SectionCard,
   Description,
+  SectionCardGroup,
 };
 
 export {TraceDrawerComponents};

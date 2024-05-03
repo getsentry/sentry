@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
+from datetime import timedelta
 from io import BytesIO
 from threading import Event, Thread
 from time import sleep, time
 from typing import IO, Any
 
 import click
+
+# We have to use the default JSON interface to enable pretty-printing on export. When loading JSON,
+# we still use the one from `sentry.utils`, imported as `json` below.
+import orjson  # noqa: S003
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.crypto import (
@@ -23,6 +28,7 @@ from sentry.backup.crypto import (
 )
 from sentry.backup.findings import Finding, FindingJSONEncoder
 from sentry.backup.helpers import ImportFlags, Printer, Side
+from sentry.backup.sanitize import sanitize
 from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
 from sentry.silo.base import SiloMode
@@ -523,6 +529,89 @@ def encrypt(
         encrypted = create_encrypted_export_tarball(data, encryptor)
         with dest:
             dest.write(encrypted.getbuffer())
+
+
+@backup.command(name="sanitize")
+@click.argument("dest", type=click.File("wb"))
+@click.option(
+    "--decrypt-with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--encrypt-with",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--encrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--days-offset",
+    type=int,
+    help="The number of days to adjust the date range seen in the JSON being sanitized.",
+)
+@click.option(
+    "--src",
+    required=True,
+    type=click.File("rb"),
+    help="The input JSON file that needs to be sanitized.",
+)
+@configuration
+def sanitize_(
+    dest: IO[bytes],
+    decrypt_with: IO[bytes],
+    decrypt_with_gcp_kms: IO[bytes],
+    encrypt_with: IO[bytes],
+    encrypt_with_gcp_kms: IO[bytes],
+    days_offset: int | None,
+    src: IO[bytes],
+) -> None:
+    """
+    Sanitize PII from a backup.
+    """
+
+    decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
+
+    # Decrypt the tarball, if the user has indicated that this is one via the use of one of the
+    # `--decrypt...` flags.
+    if decryptor is not None:
+        try:
+            input: IO[bytes] = BytesIO(decrypt_encrypted_tarball(src, decryptor))
+        except DecryptionError as e:
+            click.echo(f"Invalid tarball: {str(e)}", err=True)
+            raise
+    else:
+        input = src
+
+    # Now read the input string into memory as JSONData.
+    try:
+        unsanitized_json = json.load(input)
+    except json.JSONDecodeError:
+        click.echo("Invalid JSON", err=True)
+        raise
+
+    # Perform the sanitization.
+    datetime_offset = timedelta(days=days_offset) if days_offset is not None else None
+    sanitized_json = sanitize(unsanitized_json, datetime_offset)
+
+    # Encrypt the raw JSON file, if the user has indicated that this is desired by using either of
+    # the `--encrypt...` flags.
+    encryptor = get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms)
+
+    # If no `encryptor` was passed in, this is an unencrypted write, so we can just dump the JSON
+    # into the `dest` file directly.
+    if encryptor is None:
+        dest.write(orjson.dumps(sanitized_json, option=orjson.OPT_INDENT_2 | orjson.OPT_UTC_Z))
+    else:
+        dest.write(create_encrypted_export_tarball(sanitized_json, encryptor).getbuffer())
 
 
 @click.group(name="import")

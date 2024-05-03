@@ -159,11 +159,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
-  // TODO(scttcper): In some cases it seems like the event is not loaded yet
-  if (!group) {
-    return <LoadingIndicator />;
-  }
-
   const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
