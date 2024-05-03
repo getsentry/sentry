@@ -42,7 +42,6 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     plugins: [],
     processingIssues: 0,
     relayPiiConfig: '',
-    relayCustomMetricCardinalityLimit: null,
     resolveAge: 0,
     safeFields: [],
     scrapeJavaScript: true,
