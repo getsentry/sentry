@@ -23,8 +23,6 @@ class NormalizedModelName:
     backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
     """
 
-    __model_name: str
-
     def __init__(self, model_name: str):
         if "." not in model_name:
             raise TypeError("cannot create NormalizedModelName from invalid input string")
