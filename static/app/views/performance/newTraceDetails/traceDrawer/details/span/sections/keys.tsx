@@ -73,7 +73,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const items: SectionCardKeyValueList = [];
 
   const aggregateMeasurements: SectionCardKeyValueList = useMemo(() => {
-    if (!node.value.op?.startsWith('ai.pipeline.')) {
+    if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
       return [];
     }
 
