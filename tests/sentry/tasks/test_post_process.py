@@ -2168,6 +2168,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             assert report1.environment_id == event.get_environment().id
             assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
+
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     @with_feature("projects:issue-priority")
