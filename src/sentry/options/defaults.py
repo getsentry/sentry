@@ -1019,6 +1019,12 @@ register("relay.metric-bucket-distribution-encodings", default={}, flags=FLAG_AU
 # Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
 register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Controls whether non-processing relays should run full normalization.
+register("relay.force_full_normalization", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Controls whether processing relays should skip normalization.
+register("relay.disable_normalization.processing", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
