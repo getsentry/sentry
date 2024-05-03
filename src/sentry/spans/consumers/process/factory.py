@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any
 
 import orjson
-import rapidjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
@@ -16,9 +15,6 @@ from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
-from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -30,10 +26,35 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 logger = logging.getLogger(__name__)
 
-SPANS_CODEC: Codec[SpanEvent] = get_codec("snuba-spans")
 MAX_PAYLOAD_SIZE = 10 * 1000 * 1000  # 10 MB
 
 BATCH_SIZE = 100
+
+SPAN_DATA_KEYS = [
+    "call_stack",  # IO on Main Thread
+    "file.path",  # IO on Main Thread
+    "blocked_main_thread",  # IO on Main Thread
+    "url",  # HTTP Overhead
+    "http.request.request_start",  # HTTP Overhead
+    "network.protocol.version",  # HTTP Overhead
+    "http.response_content_length",  # Large Payload, Uncompressed Asset
+    "Encoded Body Size",  # Large Payload, Uncompressed Asset
+    "resource.render_blocking_status",  # Render Blocking Asset
+    "http.response_transfer_size",  # Uncompressed Asset
+    "Transfer Size",  # Uncompressed Asset
+    "http.decoded_response_content_length",  # Uncompressed Asset
+    "Decoded Body Size",  # Uncompressed Asset
+]
+
+SENTRY_TAG_KEYS = [
+    "transaction",
+    "release",
+    "environment",
+    "platform",
+    "environment",
+    "op",
+    "sdk.name",
+]
 
 
 def in_process_spans_rollout_group(project_id: int | None) -> bool:
@@ -71,16 +92,8 @@ def prepare_buffered_segment_payload(segments) -> bytes:
     return b'{"spans": [' + segment_str + b"]}"
 
 
-@metrics.wraps("spans.consumers.process.deserialize_span")
-def _deserialize_span(value: bytes, use_orjson=False, use_rapidjson=False) -> Mapping[str, Any]:
-    if use_orjson:
-        sentry_sdk.set_tag("json_lib", "orjson")
-        return orjson.loads(value)
-    if use_rapidjson:
-        sentry_sdk.set_tag("json_lib", "rapidjson")
-        return rapidjson.loads(value)
-
-    return SPANS_CODEC.decode(value)
+def _deserialize_span(value: bytes) -> dict[str, Any]:
+    return orjson.loads(value)
 
 
 def _process_message(message: Message[KafkaPayload]) -> SpanMessageWithMetadata | FilteredPayload:
@@ -108,24 +121,29 @@ def _process_message(message: Message[KafkaPayload]) -> SpanMessageWithMetadata 
         timestamp = int(message.value.timestamp.timestamp())
         partition = message.value.partition.index
 
-        use_orjson = options.get("standalone-spans.deserialize-spans-orjson.enable")
-        use_rapidjson = options.get("standalone-spans.deserialize-spans-rapidjson.enable")
-
         with txn.start_child(op="deserialize"):
-            span = _deserialize_span(
-                payload_value, use_orjson=use_orjson, use_rapidjson=use_rapidjson
-            )
+            span = _deserialize_span(payload_value)
 
         segment_id: str | None = span.get("segment_id", None)
         if segment_id is None:
             return FILTERED_PAYLOAD
+
+        span_data = span.pop("data", {})
+        if span_data:
+            span["data"] = {key: span_data[key] for key in SPAN_DATA_KEYS if key in span_data}
+
+        sentry_tags = span.pop("sentry_tags", None)
+        if sentry_tags:
+            span["sentry_tags"] = {
+                key: sentry_tags[key] for key in SENTRY_TAG_KEYS if key in sentry_tags
+            }
 
     return SpanMessageWithMetadata(
         segment_id=segment_id,
         project_id=project_id,
         timestamp=timestamp,
         partition=partition,
-        span=payload_value,
+        span=orjson.dumps(span),
     )
 
 

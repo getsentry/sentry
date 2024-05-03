@@ -143,6 +143,12 @@ def transform_spans_to_event_dict(spans):
     event["platform"] = sentry_tags.get("platform")
     event["tags"] = [["environment", sentry_tags.get("environment")]]
 
+    if "browser.name" in sentry_tags:
+        event["tags"].append(["browser.name", sentry_tags["browser.name"]])
+
+    if "sdk.name" in sentry_tags:
+        event["sdk"] = {"name": sentry_tags["sdk.name"]}
+
     event["contexts"]["trace"] = {
         "trace_id": span["trace_id"],
         "type": "trace",
