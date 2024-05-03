@@ -55,17 +55,15 @@ def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, s
 def test_simple_similar_issues_embeddings(mock_seer_request):
     """Test that valid responses are decoded and returned."""
 
-    expected_return_value = {
-        "responses": [
-            {
-                "message_distance": 0.05,
-                "parent_group_id": 6,
-                "should_group": True,
-                "stacktrace_distance": 0.01,
-            }
-        ]
+    raw_similar_issue_data = {
+        "message_distance": 0.05,
+        "parent_group_id": 6,
+        "should_group": True,
+        "stacktrace_distance": 0.01,
     }
-    mock_seer_request.return_value = HTTPResponse(json.dumps(expected_return_value).encode("utf-8"))
+
+    seer_return_value = {"responses": [raw_similar_issue_data]}
+    mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": 1,
@@ -74,7 +72,7 @@ def test_simple_similar_issues_embeddings(mock_seer_request):
         "message": "message",
     }
     response = get_similar_issues_embeddings(params)
-    assert response == expected_return_value
+    assert response == [raw_similar_issue_data]
 
 
 @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
@@ -90,4 +88,4 @@ def test_empty_similar_issues_embeddings(mock_seer_request):
         "message": "message",
     }
     response = get_similar_issues_embeddings(params)
-    assert response == {"responses": []}
+    assert response == []

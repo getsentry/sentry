@@ -120,7 +120,7 @@ class SeerSimilarIssueData:
 
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
-) -> SimilarIssuesEmbeddingsResponse:
+) -> list[RawSeerSimilarIssueData]:
     """Call /v0/issues/similar-issues endpoint from seer."""
     response = seer_staging_connection_pool.urlopen(
         "POST",
@@ -130,7 +130,7 @@ def get_similar_issues_embeddings(
     )
 
     try:
-        return json.loads(response.data.decode("utf-8"))
+        response_data = json.loads(response.data.decode("utf-8"))
     except (
         AttributeError,  # caused by a response with no data and therefore no `.decode` method
         UnicodeError,
@@ -143,4 +143,6 @@ def get_similar_issues_embeddings(
                 "response_data": response.data,
             },
         )
-        return {"responses": []}
+        return []
+
+    return response_data.get("responses") or []
