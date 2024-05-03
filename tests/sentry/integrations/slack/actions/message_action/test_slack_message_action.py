@@ -69,8 +69,8 @@ class TestGetButtonTextValue(TestCase):
             value="test_value",
             action_id="test_action_id",
             block_id="test_block_id",
-            option_groups={"test_group": "test_option_group"},
-            selected_options={"test_option": "test_option_value"},
+            option_groups=[{"test_group": "test_option_group"}],
+            selected_options=[{"test_option": "test_option_value"}],
         )
         button_text = slack_action._get_button_text_value()
         assert button_text == label
@@ -85,8 +85,8 @@ class TestGetButtonTextValue(TestCase):
             value="test_value",
             action_id="test_action_id",
             block_id="test_block_id",
-            option_groups={"test_group": "test_option_group"},
-            selected_options={"test_option": "test_option_value"},
+            option_groups=[{"test_group": "test_option_group"}],
+            selected_options=[{"test_option": "test_option_value"}],
         )
         button_text = slack_action._get_button_text_value()
         assert button_text == name
