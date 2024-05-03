@@ -936,7 +936,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route path="developer-settings/" name={t('Custom Integrations')}>
         <IndexRoute
           component={make(
@@ -983,28 +982,6 @@ function buildRoutes() {
               )
           )}
         />
-        <Route path="sentry-functions/" name={t('Sentry Functions')}>
-          <Route
-            path="new/"
-            name={t('Create Sentry Function')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-                )
-            )}
-          />
-          <Route
-            path=":functionSlug/"
-            name={t('Edit Sentry Function')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-                )
-            )}
-          />
-        </Route>
       </Route>
       <Route path="auth-tokens/" name={t('Auth Tokens')}>
         <IndexRoute
