@@ -290,8 +290,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "namespace": namespace.value,
             }
             if id in passive_limits:
-                # HACK inc-730: reduce pressure on memory by disabling limits for passive projects
-                continue
+                limit["passive"] = True
             cardinality_limits.append(limit)
             existing_ids.add(id)
 
