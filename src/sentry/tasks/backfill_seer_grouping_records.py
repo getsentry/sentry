@@ -248,7 +248,7 @@ def lookup_group_data_stacktrace_bulk(
                 event.data = data
                 if event and event.data and event.data.get("exception") and hashes.get(group_id):
                     grouping_info = get_grouping_info(
-                        None, project=project, event_id=event.event_id, event=event
+                        None, project=project, event=event
                     )
                     stacktrace_string = get_stacktrace_string(grouping_info)
                     if stacktrace_string == "":
