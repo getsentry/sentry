@@ -97,7 +97,7 @@ type ContentProps = {
 };
 
 function SpanSummaryContent(props: ContentProps) {
-  const {location, organization, eventView, transactionName, project} = props;
+  const {transactionName, project} = props;
 
   const {spanSlug: spanParam} = useParams();
   const [spanOp, groupId] = spanParam.split(':');
@@ -122,11 +122,7 @@ function SpanSummaryContent(props: ContentProps) {
 
   return (
     <Fragment>
-      <SpanSummaryControls
-        organization={organization}
-        location={location}
-        eventView={eventView}
-      />
+      <SpanSummaryControls />
       <SpanSummaryHeader
         spanOp={spanOp}
         spanDescription={description}
