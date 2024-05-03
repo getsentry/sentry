@@ -17,19 +17,31 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
-/**
- * Extra breadcrumb types not included in `@sentry/replay`
- */
-type ExtraBreadcrumbTypes = {
-  category: 'navigation';
-  data: {
-    from: string;
-    to: string;
-  };
+// TODO: more types get added here
+type MobileBreadcrumbTypes = {
+  category: 'ui.tap';
+  data: any;
   message: string;
   timestamp: number;
-  type: string; // For compatibility reasons
+  type: string;
 };
+
+/**
+ * Extra breadcrumb types not included in `@sentry/replay`
+ * Also includes mobile types
+ */
+type ExtraBreadcrumbTypes =
+  | MobileBreadcrumbTypes
+  | {
+      category: 'navigation';
+      data: {
+        from: string;
+        to: string;
+      };
+      message: string;
+      timestamp: number;
+      type: string; // For compatibility reasons
+    };
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
@@ -148,6 +160,7 @@ type HydratedTimestamp = {
    */
   timestampMs: number;
 };
+
 type HydratedBreadcrumb<Category extends string> = Overwrite<
   Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
@@ -209,6 +222,7 @@ export type FeedbackFrame = {
 
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
+export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type InputFrame = HydratedBreadcrumb<'ui.input'>;
@@ -228,6 +242,7 @@ export const BreadcrumbCategories = [
   'replay.hydrate-error',
   'ui.blur',
   'ui.click',
+  'ui.tap',
   'ui.focus',
   'ui.input',
   'ui.keyDown',

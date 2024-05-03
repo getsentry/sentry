@@ -32,6 +32,7 @@ import type {
   NavFrame,
   ReplayFrame,
   SlowClickFrame,
+  TapFrame,
 } from 'sentry/utils/replays/types';
 import {
   getFrameOpOrCategory,
@@ -183,6 +184,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
+  }),
+  'ui.tap': (frame: TapFrame) => ({
+    color: 'blue300',
+    description: frame.message,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Tap',
+    icon: <IconUser size="xs" />,
   }),
   'ui.input': () => ({
     color: 'blue300',
