@@ -538,13 +538,15 @@ class BackupTestCase(TransactionTestCase):
 
         # misc
         Counter.increment(project, 1)
-        self.create_repo(
+        repo = self.create_repo(
             project=project,
             name="getsentry/getsentry",
             provider="integrations:github",
             integration_id=integration_id,
             url="https://github.com/getsentry/getsentry",
         )
+        repo.external_id = "https://git.example.com:1234"
+        repo.save()
 
         return org
 
@@ -585,7 +587,14 @@ class BackupTestCase(TransactionTestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_sentry_app(self, name: str, owner: User, org: Organization) -> SentryApp:
         # SentryApp*
-        app = self.create_sentry_app(name=name, organization=org)
+        app = self.create_sentry_app(
+            name=name,
+            organization=org,
+            overview="A sample description",
+            webhook_url="https://example.com/sentry-app/webhook/",
+            redirect_url="https://example.com/sentry-app/redirect/",
+        )
+
         install = self.create_sentry_app_installation(slug=app.slug, organization=org, user=owner)
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
