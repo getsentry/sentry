@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
-import type {MetricsProperty} from 'sentry/views/starfish/types';
+import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -90,7 +90,7 @@ describe('useSpanMetricsTopNSeries', () => {
           },
           fields: ['span.status_code' as const, 'count()' as const],
           topEvents: 5,
-          yAxis: ['count()'] as MetricsProperty[],
+          yAxis: ['count()'] as SpanMetricsProperty[],
         },
       }
     );

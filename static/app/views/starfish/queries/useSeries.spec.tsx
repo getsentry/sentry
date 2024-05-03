@@ -9,8 +9,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import type {MetricsProperty} from 'sentry/views/starfish/types';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
+import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -109,7 +109,7 @@ describe('useSpanMetricsSeries', () => {
             'resource.render_blocking_status': 'blocking' as const,
             environment: undefined,
           },
-          yAxis: ['spm()'] as MetricsProperty[],
+          yAxis: ['spm()'] as SpanMetricsProperty[],
         },
       }
     );
@@ -144,7 +144,7 @@ describe('useSpanMetricsSeries', () => {
     const {rerender} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
       wrapper: Wrapper,
       initialProps: {
-        yAxis: ['avg(span.self_time)', 'spm()'] as MetricsProperty[],
+        yAxis: ['avg(span.self_time)', 'spm()'] as SpanMetricsProperty[],
       },
     });
 
@@ -154,13 +154,13 @@ describe('useSpanMetricsSeries', () => {
         method: 'GET',
         query: expect.objectContaining({
           interval: '30m',
-          yAxis: ['avg(span.self_time)', 'spm()'] as MetricsProperty[],
+          yAxis: ['avg(span.self_time)', 'spm()'] as SpanMetricsProperty[],
         }),
       })
     );
 
     rerender({
-      yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
+      yAxis: ['p95(span.self_time)', 'spm()'] as SpanMetricsProperty[],
     });
 
     await waitFor(() =>
@@ -170,7 +170,7 @@ describe('useSpanMetricsSeries', () => {
           method: 'GET',
           query: expect.objectContaining({
             interval: '1h',
-            yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
+            yAxis: ['p95(span.self_time)', 'spm()'] as SpanMetricsProperty[],
           }),
         })
       )
@@ -192,7 +192,7 @@ describe('useSpanMetricsSeries', () => {
     const {result} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
       wrapper: Wrapper,
       initialProps: {
-        yAxis: ['spm()'] as MetricsProperty[],
+        yAxis: ['spm()'] as SpanMetricsProperty[],
       },
     });
 
@@ -232,7 +232,10 @@ describe('useSpanMetricsSeries', () => {
     const {result} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
       wrapper: Wrapper,
       initialProps: {
-        yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as MetricsProperty[],
+        yAxis: [
+          'http_response_rate(3)',
+          'http_response_rate(4)',
+        ] as SpanMetricsProperty[],
       },
     });
 

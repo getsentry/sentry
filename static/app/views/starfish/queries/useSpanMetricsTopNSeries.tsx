@@ -2,7 +2,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/starfish/queries/getSeriesEventView';
-import type {MetricsProperty} from 'sentry/views/starfish/types';
+import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 interface SpanMetricTimeseriesRow {
@@ -19,7 +19,7 @@ interface UseSpanMetricsSeriesOptions<Fields> {
   yAxis?: Fields;
 }
 
-export const useSpanMetricsTopNSeries = <Fields extends MetricsProperty[]>(
+export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
   options: UseSpanMetricsSeriesOptions<Fields> = {topEvents: DEFAULT_EVENT_COUNT}
 ) => {
   const {
