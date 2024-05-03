@@ -929,6 +929,11 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     Does the consumer process unrelated check-ins in parallel?
     """
 
+    max_workers: int | None = None
+    """
+    Number of Executor workers to use when running in parallel
+    """
+
     max_batch_size = 500
     """
     How many messages will be batched at once when in parallel mode.
@@ -944,6 +949,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         mode: Literal["parallel", "serial"] | None = None,
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
+        max_workers: int | None = None,
     ) -> None:
         if mode == "parallel":
             self.parallel = True
@@ -952,13 +958,15 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             self.max_batch_size = max_batch_size
         if max_batch_time is not None:
             self.max_batch_time = max_batch_time
+        if max_workers is not None:
+            self.max_workers = max_workers
 
     def shutdown(self) -> None:
         if self.parallel_executor:
             self.parallel_executor.shutdown()
 
-    def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
-        self.parallel_executor = ThreadPoolExecutor()
+    def create_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        self.parallel_executor = ThreadPoolExecutor(max_workers=self.max_workers)
 
         batch_processor = RunTask(
             function=partial(process_batch, self.parallel_executor),
@@ -982,6 +990,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         if self.parallel:
-            return self.create_paralell_worker(commit)
+            return self.create_parallel_worker(commit)
         else:
             return self.create_synchronous_worker(commit)

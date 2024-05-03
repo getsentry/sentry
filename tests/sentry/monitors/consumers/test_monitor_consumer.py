@@ -164,7 +164,11 @@ class MonitorConsumerTest(TestCase):
         Validates that the consumer in parallel mode correctly groups check-ins
         into groups by their monitor slug / environment
         """
-        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        factory = StoreMonitorCheckInStrategyFactory(
+            mode="parallel",
+            max_batch_size=4,
+            max_workers=1,
+        )
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
