@@ -50,15 +50,14 @@ function getEventView(
   search: MutableSearch | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],
-  pageFilters: PageFilters,
-  dataset: DiscoverDatasets = DiscoverDatasets.SPANS_METRICS
+  pageFilters: PageFilters
 ) {
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       query: search?.formatString() ?? '',
       fields,
-      dataset,
+      dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },
     pageFilters
