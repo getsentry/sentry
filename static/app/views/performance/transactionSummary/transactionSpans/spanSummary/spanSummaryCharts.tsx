@@ -94,10 +94,6 @@ function SpanSummaryCharts() {
     getRequestPayload: () => ({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
-      topEvents: eventView.topEvents,
-      excludeOther: 0,
-      partial: 1,
-      orderby: undefined,
       interval: eventView.interval,
     }),
     options: {
@@ -111,7 +107,7 @@ function SpanSummaryCharts() {
     data:
       txnThroughputData?.data.map(datum => ({
         value: datum[1][0].count,
-        name: datum[0],
+        name: datum[0] * 1000,
       })) ?? [],
   };
 
