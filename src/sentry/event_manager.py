@@ -375,6 +375,8 @@ class EventManager:
 
         from sentry_relay.processing import StoreNormalizer
 
+        json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
+
         rust_normalizer = StoreNormalizer(
             project_id=self._project.id if self._project else project_id,
             client_ip=self._client_ip,
@@ -386,11 +388,14 @@ class EventManager:
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
+            json_dumps=json_dumps,
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        self._data = CanonicalKeyDict(
+            rust_normalizer.normalize_event(dict(self._data), json_loads=json_loads)
+        )
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
