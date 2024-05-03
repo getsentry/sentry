@@ -2,7 +2,7 @@ import {useEffect, useMemo} from 'react';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -22,6 +22,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,
@@ -145,10 +146,21 @@ const STATIC_SEMVER_TAGS = Object.keys(SEMVER_TAGS).reduce((tags, key) => {
   return tags;
 }, {});
 
+export const getHasTag = (tags: TagCollection) => ({
+  key: FieldKey.HAS,
+  name: 'Has property',
+  values: Object.keys(tags).sort((a, b) => {
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+  }),
+  predefined: true,
+  kind: FieldKind.FIELD,
+});
+
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
   tags: TagCollection;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
   /**
@@ -175,6 +187,7 @@ function SearchBar(props: SearchBarProps) {
     includeSessionTagsValues,
     maxMenuHeight,
     customMeasurements,
+    dataset,
   } = props;
 
   const api = useApi();
@@ -214,18 +227,30 @@ function SearchBar(props: SearchBarProps) {
         return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
       }
 
-      return fetchTagValues({
-        api,
-        orgSlug: organization.slug,
-        tagKey: tag.key,
-        search: query,
-        projectIds: projectIdStrings,
-        endpointParams,
-        // allows searching for tags on transactions as well
-        includeTransactions: true,
-        // allows searching for tags on sessions as well
-        includeSessions: includeSessionTagsValues,
-      }).then(
+      const fetchPromise =
+        dataset === DiscoverDatasets.SPANS_INDEXED
+          ? fetchSpanFieldValues({
+              api,
+              orgSlug: organization.slug,
+              fieldKey: tag.key,
+              search: query,
+              projectIds: projectIdStrings,
+              endpointParams,
+            })
+          : fetchTagValues({
+              api,
+              orgSlug: organization.slug,
+              tagKey: tag.key,
+              search: query,
+              projectIds: projectIdStrings,
+              endpointParams,
+              // allows searching for tags on transactions as well
+              includeTransactions: true,
+              // allows searching for tags on sessions as well
+              includeSessions: includeSessionTagsValues,
+            });
+
+      return fetchPromise.then(
         results => results.filter(({name}) => defined(name)).map(({name}) => name),
         () => {
           throw new Error('Unable to fetch event field values');
@@ -267,15 +292,7 @@ function SearchBar(props: SearchBarProps) {
       supportedTags
     );
 
-    combinedTags.has = {
-      key: FieldKey.HAS,
-      name: 'Has property',
-      values: Object.keys(combinedTags).sort((a, b) => {
-        return a.toLowerCase().localeCompare(b.toLowerCase());
-      }),
-      predefined: true,
-      kind: FieldKind.FIELD,
-    };
+    combinedTags.has = getHasTag(combinedTags);
 
     const list =
       omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
