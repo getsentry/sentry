@@ -102,6 +102,7 @@ def build_test_message_blocks(
         for k, v in tags.items():
             if k == "release":
                 v = format_release_tag(v, group)
+            v = v.replace("`", "")
             tags_text += f"{k}: `{v}`  "
 
         tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
@@ -272,7 +273,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "tags": {"foo": "bar"},
+                "tags": {"escape": "`room`", "foo": "bar"},
                 "timestamp": iso_format(before_now(minutes=1)),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
@@ -285,7 +286,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        more_tags = {"foo": "bar"}
+        more_tags = {"escape": "`room`", "foo": "bar"}
         notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
@@ -295,7 +296,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}
+            group, event.for_group(group), tags={"foo", "escape"}
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -316,7 +317,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}, notes=notes
+            group, event.for_group(group), tags={"foo", "escape"}, notes=notes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
