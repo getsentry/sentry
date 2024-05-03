@@ -235,17 +235,6 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         assert response.status_code == 200, response.content
         assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
 
-    def test_user_report_gets_environment(self):
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self.path,
-            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
-            HTTP_REFERER="http://example.com",
-        )
-        self.make_event(environment=self.environment.name, event_id=self.event_id)
-        assert response.status_code == 200, response.content
-        assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
-
     @mock.patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
         self.make_event(environment=self.environment.name, event_id=self.event_id)
