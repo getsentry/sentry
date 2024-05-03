@@ -119,7 +119,7 @@ class CreateGroupingRecordsRequest(TypedDict):
 
 class BulkCreateGroupingRecordsResponse(TypedDict):
     success: bool
-      
+
 
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
@@ -147,6 +147,7 @@ def get_similar_issues_embeddings(
             },
         )
         return {"responses": []}
+
 
 def post_bulk_grouping_records(
     grouping_records_request: CreateGroupingRecordsRequest,
