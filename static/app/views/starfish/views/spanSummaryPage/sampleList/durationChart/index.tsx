@@ -11,7 +11,7 @@ import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValue
 import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';

@@ -31,7 +31,7 @@ import {
 } from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanFunction} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
