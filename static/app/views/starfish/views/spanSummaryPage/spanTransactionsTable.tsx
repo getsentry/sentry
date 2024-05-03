@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -11,6 +10,7 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -26,7 +26,10 @@ import {
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import type {SpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import type {MetricsResponse, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import type {
+  SpanIndexedFieldTypes,
+  SpanMetricsResponse,
+} from 'sentry/views/starfish/types';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
@@ -44,7 +47,7 @@ type Row = {
 
 type Props = {
   sort: ValidSort;
-  span: Pick<MetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
+  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
   endpoint?: string;
   endpointMethod?: string;
 };

@@ -28,7 +28,7 @@ class ProjectMonitorCheckInIndexEndpoint(ProjectMonitorEndpoint, MonitorCheckInM
         operation_id="Retrieve Check-Ins for a Monitor by Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
         ],
         responses={

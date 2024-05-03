@@ -370,8 +370,8 @@ def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = T
     """Potentially swap to the silo mode to match the provided model classes.
 
     The argument should be one or more model classes that are scoped to exactly one
-    non-monolith mode. That is, they must be tagged with `control_silo_only_model` or
-    `region_silo_only_model`. The enclosed context is swapped into the appropriate
+    non-monolith mode. That is, they must be tagged with `control_silo_model` or
+    `region_silo_model`. The enclosed context is swapped into the appropriate
     mode, allowing the model to be accessed.
 
     If no silo-scoped models are provided, no mode swap is performed.
@@ -600,14 +600,8 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 
 
 def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
-    from sentry.models.actor import Actor
-
     # HybridCloudForeignKey can point to region models if they have snowflake ids
     if issubclass(related_model, SnowflakeIdMixin):
-        return
-
-    # This particular relation is being removed before we go multi region.
-    if related_model is Actor:
         return
 
     # but they cannot point to region models otherwise.

@@ -27,6 +27,7 @@ export enum SpanMetricsField {
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
+  PROJECT = 'project',
   PROJECT_ID = 'project.id',
   TRANSACTION = 'transaction',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
@@ -39,6 +40,7 @@ export enum SpanMetricsField {
   DEVICE_CLASS = 'device.class',
   CACHE_HIT = 'cache.hit',
   CACHE_ITEM_SIZE = 'cahce.item_size',
+  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'messaging.message.receive.latency',
 }
 
 export type SpanNumberFields =
@@ -46,7 +48,8 @@ export type SpanNumberFields =
   | SpanMetricsField.SPAN_DURATION
   | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
-  | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE;
+  | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE
+  | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY;
 
 export type SpanStringFields =
   | 'span.op'
@@ -60,7 +63,9 @@ export type SpanStringFields =
   | 'release'
   | 'os.name'
   | 'span.status_code'
-  | 'span.ai.pipeline.group';
+  | 'span.ai.pipeline.group'
+  | 'project'
+  | 'messaging.destination.name';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -111,7 +116,7 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-export type MetricsResponse = {
+export type SpanMetricsResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -126,6 +131,7 @@ export type MetricsResponse = {
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
 } & {
+  ['project']: string;
   ['project.id']: number;
 } & {
   [Function in RegressionFunctions]: number;
@@ -142,7 +148,7 @@ export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
 
-export type MetricsProperty = keyof MetricsResponse;
+export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
 export enum SpanIndexedField {
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
@@ -155,6 +161,7 @@ export enum SpanIndexedField {
   SPAN_OP = 'span.op',
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
+  SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
   TRACE = 'trace',
   TRANSACTION_ID = 'transaction.id',
   TRANSACTION_METHOD = 'transaction.method',
@@ -189,6 +196,7 @@ export type IndexedResponse = {
   [SpanIndexedField.SPAN_MODULE]: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
+  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
   [SpanIndexedField.ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
@@ -288,4 +296,31 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
+};
+
+// TODO - add more functions and fields, combine shared ones, etc
+
+export const METRICS_FUNCTIONS = ['count'] as const;
+
+export enum MetricsFields {
+  TRANSACTION_DURATION = 'transaction.duration',
+  TRANSACTION = 'transaction',
+}
+
+export type MetricsNumberFields = MetricsFields.TRANSACTION_DURATION;
+
+export type MetricsStringFields = MetricsFields.TRANSACTION;
+
+export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
+
+export type MetricsResponse = {
+  [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
+};
+
+export type MetricsProperty = keyof MetricsResponse;
+
+export type MetricsQueryFilters = {
+  [Field in MetricsStringFields]?: string;
+} & {
+  [SpanIndexedField.PROJECT_ID]?: string;
 };

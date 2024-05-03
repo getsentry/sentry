@@ -40,7 +40,7 @@ def convert_max_batch_time(ctx, param, value):
 
 def multiprocessing_options(
     default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
-):
+) -> list[click.Option]:
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
         click.Option(["--input-block-size"], type=int, default=None),
@@ -57,6 +57,19 @@ def multiprocessing_options(
             callback=convert_max_batch_time,
             type=int,
             help="Maximum time (in milliseconds) to wait before flushing a batch.",
+        ),
+    ]
+
+
+def issue_occurrence_options() -> list[click.Option]:
+    """Return a list of issue-occurrence options."""
+    return [
+        *multiprocessing_options(default_max_batch_size=100),
+        click.Option(
+            ["--mode", "mode"],
+            type=click.Choice(["batched-parallel", "parallel"]),
+            default="parallel",
+            help="The mode to process occurrences in. Batched-parallel uses batched in parallel to guarantee messages are processed in order per group, parallel uses multi-processing.",
         ),
     ]
 
@@ -110,6 +123,12 @@ def ingest_monitors_options() -> list[click.Option]:
             type=int,
             default=1,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-workers", "max_workers"],
+            type=int,
+            default=None,
+            help="The maximum number of threads to spawn in parallel mode.",
         ),
     ]
     return options
@@ -226,7 +245,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-occurrences": {
         "topic": Topic.INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=20),
+        "click_options": issue_occurrence_options(),
     },
     "events-subscription-results": {
         "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,

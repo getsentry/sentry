@@ -30,6 +30,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
@@ -45,6 +46,7 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.integrations.integration import Integration
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.userreport import UserReport
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
@@ -1311,8 +1313,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee is None
         assert len(GroupOwner.objects.filter(group_id=event.group)) == 0
 
-    @patch("sentry.tasks.post_process.logger")
-    def test_debounces_handle_owner_assignments(self, logger):
+    @patch("sentry.utils.metrics.incr")
+    def test_debounces_handle_owner_assignments(self, mock_incr):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1329,16 +1331,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        logger.info.assert_any_call(
-            "handle_owner_assignment.issue_owners_exist",
-            extra={
-                "event": event.event_id,
-                "group": event.group_id,
-                "project": event.project_id,
-                "organization": event.project.organization_id,
-                "reason": "issue_owners_exist",
-            },
-        )
+        mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
     @patch("sentry.tasks.post_process.logger")
     def test_issue_owners_should_ratelimit(self, mock_logger):
@@ -1935,11 +1928,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert ret_value["project_id"] == self.project.id
         assert ret_value["segment_id"] is None
         assert ret_value["retention_days"] == 90
-
-        # convert ret_value_payload which is a list of bytes to a string
-        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
-
-        assert ret_value_payload == {
+        assert ret_value["payload"] == {
             "type": "event_link",
             "replay_id": replay_id,
             "error_id": event.event_id,
@@ -1974,11 +1963,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert ret_value["project_id"] == self.project.id
         assert ret_value["segment_id"] is None
         assert ret_value["retention_days"] == 90
-
-        # convert ret_value_payload which is a list of bytes to a string
-        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
-
-        assert ret_value_payload == {
+        assert ret_value["payload"] == {
             "type": "event_link",
             "replay_id": replay_id,
             "error_id": event.event_id,
@@ -2033,6 +2018,155 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert kafka_producer.return_value.publish.call_count == 0
         for args, _ in incr.call_args_list:
             self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
+
+
+class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
+    def test_user_report_gets_environment(self):
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
+
+        event_id = "a" * 32
+
+        event = self.create_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="foo",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
+
+    def test_user_report_gets_environment_with_new_link_features(self):
+        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
+            project = self.create_project()
+            environment = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            environment.add_project(project)
+
+            event_id = "a" * 32
+            event = self.store_event(
+                data={"environment": environment.name, "event_id": event_id},
+                project_id=project.id,
+            )
+            UserReport.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name="foo",
+                email="bar@example.com",
+                comments="It Broke!!!",
+            )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
+
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_user_report_shims_to_feedback(self, mock_produce_occurrence_to_kafka):
+        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
+            project = self.create_project()
+            environment = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            environment.add_project(project)
+
+            event_id = "a" * 32
+
+            UserReport.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name="Foo Bar",
+                email="bar@example.com",
+                comments="It Broke!!!",
+            )
+
+            event = self.store_event(
+                data={"environment": environment.name, "event_id": event_id},
+                project_id=project.id,
+            )
+
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+
+            report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+            assert report1.group_id == event.group_id
+            assert report1.environment_id == event.get_environment().id
+
+            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+            mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+
+            assert mock_event_data["contexts"]["feedback"]["contact_email"] == "bar@example.com"
+            assert mock_event_data["contexts"]["feedback"]["message"] == "It Broke!!!"
+            assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
+            assert mock_event_data["environment"] == environment.name
+            assert mock_event_data["tags"] == [
+                ["environment", environment.name],
+                ["level", "error"],
+            ]
+
+            assert mock_event_data["platform"] == "other"
+            assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
+            assert mock_event_data["level"] == "error"
+
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_user_reports_no_shim_if_group_exists_on_report(self, mock_produce_occurrence_to_kafka):
+        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
+            project = self.create_project()
+            environment = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            environment.add_project(project)
+
+            event_id = "a" * 32
+
+            UserReport.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name="Foo Bar",
+                email="bar@example.com",
+                comments="It Broke!!!",
+                environment_id=environment.id,
+            )
+
+            event = self.store_event(
+                data={"environment": environment.name, "event_id": event_id},
+                project_id=project.id,
+            )
+
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+
+            # since the environment already exists on this user report, we know that
+            # the report and the event have already been linked, so no feedback shim should be produced
+            report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+            assert report1.environment_id == event.get_environment().id
+            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
@@ -2287,6 +2421,7 @@ class PostProcessGroupErrorTest(
     SDKCrashMonitoringTestMixin,
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
+    UserReportEventLinkTestMixin,
 ):
     def setUp(self):
         super().setUp()

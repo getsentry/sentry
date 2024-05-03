@@ -3,8 +3,8 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from sentry.api.endpoints.event_grouping_info import get_grouping_info
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -33,7 +33,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry-api-0-event-grouping-info",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )
@@ -52,7 +52,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry-api-0-event-grouping-info",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )
@@ -70,7 +70,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry-api-0-event-grouping-info",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )
@@ -96,19 +96,31 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "d74ed7012596c3fb",
         ]
 
-    def test_get_grouping_info_no_event(self):
-        with pytest.raises(ResourceDoesNotExist):
-            get_grouping_info(None, self.project, "fake-event-id")
+    def test_no_event(self):
+        url = reverse(
+            "sentry-api-0-event-grouping-info",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "event_id": "fake-event-id",
+            },
+        )
+
+        response = self.client.get(url, format="json")
+
+        assert response.exception is True
+        assert response.status_code == 404
+        assert response.status_text == "Not Found"
 
     def test_get_grouping_info_unkown_grouping_config(self):
         data = load_data(platform="javascript")
         event = self.store_event(data=data, project_id=self.project.id)
 
         with pytest.raises(ResourceDoesNotExist):
-            get_grouping_info("fake-config", self.project, event.event_id)
+            get_grouping_info("fake-config", self.project, event)
 
-    @mock.patch("sentry.api.endpoints.event_grouping_info.logger")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.metrics")
+    @mock.patch("sentry.grouping.grouping_info.logger")
+    @mock.patch("sentry.grouping.grouping_info.metrics")
     def test_get_grouping_info_hash_mismatch(self, mock_metrics, mock_logger):
         # Make a Python event
         data = load_data(platform="python")
@@ -128,7 +140,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry.eventstore.models.BaseEvent.get_grouping_variants"
         ) as mock_get_grouping_variants:
             mock_get_grouping_variants.return_value = python_grouping_variants
-            get_grouping_info(None, self.project, javascript_event.event_id)
+            get_grouping_info(None, self.project, javascript_event)
 
         mock_metrics.incr.assert_called_with("event_grouping_info.hash_mismatch")
         mock_logger.error.assert_called_with(

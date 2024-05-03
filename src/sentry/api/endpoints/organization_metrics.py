@@ -563,23 +563,23 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
                 raise ParseError(f"Unsupported sort: {sort} for MRI")
 
         executor = executor_cls(
-            serialized["mri"],
-            params,
-            snuba_params,
-            serialized["field"],
-            serialized.get("operation"),
-            serialized.get("query", ""),
-            serialized.get("min"),
-            serialized.get("max"),
-            serialized.get("sort"),
-            rollup,
-            Referrer.API_ORGANIZATION_METRICS_SAMPLES,
+            mri=serialized["mri"],
+            params=params,
+            snuba_params=snuba_params,
+            fields=serialized["field"],
+            operation=serialized.get("operation"),
+            query=serialized.get("query", ""),
+            min=serialized.get("min"),
+            max=serialized.get("max"),
+            sort=serialized.get("sort"),
+            rollup=rollup,
+            referrer=Referrer.API_ORGANIZATION_METRICS_SAMPLES,
         )
 
         with handle_query_errors():
             return self.paginate(
                 request=request,
-                paginator=GenericOffsetPaginator(data_fn=executor.execute),
+                paginator=GenericOffsetPaginator(data_fn=executor.get_matching_spans),
                 on_results=lambda results: self.handle_results_with_meta(
                     request,
                     organization,

@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {NewQuery} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
 

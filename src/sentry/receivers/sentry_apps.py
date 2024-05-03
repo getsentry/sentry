@@ -7,23 +7,24 @@ from sentry import features
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
-from sentry.models.sentryfunction import SentryFunction
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import (
     comment_created,
     comment_deleted,
     comment_updated,
     issue_assigned,
+    issue_escalating,
     issue_ignored,
     issue_resolved,
+    issue_unresolved,
 )
 from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
-from sentry.tasks.sentry_functions import send_sentry_function_webhook
+from sentry.types.group import SUBSTATUS_TO_STR, GroupSubStatus
 
 
 @issue_assigned.connect(weak=False)
@@ -62,6 +63,52 @@ def send_issue_ignored_webhook(project, user, group_list, **kwargs):
         send_workflow_webhooks(project.organization, issue, user, "issue.archived")
 
 
+@issue_unresolved.connect(weak=False)
+def send_issue_unresolved_webhook(
+    group: Group,
+    project: Project,
+    user: User | RpcUser | None = None,
+    new_substatus: GroupSubStatus | None = None,
+    **kwargs,
+) -> None:
+    send_issue_unresolved_webhook_helper(
+        group=group, project=project, user=user, new_substatus=new_substatus, **kwargs
+    )
+
+
+@issue_escalating.connect(weak=False)
+def send_issue_escalating_webhook(
+    group: Group,
+    project: Project,
+    new_substatus: GroupSubStatus | None = None,
+    **kwargs,
+) -> None:
+    # Escalating is a form of unresolved so we send the same webhook
+    send_issue_unresolved_webhook_helper(
+        group=group, project=project, new_substatus=new_substatus, **kwargs
+    )
+
+
+def send_issue_unresolved_webhook_helper(
+    group: Group,
+    project: Project,
+    user: User | RpcUser | None = None,
+    new_substatus: GroupSubStatus | None = None,
+    **kwargs,
+) -> None:
+    organization = project.organization
+    if features.has("organizations:webhooks-unresolved", organization):
+        send_workflow_webhooks(
+            organization=organization,
+            issue=group,
+            user=user,
+            event="issue.unresolved",
+            data={
+                "substatus": SUBSTATUS_TO_STR[new_substatus if new_substatus else group.substatus]
+            },
+        )
+
+
 @comment_created.connect(weak=False)
 def send_comment_created_webhook(project, user, group, data, **kwargs):
     send_comment_webhooks(project.organization, group, user, "comment.created", data=data)
@@ -88,19 +135,12 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
             user_id=coerce_id_from(user),
             data=data,
         )
-    if features.has("organizations:sentry-functions", organization, actor=user):
-        if user:
-            serialized = user_service.serialize_many(filter=dict(user_ids=[user.id]))
-            if serialized:
-                data["user"] = serialized[0]
-        for fn in SentryFunction.objects.get_sentry_functions(organization, "comment"):
-            send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
 
 def send_workflow_webhooks(
     organization: Organization,
     issue: Group,
-    user: User | RpcUser,
+    user: User | RpcUser | None,
     event: str,
     data: Mapping[str, Any] | None = None,
 ) -> None:
@@ -114,11 +154,6 @@ def send_workflow_webhooks(
             user_id=coerce_id_from(user),
             data=data,
         )
-    if features.has("organizations:sentry-functions", organization, actor=user):
-        if user:
-            data["user"] = user_service.serialize_many(filter={"user_ids": [user.id]})[0]
-        for fn in SentryFunction.objects.get_sentry_functions(organization, "issue"):
-            send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
 
 def installations_to_notify(organization, event) -> list[RpcSentryAppInstallation]:

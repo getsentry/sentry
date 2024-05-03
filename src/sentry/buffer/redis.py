@@ -308,7 +308,7 @@ class RedisBuffer(Buffer):
         model: type[models.Model],
         filters: dict[str, models.Model | str | int],
         field: str,
-        value: int,
+        value: str,
     ) -> None:
         key = self._make_key(model, filters)
         self._execute_redis_operation(key, RedisOperation.HASH_ADD, field, value)

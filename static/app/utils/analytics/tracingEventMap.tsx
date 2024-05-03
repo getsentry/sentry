@@ -1,4 +1,7 @@
 export type TracingEventParameters = {
+  'trace.shape': {
+    shape: string;
+  };
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -10,7 +13,6 @@ export type TracingEventParameters = {
   'trace.trace_layout.tab_view': {
     tab: string;
   };
-  'trace.trace_layout.view_event_details': {};
   'trace.trace_layout.view_event_json': {};
   'trace.trace_layout.view_shortcuts': {};
   'trace.trace_warning_type': {
@@ -21,10 +23,10 @@ export type TracingEventParameters = {
 export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
+  'trace.shape': 'Trace Shape',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
-  'trace.trace_layout.view_event_details': 'Clicked View Event Details Action',
   'trace.trace_layout.view_event_json': 'Clicked View Event JSON Action',
   'trace.trace_layout.tab_pin': 'Pinned Trace Tab',
   'trace.trace_layout.tab_view': 'Viewed Trace Tab',

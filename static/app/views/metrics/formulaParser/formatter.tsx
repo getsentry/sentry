@@ -14,8 +14,8 @@ const operatorTokens = new Set([
   TokenType.DIVIDE,
 ]);
 
-interface FormulaFormatterProps {
-  formula: string;
+interface EquationFormatterProps {
+  equation: string;
   errors?: {
     message: string;
     start: number;
@@ -23,7 +23,7 @@ interface FormulaFormatterProps {
   }[];
 }
 
-export function FormulaFormatter({formula, errors}: FormulaFormatterProps) {
+export function EquationFormatter({equation: formula, errors}: EquationFormatterProps) {
   const theme = useTheme();
   const tokens = useMemo(() => {
     try {

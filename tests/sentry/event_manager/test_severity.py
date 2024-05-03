@@ -4,7 +4,6 @@ import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.core.cache import cache
 from urllib3 import HTTPResponse
 from urllib3.exceptions import MaxRetryError
@@ -194,9 +193,6 @@ class TestGetEventSeverity(TestCase):
             assert severity == expected_severity
             assert reason == expected_reason
 
-    @pytest.mark.xfail(
-        reason="TODO (kmclb): Failing because of changes made in https://github.com/getsentry/sentry/pull/69397, and because the test is too brittle and the behavior it's testing is based on flawed assumptions (says the person who wrote the code in the first place). Will be fixed in a follow-up PR."
-    )
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
@@ -210,22 +206,21 @@ class TestGetEventSeverity(TestCase):
         for title in PLACEHOLDER_EVENT_TITLES:
             manager = EventManager(make_event(exception={"values": []}, platform="python"))
             event = manager.save(self.project.id)
-            # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
-            # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
-            event.get_event_metadata()["title"] = title  # type: ignore[index]
+            # `title` is a property with no setter, but it pulls from `data`, so it's equivalent
+            # to set it there
+            event.data["title"] = title
 
             severity, reason = _get_severity_score(event)
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
                 "Unable to get severity score because of unusable `message` value '%s'",
-                "<unlabeled event>",
+                title,
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
                     "event_type": "default",
-                    "event_title": title,
-                    "computed_title": "<unlabeled event>",
+                    "title": title,
                 },
             )
             assert severity == 0.0

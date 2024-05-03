@@ -15,7 +15,7 @@ from sentry.db.models import (
     ArrayField,
     BaseManager,
     FlexibleForeignKey,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -33,7 +33,7 @@ def validate_scope_list(value):
             raise ValidationError(f"{choice} is not a valid scope.")
 
 
-@control_silo_only_model
+@control_silo_model
 class OrgAuthToken(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Organization
     category = OutboxCategory.ORG_AUTH_TOKEN_UPDATE
