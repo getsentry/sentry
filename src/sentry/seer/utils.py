@@ -91,6 +91,7 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
     group_id: NotRequired[int]  # TODO: Remove this once we stop sending it to seer
+    group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class SimilarIssuesEmbeddingsData(TypedDict):
@@ -98,6 +99,7 @@ class SimilarIssuesEmbeddingsData(TypedDict):
     message_distance: float
     should_group: bool
     parent_group_id: NotRequired[int]  # TODO: Remove this once seer stops sending it
+    parent_group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
