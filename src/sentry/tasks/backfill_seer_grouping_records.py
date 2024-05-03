@@ -10,9 +10,9 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import features, nodestore
-from sentry.grouping.grouping_info import get_grouping_info
 from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.eventstore.models import Event
+from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group
@@ -248,7 +248,7 @@ def lookup_group_data_stacktrace_bulk(
                 event.data = data
                 if event and event.data and event.data.get("exception") and hashes.get(group_id):
                     grouping_info = get_grouping_info(
-                        None, project=project, event=event
+                        None, project=project, event_id=event.event_id, event=event
                     )
                     stacktrace_string = get_stacktrace_string(grouping_info)
                     if stacktrace_string == "":
