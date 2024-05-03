@@ -16,7 +16,7 @@ class GroupParticipantsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, group, organization_slug: str | None = None) -> Response:
+    def get(self, request: Request, group) -> Response:
         participants = GroupSubscriptionManager.get_participating_user_ids(group)
 
         return Response(

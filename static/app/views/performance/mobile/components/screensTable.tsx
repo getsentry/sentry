@@ -16,6 +16,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 
 type Props = {
   columnNameMap: Record<string, string>;
@@ -57,6 +58,15 @@ export function ScreensTable({
       if (defined(customRenderedCell)) {
         return customRenderedCell;
       }
+    }
+
+    if (data.meta.fields[column.key] === 'percent_change') {
+      return (
+        <PercentChangeCell
+          deltaValue={parseFloat(row[column.key] as string) || 0}
+          preferredPolarity="-"
+        />
+      );
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);

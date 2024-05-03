@@ -50,8 +50,6 @@ import {
   type TraceTreeNode,
 } from '../traceModels/traceTree';
 
-import {ButtonGroup} from './details/span/sections/table/index';
-import {TraceDrawerComponents} from './details/styles';
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
@@ -213,7 +211,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
           : width * initialSizeInPercentage;
 
       return {
-        min: props.trace_state.preferences.layout === 'drawer bottom' ? 27 : 300,
+        min: props.trace_state.preferences.layout === 'drawer bottom' ? 27 : 350,
         initialSize,
         ref: drawerRef,
       };
@@ -799,39 +797,6 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
   td {
     max-width: 100% !important;
   }
-
-  ${p =>
-    p.layout !== 'drawer bottom' &&
-    `
-        table {
-          display: flex;
-        }
-
-        tbody {
-          flex: 1;
-        }
-
-        tr {
-          display: grid;
-        }
-
-        ${TraceDrawerComponents.TableValueRow}{
-          grid-template-columns: none;
-          grid-template-rows: min-content min-content;
-
-          pre {
-            padding-bottom: 0 !important;
-          }
-
-          ${TraceDrawerComponents.TableRowButtonContainer} {
-            padding-top: 0;
-
-           ${ButtonGroup} {
-              flex-direction: row;
-            }
-          }
-        }
-      `}
 `;
 
 const TabIconButton = styled(Button)<{active: boolean}>`

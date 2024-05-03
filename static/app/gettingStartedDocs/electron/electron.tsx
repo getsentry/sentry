@@ -16,6 +16,7 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
@@ -41,10 +42,6 @@ Sentry.init({
     metricsAggregator: true,
   },
 });`;
-
-const getMetricsVerifySnippet = () => `
-// Add 4 to a counter named 'hits'
-Sentry.metrics.increment('hits', 4);`;
 
 const getInstallConfig = () => [
   {
@@ -228,10 +225,28 @@ const customMetricsOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
+              label: 'Counter',
+              value: 'counter',
               language: 'javascript',
-              code: getMetricsVerifySnippet(),
+              code: exampleSnippets.javascript.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'javascript',
+              code: exampleSnippets.javascript.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'javascript',
+              code: exampleSnippets.javascript.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'javascript',
+              code: exampleSnippets.javascript.gauge,
             },
           ],
         },

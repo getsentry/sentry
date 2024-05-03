@@ -467,6 +467,10 @@ from .endpoints.organization_sentry_function_details import (
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_spans_fields import (
+    OrganizationSpansFieldsEndpoint,
+    OrganizationSpansFieldValuesEndpoint,
+)
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -490,6 +494,9 @@ from .endpoints.project_app_store_connect_credentials import (
 )
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
+from .endpoints.project_autofix_codebase_index_status import (
+    ProjectAutofixCodebaseIndexStatusEndpoint,
+)
 from .endpoints.project_autofix_create_codebase_index import (
     ProjectAutofixCreateCodebaseIndexEndpoint,
 )
@@ -1394,6 +1401,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/spans/fields/$",
+        OrganizationSpansFieldsEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-fields",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/spans/fields/(?P<key>[^/]+)/values/$",
+        OrganizationSpansFieldValuesEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-fields-values",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/metrics-estimation-stats/$",
@@ -2748,6 +2765,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/stats/$",
         ProjectMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-stats",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/status/$",
+        ProjectAutofixCodebaseIndexStatusEndpoint.as_view(),
+        name="sentry-api-0-project-autofix-codebase-index-status",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/create/$",

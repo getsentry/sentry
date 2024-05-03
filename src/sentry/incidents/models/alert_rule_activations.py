@@ -8,7 +8,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager import BaseManager
 from sentry.models.releases.constants import DB_VERSION_LENGTH
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleActivationCondition(Model):
     """
     This model represents the activation condition for an activated AlertRule
@@ -50,7 +50,7 @@ class AlertRuleActivationsManager(BaseManager["AlertRuleActivations"]):
         return self.filter(alert_rule=alert_rule, date_added__gte=start, date_added__lte=end)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleActivations(Model):
     """
     This model represents the record of activations for Alert Rules with monitor_type 'activated'

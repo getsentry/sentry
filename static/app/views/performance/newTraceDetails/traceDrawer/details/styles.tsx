@@ -1,22 +1,28 @@
-import {Fragment, type PropsWithChildren, useMemo} from 'react';
+import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
+import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import {Button, LinkButton} from 'sentry/components/button';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {KeyValueListDataItem} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
-import {formatBytesBase10} from 'sentry/utils';
-import {getDuration} from 'sentry/utils/formatters';
+import {defined, formatBytesBase10} from 'sentry/utils';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -432,8 +438,11 @@ function NodeActions(props: {
       },
     };
 
-    const eventId = props.node.metadata.event_id;
-    const projectSlug = props.node.metadata.project_slug;
+    const eventId =
+      props.node.metadata.event_id ?? props.node.parent_transaction?.metadata.event_id;
+    const projectSlug =
+      props.node.metadata.project_slug ??
+      props.node.parent_transaction?.metadata.project_slug;
     const query = {...qs.parse(location.search), legacy: 1};
 
     const eventDetailsLink = {
@@ -570,6 +579,177 @@ const ActionsContainer = styled('div')`
   }
 `;
 
+interface SectionCardContentConfig {
+  disableErrors?: boolean;
+  includeAliasInSubject?: boolean;
+}
+
+type SectionCardKeyValue = Omit<KeyValueListDataItem, 'subject'> & {
+  subject: React.ReactNode;
+};
+
+export type SectionCardKeyValueList = SectionCardKeyValue[];
+
+interface SectionCardContentProps {
+  item: SectionCardKeyValue;
+  meta: Record<string, any>;
+  alias?: string;
+  config?: SectionCardContentConfig;
+}
+
+function SectionCardContent({
+  item,
+  alias,
+  meta,
+  config,
+  ...props
+}: SectionCardContentProps) {
+  const {key, subject, value, action = {}} = item;
+  if (key === 'type') {
+    return null;
+  }
+
+  const dataComponent = (
+    <StructuredData
+      value={value}
+      depth={0}
+      maxDefaultDepth={0}
+      meta={meta?.[key]}
+      withAnnotatedText
+      withOnlyFormattedText
+    />
+  );
+
+  const contextSubject = subject
+    ? config?.includeAliasInSubject && alias
+      ? `${startCase(alias)}: ${subject}`
+      : subject
+    : null;
+
+  return (
+    <ContentContainer {...props}>
+      {contextSubject ? <CardContentSubject>{contextSubject}</CardContentSubject> : null}
+      <CardContentValueWrapper hasSubject={!!contextSubject} className="ctx-row-value">
+        {defined(action?.link) ? (
+          <Link to={action.link}>{dataComponent}</Link>
+        ) : (
+          dataComponent
+        )}
+      </CardContentValueWrapper>
+    </ContentContainer>
+  );
+}
+
+function SectionCard({
+  items,
+  title,
+  disableTruncate,
+}: {
+  items: SectionCardKeyValueList;
+  title: React.ReactNode;
+  disableTruncate?: boolean;
+}) {
+  const [showingAll, setShowingAll] = useState(disableTruncate ?? false);
+  const renderText = showingAll ? t('Show less') : t('Show more') + '...';
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardContentTitle>{title}</CardContentTitle>
+      {items.slice(0, showingAll ? items.length : 5).map(item => (
+        <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
+      ))}
+      {items.length > 5 && !disableTruncate ? (
+        <TruncateActionWrapper>
+          <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
+        </TruncateActionWrapper>
+      ) : null}
+    </Card>
+  );
+}
+
+function Description({
+  value,
+  linkTarget,
+  linkText,
+}: {
+  value: string;
+  linkTarget?: LocationDescriptor;
+  linkText?: string;
+}) {
+  return (
+    <DescriptionContainer>
+      <DescriptionText>
+        {value}
+        <StyledCopuToClipboardButton borderless size="zero" iconSize="xs" text={value} />
+      </DescriptionText>
+      {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
+    </DescriptionContainer>
+  );
+}
+
+const StyledCopuToClipboardButton = styled(CopyToClipboardButton)`
+  transform: translateY(2px);
+`;
+
+const DescriptionContainer = styled(FlexBox)`
+  justify-content: space-between;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
+const DescriptionText = styled('span')`
+  overflow-wrap: anywhere;
+`;
+
+const Card = styled(Panel)`
+  padding: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const CardContentTitle = styled('p')`
+  grid-column: 1 / -1;
+  padding: ${space(0.25)} ${space(0.75)};
+  margin: 0;
+  color: ${p => p.theme.headingColor};
+  font-weight: bold;
+`;
+
+const ContentContainer = styled('div')`
+  display: grid;
+  column-gap: ${space(1.5)};
+  grid-template-columns: minmax(100px, 150px) 1fr 30px;
+  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: 4px;
+  color: ${p => p.theme.subText};
+  border: 1px solid 'transparent';
+  background-color: ${p => p.theme.background};
+  &:nth-child(odd) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+`;
+
+export const CardContentSubject = styled('div')`
+  grid-column: span 1;
+  font-family: ${p => p.theme.text.familyMono};
+  word-wrap: break-word;
+`;
+
+const CardContentValueWrapper = styled(CardContentSubject)<{hasSubject: boolean}>`
+  color: ${p => p.theme.textColor};
+  grid-column: ${p => (p.hasSubject ? 'span 2' : '1 / -1')};
+`;
+
+const TruncateActionWrapper = styled('div')`
+  grid-column: 1 / -1;
+  margin: ${space(0.5)} 0;
+  display: flex;
+  justify-content: center;
+`;
+
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
@@ -590,6 +770,8 @@ const TraceDrawerComponents = {
   TableRowButtonContainer,
   TableValueRow,
   IssuesLink,
+  SectionCard,
+  Description,
 };
 
 export {TraceDrawerComponents};

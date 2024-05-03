@@ -9,7 +9,7 @@ import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.search.events import constants
+from sentry.search.events import constants, fields
 from sentry.search.events.builder import (
     AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
@@ -1601,6 +1601,36 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[],
             )
+
+    @mock.patch(
+        "sentry.search.events.datasets.metrics.MetricsDatasetConfig.function_converter",
+        new_callable=mock.PropertyMock,
+        return_value={
+            "count_unique": fields.MetricsFunction(
+                "count_unique",
+                required_args=[fields.MetricArg("column", allowed_columns=["mocked_gauge"])],
+                snql_set=lambda args, alias: None,  # Doesn't matter what this returns
+            )
+        },
+    )
+    @mock.patch.dict(
+        "sentry.search.events.builder.metrics.constants.METRICS_MAP",
+        {"mocked_gauge": "g:mock/mocked_gauge@none"},
+    )
+    def test_missing_function_implementation_for_metric_type(self, _mocked_function_converter):
+        # Mocks count_unique to allow the mocked_gauge column
+        # but the metric type does not have a gauge implementation
+        with pytest.raises(IncompatibleMetricsQuery) as err:
+            MetricsQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                query="",
+                selected_columns=[
+                    "count_unique(mocked_gauge)",
+                ],
+            )
+
+        assert str(err.value) == "The functions provided do not match the requested metric type"
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):

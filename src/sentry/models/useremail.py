@@ -10,15 +10,22 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    get_model_name,
+)
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.region import find_regions_for_user
+from sentry.utils.json import JSONData
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
@@ -44,7 +51,7 @@ class UserEmailManager(BaseManager["UserEmail"]):
         return user_email
 
 
-@control_silo_only_model
+@control_silo_model
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
     __relocation_dependencies__ = {"sentry.Email"}
@@ -142,3 +149,15 @@ class UserEmail(ControlOutboxProducingModel):
         # `--merge_users=true` case is handled in the `normalize_before_relocation_import()` method
         # above).
         return (useremail.pk, ImportKind.Inserted)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        validation_hash = get_secure_token()
+        sanitizer.set_string(
+            json, SanitizableField(model_name, "validation_hash"), lambda _: validation_hash
+        )

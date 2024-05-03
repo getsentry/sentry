@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -9,6 +8,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import Layout from 'sentry/views/auth/layout';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

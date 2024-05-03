@@ -1,6 +1,6 @@
-import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   Breadcrumbs,
   SearchAndSortWrapper,
@@ -9,16 +9,18 @@ import {
   BreadcrumbRow,
   StyledBreadcrumbPanelTable,
 } from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
+import {LazyRender} from 'sentry/components/lazyRender';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTableHeader} from 'sentry/components/panels/panelTable';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import {
   type EntryBreadcrumbs,
   EntryType,
   type EventTransaction,
   type Organization,
 } from 'sentry/types';
+
+import {TraceDrawerComponents} from '../../styles';
 
 export function BreadCrumbs({
   event,
@@ -27,8 +29,6 @@ export function BreadCrumbs({
   event: EventTransaction;
   organization: Organization;
 }) {
-  const [showBreadcrumbs, setShowBreadcrumbs] = useState(false);
-
   const matchingEntry: EntryBreadcrumbs | undefined = event?.entries?.find(
     (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
   );
@@ -37,19 +37,26 @@ export function BreadCrumbs({
     return null;
   }
 
-  const renderText = showBreadcrumbs ? t('Hide Breadcrumbs') : t('Show Breadcrumbs');
-  const chevron = <IconChevron size="xs" direction={showBreadcrumbs ? 'up' : 'down'} />;
   return (
-    <Fragment>
-      <a
-        style={{display: 'flex', alignItems: 'center', gap: space(0.5)}}
-        onClick={() => {
-          setShowBreadcrumbs(prev => !prev);
-        }}
+    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+      <EventDataSection
+        showPermalink={false}
+        key={'breadcrumbs'}
+        type={'breadcrumbs'}
+        title={t('BreadCrumbs')}
+        help={tct(
+          'The trail of events that happened prior to an event. [link:Learn more]',
+          {
+            link: (
+              <ExternalLink
+                openInNewTab
+                href={'https://docs.sentry.io/product/issues/issue-details/breadcrumbs/'}
+              />
+            ),
+          }
+        )}
+        isHelpHoverable
       >
-        {renderText} {chevron}
-      </a>
-      {showBreadcrumbs && (
         <ResponsiveBreadcrumbWrapper>
           <Breadcrumbs
             hideTitle
@@ -58,8 +65,8 @@ export function BreadCrumbs({
             organization={organization}
           />
         </ResponsiveBreadcrumbWrapper>
-      )}
-    </Fragment>
+      </EventDataSection>
+    </LazyRender>
   );
 }
 

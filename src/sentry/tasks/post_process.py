@@ -263,13 +263,6 @@ def handle_owner_assignment(job):
                         )
 
                     if assignees_exists:
-                        logger.info(
-                            "handle_owner_assignment.assignee_exists",
-                            extra={
-                                **basic_logging_details,
-                                "reason": "assignee_exists",
-                            },
-                        )
                         metrics.incr(
                             "sentry.task.post_process.handle_owner_assignment.assignee_exists"
                         )
@@ -282,13 +275,6 @@ def handle_owner_assignment(job):
                     debounce_issue_owners = cache.get(issue_owners_key)
 
                     if debounce_issue_owners:
-                        logger.info(
-                            "handle_owner_assignment.issue_owners_exist",
-                            extra={
-                                **basic_logging_details,
-                                "reason": "issue_owners_exist",
-                            },
-                        )
                         metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
                         return
 
@@ -1005,11 +991,11 @@ def process_replay_link(job: PostProcessJob) -> None:
         kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
     except ValueError:
         metrics.incr("post_process.process_replay_link.id_invalid")
-
-    publisher.publish(
-        "ingest-replay-events",
-        json.dumps(kafka_payload),
-    )
+    else:
+        publisher.publish(
+            "ingest-replay-events",
+            json.dumps(kafka_payload),
+        )
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -1415,6 +1401,39 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
         )
 
 
+def link_event_to_user_report(job: PostProcessJob) -> None:
+    from sentry.models.userreport import UserReport
+
+    event = job["event"]
+    project = event.project
+    group = event.group
+
+    if features.has(
+        "organizations:user-feedback-event-link-ingestion-changes", project.organization
+    ):
+        metrics.incr("event_manager.save._update_user_reports_with_event_link")
+        event = job["event"]
+        project = event.project
+        user_reports_without_group = UserReport.objects.filter(
+            project_id=project.id,
+            event_id=event.event_id,
+            group_id__isnull=True,
+            environment_id__isnull=True,
+        )
+
+        user_reports_updated = user_reports_without_group.update(
+            group_id=group.id, environment_id=event.get_environment().id
+        )
+
+        if user_reports_updated:
+            metrics.incr("event_manager.save._update_user_reports_with_event_link_updated")
+
+    else:
+        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
+            group_id=group.id, environment_id=event.get_environment().id
+        )
+
+
 MAX_NEW_ESCALATION_AGE_HOURS = 24
 MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
@@ -1454,15 +1473,7 @@ def detect_new_escalation(job: PostProcessJob):
         or not has_valid_status
         or times_seen < MIN_EVENTS_FOR_NEW_ESCALATION
     ):
-        logger.warning(
-            "tasks.post_process.detect_new_escalation.skipping_detection",
-            extra={
-                **extra,
-                "group_age_hours": group_age_hours,
-                "group_status": group.substatus,
-                "times_seen": times_seen,
-            },
-        )
+        metrics.incr("tasks.post_process.detect_new_escalation.skipping_detection")
         return
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
@@ -1521,6 +1532,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         fire_error_processed,
         sdk_crash_monitoring,
         process_replay_link,
+        link_event_to_user_report,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
