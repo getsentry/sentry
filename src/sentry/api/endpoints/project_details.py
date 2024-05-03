@@ -264,8 +264,17 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return validate_pii_config_update(organization, value)
 
     def validate_relayCustomMetricCardinalityLimit(self, value):
-        if value is not None and value < 0:
+        if value is None:
+            return value
+
+        if value < 0:
             raise serializers.ValidationError("Cardinality limit must be a non-negative integer.")
+
+        # Value is stored as uint32 in relay
+        if value > 4_000_000_000:
+            raise serializers.ValidationError(
+                "Cardinality limit must be smaller or equal to 4_000_000_000."
+            )
 
         return value
 

@@ -8,6 +8,7 @@ from unittest import mock
 
 from django.db import router
 from django.urls import reverse
+from sentry_relay.processing import normalize_cardinality_limit_config
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
@@ -751,7 +752,10 @@ class ProjectUpdateTest(APITestCase):
             self.proj_slug,
             relayCustomMetricCardinalityLimit=1000,
         )
-        assert self.project.get_option("relay.cardinality-limiter.limits") == [
+
+        config = self.project.get_option("relay.cardinality-limiter.limits")
+
+        assert config == [
             {
                 "limit": {
                     "id": "project-override-custom",
@@ -762,6 +766,11 @@ class ProjectUpdateTest(APITestCase):
                 }
             }
         ]
+
+        limit = config[0]["limit"]
+        normalized_limit = normalize_cardinality_limit_config(limit)
+        assert normalized_limit == limit
+
         assert resp.data["relayCustomMetricCardinalityLimit"] == 1000
 
     def test_custom_metrics_cardinality_limit_invalid_text(self):
@@ -782,6 +791,17 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
         assert resp.data["relayCustomMetricCardinalityLimit"] == [
             "Cardinality limit must be a non-negative integer."
+        ]
+
+    def test_custom_metrics_cardinality_limit_invalid_too_high(self):
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=4_000_000_001,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] == [
+            "Cardinality limit must be smaller or equal to 4_000_000_000."
         ]
 
     def test_custom_metrics_cardinality_limit_accepts_none(self):
