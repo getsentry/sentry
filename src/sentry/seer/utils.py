@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from typing import NotRequired, TypedDict
 
 import sentry_sdk
@@ -104,6 +105,17 @@ class RawSeerSimilarIssueData(TypedDict):
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
     responses: list[RawSeerSimilarIssueData]
+
+
+# Like the data that comes back from seer, but guaranteed to have a parent group id
+@dataclass
+class SeerSimilarIssueData:
+    stacktrace_distance: float
+    message_distance: float
+    should_group: bool
+    parent_group_id: int
+    # TODO: See if we end up needing the hash here
+    parent_group_hash: str | None = None
 
 
 def get_similar_issues_embeddings(
