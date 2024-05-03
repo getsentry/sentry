@@ -336,13 +336,14 @@ export default function AssigneeSelectorDropdown({
     assignee: SuggestedAssignee
   ): SelectOption<string> => {
     if (assignee.type === 'user') {
+      const isCurrentUser = assignee.id === sessionUser?.id;
       return {
         label: (
           <IdBadge
             data-test-id="assignee-option"
             actor={{
               id: assignee.id,
-              name: assignee.name,
+              name: `${assignee.name}${isCurrentUser ? ' (You)' : ''}`,
               type: 'user',
             }}
             description={suggestedReasonTable[assignee.suggestedReason]}
@@ -371,6 +372,7 @@ export default function AssigneeSelectorDropdown({
     let memList = currentMemberList();
     let assignableTeamList = getAssignableTeams();
     let suggestedAssignees = getSuggestedAssignees();
+    let assignedUser: User | undefined;
 
     // If the group is already assigned, extract the assigned user/team
     // from the member-list/assignedTeam-list and add to the top of the menu
@@ -389,7 +391,7 @@ export default function AssigneeSelectorDropdown({
           });
         }
       } else {
-        const assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
+        assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
         if (assignedUser) {
           options.push(
             makeMemberOption(assignedUser.id, assignedUser.name || assignedUser.email)
@@ -400,6 +402,17 @@ export default function AssigneeSelectorDropdown({
           });
         }
       }
+    }
+
+    // Only bubble the current user to the top if they are not already assigned or suggested
+    const isUserAssignedOrSuggested =
+      assignedUser?.id === sessionUser.id ||
+      getSuggestedAssignees()?.find(
+        suggestedAssignee => suggestedAssignee.id === sessionUser.id
+      );
+    if (!isUserAssignedOrSuggested) {
+      memList = memList?.filter(user => user.id !== sessionUser.id);
+      memList?.unshift(sessionUser);
     }
 
     const memberOptions = {
