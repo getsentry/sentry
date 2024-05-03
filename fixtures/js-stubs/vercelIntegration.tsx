@@ -1,4 +1,4 @@
-import {IntegrationProvider} from 'sentry/types';
+import {IntegrationProvider} from 'sentry/types/integrations';
 
 export function VercelProviderFixture(): IntegrationProvider {
   return {

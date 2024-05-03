@@ -17,7 +17,6 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory, RegionResolutionError
@@ -135,10 +134,9 @@ class ScheduleWebhooksTest(TestCase):
         # No messages delivered
         assert WebhookPayload.objects.count() == num_records
 
-    @override_options({"hybridcloud.webhookpayload.use_parallel": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
     def test_schedule_mailbox_parallel_task(self, mock_deliver):
-        for _ in range(0, MAX_MAILBOX_DRAIN + 1):
+        for _ in range(0, int(MAX_MAILBOX_DRAIN / 3 + 1)):
             self.create_webhook_payload(
                 mailbox_name="github:123",
                 region_name="us",

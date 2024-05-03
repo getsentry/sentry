@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any
 from uuid import UUID
 
 import jsonschema
 import sentry_sdk
+from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.processing.strategies.batching import ValuesBatch
+from arroyo.types import BrokerValue, Message
+from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
@@ -21,7 +27,8 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils import metrics
+from sentry.utils import json, metrics
+from sentry.utils.actor import parse_and_validate_actor
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +65,46 @@ def lookup_event(project_id: int, event_id: str) -> Event:
     event = Event(event_id=event_id, project_id=project_id)
     event.data = data
     return event
+
+
+def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> Event:
+    return Event(
+        event_id=event_id,
+        project_id=project_id,
+        snuba_data={
+            "event_id": event_data["event_id"],
+            "project_id": event_data["project_id"],
+            "timestamp": event_data["timestamp"],
+            "release": event_data.get("release"),
+            "environment": event_data.get("environment"),
+            "platform": event_data.get("platform"),
+            "tags.key": [tag[0] for tag in event_data.get("tags", [])],
+            "tags.value": [tag[1] for tag in event_data.get("tags", [])],
+        },
+    )
+
+
+def create_event_and_issue_occurrence(
+    occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
+) -> tuple[IssueOccurrence, GroupInfo | None]:
+    """With standalone span ingestion, we won't be storing events in
+    nodestore, so instead we create a light-weight event with a small
+    set of fields that lets us create occurrences.
+    """
+    project_id = occurrence_data["project_id"]
+    event_id = occurrence_data["event_id"]
+    if occurrence_data["event_id"] != event_data["event_id"]:
+        raise ValueError(
+            f"event_id in occurrence({occurrence_data['event_id']}) is different from event_id in event_data({event_data['event_id']})"
+        )
+
+    event = create_event(project_id, event_id, event_data)
+
+    with metrics.timer(
+        "occurrence_consumer._process_message.save_issue_occurrence",
+        tags={"method": "create_event_and_issue_occurrence"},
+    ):
+        return save_issue_occurrence(occurrence_data, event)
 
 
 def process_event_and_issue_occurrence(
@@ -102,6 +149,16 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
             metrics.distribution("occurrence.ingest.size.data", len(payload), unit="byte")
+            assignee_identifier = None
+            payload_assignee = payload.get("assignee")
+            if payload_assignee:
+                project = Project.objects.get_from_cache(id=payload["project_id"])
+                try:
+                    assignee = parse_and_validate_actor(payload_assignee, project.organization_id)
+                    if assignee:
+                        assignee_identifier = assignee.identifier
+                except Exception:
+                    logger.exception("Failed to validate assignee for occurrence")
 
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,
@@ -115,6 +172,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
                 "level": payload.get("level", DEFAULT_LEVEL),
+                "assignee": assignee_identifier,
             }
 
             process_occurrence_data(occurrence_data)
@@ -200,7 +258,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "title": occurrence_data["issue_title"],
                 }
 
-                return {"occurrence_data": occurrence_data, "event_data": event_data}
+                return {
+                    "occurrence_data": occurrence_data,
+                    "event_data": event_data,
+                    "is_buffered_spans": payload.get("is_buffered_spans") is True,
+                }
             else:
                 if not payload.get("event_id"):
                     raise InvalidEventPayloadError(
@@ -220,6 +282,8 @@ def process_occurrence_message(
         kwargs = _get_kwargs(message)
     occurrence_data = kwargs["occurrence_data"]
     metric_tags = {"occurrence_type": occurrence_data["type"]}
+    is_buffered_spans = kwargs.get("is_buffered_spans", False)
+
     metrics.incr(
         "occurrence_ingest.messages",
         sample_rate=1.0,
@@ -245,7 +309,9 @@ def process_occurrence_message(
         txn.set_tag("result", "dropped_feature_disabled")
         return None
 
-    if "event_data" in kwargs:
+    if "event_data" in kwargs and is_buffered_spans:
+        return create_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
+    elif "event_data" in kwargs:
         txn.set_tag("result", "success")
         with metrics.timer(
             "occurrence_consumer._process_message.process_event_and_issue_occurrence",
@@ -296,3 +362,56 @@ def _process_message(
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
     return None
+
+
+def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
+    """
+    Receives batches of occurrences. This function will take the batch
+    and group them together by fingerprint (ensuring order is preserved) and
+    execute each group using a ThreadPoolWorker.
+
+    By batching we're able to process occurrences in parallel while guaranteeing
+    that no occurrences are processed out of order per group.
+    """
+    batch = message.payload
+
+    occcurrence_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
+
+    for item in batch:
+        assert isinstance(item, BrokerValue)
+
+        try:
+            payload = json.loads(item.payload.value, use_rapid_json=True)
+        except Exception:
+            logger.exception("Failed to unpack message payload")
+            continue
+        # group by the fingerprint, there should only be one of them
+        partition_key: str = payload["fingerprint"][0] if payload["fingerprint"] else ""
+        occcurrence_mapping[partition_key].append(payload)
+
+    # Number of occurrences that are being processed in this batch
+    metrics.gauge("occurrence_consumer.checkin.parallel_batch_count", len(batch))
+
+    # Number of groups we've collected to be processed in parallel
+    metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
+    # Submit occurrences for processing
+    with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
+        futures = [
+            worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
+        ]
+        wait(futures)
+
+
+def process_occurrence_group(items: list[Mapping[str, Any]]):
+    """
+    Process a group of related occurrences (all part of the same group)
+    completely serially.
+    """
+    for item in items:
+        cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"
+        if cache.get(cache_key):
+            logger.info("Skipping processing of occurrence %s due to cache hit", item["id"])
+            continue
+        _process_message(item)
+        # just need a 300 second cache
+        cache.set(cache_key, 1, 300)

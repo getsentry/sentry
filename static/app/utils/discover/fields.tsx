@@ -1,7 +1,9 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import type {MetricType, Organization, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {MetricType} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
@@ -122,6 +124,8 @@ export type Alignments = 'left' | 'right';
 export type CountUnit = 'count';
 
 export type PercentageUnit = 'percentage';
+
+export type PercentChangeUnit = 'percent_change';
 
 export enum DurationUnit {
   NANOSECOND = 'nanosecond',

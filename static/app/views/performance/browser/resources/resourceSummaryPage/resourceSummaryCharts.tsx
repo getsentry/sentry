@@ -1,15 +1,14 @@
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {
   DataTitles,
@@ -122,30 +121,5 @@ function ResourceSummaryCharts(props: {groupId: string}) {
     </BlockContainer>
   );
 }
-
-/**
- * Ensures a series has no zeros between two non-zero datapoints. This is useful in
- * @param series the series to fill
- * @returns a reference to the initial series filled
- */
-export const fillSeries = (series: Series): Series => {
-  if (!series.data.length) {
-    return series;
-  }
-
-  let lastSeenValue = series.data[0].value;
-
-  return {
-    ...series,
-    data: series.data.map(dataPoint => {
-      const value = dataPoint.value;
-      if (value !== lastSeenValue && value !== 0) {
-        lastSeenValue = value;
-        return {...dataPoint};
-      }
-      return {...dataPoint, value: lastSeenValue};
-    }),
-  };
-};
 
 export default ResourceSummaryCharts;

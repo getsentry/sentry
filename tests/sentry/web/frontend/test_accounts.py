@@ -170,10 +170,7 @@ class TestAccounts(TestCase):
         self.create_member(user=user, organization=org1)
         self.create_member(user=user, organization=org2)
 
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-
-        lost_password = LostPasswordHash.objects.get(user=user)
+        lost_password = LostPasswordHash.objects.create(user=user)
         user.is_unclaimed = True
         user.save()
         old_password = user.password
@@ -219,19 +216,23 @@ class TestAccounts(TestCase):
         assert UserEmail.objects.get(email=user.email).is_verified
 
     @patch("sentry.signals.terms_accepted.send_robust")
-    def test_relocate_recovery_post(self, terms_accepted_signal_mock):
-        user = self.create_user(email="test@example.com")
-        user_email = UserEmail.objects.get(email=user.email)
+    def test_relocate_recovery_post_another_user_with_same_email(self, terms_accepted_signal_mock):
+        same_email_user = self.create_user(username="same_email_as_first", email="test@example.com")
+        same_email_user_email = UserEmail.objects.get(
+            email=same_email_user.email, user_id=same_email_user.id
+        )
+        same_email_user_email.is_verified = False
+        same_email_user_email.save()
+
+        user = self.create_user(username="first", email="test@example.com")
+        user_email = UserEmail.objects.get(email=user.email, user_id=user.id)
         user_email.is_verified = False
         user_email.save()
 
         org = self.create_organization()
         self.create_member(user=user, organization=org)
 
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-
-        lost_password = LostPasswordHash.objects.get(user=user)
+        lost_password = LostPasswordHash.objects.create(user=user)
         user.is_unclaimed = True
         user.save()
         old_password = user.password
@@ -262,7 +263,10 @@ class TestAccounts(TestCase):
             sender=recover_confirm,
         )
 
-        assert UserEmail.objects.get(email=user.email).is_verified
+        assert UserEmail.objects.get(email=user.email, user_id=user.id).is_verified
+        assert not UserEmail.objects.get(
+            email=same_email_user_email.email, user_id=same_email_user.id
+        ).is_verified
 
     def test_relocate_recovery_unchecked_tos(self):
         user = self.create_user()
@@ -331,6 +335,42 @@ class TestAccounts(TestCase):
                 assert resp[header_name] == "strict-origin-when-cross-origin"
 
                 assert not UserEmail.objects.get(email=user.email).is_verified
+
+    def test_relocate_recovery_colliding_username(self):
+        colliding_username = "colliding"
+        self.create_user(username=colliding_username)
+
+        user = self.create_user(email="test@example.com")
+        user_email = UserEmail.objects.get(email=user.email)
+        user_email.is_verified = False
+        user_email.save()
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+        user.is_unclaimed = True
+        user.save()
+        old_password = user.password
+
+        resp = self.client.post(
+            self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+            {"username": colliding_username, "password": "test_password", "tos_check": True},
+        )
+
+        header_name = "Referrer-Policy"
+
+        user.refresh_from_db()
+        assert resp.has_header(header_name)
+        self.assertTemplateUsed("sentry/account/relocate/failure.html")
+        assert user.is_unclaimed
+        assert user.username != colliding_username
+        assert user.password == old_password
+        assert resp.status_code == 200
+        assert b"An account is already registered with that username." in resp.content
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+
+        assert not UserEmail.objects.get(email=user.email).is_verified
 
     def test_relocate_reclaim_success(self):
         user = self.create_user(email="member@example.com", is_unclaimed=True)

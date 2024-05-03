@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -18,7 +19,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -30,6 +31,9 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.user import User
     from sentry.services.hybrid_cloud.user import RpcUser
+
+
+_default_logger = logging.getLogger(__name__)
 
 
 class ActivityManager(BaseManager["Activity"]):
@@ -103,7 +107,7 @@ class ActivityManager(BaseManager["Activity"]):
         return activity
 
 
-@region_silo_only_model
+@region_silo_model
 class Activity(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -146,6 +150,23 @@ class Activity(Model):
         created = bool(not self.id)
 
         super().save(*args, **kwargs)
+
+        # The receiver for the post_save signal was not working in production, so just execute directly and safely
+        try:
+            from sentry.integrations.slack.tasks.send_notifications_on_activity import (
+                activity_created_receiver,
+            )
+
+            activity_created_receiver(self, created)
+        except Exception as err:
+            _default_logger.info(
+                "there was an error trying to kick off activity receiver",
+                exc_info=err,
+                extra={
+                    "activity_id": self.id,
+                },
+            )
+            pass
 
         if not created:
             return

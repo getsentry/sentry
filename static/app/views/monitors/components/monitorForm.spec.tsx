@@ -19,7 +19,10 @@ jest.mock('sentry/utils/useTeams');
 jest.mock('sentry/utils/useMembers');
 
 describe('MonitorForm', function () {
-  const organization = OrganizationFixture({features: ['issue-platform']});
+  const organization = OrganizationFixture({
+    features: ['issue-platform'],
+  });
+
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
   const team = TeamFixture({slug: 'test-team'});
   const {project, routerContext} = initializeOrg({organization});
@@ -116,6 +119,9 @@ describe('MonitorForm', function () {
       '2'
     );
 
+    const ownerSelect = screen.getByRole('textbox', {name: 'Owner'});
+    await selectEvent.select(ownerSelect, 'John Smith');
+
     const notifySelect = screen.getByRole('textbox', {name: 'Notify'});
 
     await selectEvent.openMenu(notifySelect);
@@ -156,6 +162,7 @@ describe('MonitorForm', function () {
         data: {
           name: 'My Monitor',
           project: 'project-slug',
+          owner: `user:${member.user?.id}`,
           type: 'cron_job',
           config,
           alertRule,
@@ -219,6 +226,12 @@ describe('MonitorForm', function () {
     expect(screen.getByRole('spinbutton', {name: 'Failure Tolerance'})).toHaveValue(2);
     expect(screen.getByRole('spinbutton', {name: 'Recovery Tolerance'})).toHaveValue(2);
 
+    // Ownership
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Owner'}));
+    const ownerOption = screen.getByRole('menuitemradio', {name: member.user?.name});
+    expect(ownerOption).toBeChecked();
+    await userEvent.keyboard('{Escape}');
+
     // Alert rule configuration
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Notify'}));
     const memberOption = screen.getByRole('menuitemcheckbox', {name: member.user?.name});
@@ -268,6 +281,7 @@ describe('MonitorForm', function () {
           name: monitor.name,
           slug: monitor.slug,
           project: monitor.project.slug,
+          owner: `user:${member.user?.id}`,
           type: 'cron_job',
           config,
           alertRule,

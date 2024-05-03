@@ -4,15 +4,12 @@ import {
   isValidElement,
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -30,6 +27,7 @@ import {GroupStatus, IssueCategory, IssueType} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   getAnalyticsDataForEvent,
@@ -42,12 +40,12 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -288,30 +286,8 @@ function useEventApiQuery({
         ...window.location,
         query: omit(qs.parse(window.location.search), 'query'),
       });
-
-      // 404s are expected if all events have exceeded retention
-      if (latestOrRecommendedEvent.error.status === 404) {
-        return;
-      }
-
-      const scope = new Sentry.Scope();
-      scope.setExtras({
-        groupId,
-        query: recommendedEventQuery,
-        ...pick(latestOrRecommendedEvent.error, ['message', 'status', 'responseJSON']),
-      });
-      scope.setFingerprint(['issue-details-helpful-event-request-failed']);
-      Sentry.captureException(
-        new Error('Issue Details: Helpful event request failed'),
-        scope
-      );
     }
-  }, [
-    latestOrRecommendedEvent.isError,
-    latestOrRecommendedEvent.error,
-    groupId,
-    recommendedEventQuery,
-  ]);
+  }, [latestOrRecommendedEvent.isError]);
 
   return isLatestOrRecommendedEvent ? latestOrRecommendedEvent : otherEventQuery;
 }
@@ -339,35 +315,33 @@ function makeFetchGroupQueryKey({
  * Once we remove all references to GroupStore in the issue details page we
  * should remove this.
  */
-function useSyncGroupStore(incomingEnvs: string[]) {
+function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  const environmentsRef = useRef<string[]>(incomingEnvs);
-  environmentsRef.current = incomingEnvs;
-
-  const unlisten = useRef<Function>();
-  if (unlisten.current === undefined) {
-    unlisten.current = GroupStore.listen(() => {
+  // It's possible the overview page is still unloading the store
+  useEffect(() => {
+    return GroupStore.listen(() => {
       const [storeGroup] = GroupStore.getState();
-      const environments = environmentsRef.current;
-      if (defined(storeGroup)) {
+      if (
+        defined(storeGroup) &&
+        storeGroup.id === groupId &&
+        // Check for properties that are only set after the group has been loaded
+        defined(storeGroup.participants) &&
+        defined(storeGroup.activity)
+      ) {
         setApiQueryData(
           queryClient,
           makeFetchGroupQueryKey({
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
-            environments,
+            environments: incomingEnvs,
           }),
           storeGroup
         );
       }
-    }, undefined);
-  }
-
-  useEffect(() => {
-    return () => unlisten.current?.();
-  }, []);
+    }, undefined) as () => void;
+  }, [groupId, incomingEnvs, organization.slug, queryClient]);
 }
 
 function useFetchGroupDetails(): FetchGroupDetailsState {
@@ -376,9 +350,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const router = useRouter();
   const params = router.params;
 
-  const [error, setError] = useState<boolean>(false);
-  const [errorType, setErrorType] = useState<Error | null>(null);
-  const [event, setEvent] = useState<Event | null>(null);
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
   const environments = useEnvironmentsFromUrl();
@@ -386,7 +357,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const groupId = params.groupId;
 
   const {
-    data: eventData,
+    data: event,
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
@@ -411,6 +382,21 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   );
 
+  /**
+   * Allows the GroupEventHeader to display the previous event while the new event is loading.
+   * This is not closer to the GroupEventHeader because it is unmounted
+   * between route changes like latest event => eventId
+   */
+  const previousEvent = useMemoWithPrevious<typeof event | null>(
+    previousInstance => {
+      if (event) {
+        return event;
+      }
+      return previousInstance;
+    },
+    [event]
+  );
+
   const group = groupData ?? null;
 
   useEffect(() => {
@@ -419,13 +405,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [groupId, group]);
 
-  useSyncGroupStore(environments);
-
-  useEffect(() => {
-    if (eventData) {
-      setEvent(eventData);
-    }
-  }, [eventData]);
+  useSyncGroupStore(groupId, environments);
 
   useEffect(() => {
     if (group && event) {
@@ -438,7 +418,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
       if (reprocessingNewRoute) {
         browserHistory.push(reprocessingNewRoute);
-        return;
       }
     }
   }, [group, event, router, organization]);
@@ -500,18 +479,12 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [allProjectsFlag, group?.project.id, allProjectChanged]);
 
-  const handleError = useCallback((e: RequestError) => {
-    Sentry.captureException(e);
-
-    setErrorType(getFetchDataRequestErrorType(e?.status));
-    setError(true);
-  }, []);
-
+  const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
   useEffect(() => {
     if (isGroupError) {
-      handleError(groupError);
+      Sentry.captureException(groupError);
     }
-  }, [isGroupError, groupError, handleError]);
+  }, [isGroupError, groupError]);
 
   const refetchGroup = useCallback(() => {
     if (group?.status !== GroupStatus.REPROCESSING || loadingGroup || loadingEvent) {
@@ -522,21 +495,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [group, loadingGroup, loadingEvent, refetchGroupCall]);
 
   const refetchData = useCallback(() => {
-    // Set initial state
-    setError(false);
-    setErrorType(null);
-
     refetchEvent();
     refetchGroup();
   }, [refetchGroup, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {
-    if (group) {
-      if ((group as Group & {stale?: boolean}).stale) {
-        refetchGroup();
-        return;
-      }
+    if (group && (group as Group & {stale?: boolean}).stale) {
+      refetchGroup();
     }
   }, [refetchGroup, group]);
 
@@ -552,9 +518,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     loadingGroup,
     loadingEvent,
     group,
-    event,
+    // Allow previous event to be displayed while new event is loading
+    event: (loadingEvent ? event ?? previousEvent : event) ?? null,
     errorType,
-    error,
+    error: isGroupError,
     eventError: isError,
     refetchData,
     refetchGroup,
@@ -629,6 +596,8 @@ function useTrackView({
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
+    // Will be updated in Autofix if enabled
+    autofix_status: 'none',
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }

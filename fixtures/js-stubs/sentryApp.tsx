@@ -1,4 +1,4 @@
-import {SentryApp} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
 
 export function SentryAppFixture(params: Partial<SentryApp> = {}): SentryApp {
   return {

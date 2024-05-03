@@ -1,4 +1,9 @@
-import type {Avatar, Group, Project, Team, User, UserEmail} from 'sentry/types';
+import type {Avatar} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User, UserEmail} from 'sentry/types/user';
+
 /**
  * @deprecated
  */

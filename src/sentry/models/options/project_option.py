@@ -9,7 +9,7 @@ from sentry import projectoptions
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.utils.cache import cache
@@ -30,6 +30,8 @@ OPTION_KEYS = frozenset(
         "sentry:builtin_symbol_sources",
         "sentry:symbol_sources",
         "sentry:sensitive_fields",
+        "sentry:highlight_tags",
+        "sentry:highlight_context",
         "sentry:csp_ignored_sources_defaults",
         "sentry:csp_ignored_sources",
         "sentry:default_environment",
@@ -66,6 +68,7 @@ OPTION_KEYS = frozenset(
         "mail:subject_template",
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
+        "relay.cardinality-limiter.limits",
     ]
 )
 
@@ -145,7 +148,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.

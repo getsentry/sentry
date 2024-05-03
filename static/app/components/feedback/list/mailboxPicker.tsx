@@ -1,4 +1,4 @@
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
 import {Flex} from 'sentry/components/profiling/flex';

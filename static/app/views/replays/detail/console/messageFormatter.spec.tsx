@@ -249,4 +249,23 @@ describe('MessageFormatter', () => {
 
     expect(screen.getByText('Placeholder myPlaceholder with 100%')).toBeInTheDocument();
   });
+
+  it('should print non-console breadcrumbs', () => {
+    const [frame] = hydrateBreadcrumbs(
+      ReplayRecordFixture(),
+      [
+        {
+          category: 'cypress',
+          message: 'custom breadcrumb',
+          timestamp: new Date('2022-06-22T20:00:39.959Z').getTime(),
+          type: 'info',
+        },
+      ],
+      mockRRWebFrames
+    );
+
+    render(<MessageFormatter frame={frame} />);
+
+    expect(screen.getByText('cypress custom breadcrumb')).toBeInTheDocument();
+  });
 });

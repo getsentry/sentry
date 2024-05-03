@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
 import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
@@ -15,6 +15,7 @@ import {
   IconKeyDown,
   IconLocation,
   IconMegaphone,
+  IconMobile,
   IconSort,
   IconTerminal,
   IconUser,
@@ -24,6 +25,9 @@ import {t, tct} from 'sentry/locale';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
+  DeviceBatteryFrame,
+  DeviceConnectivityFrame,
+  DeviceOrientationFrame,
   ErrorFrame,
   FeedbackFrame,
   LargestContentfulPaintFrame,
@@ -32,6 +36,7 @@ import type {
   NavFrame,
   ReplayFrame,
   SlowClickFrame,
+  TapFrame,
 } from 'sentry/utils/replays/types';
 import {
   getFrameOpOrCategory,
@@ -184,6 +189,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
+  'ui.tap': (frame: TapFrame) => ({
+    color: 'blue300',
+    description: frame.message,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Tap',
+    icon: <IconUser size="xs" />,
+  }),
   'ui.input': () => ({
     color: 'blue300',
     description: 'User Action',
@@ -335,6 +347,37 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
+  'resource.http': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
+  }),
+  'device.connectivity': (frame: DeviceConnectivityFrame) => ({
+    color: 'pink300',
+    description: frame.data.state,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'Device Connectivity',
+    icon: <IconMobile size="xs" />,
+  }),
+  'device.battery': (frame: DeviceBatteryFrame) => ({
+    color: 'pink300',
+    description: tct('Device was at [percent]% battery and [charging]', {
+      percent: frame.data.level,
+      charging: frame.data.charging ? 'charging' : 'not charging',
+    }),
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'Device Battery',
+    icon: <IconMobile size="xs" />,
+  }),
+  'device.orientation': (frame: DeviceOrientationFrame) => ({
+    color: 'pink300',
+    description: frame.data.position,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'Device Orientation',
+    icon: <IconMobile size="xs" />,
+  }),
 };
 
 const MAPPER_DEFAULT = (frame): Details => ({
@@ -373,9 +416,15 @@ function defaultTitle(frame: ReplayFrame) {
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
   const {tagName, attributes} = node ?? {};
   const attributesEntries = Object.entries(attributes ?? {});
-  return `${tagName}${
+  const componentName = node?.attributes['data-sentry-component'];
+
+  return `${componentName ?? tagName}${
     attributesEntries.length
-      ? attributesEntries.map(([attr, val]) => `[${attr}="${val}"]`).join('')
+      ? attributesEntries
+          .map(([attr, val]) =>
+            componentName && attr === 'data-sentry-component' ? '' : `[${attr}="${val}"]`
+          )
+          .join('')
       : ''
   }`;
 }

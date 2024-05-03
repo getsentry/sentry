@@ -1,8 +1,6 @@
 import {Component} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {withProfiler} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
@@ -45,9 +43,10 @@ import type {
 import {GroupStatus, IssueCategory} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
-import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
@@ -105,7 +104,7 @@ type Props = {
   selectedSearchId: string;
   selection: PageFilters;
   tags: TagCollection;
-} & RouteComponentProps<{searchId?: string}, {}> &
+} & RouteComponentProps<{}, {searchId?: string}> &
   WithRouteAnalyticsProps;
 
 type State = {
@@ -508,9 +507,10 @@ class IssueListOverview extends Component<Props, State> {
 
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getActiveTransaction();
-        if (currentTransaction?.op === 'navigation') {
-          currentTransaction.end();
+        const currentSpan = Sentry.getActiveSpan();
+        const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
+        if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
+          rootSpan.end();
         }
       },
     });
@@ -586,30 +586,18 @@ class IssueListOverview extends Component<Props, State> {
     const {organization} = this.props;
     const query = this.getQuery();
 
-    if (!this.state.realtimeActive) {
-      if (!this.actionTaken && !this.undo) {
-        GroupStore.loadInitialData([]);
+    if (this.state.realtimeActive || (!this.actionTaken && !this.undo)) {
+      GroupStore.loadInitialData([]);
 
-        this.setState({
-          issuesLoading: true,
-          queryCount: 0,
-          error: null,
-        });
-      }
-    } else {
-      if (!isForReviewQuery(query)) {
-        GroupStore.loadInitialData([]);
-
-        this.setState({
-          issuesLoading: true,
-          queryCount: 0,
-          error: null,
-        });
-      }
+      this.setState({
+        issuesLoading: true,
+        queryCount: 0,
+        error: null,
+      });
     }
 
-    const transaction = getCurrentSentryReactTransaction();
-    transaction?.setTag('query.sort', this.getSort());
+    const span = getCurrentSentryReactRootSpan();
+    span?.setAttribute('query.sort', this.getSort());
 
     this.setState({
       error: null,
@@ -1261,20 +1249,22 @@ class IssueListOverview extends Component<Props, State> {
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
-              <IssueListActions
-                selection={selection}
-                query={query}
-                queryCount={modifiedQueryCount}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onActionTaken={this.onActionTaken}
-                onDelete={this.onDelete}
-                statsPeriod={this.getGroupStatsPeriod()}
-                groupIds={groupIds}
-                allResultsVisible={this.allResultsVisible()}
-                displayReprocessingActions={displayReprocessingActions}
-                sort={this.getSort()}
-                onSortChange={this.onSortChange}
-              />
+              {groupIds.length !== 0 && (
+                <IssueListActions
+                  selection={selection}
+                  query={query}
+                  queryCount={modifiedQueryCount}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onActionTaken={this.onActionTaken}
+                  onDelete={this.onDelete}
+                  statsPeriod={this.getGroupStatsPeriod()}
+                  groupIds={groupIds}
+                  allResultsVisible={this.allResultsVisible()}
+                  displayReprocessingActions={displayReprocessingActions}
+                  sort={this.getSort()}
+                  onSortChange={this.onSortChange}
+                />
+              )}
               <PanelBody>
                 <ProcessingIssueList
                   organization={organization}
@@ -1337,7 +1327,9 @@ class IssueListOverview extends Component<Props, State> {
 export default withRouteAnalytics(
   withApi(
     withPageFilters(
-      withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+      withSavedSearches(
+        withOrganization(withIssueTags(Sentry.withProfiler(IssueListOverview)))
+      )
     )
   )
 );

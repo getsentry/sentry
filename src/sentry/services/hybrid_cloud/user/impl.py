@@ -37,8 +37,16 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
-from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user, serialize_user_avatar
+from sentry.services.hybrid_cloud.user.model import (
+    RpcUserProfile,
+    RpcVerifyUserEmail,
+    UserIdEmailArgs,
+)
+from sentry.services.hybrid_cloud.user.serial import (
+    serialize_rpc_user,
+    serialize_rpc_user_profile,
+    serialize_user_avatar,
+)
 from sentry.services.hybrid_cloud.user.service import UserService
 from sentry.signals import user_signup
 
@@ -61,6 +69,10 @@ class DatabaseBackedUserService(UserService):
 
     def get_many_ids(self, *, filter: UserFilterArgs) -> list[int]:
         return self._FQ.get_many_ids(filter)
+
+    def get_many_profiles(self, *, filter: UserFilterArgs) -> list[RpcUserProfile]:
+        users = self._FQ.query_many(filter, select_related=False)
+        return [serialize_rpc_user_profile(user) for user in users]
 
     def get_many_by_email(
         self,
@@ -237,6 +249,15 @@ class DatabaseBackedUserService(UserService):
             return serialize_rpc_user(user)
         return None
 
+    def verify_user_email(self, *, email: str, user_id: int) -> bool:
+        user_email = UserEmail.objects.filter(email__iexact=email, user_id=user_id).first()
+        if user_email is None:
+            return False
+        if not user_email.is_verified:
+            user_email.update(is_verified=True)
+            return True
+        return False
+
     def verify_any_email(self, *, email: str) -> bool:
         user_email = UserEmail.objects.filter(email__iexact=email).first()
         if user_email is None:
@@ -256,14 +277,18 @@ class DatabaseBackedUserService(UserService):
         user.send_confirm_emails(is_new_user=True)
 
     def verify_user_emails(
-        self, *, user_id_emails: list[UserIdEmailArgs]
+        self, *, user_id_emails: list[UserIdEmailArgs], only_verified: bool = False
     ) -> dict[int, RpcVerifyUserEmail]:
         results = {}
         for user_id_email in user_id_emails:
             user_id = user_id_email["user_id"]
             email = user_id_email["email"]
-            exists = UserEmail.objects.filter(user_id=user_id, email__iexact=email).exists()
-            results[user_id] = RpcVerifyUserEmail(email=email, exists=exists)
+
+            user_email_qs = UserEmail.objects.filter(user_id=user_id, email__iexact=email)
+            if only_verified:
+                user_email_qs = user_email_qs.filter(is_verified=True)
+
+            results[user_id] = RpcVerifyUserEmail(email=email, exists=user_email_qs.exists())
         return results
 
     def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
@@ -304,8 +329,8 @@ class DatabaseBackedUserService(UserService):
 
             return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet[User]:
-            if ids_only:
+        def base_query(self, select_related: bool = True) -> QuerySet[User]:
+            if not select_related:
                 return User.objects
 
             return User.objects.extra(

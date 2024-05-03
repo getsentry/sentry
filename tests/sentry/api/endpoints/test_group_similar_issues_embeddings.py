@@ -16,7 +16,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
-EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
 BASE_APP_DATA: dict[str, Any] = {
     "app": {
         "type": "component",
@@ -292,6 +292,67 @@ CHAINED_APP_DATA: dict[str, Any] = {
     }
 }
 
+MOBILE_THREAD_DATA = {
+    "app": {
+        "type": "component",
+        "description": "in-app thread stack-trace",
+        "hash": "hash",
+        "component": {
+            "id": "app",
+            "name": "in-app",
+            "contributes": True,
+            "hint": None,
+            "values": [
+                {
+                    "id": "threads",
+                    "name": "thread",
+                    "contributes": True,
+                    "hint": None,
+                    "values": [
+                        {
+                            "id": "stacktrace",
+                            "name": "stack-trace",
+                            "contributes": True,
+                            "hint": None,
+                            "values": [
+                                {
+                                    "id": "frame",
+                                    "name": None,
+                                    "contributes": True,
+                                    "hint": "marked out of app by stack trace rule (function:dbx v-group -group v-app -app)",
+                                    "values": [
+                                        {
+                                            "id": "module",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": [],
+                                        },
+                                        {
+                                            "id": "filename",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": None,
+                                            "values": [],
+                                        },
+                                        {
+                                            "id": "function",
+                                            "name": None,
+                                            "contributes": True,
+                                            "hint": "ignored unknown function",
+                                            "values": ["TestHandler"],
+                                        },
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+}
+
 
 class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def setUp(self):
@@ -330,7 +391,47 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_group = self.create_group(project=self.project)
 
-    def create_frames(self, num_frames, contributes=True, start_index=1):
+    def create_exception(
+        self, exception_type_str="Exception", exception_value="it broke", frames=None
+    ):
+        frames = frames or []
+        return {
+            "id": "exception",
+            "name": "exception",
+            "contributes": True,
+            "hint": None,
+            "values": [
+                {
+                    "id": "stacktrace",
+                    "name": "stack-trace",
+                    "contributes": True,
+                    "hint": None,
+                    "values": frames,
+                },
+                {
+                    "id": "type",
+                    "name": None,
+                    "contributes": True,
+                    "hint": None,
+                    "values": [exception_type_str],
+                },
+                {
+                    "id": "value",
+                    "name": None,
+                    "contributes": False,
+                    "hint": None,
+                    "values": [exception_value],
+                },
+            ],
+        }
+
+    def create_frames(
+        self,
+        num_frames,
+        contributes=True,
+        start_index=1,
+        context_line_factory=lambda i: f"test = {i}!",
+    ):
         frames = []
         for i in range(start_index, start_index + num_frames):
             frames.append(
@@ -359,7 +460,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                             "name": None,
                             "contributes": contributes,
                             "hint": None,
-                            "values": ["test = " + str(i) + "!"],
+                            "values": [context_line_factory(i)],
                         },
                     ],
                 }
@@ -392,7 +493,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     def test_get_stacktrace_string_simple(self):
         stacktrace_str = get_stacktrace_string(BASE_APP_DATA)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_no_values(self):
@@ -425,7 +526,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "values"
         ] += self.create_frames(1, False)
         stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_no_stacktrace(self):
@@ -436,14 +537,64 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     def test_get_stacktrace_string_chained(self):
         stacktrace_str = get_stacktrace_string(CHAINED_APP_DATA)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0\nException: Catch divide by zero error\n  File "python_onboarding.py", line <module>\n    divide_by_zero()\n  File "python_onboarding.py", line divide_by_zero\n    raise Exception("Catch divide by zero error")'
+        expected_stacktrace_str = 'Exception: Catch divide by zero error\n  File "python_onboarding.py", function <module>\n    divide_by_zero()\n  File "python_onboarding.py", function divide_by_zero\n    raise Exception("Catch divide by zero error")\nZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
+
+    def test_get_stacktrace_string_chained_too_many_frames(self):
+        data_chained_exception = copy.deepcopy(CHAINED_APP_DATA)
+        data_chained_exception["app"]["component"]["values"][0]["values"] = [
+            self.create_exception(
+                exception_type_str="InnerException",
+                exception_value="nope",
+                frames=self.create_frames(
+                    num_frames=30, context_line_factory=lambda i: f"inner line {i}"
+                ),
+            ),
+            self.create_exception(
+                exception_type_str="MiddleException",
+                exception_value="un-uh",
+                frames=self.create_frames(
+                    num_frames=30, context_line_factory=lambda i: f"middle line {i}"
+                ),
+            ),
+            self.create_exception(
+                exception_type_str="OuterException",
+                exception_value="no way",
+                frames=self.create_frames(
+                    num_frames=30, context_line_factory=lambda i: f"outer line {i}"
+                ),
+            ),
+        ]
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
+
+        # The stacktrace string should be:
+        #    30 frames from OuterExcepton (with lines counting up from 1 to 30), followed by
+        #    20 frames from MiddleExcepton (with lines counting up from 11 to 30), followed by
+        #    no frames from InnerExcepton (though the type and value are in there)
+        expected = "".join(
+            ["OuterException: no way"]
+            + [
+                f'\n  File "hello.py", function hello_there\n    outer line {i}'
+                for i in range(1, 31)  #
+            ]
+            + ["\nMiddleException: un-uh"]
+            + [
+                f'\n  File "hello.py", function hello_there\n    middle line {i}'
+                for i in range(11, 31)
+            ]
+            + ["\nInnerException: nope"]
+        )
+        assert stacktrace_str == expected
+
+    def test_get_stacktrace_string_thread(self):
+        stacktrace_str = get_stacktrace_string(MOBILE_THREAD_DATA)
+        assert stacktrace_str == 'File "", function TestHandler'
 
     def test_get_stacktrace_string_system(self):
         data_system = copy.deepcopy(BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
         stacktrace_str = get_stacktrace_string(data_system)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_app_and_system(self):
@@ -454,7 +605,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         data.update({"system": data_system})
 
         stacktrace_str = get_stacktrace_string(data)
-        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
     def test_get_stacktrace_string_no_app_no_system(self):
@@ -515,7 +666,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         }
         group_similar_endpoint = GroupSimilarIssuesEmbeddingsEndpoint()
         formatted_results = group_similar_endpoint.get_formatted_results(
-            responses=[response_1, response_2], user=self.user
+            similar_issues_data=[response_1, response_2], user=self.user
         )
         assert formatted_results == self.get_expected_response(
             [self.similar_group.id, new_group.id], [0.95, 0.51], [0.99, 0.77], ["Yes", "No"]

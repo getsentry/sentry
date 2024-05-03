@@ -3,6 +3,9 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload
+from django.test import override_settings
 
 from sentry.issues.ingest import process_occurrence_data
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -17,6 +20,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS, GroupSubStatus
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -83,6 +87,66 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
         assert stored_occurrence
         assert occurrence.event_id == stored_occurrence.event_id
+
+    @patch(
+        "sentry.issues.producer._prepare_occurrence_message", return_value={"mock_data": "great"}
+    )
+    @patch("sentry.issues.producer._occurrence_producer.produce")
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    def test_payload_sent_to_kafka_with_partition_key(
+        self, mock_produce, mock_prepare_occurrence_message
+    ) -> None:
+        occurrence = self.build_occurrence(project_id=self.project.id, fingerprint=["group-1"])
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data={},
+        )
+        mock_produce.assert_called_once_with(
+            ArroyoTopic(name="ingest-occurrences"),
+            KafkaPayload(
+                occurrence.fingerprint[0].encode(),
+                json.dumps({"mock_data": "great"}).encode("utf-8"),
+                [],
+            ),
+        )
+
+    @patch(
+        "sentry.issues.producer._prepare_occurrence_message", return_value={"mock_data": "great"}
+    )
+    @patch("sentry.issues.producer._occurrence_producer.produce")
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    def test_payload_sent_to_kafka_with_partition_key_no_fingerprint(
+        self, mock_produce, mock_prepare_occurrence_message
+    ) -> None:
+        occurrence = self.build_occurrence(project_id=self.project.id, fingerprint=[])
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data={},
+        )
+        mock_produce.assert_called_once_with(
+            ArroyoTopic(name="ingest-occurrences"),
+            KafkaPayload(None, json.dumps({"mock_data": "great"}).encode("utf-8"), []),
+        )
+
+    @patch(
+        "sentry.issues.producer._prepare_occurrence_message", return_value={"mock_data": "great"}
+    )
+    @patch("sentry.issues.producer._occurrence_producer.produce")
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    def test_payload_sent_to_kafka_with_partition_key_no_occurrence(
+        self, mock_produce, mock_prepare_occurrence_message
+    ) -> None:
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=None,
+            event_data={},
+        )
+        mock_produce.assert_called_once_with(
+            ArroyoTopic(name="ingest-occurrences"),
+            KafkaPayload(None, json.dumps({"mock_data": "great"}).encode("utf-8"), []),
+        )
 
 
 class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
@@ -303,3 +367,19 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         )
         assert group.status == initial_status
         assert group.substatus == initial_substatus
+
+    def test_generate_status_changes_id(self):
+        status_change_1 = StatusChangeMessage(
+            fingerprint=["status-change-1"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        status_change_2 = StatusChangeMessage(
+            fingerprint=["status-change-2"],
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        assert status_change_1.id
+        assert status_change_1.id != status_change_2.id

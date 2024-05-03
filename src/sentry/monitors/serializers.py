@@ -6,11 +6,13 @@ from typing import Any, Literal, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
 
 from ..models import Environment
+from ..utils.actor import ActorTuple
 from .models import (
     Monitor,
     MonitorCheckIn,
@@ -157,6 +159,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     dateCreated: datetime
     project: ProjectSerializerResponse
     environments: MonitorEnvironmentSerializerResponse
+    owner: ActorSerializerResponse
 
 
 class MonitorBulkEditResponse:
@@ -176,6 +179,15 @@ class MonitorSerializer(Serializer):
         projects_data = {
             project.id: serialized_project
             for project, serialized_project in zip(projects, serialize(list(projects), user))
+        }
+
+        actors = ActorTuple.from_ids(
+            [m.owner_user_id for m in item_list if m.owner_user_id],
+            [m.owner_team_id for m in item_list if m.owner_team_id],
+        )
+        actors_serialized = serialize(ActorTuple.resolve_many(actors), user, ActorSerializer())
+        actor_data = {
+            actor: serialized_actor for actor, serialized_actor in zip(actors, actors_serialized)
         }
 
         monitor_environments = (
@@ -205,6 +217,7 @@ class MonitorSerializer(Serializer):
             item: {
                 "project": projects_data[item.project_id] if item.project_id else None,
                 "environments": environment_data[item.id],
+                "owner": actor_data.get(item.owner_actor),
             }
             for item in item_list
         }
@@ -231,6 +244,7 @@ class MonitorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "project": attrs["project"],
             "environments": attrs["environments"],
+            "owner": attrs["owner"],
         }
 
         if self._expand("alertRule"):

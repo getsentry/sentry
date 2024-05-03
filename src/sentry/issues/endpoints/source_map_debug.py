@@ -39,7 +39,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         operation_id="Debug Issues Related to Source Maps for a Given Event",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
             EventParams.FRAME_IDX,
             EventParams.EXCEPTION_IDX,
@@ -56,22 +56,22 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         """
         Return a list of source map errors for a given event.
         """
-        frame_idx = request.GET.get("frame_idx")
+        frame_idx_param = request.GET.get("frame_idx")
 
-        if not frame_idx:
+        if not frame_idx_param:
             raise ParseError(detail="Query parameter 'frame_idx' is required")
 
         try:
-            frame_idx = int(frame_idx)
+            frame_idx = int(frame_idx_param)
         except ValueError:
             raise ParseError(detail="Query parameter 'frame_idx' must be an integer")
 
-        exception_idx = request.GET.get("exception_idx")
-        if not exception_idx:
+        exception_idx_param = request.GET.get("exception_idx")
+        if not exception_idx_param:
             raise ParseError(detail="Query parameter 'exception_idx' is required")
 
         try:
-            exception_idx = int(exception_idx)
+            exception_idx = int(exception_idx_param)
         except ValueError:
             raise ParseError(detail="Query parameter 'exception_idx' must be an integer")
 

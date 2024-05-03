@@ -74,10 +74,10 @@ def test_get_similar_issues_embeddings_simple(mock_seer_request):
     expected_return_value = {
         "responses": [
             {
-                "message_similarity": 0.95,
+                "message_distance": 0.05,
                 "parent_group_id": 6,
                 "should_group": True,
-                "stacktrace_similarity": 0.99,
+                "stacktrace_distance": 0.01,
             }
         ]
     }

@@ -191,6 +191,8 @@ HTTP_SERVER_ERROR_STATUS = {
     "511",
 }
 
+CACHE_HIT_STATUS = {"true", "false"}
+
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",
@@ -311,6 +313,7 @@ DEFAULT_METRIC_TAGS = {
     "query_hash",
     "release",
     "resource.render_blocking_status",
+    "cache.hit",
     "satisfaction",
     "sdk",
     "session.status",
@@ -319,6 +322,8 @@ DEFAULT_METRIC_TAGS = {
     "transaction.op",
     "transaction.status",
     "span.op",
+    "trace.status",
+    "messaging.destination.name",
 }
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
@@ -327,6 +332,12 @@ SPAN_METRICS_MAP = {
     "http.response_content_length": "d:spans/http.response_content_length@byte",
     "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
+    "cache.item_size": "d:spans/cache.item_size@byte",
+    "mobile.slow_frames": "g:spans/mobile.slow_frames@none",
+    "mobile.frozen_frames": "g:spans/mobile.frozen_frames@none",
+    "mobile.total_frames": "g:spans/mobile.total_frames@none",
+    "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
+    "messaging.message.receive.latency": "g:spans/messaging.message.receive.latency@millisecond",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
@@ -348,7 +359,12 @@ METRIC_DURATION_COLUMNS = {
 SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
-    if value.endswith("@millisecond") and value.startswith("d:")
+    if value.endswith("@millisecond") or value.endswith("@second")
+}
+SPAN_METRIC_COUNT_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
+    if value.endswith("@none") and value.startswith("g:")
 }
 SPAN_METRIC_BYTES_COLUMNS = {
     key

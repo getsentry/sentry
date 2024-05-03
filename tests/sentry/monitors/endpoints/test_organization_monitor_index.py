@@ -209,6 +209,51 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, expected)
 
+    def test_filter_owners(self):
+        user_1 = self.create_user()
+        user_2 = self.create_user()
+        team_1 = self.create_team()
+        team_2 = self.create_team()
+        self.create_team_membership(team_2, user=self.user)
+
+        mon_a = self._create_monitor(name="A monitor", owner_user_id=user_1.id)
+        mon_b = self._create_monitor(name="B monitor", owner_user_id=user_2.id)
+        mon_c = self._create_monitor(name="C monitor", owner_user_id=None, owner_team_id=team_1.id)
+        mon_d = self._create_monitor(name="D monitor", owner_user_id=None, owner_team_id=team_2.id)
+        mon_e = self._create_monitor(name="E monitor", owner_user_id=None, owner_team_id=None)
+
+        # Monitor by user
+        response = self.get_success_response(self.organization.slug, owner=[f"user:{user_1.id}"])
+        self.check_valid_response(response, [mon_a])
+
+        # Monitors by users and teams
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=[f"user:{user_1.id}", f"user:{user_2.id}", f"team:{team_1.id}"],
+        )
+        self.check_valid_response(response, [mon_a, mon_b, mon_c])
+
+        # myteams
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["myteams"],
+        )
+        self.check_valid_response(response, [mon_d])
+
+        # unassigned monitors
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["unassigned", f"user:{user_1.id}"],
+        )
+        self.check_valid_response(response, [mon_a, mon_e])
+
+        # Invalid user ID
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["user:12345"],
+        )
+        self.check_valid_response(response, [])
+
     def test_all_monitor_environments(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(
@@ -287,6 +332,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
+            "owner": f"user:{self.user.id}",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -296,6 +342,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
         assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.owner_user_id == self.user.id
+        assert monitor.owner_team_id is None
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,

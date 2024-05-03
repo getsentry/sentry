@@ -16,6 +16,7 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -30,54 +31,75 @@ from sentry.utils import auth
 logger = logging.getLogger(__name__)
 
 
+def handle_empty_organization_id_or_slug(
+    member_id: int, user_id: int, request: HttpRequest
+) -> RpcUserInviteContext | None:
+    member_mapping: OrganizationMemberMapping | None = None
+    member_mappings: Mapping[int, OrganizationMemberMapping] = {
+        omm.organization_id: omm
+        for omm in OrganizationMemberMapping.objects.filter(organizationmember_id=member_id).all()
+    }
+    org_mappings = OrganizationMapping.objects.filter(
+        organization_id__in=list(member_mappings.keys())
+    )
+    for mapping in org_mappings:
+        try:
+            if get_region_by_name(mapping.region_name).is_historic_monolith_region():
+                member_mapping = member_mappings.get(mapping.organization_id)
+                break
+        except RegionResolutionError:
+            pass
+
+    if member_mapping is None:
+        return None
+    invite_context = organization_service.get_invite_by_id(
+        organization_id=member_mapping.organization_id,
+        organization_member_id=member_id,
+        user_id=user_id,
+    )
+
+    logger.info(
+        "organization.member_invite.no_id_or_slug",
+        extra={
+            "member_id": member_id,
+            "org_id": member_mapping.organization_id,
+            "url": request.path,
+            "method": request.method,
+        },
+    )
+
+    return invite_context
+
+
 def get_invite_state(
     member_id: int,
-    organization_slug: str | None,
+    organization_id_or_slug: int | str | None,
     user_id: int,
     request: HttpRequest,
 ) -> RpcUserInviteContext | None:
-    if organization_slug is None:
-        member_mapping: OrganizationMemberMapping | None = None
-        member_mappings: Mapping[int, OrganizationMemberMapping] = {
-            omm.organization_id: omm
-            for omm in OrganizationMemberMapping.objects.filter(
-                organizationmember_id=member_id
-            ).all()
-        }
-        org_mappings = OrganizationMapping.objects.filter(
-            organization_id__in=list(member_mappings.keys())
-        )
-        for mapping in org_mappings:
-            try:
-                if get_region_by_name(mapping.region_name).is_historic_monolith_region():
-                    member_mapping = member_mappings.get(mapping.organization_id)
-                    break
-            except RegionResolutionError:
-                pass
 
-        if member_mapping is None:
-            return None
-        invite_context = organization_service.get_invite_by_id(
-            organization_id=member_mapping.organization_id,
-            organization_member_id=member_id,
-            user_id=user_id,
-        )
+    if organization_id_or_slug is None:
+        return handle_empty_organization_id_or_slug(member_id, user_id, request)
 
-        logger.info(
-            "organization.member_invite.no_slug",
-            extra={
-                "member_id": member_id,
-                "org_id": member_mapping.organization_id,
-                "url": request.path,
-                "method": request.method,
-            },
-        )
     else:
-        invite_context = organization_service.get_invite_by_slug(
-            organization_member_id=member_id,
-            slug=organization_slug,
-            user_id=user_id,
-        )
+        if (
+            id_or_slug_path_params_enabled(
+                convert_args_class=AcceptOrganizationInvite,
+                organization_slug=str(organization_id_or_slug),
+            )
+            and str(organization_id_or_slug).isdecimal()
+        ):
+            invite_context = organization_service.get_invite_by_id(
+                organization_id=organization_id_or_slug,
+                organization_member_id=member_id,
+                user_id=user_id,
+            )
+        else:
+            invite_context = organization_service.get_invite_by_slug(
+                organization_member_id=member_id,
+                slug=organization_id_or_slug,
+                user_id=user_id,
+            )
 
     return invite_context
 
@@ -101,11 +123,16 @@ class AcceptOrganizationInvite(Endpoint):
         return ApiInviteHelper(request=request, token=token, invite_context=invite_context)
 
     def get(
-        self, request: Request, member_id: int, token: str, organization_slug: str | None = None
+        self,
+        request: Request,
+        member_id: int,
+        token: str,
+        organization_slug: int | str | None = None,
     ) -> Response:
+
         invite_context = get_invite_state(
             member_id=int(member_id),
-            organization_slug=organization_slug,
+            organization_id_or_slug=organization_slug,
             user_id=request.user.id,
             request=request,
         )
@@ -199,7 +226,7 @@ class AcceptOrganizationInvite(Endpoint):
     ) -> Response:
         invite_context = get_invite_state(
             member_id=int(member_id),
-            organization_slug=organization_slug,
+            organization_id_or_slug=organization_slug,
             user_id=request.user.id,
             request=request,
         )

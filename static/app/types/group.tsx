@@ -1,3 +1,5 @@
+import type {LocationDescriptor} from 'history';
+
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
@@ -372,6 +374,7 @@ export enum GroupActivityType {
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
+  DELETED_ATTACHMENT = 'deleted_attachment',
 }
 
 interface GroupActivityBase {
@@ -630,6 +633,11 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
   type: GroupActivityType.CREATE_ISSUE;
 }
 
+interface GroupActivityDeletedAttachment extends GroupActivityBase {
+  data: {};
+  type: GroupActivityType.DELETED_ATTACHMENT;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -657,7 +665,8 @@ export type GroupActivity =
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
-  | GroupActivitySetPriority;
+  | GroupActivitySetPriority
+  | GroupActivityDeletedAttachment;
 
 export type Activity = GroupActivity;
 
@@ -795,6 +804,7 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
+  hasAttachments?: boolean;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
@@ -906,6 +916,9 @@ export type UserReport = {
 export type KeyValueListDataItem = {
   key: string;
   subject: string;
+  action?: {
+    link?: string | LocationDescriptor;
+  };
   actionButton?: React.ReactNode;
   isContextData?: boolean;
   isMultiValue?: boolean;

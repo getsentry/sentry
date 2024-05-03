@@ -1,10 +1,10 @@
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {MetricsProperty, MetricsResponse} from 'sentry/views/starfish/types';
+import type {SpanMetricsProperty, SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 interface UseSpanMetricsOptions<Fields> {
@@ -17,7 +17,7 @@ interface UseSpanMetricsOptions<Fields> {
   sorts?: Sort[];
 }
 
-export const useSpanMetrics = <Fields extends MetricsProperty[]>(
+export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   options: UseSpanMetricsOptions<Fields> = {}
 ) => {
   const {fields = [], search = undefined, sorts = [], limit, cursor, referrer} = options;
@@ -37,7 +37,7 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
   // eslint-disable-next-line @typescript-eslint/ban-types
-  const data = (result?.data ?? []) as Pick<MetricsResponse, Fields[number]>[] | [];
+  const data = (result?.data ?? []) as Pick<SpanMetricsResponse, Fields[number]>[] | [];
 
   return {
     ...result,

@@ -21,9 +21,9 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, get_region_for_organization
+from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -149,7 +149,6 @@ class BaseRequestParser(abc.ABC):
         self,
         regions: Sequence[Region],
         identifier: int | str | None = None,
-        shard_identifier_override: int | None = None,  # deprecated used in getsentry
         integration_id: int | None = None,
     ):
         """
@@ -159,7 +158,7 @@ class BaseRequestParser(abc.ABC):
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or shard_identifier_override or self.webhook_identifier.value
+        shard_identifier = identifier or self.webhook_identifier.value
         for region in regions:
             WebhookPayload.create_from_request(
                 region=region.name,
@@ -170,9 +169,6 @@ class BaseRequestParser(abc.ABC):
             )
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
-
-    # Alias to prop up getsentry
-    get_response_from_outbox_creation = get_response_from_webhookpayload
 
     def get_response_from_webhookpayload_for_integration(
         self, regions: Sequence[Region], integration: Integration | RpcIntegration
@@ -203,17 +199,16 @@ class BaseRequestParser(abc.ABC):
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
-            logging.info(
+            logger.info(
                 "integrations.parser.activate_buckets",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
-
         if not use_buckets:
             return str(integration.id)
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
-            logging.info(
+            logger.info(
                 "integrations.parser.no_bucket_id",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
@@ -304,8 +299,8 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
-        regions = [get_region_for_organization(organization.slug) for organization in organizations]
-        return sorted(regions, key=lambda r: r.name)
+        region_names = find_regions_for_orgs([org.id for org in organizations])
+        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)

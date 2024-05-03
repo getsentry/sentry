@@ -2,12 +2,12 @@ import {useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -67,7 +67,7 @@ function AddWidget({onAddWidget}: Props) {
         <InnerWrapper>
           <AddWidgetButton
             onAddWidget={onAddWidget}
-            aria-label="Add Widget"
+            aria-label={t('Add Widget')}
             data-test-id="widget-add"
           />
         </InnerWrapper>

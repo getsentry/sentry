@@ -1,6 +1,6 @@
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 
 import {getTermHelp, PerformanceTerm} from '../../data';
@@ -66,7 +66,10 @@ export enum PerformanceWidgetSetting {
   TIME_TO_FULL_DISPLAY = 'time_to_full_display',
   OVERALL_PERFORMANCE_SCORE = 'overall_performance_score',
   MOST_TIME_CONSUMING_RESOURCES = 'most_time_consuming_resources',
+  MOST_TIME_CONSUMING_DOMAINS = 'most_time_consuming_domains',
   SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
+  SLOW_SCREENS_BY_COLD_START = 'slow_screens_by_cold_start',
+  SLOW_SCREENS_BY_WARM_START = 'slow_screens_by_warm_start',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -284,6 +287,14 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
   },
+  [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: {
+    title: t('Most Time-Consuming Domains'),
+    subTitle: t('Top outgoing HTTP request domains by time spent'),
+    titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_TIME_CONSUMING_DOMAINS),
+    fields: [`time_spent_percentage()`],
+    dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+    chartColor: WIDGET_PALETTE[0],
+  },
   [PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES]: {
     title: t('Best Page Opportunities'),
     subTitle: t('Pages to improve your performance score'),
@@ -395,5 +406,19 @@ export const WIDGET_DEFINITIONS: ({
     subTitle: t('Top screens by count'),
     fields: ['avg(measurements.time_to_initial_display)'],
     dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID,
+  },
+  [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]: {
+    title: t('Average Cold Start'),
+    titleTooltip: '',
+    subTitle: t('Top screens by start count'),
+    fields: ['avg(measurements.app_start_cold)'],
+    dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_COLD_START,
+  },
+  [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]: {
+    title: t('Average Warm Start'),
+    titleTooltip: '',
+    subTitle: t('Top screens by start count'),
+    fields: ['avg(measurements.app_start_warm)'],
+    dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START,
   },
 });

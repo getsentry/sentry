@@ -30,6 +30,7 @@ from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
@@ -64,19 +65,19 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         },
         "PUT": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         },
         "DELETE": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
+            RateLimitCategory.IP: RateLimit(limit=5, window=5),
+            RateLimitCategory.USER: RateLimit(limit=5, window=5),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=5),
         },
     }
 
@@ -85,7 +86,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     def _get_seen_by(self, request: Request, group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
-        return serialize(seen_by, request.user)
+        return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
     def _get_context_plugins(self, request: Request, group):
         project = group.project
@@ -234,6 +235,17 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     list(external_issues), request, serializer=PlatformExternalIssueSerializer()
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
+
+            if "hasAttachments" in expand:
+                if not features.has(
+                    "organizations:event-attachments",
+                    group.project.organization,
+                    actor=request.user,
+                ):
+                    return self.respond(status=404)
+
+                num_attachments = EventAttachment.objects.filter(group_id=group.id).count()
+                data.update({"hasAttachments": num_attachments > 0})
 
             data.update(
                 {

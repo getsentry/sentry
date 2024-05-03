@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -18,6 +18,7 @@ import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -53,7 +54,7 @@ function ReplayPreviewPlayer({
   const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime, isFinished, isPlaying} = useReplayContext();
+  const {replay, currentTime, isFetching, isFinished, isPlaying} = useReplayContext();
   const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef(null);
@@ -75,6 +76,13 @@ function ReplayPreviewPlayer({
       f_b_type: fromFeedback ? 'feedback' : undefined,
     },
   };
+
+  const {mutate: markAsViewed} = useMarkReplayViewed();
+  useEffect(() => {
+    if (replayRecord?.id && !replayRecord.has_viewed && !isFetching && isPlaying) {
+      markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
+    }
+  }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
 
   return (
     <PlayerPanel>

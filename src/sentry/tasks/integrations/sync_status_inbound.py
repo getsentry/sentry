@@ -13,7 +13,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -42,6 +42,15 @@ def get_resolutions_and_activity_data_for_groups(
             ).exists()
             for project_id in all_project_ids
         )
+        logging_params = {
+            "has_releases_for_each_project": has_releases_for_each_project,
+            "resolution_strategy": resolution_strategy,
+            "organization_id": organization_id,
+        }
+        logger.info(
+            "get_resolutions_and_activity_data_for_groups.has_releases_for_each_project",
+            extra=logging_params,
+        )
         if has_releases_for_each_project:
             # found a release, we can proceed with non-dfeault resolutions
             if resolution_strategy == "resolve_next_release":
@@ -51,6 +60,7 @@ def get_resolutions_and_activity_data_for_groups(
                 activity_type = ActivityType.SET_RESOLVED_IN_RELEASE
 
             for group in affected_groups:
+                local_logging_params = logging_params.copy()
                 # update the resolutions
                 # probably should be done within a single transaction with the status but this is fine for now
                 # note this logic is ported from src/sentry/api/helpers/group_index/update.py
@@ -70,6 +80,20 @@ def get_resolutions_and_activity_data_for_groups(
                     org_id=organization_id,
                     project_id=group.project.id,
                     release_version=last_release_by_date.version,
+                )
+
+                local_logging_params.update(
+                    {
+                        "group_id": group.id,
+                        "last_release_by_date": (
+                            last_release_by_date.version if last_release_by_date else None
+                        ),
+                        "follows_semver": follows_semver,
+                    }
+                )
+                logger.info(
+                    "get_resolutions_and_activity_data_for_groups.last_release_by_date",
+                    extra=local_logging_params,
                 )
 
                 resolution_params = {
@@ -120,15 +144,22 @@ def get_resolutions_and_activity_data_for_groups(
                                 .order_by("sort", "id")[:1]
                                 .get()
                             )
-                            resolution_params.update({"version": resolved_in_release.version})
+                            resolution_params.update({"release": resolved_in_release})
                             activity_data.update({"version": resolved_in_release.version})
+                            local_logging_params.update(
+                                {"resolved_in_release": resolved_in_release.version}
+                            )
+                            logger.info(
+                                "get_resolutions_and_activity_data_for_groups.resolved_in_release",
+                                extra=local_logging_params,
+                            )
                         except Release.DoesNotExist:
                             # If it gets here, it means we don't know the upcoming
                             # release yet because it does not exist, and so we should
                             # fall back to our current model
                             logger.info(
                                 "get_resolutions_and_activity_data_for_groups.next_release_not_found",
-                                extra={"group_id": group.id},
+                                extra=local_logging_params,
                             )
 
                 resolutions_by_group_id[group.id] = resolution_params

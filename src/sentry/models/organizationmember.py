@@ -28,7 +28,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -183,7 +183,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
         return self.filter(role=role, user_id__in=[u.id for u in users_by_email])
 
 
-@region_silo_only_model
+@region_silo_model
 class OrganizationMember(ReplicatedRegionModel):
     """
     Identifies relationships between organizations and users.
@@ -654,5 +654,11 @@ class OrganizationMember(ReplicatedRegionModel):
             and pk_map.get_pk(NormalizedModelName("sentry.user"), self.inviter_id) is None
         ):
             self.inviter_id = None
+
+        # If there is a token collision, just wipe the token. The user can always make a new one.
+        matching_token = self.__class__.objects.filter(token=self.token).first()
+        if matching_token is not None:
+            self.token = None
+            self.token_expires_at = None
 
         return super().normalize_before_relocation_import(pk_map, scope, flags)

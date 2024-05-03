@@ -1,7 +1,8 @@
+from sentry.models.integrations.sentry_app import EVENT_EXPANSION
 from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.apps import consolidate_events, expand_events
 from sentry.services.hybrid_cloud.hook import hook_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
@@ -40,21 +41,10 @@ class TestHookService(TestCase):
 
     def test_expands_resource_events_to_specific_events(self):
         service_hook = self.call_create_hook(events=["issue"])
-
-        assert set(service_hook.events) == {
-            "issue.created",
-            "issue.resolved",
-            "issue.ignored",
-            "issue.assigned",
-        }
+        assert set(service_hook.events) == set(EVENT_EXPANSION["issue"])
 
     def test_expand_events(self):
-        assert expand_events(["issue"]) == {
-            "issue.created",
-            "issue.resolved",
-            "issue.ignored",
-            "issue.assigned",
-        }
+        assert expand_events(["issue"]) == set(EVENT_EXPANSION["issue"])
 
     def test_consolidate_events(self):
         assert consolidate_events(["issue.created"]) == {"issue"}

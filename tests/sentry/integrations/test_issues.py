@@ -9,7 +9,7 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.release import Release
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -119,8 +119,12 @@ class IssueSyncIntegration(TestCase):
 
     def test_sync_status_resolve_in_next_release_with_releases(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release2 = Release.objects.create(organization_id=self.project.organization_id, version="b")
         release.add_project(self.project)
+        release2.add_project(self.project)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        # add releases in the reverse order
+        self.create_group_release(group=group, release=release2)
         self.create_group_release(group=group, release=release)
 
         assert group.status == GroupStatus.UNRESOLVED
@@ -172,7 +176,7 @@ class IssueSyncIntegration(TestCase):
             assert GroupResolution.objects.filter(
                 group=group,
                 current_release_version=release.version,
-                release=release,
+                release=release2,
                 type=GroupResolution.Type.in_next_release,
             ).exists()
             assert activity.data == {
@@ -180,6 +184,7 @@ class IssueSyncIntegration(TestCase):
                 "provider": integration.get_provider().name,
                 "provider_key": integration.get_provider().key,
                 "inNextRelease": True,
+                "version": release2.version,
             }
 
     def test_sync_status_resolve_in_next_release_with_semver(self):

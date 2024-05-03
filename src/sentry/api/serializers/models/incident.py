@@ -41,6 +41,9 @@ class IncidentSerializer(Serializer):
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
             results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
+            results[incident]["activation"] = (
+                serialize(incident.activation) if incident.activation else []
+            )
 
         if "seen_by" in self.expand:
             incident_seen_list = list(
@@ -88,6 +91,7 @@ class IncidentSerializer(Serializer):
             "dateDetected": obj.date_detected,
             "dateCreated": obj.date_added,
             "dateClosed": date_closed,
+            "activation": attrs.get("activation", []),
         }
 
 

@@ -173,7 +173,7 @@ Retrieve a collection of replays.
   }
   ```
 
-## Replay [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/]
+## Replay [/projects/<organization_slug>/<project_id_or_slug>/replays/<replay_id>/]
 
 - Parameters
   - field (optional, string)
@@ -244,7 +244,7 @@ Deletes a replay instance.
 
 - Response 204
 
-## Replay Accessibility Issues [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/accessibility-issues]
+## Replay Accessibility Issues [/projects/<organization_slug>/<project_id_or_slug>/replays/<replay_id>/accessibility-issues]
 
 This resource does not accept any URI parameters and is not paginated. Responses are ingested whole.
 
@@ -369,21 +369,21 @@ Retrieve a collection of selectors.
 
 **Attributes**
 
-| Column             | Type          | Description                                        |
-| ------------------ | ------------- | -------------------------------------------------- |
-| count_dead_clicks  | number        | The number of dead clicks for a given DOM element. |
-| count_rage_clicks  | number        | The number of rage clicks for a given DOM element. |
-| dom_element        | string        | -                                                  |
-| element.alt        | string        | -                                                  |
-| element.aria_label | string        | -                                                  |
-| element.class      | array[string] | -                                                  |
-| element.id         | string        | -                                                  |
-| element.role       | string        | -                                                  |
-| element.tag        | string        | -                                                  |
-| element.testid     | string        | -                                                  |
-| element.title      | string        | -                                                  |
-| project_id         | string        | -                                                  |
-| component_name     | string        | -                                                  |
+| Column                 | Type          | Description                                        |
+| ---------------------- | ------------- | -------------------------------------------------- |
+| count_dead_clicks      | number        | The number of dead clicks for a given DOM element. |
+| count_rage_clicks      | number        | The number of rage clicks for a given DOM element. |
+| dom_element            | string        | -                                                  |
+| element.alt            | string        | -                                                  |
+| element.aria_label     | string        | -                                                  |
+| element.class          | array[string] | -                                                  |
+| element.component_name | string        | -                                                  |
+| element.id             | string        | -                                                  |
+| element.role           | string        | -                                                  |
+| element.tag            | string        | -                                                  |
+| element.testid         | string        | -                                                  |
+| element.title          | string        | -                                                  |
+| project_id             | string        | -                                                  |
 
 - Response 200
 
@@ -398,20 +398,20 @@ Retrieve a collection of selectors.
           "alt": "",
           "aria_label": "",
           "class": ["class1", "class2"],
+          "component_name": "",
           "id": "myid",
           "role": "",
           "tag": "div",
           "testid": "",
           "title": ""
         },
-        "project_id": "1",
-        "component_name": "SignUpForm"
+        "project_id": "1"
       }
     ]
   }
   ```
 
-## Replay Recording Segments [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/recording-segments/]
+## Replay Recording Segments [/projects/<organization_slug>/<project_id_or_slug>/replays/<replay_id>/recording-segments/]
 
 - Parameters
   - per_page
@@ -463,7 +463,7 @@ With download query argument, rrweb events JSON
   ]
   ```
 
-## Replay Recording Segment [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/recording-segments/<segment_id>/]
+## Replay Recording Segment [/projects/<organization_slug>/<project_id_or_slug>/replays/<replay_id>/recording-segments/<segment_id>/]
 
 - Parameters
   - download - Instruct the API to return a streaming bytes response.
@@ -493,7 +493,7 @@ With download query argument.
 
   Content-Type application/octet-stream
 
-## Replay Video [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/videos/<segment_id>/]
+## Replay Video [/projects/<organization_slug>/<project_id_or_slug>/replays/<replay_id>/videos/<segment_id>/]
 
 ### Fetch Replay Video [GET]
 
@@ -505,7 +505,7 @@ Returns the bytes of a replay-segment video.
   \x00\x00\x00
   ```
 
-## Replay Tag Keys [/projects/<organization_slug>/<project_slug>/replays/tags/]
+## Replay Tag Keys [/projects/<organization_slug>/<project_id_or_slug>/replays/tags/]
 
 ### Fetch Tag Keys [GET]
 
@@ -529,7 +529,7 @@ Retrieve a collection of tag keys associated with the replays dataset.
   ]
   ```
 
-## Replay Tag Values [/projects/<organization_slug>/<project_slug>/replays/tags/<key>/values/]
+## Replay Tag Values [/projects/<organization_slug>/<project_id_or_slug>/replays/tags/<key>/values/]
 
 ### Fetch Tag Values [GET]
 
@@ -559,7 +559,7 @@ Retrieve a collection of tag values associated with a tag key on the replays dat
   ]
   ```
 
-## Replay Click [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/clicks/]
+## Replay Click [/projects/<organization_slug>/<project_id_or_slug>/replays/<replay_id>/clicks/]
 
 Parameters:
 
@@ -614,7 +614,7 @@ Retrieve a collection of click events associated with a replay.
   }
   ```
 
-## Replay Viewed By [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/viewed-by/]
+## Replay Viewed By [/projects/<organization_slug>/<project_id_or_slug>/replays/<replay_id>/viewed-by/]
 
 ### Fetch Replay Viewed By [GET]
 

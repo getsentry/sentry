@@ -14,7 +14,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
 from sentry.services.hybrid_cloud.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.silo import (
     assume_test_silo_mode,

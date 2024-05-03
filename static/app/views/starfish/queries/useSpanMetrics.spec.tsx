@@ -3,7 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {MetricsProperty} from 'sentry/views/starfish/types';
+import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -58,12 +58,12 @@ describe('useSpanMetrics', () => {
       body: {data: []},
     });
 
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       ({fields, enabled}) => useSpanMetrics({fields, enabled}),
       {
         wrapper: Wrapper,
         initialProps: {
-          fields: ['spm()'] as MetricsProperty[],
+          fields: ['spm()'] as SpanMetricsProperty[],
           enabled: false,
         },
       }
@@ -88,7 +88,7 @@ describe('useSpanMetrics', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(
+    const {result} = renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
         useSpanMetrics({
           search: MutableSearch.fromQueryObject(filters),
@@ -107,7 +107,7 @@ describe('useSpanMetrics', () => {
             release: '0.0.1',
             environment: undefined,
           },
-          fields: ['spm()'] as MetricsProperty[],
+          fields: ['spm()'] as SpanMetricsProperty[],
           sorts: [{field: 'spm()', kind: 'desc' as const}],
           limit: 10,
           referrer: 'api-spec',

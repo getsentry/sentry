@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -8,6 +8,9 @@ from urllib3.exceptions import ReadTimeoutError
 
 from sentry.net.http import connection_from_url
 from sentry.utils import json
+from sentry.utils.json import JSONDecodeError
+
+logger = logging.getLogger(__name__)
 
 POST_BULK_GROUPING_RECORDS_TIMEOUT = 10000
 
@@ -82,16 +85,13 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     return {"data": []}
 
 
-class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
-    k: int
-    threshold: float
-
-
-class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):
+class SimilarIssuesEmbeddingsRequest(TypedDict):
     group_id: int
     project_id: int
     stacktrace: str
     message: str
+    k: NotRequired[int]  # how many neighbors to find
+    threshold: NotRequired[float]
 
 
 class SimilarIssuesEmbeddingsData(TypedDict):
@@ -102,24 +102,7 @@ class SimilarIssuesEmbeddingsData(TypedDict):
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
-    responses: list[SimilarIssuesEmbeddingsData | None]
-
-
-def get_similar_issues_embeddings(
-    similar_issues_request: SimilarIssuesEmbeddingsRequest,
-) -> SimilarIssuesEmbeddingsResponse:
-    """Call /v0/issues/similar-issues endpoint from seer."""
-    response = seer_staging_connection_pool.urlopen(
-        "POST",
-        "/v0/issues/similar-issues",
-        body=json.dumps(similar_issues_request),
-        headers={"Content-Type": "application/json;charset=utf-8"},
-    )
-
-    try:
-        return json.loads(response.data.decode("utf-8"))
-    except AttributeError:
-        return SimilarIssuesEmbeddingsResponse(responses=[])
+    responses: list[SimilarIssuesEmbeddingsData]
 
 
 class CreateGroupingRecordData(TypedDict):
@@ -136,7 +119,34 @@ class CreateGroupingRecordsRequest(TypedDict):
 
 class BulkCreateGroupingRecordsResponse(TypedDict):
     success: bool
+      
 
+def get_similar_issues_embeddings(
+    similar_issues_request: SimilarIssuesEmbeddingsRequest,
+) -> SimilarIssuesEmbeddingsResponse:
+    """Call /v0/issues/similar-issues endpoint from seer."""
+    response = seer_staging_connection_pool.urlopen(
+        "POST",
+        "/v0/issues/similar-issues",
+        body=json.dumps(similar_issues_request),
+        headers={"Content-Type": "application/json;charset=utf-8"},
+    )
+
+    try:
+        return json.loads(response.data.decode("utf-8"))
+    except (
+        AttributeError,  # caused by a response with no data and therefore no `.decode` method
+        UnicodeError,
+        JSONDecodeError,
+    ):
+        logger.exception(
+            "Failed to parse seer similar issues response",
+            extra={
+                "request_params": similar_issues_request,
+                "response_data": response.data,
+            },
+        )
+        return {"responses": []}
 
 def post_bulk_grouping_records(
     grouping_records_request: CreateGroupingRecordsRequest,

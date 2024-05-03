@@ -32,6 +32,12 @@ def run_random_sample(option_name: str) -> Sequence[int]:
 def test_in_random_rollout(register_option) -> None:
     success = 0
     failure = 0
+
+    with override_options({"feature.rollout": 0.0}):
+        success, failure = run_random_sample("feature.rollout")
+        assert success == 0
+        assert failure == 1000
+
     with override_options({"feature.rollout": 0.25}):
         success, failure = run_random_sample("feature.rollout")
         assert success + failure == 1000
@@ -41,6 +47,11 @@ def test_in_random_rollout(register_option) -> None:
         success, failure = run_random_sample("feature.rollout")
         assert success + failure == 1000
         assert 0.65 < success / (failure + success) < 0.85, "within margin of error"
+
+    with override_options({"feature.rollout": 1.0}):
+        success, failure = run_random_sample("feature.rollout")
+        assert success == 1000
+        assert failure == 0
 
 
 def run_rollout_group(option_name: str, id: int | str) -> Sequence[int]:

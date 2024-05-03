@@ -10,7 +10,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.models.release import Release, follows_semver_versioning_scheme
@@ -18,7 +18,7 @@ from sentry.models.releases.constants import DB_VERSION_LENGTH
 from sentry.utils import metrics
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupResolution(Model):
     """
     Describes when a group was marked as resolved.

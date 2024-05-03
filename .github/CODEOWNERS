@@ -108,10 +108,15 @@ setup.py                                                 @getsentry/release-appr
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
 pyproject.toml                                           @getsentry/owners-python-build
+.vercel.json                                             @getsentry/owners-js-build
+/.githib/worksflows/frontend.yml                         @getsentry/owners-js-build
+/.github/file-filters.yml                                @getsentry/owners-js-build
+babel.config.*                                           @getsentry/owners-js-build
+biome.json                                               @getsentry/owners-js-build
+build-utils/                                             @getsentry/owners-js-build
+jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 webpack.config.*                                         @getsentry/owners-js-build
-babel.config.*                                           @getsentry/owners-js-build
-build-utils/                                             @getsentry/owners-js-build
 .volta.json                                              @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 yarn.lock                                                @getsentry/owners-js-deps
@@ -186,6 +191,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/performance
+/tests/sentry/spans/                                                        @getsentry/performance
 /static/app/components/events/viewHierarchy/*                               @getsentry/performance
 
 /src/sentry/api/serializers/snuba.py                                        @getsentry/performance
@@ -207,6 +213,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_vitals.py                   @getsentry/performance
 /src/sentry/api/endpoints/organization_transaction_anomaly_detection.py   @getsentry/data
 /src/sentry/utils/performance_issues/                                     @getsentry/performance
+/src/sentry/spans/                                                        @getsentry/performance
 
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
@@ -414,6 +421,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
 /src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
+/src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-web-sdk-frontend
+/src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-web-sdk-frontend
 ## End of SDK
 
 
@@ -451,11 +460,16 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/utils/metrics/                                                       @getsentry/telemetry-experience
-/static/app/views/metrics/                                                           @getsentry/telemetry-experience
+/static/app/views/metrics/                                                       @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
+/static/app/views/settings/projectMetrics/*                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
+
+/static/app/components/metrics/                                                  @getsentry/telemetry-experience
+/static/app/components/modals/metricWidgetViewerModal*                           @getsentry/telemetry-experience
+/static/app/views/dashboards/metrics/                                            @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 
@@ -503,8 +517,12 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 
 ## ML & AI
-/static/app/components/events/aiSuggestedSolution/      @getsentry/machine-learning-ai
-/src/sentry/api/endpoints/event_ai_suggested_fix.py     @getsentry/machine-learning-ai
+*autofix*.py                                                @getsentry/machine-learning-ai
+/src/sentry/api/endpoints/event_ai_suggested_fix.py         @getsentry/machine-learning-ai
+/static/app/components/events/aiSuggestedSolution/          @getsentry/machine-learning-ai
+/static/app/components/events/autofix/                      @getsentry/machine-learning-ai
+/static/app/components/modals/autofixSetupModal.spec.tsx    @getsentry/machine-learning-ai
+/static/app/components/modals/autofixSetupModal.tsx         @getsentry/machine-learning-ai
 ## End of ML & AI
 
 ## Processing

@@ -289,7 +289,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_slug}/config/repos/": {"GET"},
     "/api/0/organizations/{organization_slug}/sdk-updates/": {"GET"},
     "/api/0/organizations/{organization_slug}/sdks/": {"GET"},
-    "/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/": {"GET"},
+    "/api/0/organizations/{organization_slug}/events/{project_id_or_slug}:{event_id}/": {"GET"},
     "/api/0/organizations/{organization_slug}/events-stats/": {"GET"},
     "/api/0/organizations/{organization_slug}/metrics-estimation-stats/": {"GET"},
     "/api/0/organizations/{organization_slug}/events-facets/": {"GET"},
@@ -357,7 +357,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/organizations/{organization_slug}/notifications/available-actions/": {"GET"},
     "/api/0/organizations/{organization_slug}/monitors-stats/": {"GET"},
-    "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/stats/": {"GET"},
+    "/api/0/organizations/{organization_slug}/monitors/{monitor_id_or_slug}/stats/": {"GET"},
     "/api/0/organizations/{organization_slug}/pinned-searches/": {"DELETE", "PUT"},
     "/api/0/organizations/{organization_slug}/recent-searches/": {"GET", "POST"},
     "/api/0/organizations/{organization_slug}/searches/{search_id}/": {"DELETE", "PUT"},
@@ -366,7 +366,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_slug}/releases/{version}/resolved/": {"GET"},
     "/api/0/organizations/{organization_slug}/request-project-creation/": {"POST"},
     "/api/0/organizations/{organization_slug}/members/{member_id}/unreleased-commits/": {"GET"},
-    "/api/0/organizations/{organization_slug}/members/{member_id}/teams/{team_slug}/": {
+    "/api/0/organizations/{organization_slug}/members/{member_id}/teams/{team_id_or_slug}/": {
         "GET",
         "PUT",
     },
@@ -421,7 +421,11 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_slug}/replay-count/": {"GET"},
     "/api/0/organizations/{organization_slug}/replays-events-meta/": {"GET"},
     "/api/0/organizations/{organization_slug}/functions/": {"GET", "POST"},
-    "/api/0/organizations/{organization_slug}/functions/{function_slug}/": {"DELETE", "GET", "PUT"},
+    "/api/0/organizations/{organization_slug}/functions/{function_id_or_slug}/": {
+        "DELETE",
+        "GET",
+        "PUT",
+    },
     "/api/0/organizations/{organization_slug}/scim/v2/Users/{member_id}": {"PUT"},
     "/api/0/organizations/{organization_slug}/scim/v2/Groups/{team_id}": {"PUT"},
     "/api/0/organizations/{organization_slug}/scim/v2/Schemas": {"GET"},
@@ -435,186 +439,240 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_slug}/profiling/function-trends/": {"GET"},
     "/api/0/projects/": {"GET"},
     "/api/0/projects/{organization_slug}/rule-conditions/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/alert-rules/{alert_rule_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/alert-rules/{alert_rule_id}/": {
         "DELETE",
         "GET",
         "PUT",
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/alert-rules/": {"GET", "POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/alert-rule-task/{task_uuid}/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/combined-rules/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/avatar/": {"GET", "PUT"},
-    "/api/0/projects/{organization_slug}/{project_slug}/create-sample/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/create-sample-transaction/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/docs/{platform}/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/environments/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/environments/{environment}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/alert-rules/": {"GET", "POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/alert-rule-task/{task_uuid}/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/combined-rules/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/avatar/": {"GET", "PUT"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/create-sample/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/create-sample-transaction/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/docs/{platform}/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/environments/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/environments/{environment}/": {
         "GET",
         "PUT",
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/platforms/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/grouping-info/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/apple-crash-report": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/platforms/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/grouping-info/": {
         "GET"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/attachments/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/reprocessable/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/attachments/{attachment_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/apple-crash-report": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/attachments/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/reprocessable/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/attachments/{attachment_id}/": {
         "GET",
         "DELETE",
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/committers/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/json/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/owners/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/actionable-items/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/committers/": {
         "GET"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/files/dsyms/": {"DELETE", "GET", "POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/files/source-maps/": {"GET", "DELETE"},
-    "/api/0/projects/{organization_slug}/{project_slug}/files/artifact-bundles/": {"GET", "DELETE"},
-    "/api/0/projects/{organization_slug}/{project_slug}/files/proguard-artifact-releases": {
-        "GET",
-        "POST",
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/files/difs/assemble/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/files/dsyms/unknown/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/files/dsyms/associate/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/filters/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/hooks/": {"GET", "POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/hooks/{hook_id}/": {"DELETE", "GET", "PUT"},
-    "/api/0/projects/{organization_slug}/{project_slug}/hooks/{hook_id}/stats/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/{var}/": {"POST", "DELETE", "GET", "PUT"},
-    "/api/0/projects/{organization_slug}/{project_slug}/{var}/stats/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/stats/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/members/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/": {"GET", "POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/commits/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/token/": {"GET", "POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/completion/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/": {
-        "DELETE",
-        "GET",
-        "PUT",
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/commits/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/repositories/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/resolved/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/stats/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/artifact-bundles/{bundle_id}/files/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/json/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/owners/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/actionable-items/": {
         "GET"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/artifact-bundles/{bundle_id}/files/{file_id}/": {
-        "GET"
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/": {"GET", "POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/{file_id}/": {
-        "DELETE",
-        "GET",
-        "PUT",
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/artifact-lookup/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/rules/": {"GET", "POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/replays/{replay_id}/": {"GET", "DELETE"},
-    "/api/0/projects/{organization_slug}/{project_slug}/replays/{replay_id}/clicks/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/replays/{replay_id}/recording-segments/": {
-        "GET"
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/replays/{replay_id}/recording-segments/{segment_id}/": {
-        "GET"
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/rules/configuration/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/rules/{rule_id}/": {"DELETE", "GET", "PUT"},
-    "/api/0/projects/{organization_slug}/{project_slug}/rules/{rule_id}/enable/": {"PUT"},
-    "/api/0/projects/{organization_slug}/{project_slug}/rules/{rule_id}/snooze/": {
-        "DELETE",
-        "POST",
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/alert-rules/{rule_id}/snooze/": {
-        "DELETE",
-        "POST",
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/rules/preview/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/rule-actions/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/rules/{rule_id}/group-history/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/rules/{rule_id}/stats/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/rule-task/{task_uuid}/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/stats/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/tags/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/tags/{key}/": {"GET", "DELETE"},
-    "/api/0/projects/{organization_slug}/{project_slug}/tags/{key}/values/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/teams/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/transfer/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/users/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/users/{user_hash}/": {"GET", "DELETE"},
-    "/api/0/projects/{organization_slug}/{project_slug}/user-stats/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/processingissues/": {"GET", "DELETE"},
-    "/api/0/projects/{organization_slug}/{project_slug}/reprocessing/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/processingissues/discard/": {"DELETE"},
-    "/api/0/projects/{organization_slug}/{project_slug}/ownership/": {"GET", "PUT"},
-    "/api/0/projects/{organization_slug}/{project_slug}/codeowners/": {"GET", "POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/codeowners/{codeowners_id}/": {
-        "DELETE",
-        "PUT",
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/transaction-threshold/configure/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/files/dsyms/": {
         "DELETE",
         "GET",
         "POST",
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/performance-issues/configure/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/files/source-maps/": {
+        "GET",
+        "DELETE",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/files/artifact-bundles/": {
+        "GET",
+        "DELETE",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/files/proguard-artifact-releases": {
+        "GET",
+        "POST",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/files/difs/assemble/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/files/dsyms/unknown/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/files/dsyms/associate/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/filters/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/hooks/": {"GET", "POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/hooks/{hook_id}/": {
         "DELETE",
         "GET",
         "PUT",
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/plugins/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/plugins/{plugin_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/hooks/{hook_id}/stats/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/{var}/": {
+        "POST",
+        "DELETE",
+        "GET",
+        "PUT",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/{var}/stats/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/keys/{key_id}/stats/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/members/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/": {"GET", "POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/commits/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/token/": {"GET", "POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/completion/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/": {
+        "DELETE",
+        "GET",
+        "PUT",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/commits/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/repositories/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/resolved/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/stats/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/artifact-bundles/{bundle_id}/files/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/artifact-bundles/{bundle_id}/files/{file_id}/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/files/": {
+        "GET",
+        "POST",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/files/{file_id}/": {
+        "DELETE",
+        "GET",
+        "PUT",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/artifact-lookup/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rules/": {"GET", "POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/replays/{replay_id}/": {
+        "GET",
+        "DELETE",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/replays/{replay_id}/clicks/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/replays/{replay_id}/recording-segments/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/replays/{replay_id}/recording-segments/{segment_id}/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rules/configuration/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rules/{rule_id}/": {
+        "DELETE",
+        "GET",
+        "PUT",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rules/{rule_id}/enable/": {"PUT"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rules/{rule_id}/snooze/": {
+        "DELETE",
+        "POST",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/alert-rules/{rule_id}/snooze/": {
+        "DELETE",
+        "POST",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rules/preview/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rule-actions/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rules/{rule_id}/group-history/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rules/{rule_id}/stats/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/rule-task/{task_uuid}/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/stats/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/tags/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/tags/{key}/": {"GET", "DELETE"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/tags/{key}/values/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/teams/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/transfer/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/users/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/users/{user_hash}/": {
+        "GET",
+        "DELETE",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/user-stats/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/processingissues/": {"GET", "DELETE"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/reprocessing/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/processingissues/discard/": {
+        "DELETE"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/ownership/": {"GET", "PUT"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/codeowners/": {"GET", "POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/codeowners/{codeowners_id}/": {
+        "DELETE",
+        "PUT",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/transaction-threshold/configure/": {
+        "DELETE",
+        "GET",
+        "POST",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/performance-issues/configure/": {
+        "DELETE",
+        "GET",
+        "PUT",
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/plugins/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/plugins/{plugin_id}/": {
         "DELETE",
         "GET",
         "PUT",
         "POST",
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/cluster-transaction-names/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/tombstones/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/tombstones/{tombstone_id}/": {"DELETE"},
-    "/api/0/projects/{organization_slug}/{project_slug}/stacktrace-link/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/grouping-configs/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/apps/": {"POST"},
-    "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/status/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/{credentials_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/cluster-transaction-names/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/tombstones/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/tombstones/{tombstone_id}/": {
+        "DELETE"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/stacktrace-link/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/grouping-configs/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/appstoreconnect/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/appstoreconnect/apps/": {"POST"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/appstoreconnect/status/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/appstoreconnect/{credentials_id}/": {
         "POST"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/appstoreconnect/{credentials_id}/refresh/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/appstoreconnect/{credentials_id}/refresh/": {
         "POST"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/profiling/functions/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/profiling/profiles/{profile_id}/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/profiling/raw_profiles/{profile_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/profiling/functions/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/profiling/profiles/{profile_id}/": {
         "GET"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/profiling/flamegraph/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/profiling/transactions/{transaction_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/profiling/raw_profiles/{profile_id}/": {
         "GET"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/dynamic-sampling/rate/": {"GET"},
-    "/api/0/projects/{organization_slug}/{project_slug}/repo-path-parsing/": {"POST"},
-    "/api/0/teams/{organization_slug}/{team_slug}/": {"DELETE", "GET", "PUT"},
-    "/api/0/teams/{organization_slug}/{team_slug}/issues/old/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/release-count/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/time-to-resolution/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/unresolved-issue-age/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/alerts-triggered/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/alerts-triggered-index/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/issue-breakdown/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/all-unresolved-issues/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/notification-settings/": {"GET", "PUT"},
-    "/api/0/teams/{organization_slug}/{team_slug}/members/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/stats/": {"GET"},
-    "/api/0/teams/{organization_slug}/{team_slug}/avatar/": {"GET", "PUT"},
-    "/api/0/teams/{organization_slug}/{team_slug}/external-teams/": {"POST"},
-    "/api/0/teams/{organization_slug}/{team_slug}/external-teams/{external_team_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/profiling/flamegraph/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/profiling/transactions/{transaction_id}/": {
+        "GET"
+    },
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/dynamic-sampling/rate/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/repo-path-parsing/": {"POST"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/": {"DELETE", "GET", "PUT"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/issues/old/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/release-count/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/time-to-resolution/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/unresolved-issue-age/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/alerts-triggered/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/alerts-triggered-index/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/issue-breakdown/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/all-unresolved-issues/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/notification-settings/": {"GET", "PUT"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/members/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/stats/": {"GET"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/avatar/": {"GET", "PUT"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/external-teams/": {"POST"},
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/external-teams/{external_team_id}/": {
         "DELETE",
         "PUT",
     },
@@ -653,16 +711,16 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/userroles/": {"GET", "POST"},
     "/api/0/userroles/{role_name}/": {"DELETE", "GET", "PUT"},
     "/api/0/sentry-apps/": {"GET", "POST"},
-    "/api/0/sentry-apps/{sentry_app_slug}/": {"DELETE", "GET", "PUT"},
-    "/api/0/sentry-apps/{sentry_app_slug}/features/": {"GET"},
-    "/api/0/sentry-apps/{sentry_app_slug}/components/": {"GET"},
-    "/api/0/sentry-apps/{sentry_app_slug}/avatar/": {"GET", "PUT"},
-    "/api/0/sentry-apps/{sentry_app_slug}/api-tokens/": {"GET", "POST"},
-    "/api/0/sentry-apps/{sentry_app_slug}/api-tokens/{api_token}/": {"DELETE"},
-    "/api/0/sentry-apps/{sentry_app_slug}/stats/": {"GET"},
-    "/api/0/sentry-apps/{sentry_app_slug}/requests/": {"GET"},
-    "/api/0/sentry-apps/{sentry_app_slug}/interaction/": {"GET", "POST"},
-    "/api/0/sentry-apps/{sentry_app_slug}/publish-request/": {"POST"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/": {"DELETE", "GET", "PUT"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/features/": {"GET"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/components/": {"GET"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/avatar/": {"GET", "PUT"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/api-tokens/": {"GET", "POST"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/api-tokens/{api_token}/": {"DELETE"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/stats/": {"GET"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/requests/": {"GET"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/interaction/": {"GET", "POST"},
+    "/api/0/sentry-apps/{sentry_app_id_or_slug}/publish-request/": {"POST"},
     "/api/0/sentry-app-installations/{uuid}/": {"DELETE", "GET", "PUT"},
     "/api/0/sentry-app-installations/{uuid}/authorizations/": {"POST"},
     "/api/0/sentry-app-installations/{uuid}/external-requests/": {"GET"},
@@ -693,8 +751,8 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/shared/{var}/{share_id}/": {"GET"},
     "/api/0/sentry-apps-stats/": {"GET"},
     "/api/0/doc-integrations/": {"GET", "POST"},
-    "/api/0/doc-integrations/{doc_integration_slug}/": {"DELETE", "GET", "PUT"},
-    "/api/0/doc-integrations/{doc_integration_slug}/avatar/": {"GET", "PUT"},
+    "/api/0/doc-integrations/{doc_integration_id_or_slug}/": {"DELETE", "GET", "PUT"},
+    "/api/0/doc-integrations/{doc_integration_id_or_slug}/avatar/": {"GET", "PUT"},
     "/api/0/integration-features/": {"GET"},
     "/api/0/issue-occurrence/": {"POST"},
     "/api/0/grouping-configs/": {"GET"},

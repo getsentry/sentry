@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
@@ -57,7 +57,7 @@ class NotificationScopeEnum(ValueEqualityEnum):
     TEAM = "team"
 
 
-class FineTuningAPIKey(Enum):
+class FineTuningAPIKey(StrEnum):
     ALERTS = "alerts"
     APPROVAL = "approval"
     DEPLOY = "deploy"

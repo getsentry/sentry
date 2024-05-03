@@ -13,11 +13,18 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.schedule import get_prev_schedule
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry")
+
+
+# XXX(epurkhiser): THIS MODULE IS BEING DEPRECATED.
+#
+# See the monitors.clock_tasks module, which contains a duplicated version of
+# this code as we migrate off these tasks being driven by celery and instead
+# being driven by a kafka topic.
 
 
 # This is the MAXIMUM number of MONITOR this job will check.

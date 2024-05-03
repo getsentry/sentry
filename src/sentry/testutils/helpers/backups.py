@@ -87,18 +87,18 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.token import AuthTokenType
 from sentry.utils import json
 from sentry.utils.json import JSONData
 
@@ -253,11 +253,6 @@ def clear_database(*, reset_pks: bool = False):
     Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors.
     """
-
-    # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
-    with unguarded_write(using=router.db_for_write(Team)):
-        Team.objects.update(actor=None)
-
     reversed = reversed_dependencies()
     for model in reversed:
         if is_control_model(model):
@@ -467,7 +462,11 @@ class BackupTestCase(TransactionTestCase):
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         self.create_alert_rule_activation(
-            alert_rule=activated_alert, project=project, metric_value=100
+            alert_rule=activated_alert,
+            project=project,
+            metric_value=100,
+            activator="testing exhaustive",
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
@@ -539,13 +538,15 @@ class BackupTestCase(TransactionTestCase):
 
         # misc
         Counter.increment(project, 1)
-        self.create_repo(
+        repo = self.create_repo(
             project=project,
             name="getsentry/getsentry",
             provider="integrations:github",
             integration_id=integration_id,
             url="https://github.com/getsentry/getsentry",
         )
+        repo.external_id = "https://git.example.com:1234"
+        repo.save()
 
         return org
 
@@ -586,7 +587,14 @@ class BackupTestCase(TransactionTestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_sentry_app(self, name: str, owner: User, org: Organization) -> SentryApp:
         # SentryApp*
-        app = self.create_sentry_app(name=name, organization=org)
+        app = self.create_sentry_app(
+            name=name,
+            organization=org,
+            overview="A sample description",
+            webhook_url="https://example.com/sentry-app/webhook/",
+            redirect_url="https://example.com/sentry-app/redirect/",
+        )
+
         install = self.create_sentry_app_installation(slug=app.slug, organization=org, user=owner)
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
@@ -632,7 +640,10 @@ class BackupTestCase(TransactionTestCase):
         ControlOption.objects.create(key="bar", value="b")
         ApiAuthorization.objects.create(user=owner)
         ApiToken.objects.create(
-            user=owner, expires_at=None, name="create_exhaustive_global_configs"
+            user=owner,
+            expires_at=None,
+            name="create_exhaustive_global_configs",
+            token_type=AuthTokenType.USER,
         )
 
     @assume_test_silo_mode(SiloMode.REGION)

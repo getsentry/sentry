@@ -10,6 +10,7 @@ from sentry.search.events import builder, constants
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
+    ColumnArg,
     ColumnTagArg,
     IntervalDefault,
     NullableNumberRange,
@@ -40,9 +41,6 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
             constants.SPAN_IS_SEGMENT_ALIAS: filter_aliases.span_is_segment_converter,
             constants.SPAN_OP: lambda search_filter: filter_aliases.lowercase_search(
-                self.builder, search_filter
-            ),
-            constants.SPAN_DESCRIPTION: lambda search_filter: filter_aliases.lowercase_search(
                 self.builder, search_filter
             ),
         }
@@ -237,6 +235,100 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
+                SnQLFunction(
+                    "trace_name",
+                    snql_aggregate=lambda args, alias: Function(
+                        "anyIf",
+                        [
+                            Column("segment_name"),
+                            Function(
+                                "or",
+                                [
+                                    Function("isNull", [Column("parent_span_id")]),
+                                    Function("equals", [Column("parent_span_id"), "00"]),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="string",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "first_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "toUInt64",
+                                        [
+                                            self._resolve_partial_timestamp_column(
+                                                "min",
+                                                "start_timestamp",
+                                                "start_ms",
+                                                1,
+                                            ),
+                                        ],
+                                    ),
+                                    1000,
+                                ],
+                            ),
+                            self._resolve_partial_timestamp_column(
+                                "min",
+                                "start_timestamp",
+                                "start_ms",
+                                2,
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "toUInt64",
+                                        [
+                                            self._resolve_partial_timestamp_column(
+                                                "max",
+                                                "end_timestamp",
+                                                "end_ms",
+                                                1,
+                                            ),
+                                        ],
+                                    ),
+                                    1000,
+                                ],
+                            ),
+                            self._resolve_partial_timestamp_column(
+                                "max",
+                                "end_timestamp",
+                                "end_ms",
+                                2,
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "array_join",
+                    required_args=[ColumnArg("column", allowed_columns=["tags.key"])],
+                    snql_column=lambda args, alias: Function("arrayJoin", [args["column"]], alias),
+                    default_result_type="string",
+                    private=True,
+                ),
             ]
         }
 
@@ -391,4 +483,23 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             offset,
             limit,
             size=int(args["count"]),
+        )
+
+    def _resolve_partial_timestamp_column(
+        self, aggregate: str, timestamp_column: str, ms_column: str, index: int
+    ) -> SelectType:
+        return Function(
+            "tupleElement",
+            [
+                Function(
+                    aggregate,
+                    [
+                        Function(
+                            "tuple",
+                            [Column(timestamp_column), Column(ms_column)],
+                        ),
+                    ],
+                ),
+                index,
+            ],
         )

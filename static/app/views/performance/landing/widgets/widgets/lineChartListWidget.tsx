@@ -25,6 +25,7 @@ import withApi from 'sentry/utils/withApi';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/performance/browser/resources/resourceView';
 import {getResourcesEventViewQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import DurationChart from 'sentry/views/performance/charts/chart';
+import {DomainCell} from 'sentry/views/performance/http/tables/domainCell';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -44,6 +45,7 @@ import SelectableList, {
   ListClose,
   RightAlignedCell,
   Subtitle,
+  TimeConsumingDomainsWidgetEmptyStateWarning,
   TimeSpentInDatabaseWidgetEmptyStateWarning,
   WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
@@ -95,6 +97,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   let emptyComponent;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
     emptyComponent = TimeSpentInDatabaseWidgetEmptyStateWarning;
+  } else if (
+    props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
+  ) {
+    emptyComponent = TimeConsumingDomainsWidgetEmptyStateWarning;
   } else {
     emptyComponent = canHaveIntegrationEmptyState
       ? () => (
@@ -175,6 +181,34 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           mutableSearch.addFilterValue('span.module', 'db');
           eventView.query = mutableSearch.formatString();
         } else if (
+          props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
+        ) {
+          // Set fields
+          eventView.fields = [
+            {field: SpanMetricsField.PROJECT_ID},
+            {field: SpanMetricsField.SPAN_DOMAIN},
+            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field},
+          ];
+
+          // Change data set to spansMetrics
+          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          extraQueryParams = {
+            ...extraQueryParams,
+            dataset: DiscoverDatasets.SPANS_METRICS,
+          };
+
+          // Update query
+          const mutableSearch = new MutableSearch(eventView.query);
+          mutableSearch.removeFilter('event.type');
+          mutableSearch.removeFilter('transaction.op');
+          eventView.additionalConditions.removeFilter('event.type');
+          eventView.additionalConditions.removeFilter('transaction.op');
+          eventView.additionalConditions.removeFilter('time_spent_percentage()');
+          mutableSearch.addFilterValue('span.module', 'http');
+          eventView.query = mutableSearch.formatString();
+        } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
         ) {
           // Set fields
@@ -222,6 +256,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ![
             PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
             PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+            PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
           ].includes(props.chartSetting)
         ) {
           eventView.additionalConditions.setFilterValues(field, ['>0']);
@@ -269,11 +304,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           let partialDataParam = true;
 
           if (
-            !provided.widgetData.list.data[selectedListIndex] ||
-            (!provided.widgetData.list.data[selectedListIndex]?.transaction &&
-              !provided.widgetData.list.data[selectedListIndex][
-                SpanMetricsField.SPAN_DESCRIPTION
-              ])
+            !provided.widgetData.list.data[selectedListIndex]?.transaction &&
+            !provided.widgetData.list.data[selectedListIndex]?.[
+              SpanMetricsField.SPAN_DESCRIPTION
+            ] &&
+            !provided.widgetData.list.data[selectedListIndex]?.[
+              SpanMetricsField.SPAN_DOMAIN
+            ]
           ) {
             return null;
           }
@@ -308,7 +345,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             eventView.query = mutableSearch.formatString();
           } else if (
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES ||
-            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
+            props.chartSetting ===
+              PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES ||
+            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
           ) {
             // Update request params
             eventView.dataset = DiscoverDatasets.SPANS_METRICS;
@@ -330,18 +369,33 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             // Update search query
             eventView.additionalConditions.removeFilter('event.type');
             eventView.additionalConditions.removeFilter('transaction');
-            eventView.additionalConditions.addFilterValue(
-              SpanMetricsField.SPAN_GROUP,
-              provided.widgetData.list.data[selectedListIndex][
-                SpanMetricsField.SPAN_GROUP
-              ].toString()
-            );
+
+            if (
+              props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
+            ) {
+              eventView.additionalConditions.addFilterValue(
+                SpanMetricsField.SPAN_DOMAIN,
+                provided.widgetData.list.data[selectedListIndex][
+                  SpanMetricsField.SPAN_DOMAIN
+                ].toString(),
+                false
+              );
+            } else {
+              eventView.additionalConditions.addFilterValue(
+                SpanMetricsField.SPAN_GROUP,
+                provided.widgetData.list.data[selectedListIndex][
+                  SpanMetricsField.SPAN_GROUP
+                ].toString()
+              );
+            }
+
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction');
             eventView.query = mutableSearch.formatString();
           } else {
             eventView.fields = [{field: 'transaction'}, {field}];
           }
+
           return (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
@@ -488,6 +542,39 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   )}
                 </Fragment>
               );
+            case PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS:
+              return (
+                <RoutingContextProvider value={{baseURL: '/performance/http'}}>
+                  <Fragment>
+                    <StyledTextOverflow>
+                      <DomainCell
+                        projectId={listItem[SpanMetricsField.PROJECT_ID].toString()}
+                        domain={listItem[SpanMetricsField.SPAN_DOMAIN]}
+                      />
+                    </StyledTextOverflow>
+
+                    <RightAlignedCell>
+                      <TimeSpentCell
+                        percentage={listItem[fieldString]}
+                        total={listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                        op={'http.client'}
+                      />
+                    </RightAlignedCell>
+
+                    {!props.withStaticFilters && (
+                      <ListClose
+                        setSelectListIndex={setSelectListIndex}
+                        onClick={() =>
+                          excludeTransaction(listItem.transaction, {
+                            eventView: props.eventView,
+                            location,
+                          })
+                        }
+                      />
+                    )}
+                  </Fragment>
+                </RoutingContextProvider>
+              );
             case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
             case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
               const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
@@ -500,7 +587,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               const isQueriesWidget =
                 props.chartSetting ===
                 PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
-              const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.HTTP;
+              const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.RESOURCE;
               const timeSpentOp = isQueriesWidget ? 'op' : undefined;
               const routingContextBaseURL = isQueriesWidget
                 ? '/performance/database'
@@ -628,12 +715,17 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
   const getContainerActions = provided => {
     const route =
-      props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
-        ? 'performance/database/'
-        : 'performance/browser/resources/';
+      {
+        [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: 'performance/database/',
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
+          'performance/browser/resources/',
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: 'performance/http/',
+      }[props.chartSetting] ?? '';
+
     return [
       PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
       PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+      PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>
