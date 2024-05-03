@@ -15,7 +15,6 @@ from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -63,7 +62,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
     ):
         with patch.object(sentry, "digests") as digests:
             backend = RedisBackend()
-            digests.digest = backend.digest
+            digests.backend.digest = backend.digest
 
             for i in range(event_count):
                 self.add_event(f"group-{i}", backend, "error")
@@ -156,7 +155,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     @mock.patch.object(sentry, "digests")
     def test_slack_digest_notification_block(self, digests):
         """
@@ -165,7 +163,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         """
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         backend = RedisBackend()
-        digests.digest = backend.digest
+        digests.backend.digest = backend.digest
         digests.enabled.return_value = True
         timestamp_raw = before_now(days=1)
         timestamp_secs = int(timestamp_raw.timestamp())

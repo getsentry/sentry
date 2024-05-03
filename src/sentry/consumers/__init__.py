@@ -40,7 +40,7 @@ def convert_max_batch_time(ctx, param, value):
 
 def multiprocessing_options(
     default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
-):
+) -> list[click.Option]:
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
         click.Option(["--input-block-size"], type=int, default=None),
@@ -57,6 +57,19 @@ def multiprocessing_options(
             callback=convert_max_batch_time,
             type=int,
             help="Maximum time (in milliseconds) to wait before flushing a batch.",
+        ),
+    ]
+
+
+def issue_occurrence_options() -> list[click.Option]:
+    """Return a list of issue-occurrence options."""
+    return [
+        *multiprocessing_options(default_max_batch_size=100),
+        click.Option(
+            ["--mode", "mode"],
+            type=click.Choice(["batched-parallel", "parallel"]),
+            default="parallel",
+            help="The mode to process occurrences in. Batched-parallel uses batched in parallel to guarantee messages are processed in order per group, parallel uses multi-processing.",
         ),
     ]
 
@@ -208,6 +221,14 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
         "click_options": ingest_monitors_options(),
     },
+    "monitors-clock-tick": {
+        "topic": Topic.MONITORS_CLOCK_TICK,
+        "strategy_factory": "sentry.monitors.consumers.clock_tick_consumer.MonitorClockTickStrategyFactory",
+    },
+    "monitors-clock-tasks": {
+        "topic": Topic.MONITORS_CLOCK_TASKS,
+        "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
+    },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
         "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
@@ -218,7 +239,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-occurrences": {
         "topic": Topic.INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=20),
+        "click_options": issue_occurrence_options(),
     },
     "events-subscription-results": {
         "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -349,6 +370,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
+        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
@@ -402,10 +424,13 @@ def get_stream_processor(
 
     topic_defn = get_topic_definition(consumer_topic)
     real_topic = topic_defn["real_topic_name"]
-    cluster = topic_defn["cluster"]
+    cluster_from_config = topic_defn["cluster"]
 
     if topic is None:
         topic = real_topic
+
+    if cluster is None:
+        cluster = cluster_from_config
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())

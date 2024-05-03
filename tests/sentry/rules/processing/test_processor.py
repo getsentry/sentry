@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -8,7 +9,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
@@ -20,7 +21,6 @@ from sentry.rules.filters.base import EventFilter
 from sentry.rules.processing.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -47,7 +47,7 @@ class MockConditionTrue(EventCondition):
 class RuleProcessorTest(TestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -403,7 +403,7 @@ class RuleProcessorTestFilters(TestCase):
 
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
@@ -555,13 +555,13 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         with mock.patch(
-            "sentry.rules.processing.processor.RuleProcessor.bulk_get_rule_status",
+            "sentry.rules.processing.processor.bulk_get_rule_status",
             return_value={self.rule.id: grs},
         ):
             results = list(rp.apply())
             assert len(results) == 0
 
-    @mock.patch("sentry.rules.processing.processor.RuleProcessor.logger")
+    @mock.patch("sentry.rules.processing.processor.logger")
     def test_invalid_predicate(self, mock_logger):
         filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 
@@ -592,7 +592,7 @@ class RuleProcessorTestFilters(TestCase):
         self.create_release(project=self.project, version="2021-02.newRelease")
 
         event = self.store_event(data={"release": "2021-02.newRelease"}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -640,7 +640,7 @@ class RuleProcessorTestFilters(TestCase):
             },
             project_id=self.project.id,
         )
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -674,9 +674,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].kwargs == {}
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
-    @with_feature({"organizations:slack-block-kit": False})
     def test_slack_title_link_notification_uuid(self, mock_post):
-        # TODO: make this a block kit test
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
         action_data = [
@@ -700,9 +698,7 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args[1]["data"]["attachments"])[0]["blocks"][0]["text"][
-                "text"
-            ]
+            in json.loads(mock_post.call_args[1]["data"]["blocks"])[0]["text"]["text"]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.urls import reverse
 
-from sentry import features
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
@@ -71,22 +70,14 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
                 style="primary",
                 action_id="approve_request",
                 value="approve_member",
-                label=(
-                    "Approve"
-                    if features.has("organizations:slack-block-kit", self.organization)
-                    else None
-                ),
+                label="Approve",
             ),
             MessageAction(
                 name="Reject",
                 style="danger",
                 action_id="approve_request",
                 value="reject_member",
-                label=(
-                    "Reject"
-                    if features.has("organizations:slack-block-kit", self.organization)
-                    else None
-                ),
+                label="Reject",
             ),
             MessageAction(
                 name="See Members & Requests",

@@ -6,14 +6,14 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -26,7 +26,7 @@ class DashboardProject(Model):
         unique_together = (("project", "dashboard"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class Dashboard(Model):
     """
     A dashboard.
@@ -73,7 +73,7 @@ class Dashboard(Model):
         return None
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardTombstone(Model):
     """
     A tombstone to indicate that a pre-built dashboard

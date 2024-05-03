@@ -1,12 +1,11 @@
 // eslint-disable-next-line simple-import-sort/imports
 import {browserHistory, createRoutes, match} from 'react-router';
-import {extraErrorDataIntegration} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import type {Event} from '@sentry/types';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import type {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
@@ -51,11 +50,10 @@ const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  */
 function getSentryIntegrations(routes?: Function) {
   const integrations = [
-    extraErrorDataIntegration({
+    Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.metrics.metricsAggregatorIntegration(),
     Sentry.reactRouterV3BrowserTracingIntegration({
       history: browserHistory as any,
       routes: typeof routes === 'function' ? createRoutes(routes()) : [],
@@ -63,7 +61,6 @@ function getSentryIntegrations(routes?: Function) {
       _experiments: {
         enableInteractions: true,
       },
-      enableInp: true,
     }),
     Sentry.browserProfilingIntegration(),
   ];
@@ -103,7 +100,8 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
-      if (context.transactionContext.op?.startsWith('ui.action')) {
+      const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
+      if (op.startsWith('ui.action')) {
         return tracesSampleRate / 100;
       }
       return tracesSampleRate;
@@ -117,6 +115,13 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
+
+      // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
+      if (event.spans) {
+        const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
+        event.timestamp = newEndTimestamp;
+      }
+
       if (event.transaction) {
         event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
       }
@@ -233,6 +238,9 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
+
+  // TODO: Remove once we've finished rolling out the new renderer
+  Sentry.setTag('isConcurrentRenderer', true);
 }
 
 export function isFilteredRequestErrorEvent(event: Event): boolean {

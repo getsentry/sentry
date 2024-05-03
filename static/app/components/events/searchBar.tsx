@@ -7,8 +7,9 @@ import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import type {Organization, TagCollection} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';
@@ -155,8 +156,10 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
    */
   maxMenuHeight?: number;
   maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
+  metricAlert?: boolean;
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
+  supportedTags?: TagCollection | undefined;
 };
 
 function SearchBar(props: SearchBarProps) {
@@ -164,7 +167,9 @@ function SearchBar(props: SearchBarProps) {
     maxSearchItems,
     organization,
     tags,
+    metricAlert = false,
     omitTags,
+    supportedTags,
     fields,
     projectIds,
     includeSessionTagsValues,
@@ -238,6 +243,12 @@ function SearchBar(props: SearchBarProps) {
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
+    // If it is not a metric alert search bar and supportedTags has a value, return supportedTags
+    // If it is a metric alert search bar, combine supportedTags with getTagList tags
+    if (metricAlert === false && supportedTags !== undefined) {
+      return supportedTags;
+    }
+
     const combinedTags: TagCollection = orgHasPerformanceView
       ? Object.assign(
           {},
@@ -248,7 +259,13 @@ function SearchBar(props: SearchBarProps) {
         )
       : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    Object.assign(
+      combinedTags,
+      tagsWithKind,
+      STATIC_FIELD_TAGS,
+      STATIC_SEMVER_TAGS,
+      supportedTags
+    );
 
     combinedTags.has = {
       key: FieldKey.HAS,
@@ -277,7 +294,6 @@ function SearchBar(props: SearchBarProps) {
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
           onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList(measurements)}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
@@ -287,6 +303,7 @@ function SearchBar(props: SearchBarProps) {
           maxMenuHeight={maxMenuHeight ?? 300}
           {...customPerformanceMetricsSearchConfig}
           {...props}
+          supportedTags={getTagList(measurements)}
         />
       )}
     </Measurements>

@@ -19,7 +19,9 @@ class TeamDeletionTask(ModelDeletionTask):
     def delete_instance(self, instance):
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.rule import Rule
+        from sentry.monitors.models import Monitor
 
-        AlertRule.objects.filter(owner_id=instance.actor_id).update(owner=None)
-        Rule.objects.filter(owner_id=instance.actor_id).update(owner=None)
+        AlertRule.objects.filter(team_id=instance.id).update(team_id=None)
+        Rule.objects.filter(owner_team_id=instance.id).update(owner_team_id=None)
+        Monitor.objects.filter(owner_team_id=instance.id).update(owner_team_id=None)
         super().delete_instance(instance)

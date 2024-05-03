@@ -1,11 +1,11 @@
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';

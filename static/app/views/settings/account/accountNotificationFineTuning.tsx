@@ -71,7 +71,6 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
         <ProjectBadge
           project={project}
           avatarSize={20}
-          displayName={project.slug}
           avatarProps={{consistentWidth: true}}
           disableLink
         />

@@ -7,11 +7,7 @@ from django.db import IntegrityError, models, router, transaction
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    DefaultFieldsModel,
-    control_silo_only_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -42,7 +38,7 @@ class IntegrationManager(BaseManager["Integration"]):
         )
 
 
-@control_silo_only_model
+@control_silo_model
 class Integration(DefaultFieldsModel):
     """
     An integration tied to a particular instance of a third-party provider (a single Slack

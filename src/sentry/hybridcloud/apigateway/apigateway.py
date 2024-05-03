@@ -9,13 +9,13 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.hybridcloud.apigateway.proxy import (
+    proxy_error_embed_request,
     proxy_region_request,
     proxy_request,
     proxy_sentryapp_request,
     proxy_sentryappinstallation_request,
 )
-from sentry.silo import SiloMode
-from sentry.silo.base import SiloLimit
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
 
@@ -60,8 +60,10 @@ def proxy_request_if_needed(
     if request.resolver_match:
         url_name = request.resolver_match.url_name or url_name
 
-    if "organization_slug" in view_kwargs:
-        org_slug = view_kwargs["organization_slug"]
+    if "organization_slug" in view_kwargs or "organization_id_or_slug" in view_kwargs:
+        org_id_or_slug = str(
+            view_kwargs.get("organization_slug") or view_kwargs.get("organization_id_or_slug", "")
+        )
 
         metrics.incr(
             "apigateway.proxy_request",
@@ -70,7 +72,7 @@ def proxy_request_if_needed(
                 "kind": "orgslug",
             },
         )
-        return proxy_request(request, org_slug, url_name)
+        return proxy_request(request, org_id_or_slug, url_name)
 
     if (
         "uuid" in view_kwargs
@@ -88,11 +90,13 @@ def proxy_request_if_needed(
         return proxy_sentryappinstallation_request(request, install_uuid, url_name)
 
     if (
-        "sentry_app_slug" in view_kwargs
+        ("sentry_app_slug" in view_kwargs or "sentry_app_id_or_slug" in view_kwargs)
         and request.resolver_match
         and request.resolver_match.url_name in SENTRY_APP_REGION_URL_NAMES
     ):
-        app_slug = view_kwargs["sentry_app_slug"]
+        app_id_or_slug = str(
+            view_kwargs.get("sentry_app_slug") or view_kwargs.get("sentry_app_id_or_slug", "")
+        )
         metrics.incr(
             "apigateway.proxy_request",
             tags={
@@ -100,7 +104,19 @@ def proxy_request_if_needed(
                 "kind": "sentryapp",
             },
         )
-        return proxy_sentryapp_request(request, app_slug, url_name)
+        return proxy_sentryapp_request(request, app_id_or_slug, url_name)
+
+    if url_name == "sentry-error-page-embed" and "dsn" in request.GET:
+        # Error embed modal is special as customers can't easily use region URLs.
+        dsn = request.GET["dsn"]
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": url_name,
+                "kind": "error-embed",
+            },
+        )
+        return proxy_error_embed_request(request, dsn, url_name)
 
     if (
         request.resolver_match

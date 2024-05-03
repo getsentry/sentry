@@ -5,7 +5,7 @@ from django.db.utils import ProgrammingError
 
 from sentry.runner.decorators import configuration
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 def _check_history() -> None:

@@ -21,7 +21,9 @@ export type DataKey =
   | 'avg(http.response_transfer_size)'
   | 'bundleSize'
   | 'unsuccessfulHTTPCodes'
-  | 'httpCodeBreakdown';
+  | 'httpCodeBreakdown'
+  | 'cacheMissRate'
+  | 'transactionDuration';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -43,6 +45,8 @@ export const DataTitles: Record<DataKey, string> = {
   'avg(http.response_transfer_size)': t('Avg Transfer Size'),
   unsuccessfulHTTPCodes: t('Response Codes (3XX, 4XX, 5XX)'),
   httpCodeBreakdown: t('Response Code Breakdown'),
+  cacheMissRate: t('Miss Rate'),
+  transactionDuration: t('Transaction Duration'),
 };
 
 export const getThroughputTitle = (

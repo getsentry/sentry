@@ -1,4 +1,4 @@
-import type {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration} from 'sentry/types/project';
 
 // If you update items of this list, please remember to update the "GETTING_STARTED_DOCS_PLATFORMS" list
 // in the 'src/sentry/models/project.py' file. This way, they'll work together correctly.
@@ -366,35 +366,35 @@ export const platforms: PlatformIntegration[] = [
     name: 'Node.js',
     type: 'language',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/node',
   },
   {
     id: 'node-awslambda',
     name: 'AWS Lambda (Node)',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/aws-lambda/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/',
   },
   {
     id: 'node-azurefunctions',
     name: 'Azure Functions (Node)',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/azure-functions/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/azure-functions/',
   },
   {
     id: 'node-connect',
     name: 'Connect',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/connect/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/connect/',
   },
   {
     id: 'node-express',
     name: 'Express',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/express/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/express/',
   },
   {
     id: 'node-fastify',
@@ -408,7 +408,7 @@ export const platforms: PlatformIntegration[] = [
     name: 'Google Cloud Functions (Node)',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/gcp-functions/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/',
   },
   {
     id: 'node-hapi',
@@ -422,7 +422,7 @@ export const platforms: PlatformIntegration[] = [
     name: 'Koa',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/koa/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/koa/',
   },
   {
     id: 'node-nestjs',
@@ -436,7 +436,7 @@ export const platforms: PlatformIntegration[] = [
     name: 'Serverless (Node)',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/serverless-cloud/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/serverless-cloud/',
   },
   {
     id: 'php',

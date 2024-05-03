@@ -2,15 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
-from django.utils import timezone
-from django.utils.timesince import timesince
-from django.utils.translation import gettext as _
 from sentry_relay.processing import parse_release
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
@@ -21,24 +18,25 @@ from sentry.integrations.message_builder import (
     build_footer,
     format_actor_option,
     format_actor_options,
-    get_color,
     get_title_link,
 )
 from sentry.integrations.slack.message_builder import (
+    ACTION_EMOJI,
+    ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
-    SlackAttachment,
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
+from sentry.integrations.slack.message_builder.time_utils import get_approx_start_time, time_since
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
-from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -57,9 +55,11 @@ from sentry.notifications.utils.participants import (
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+from sentry.utils.actor import ActorTuple
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -76,35 +76,20 @@ MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 
 
-def get_approx_start_time(group: Group):
-    event = group.get_recommended_event_for_environments()
-
-    if event is None:
-        return None
-
-    occurrence = event.occurrence
-
-    if occurrence is None:
-        return None
-
-    regression_time = occurrence.evidence_data.get("breakpoint", None)
-
-    if regression_time is None:
-        return None
-
-    # format moment into YYYY-mm-dd h:m:s
-    time = datetime.fromtimestamp(regression_time)
-    return time.strftime("%Y-%m-%d %H:%M:%S")
-
-
 # NOTE: if this starts getting large and functions get complicated,
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA = {
     "Events": lambda group: get_group_global_count(group),
-    "Users Affected": lambda group: group.count_users_seen(),
+    "Users Affected": lambda group: group.count_users_seen(
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
+    ),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
-    "Approx. Start Time": get_approx_start_time,
+    "Approx. Start Time": lambda group: datetime.fromtimestamp(
+        get_approx_start_time(group=group)
+    ).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    ),  # format moment into YYYY-mm-dd h:m:s
 }
 
 
@@ -114,21 +99,6 @@ REGRESSION_PERFORMANCE_ISSUE_TYPES = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-def time_since(value: datetime):
-    """
-    Display the relative time
-    """
-    now = timezone.now()
-    if value < (now - timedelta(days=5)):
-        return value.date()
-    diff = timesince(value, now)
-    if diff == timesince(now, now):
-        return "Just now"
-    if diff == "1 day":
-        return _("Yesterday")
-    return f"{diff} ago"
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -406,14 +376,16 @@ def build_actions(
     group: Group,
     project: Project,
     text: str,
-    color: str,
     actions: Sequence[MessageAction] | None = None,
     identity: RpcIdentity | None = None,
-) -> tuple[Sequence[MessageAction], str, str]:
+) -> tuple[Sequence[MessageAction], str, bool]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
         text = get_action_text(text, actions, identity)
-        return [], text, "_actioned_issue"
+        if features.has("organizations:slack-improvements", project.organization):
+            # if actions are taken, return True at the end to show the white circle emoji
+            return [], text, True
+        return [], text, False
 
     status = group.get_status()
 
@@ -460,7 +432,7 @@ def build_actions(
         if a is not None
     ]
 
-    return action_list, text, color
+    return action_list, text, False
 
 
 class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
@@ -506,7 +478,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
+    def build(self, notification_uuid: str | None = None) -> SlackBlock:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         text = text.strip(" \n")
@@ -519,7 +491,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
-        color = get_color(event_for_tags, self.notification, self.group)
         footer = (
             self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
             if self.notification and self.recipient
@@ -531,11 +502,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, action_text, color = build_actions(
-                self.group, project, text, color, self.actions, self.identity
+            payload_actions, action_text, has_action = build_actions(
+                self.group, project, text, self.actions, self.identity
             )
         else:
             payload_actions = []
+            has_action = False
 
         rule_id = None
         if self.rules:
@@ -558,7 +530,21 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
-        if self.group.issue_category == GroupCategory.ERROR:
+        # build up actions text
+        if self.actions and self.identity and not action_text:
+            action_text = get_action_text(text, self.actions, self.identity)
+            if features.has("organizations:slack-improvements", self.group.project.organization):
+                has_action = True
+
+        is_error_issue = self.group.issue_category == GroupCategory.ERROR
+        if has_action:
+            # if issue is resolved, archived, or assigned, replace circle emojis with white circle
+            title_emoji = (
+                ACTION_EMOJI
+                if is_error_issue
+                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            )
+        elif is_error_issue:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
@@ -583,10 +569,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     max_block_text_length = MAX_BLOCK_TEXT_LENGTH
 
                 blocks.append(self.get_markdown_quote_block(text, max_block_text_length))
-
-        # build up actions text
-        if self.actions and self.identity and not action_text:
-            action_text = get_action_text(text, self.actions, self.identity)
 
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
@@ -682,9 +664,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if rule_id:
             block_id["rule"] = rule_id
 
+        chart_block = ImageBlockBuilder(group=self.group).build_image_block()
+        if chart_block:
+            blocks.append(chart_block)
+
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            block_id=json.dumps(block_id),
+            block_id=json.dumps_experimental("integrations.slack.enable-orjson", block_id),
             skip_fallback=self.skip_fallback,
         )

@@ -1,5 +1,5 @@
-import type {User} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 type Data = [number, {count: number}[]][];
@@ -70,6 +70,11 @@ export enum IncidentStatus {
   CRITICAL = 20,
 }
 
+export enum ActivationStatus {
+  WAITING = 0,
+  MONITORING = 1,
+}
+
 export enum IncidentStatusMethod {
   MANUAL = 1,
   RULE_UPDATED = 2,
@@ -92,9 +97,8 @@ interface IssueAlert extends IssueAlertRule {
   latestIncident?: Incident | null;
 }
 
-interface MetricAlert extends MetricRule {
+export interface MetricAlert extends MetricRule {
   type: CombinedAlertType.METRIC;
-  latestIncident?: Incident | null;
 }
 
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;

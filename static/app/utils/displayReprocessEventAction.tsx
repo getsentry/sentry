@@ -6,7 +6,7 @@ import type {
   StacktraceType,
   Thread,
 } from 'sentry/types';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 
 const NATIVE_PLATFORMS: PlatformKey[] = ['cocoa', 'native'];
 

@@ -1,28 +1,21 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    control_silo_only_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.outbox import OutboxCategory
 
-if TYPE_CHECKING:
-    from sentry.integrations.pagerduty.utils import PagerDutyServiceDict
 
-
-@control_silo_only_model
+@control_silo_model
 class OrganizationIntegration(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE
@@ -63,18 +56,3 @@ class OrganizationIntegration(ReplicatedControlModel):
         payload: Mapping[str, Any] | None,
     ) -> None:
         pass
-
-    def add_pagerduty_service(
-        self, integration_key: str, service_name: str
-    ) -> PagerDutyServiceDict:
-        # TODO(mark) remove this shim code once getsentry is updated.
-        from sentry.integrations.pagerduty.utils import add_service
-
-        return add_service(self, integration_key=integration_key, service_name=service_name)
-
-    @classmethod
-    def services_in(cls, config: dict[str, Any]) -> list[PagerDutyServiceDict]:
-        # TODO(mark) remove this shim code once getsentry is updated.
-        if not config:
-            return []
-        return config.get("pagerduty_services", [])

@@ -1,7 +1,8 @@
 import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
-import type {Organization, TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   FieldKey,
   makeTagCollection,

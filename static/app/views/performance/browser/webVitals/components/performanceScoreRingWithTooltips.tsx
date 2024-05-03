@@ -6,7 +6,7 @@ import type {Location} from '@sentry/react/types/types';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import {useLocation} from 'sentry/utils/useLocation';

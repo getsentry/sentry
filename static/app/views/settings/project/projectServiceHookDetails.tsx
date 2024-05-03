@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 
 import {
   addErrorMessage,
@@ -19,6 +18,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {Organization, ServiceHook} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

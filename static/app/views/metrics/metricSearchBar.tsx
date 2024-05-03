@@ -20,6 +20,7 @@ import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 
 interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
   onChange: (value: string) => void;
@@ -82,6 +83,7 @@ export function MetricSearchBar({
   const org = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const selectedProjects = useSelectedProjects();
   const id = useId(idProp);
   const projectIdNumbers = useMemo(
     () => projectIds?.map(projectId => parseInt(projectId, 10)),
@@ -137,6 +139,11 @@ export function MetricSearchBar({
 
   const getTagValues = useCallback(
     async (tag: any, search: string) => {
+      // The tag endpoint cannot provide values for the project tag
+      if (tag.key === 'project') {
+        return selectedProjects.map(project => project.slug);
+      }
+
       const tagsValues = await fetchTagValues(tag.key);
 
       return tagsValues
@@ -147,7 +154,7 @@ export function MetricSearchBar({
         )
         .map(tv => tv.value);
     },
-    [fetchTagValues]
+    [fetchTagValues, selectedProjects]
   );
 
   const handleChange = useCallback(
@@ -174,6 +181,7 @@ export function MetricSearchBar({
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
+      disallowWildcard
       {...searchConfig}
       {...props}
     />

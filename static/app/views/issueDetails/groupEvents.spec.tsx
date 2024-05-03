@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
 
@@ -12,7 +11,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {Group, Organization} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 let location: Location;

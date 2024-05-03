@@ -1,7 +1,6 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
-from sentry.models.actor import ActorTuple, get_actor_for_user
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -30,6 +29,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.actor import ActorTuple
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -233,15 +233,19 @@ class ProjectTest(APITestCase, TestCase):
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
+        rule1 = Rule.objects.create(label="another test rule", project=project, owner_team=team)
         rule2 = Rule.objects.create(
-            label="rule4", project=project, owner=get_actor_for_user(from_user)
+            label="rule4",
+            project=project,
+            owner_user_id=from_user.id,
         )
 
         # should keep their owners
-        rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
+        rule3 = Rule.objects.create(label="rule2", project=project, owner_team=to_team)
         rule4 = Rule.objects.create(
-            label="rule3", project=project, owner=get_actor_for_user(to_user)
+            label="rule3",
+            project=project,
+            owner_user_id=to_user.id,
         )
 
         assert EnvironmentProject.objects.count() == 1
@@ -262,11 +266,18 @@ class ProjectTest(APITestCase, TestCase):
         assert EnvironmentProject.objects.count() == 1
         assert snuba_query.environment != environment
         assert alert_rule.organization_id == to_org.id
-        assert alert_rule.owner is None
-        assert rule1.owner is None
-        assert rule2.owner is None
-        assert rule3.owner is not None
-        assert rule4.owner is not None
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
+
+        for rule in (rule1, rule2):
+            assert rule.owner_user_id is None
+            assert rule.owner_team_id is None
+
+        assert rule3.owner_user_id is None
+        assert rule3.owner_team_id
+
+        assert rule4.owner_user_id
+        assert rule4.owner_team_id is None
 
     def test_transfer_to_organization_external_issues(self):
         from_org = self.create_organization()
@@ -353,6 +364,31 @@ class ProjectTest(APITestCase, TestCase):
     def test_get_next_short_id_increments_by_delta_value(self):
         assert self.project.next_short_id() == 1
         assert self.project.next_short_id(delta=2) == 3
+
+    def test_add_team(self):
+        team = self.create_team(organization=self.organization)
+        assert self.project.add_team(team)
+
+        teams = self.project.teams.all()
+        assert team.id in {t.id for t in teams}
+
+    def test_remove_team_clears_alerts(self):
+        team = self.create_team(organization=self.organization)
+        assert self.project.add_team(team)
+
+        rule = Rule.objects.create(project=self.project, label="issa rule", owner_team_id=team.id)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, owner=ActorTuple.from_id(user_id=None, team_id=team.id)
+        )
+        self.project.remove_team(team)
+
+        rule.refresh_from_db()
+        assert rule.owner_team_id is None
+        assert rule.owner_user_id is None
+
+        alert_rule.refresh_from_db()
+        assert alert_rule.team_id is None
+        assert alert_rule.user_id is None
 
 
 class CopyProjectSettingsTest(TestCase):
@@ -459,9 +495,7 @@ class FilterToSubscribedUsersTest(TestCase):
             organization_id=self.project.organization.id,
         )
         actual_recipients = recipients[ExternalProviders.EMAIL]
-        expected_recipients = {
-            RpcActor.from_orm_user(user, fetch_actor=False) for user in expected_users
-        }
+        expected_recipients = {RpcActor.from_object(user) for user in expected_users}
         assert actual_recipients == expected_recipients
 
     def test(self):

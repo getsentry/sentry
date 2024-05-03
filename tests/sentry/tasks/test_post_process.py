@@ -30,6 +30,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
@@ -45,13 +46,15 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.integrations.integration import Integration
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.userreport import UserReport
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
@@ -68,7 +71,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -1310,8 +1313,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee is None
         assert len(GroupOwner.objects.filter(group_id=event.group)) == 0
 
-    @patch("sentry.tasks.post_process.logger")
-    def test_debounces_handle_owner_assignments(self, logger):
+    @patch("sentry.utils.metrics.incr")
+    def test_debounces_handle_owner_assignments(self, mock_incr):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1328,16 +1331,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        logger.info.assert_any_call(
-            "handle_owner_assignment.issue_owners_exist",
-            extra={
-                "event": event.event_id,
-                "group": event.group_id,
-                "project": event.project_id,
-                "organization": event.project.organization_id,
-                "reason": "issue_owners_exist",
-            },
-        )
+        mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
     @patch("sentry.tasks.post_process.logger")
     def test_issue_owners_should_ratelimit(self, mock_logger):
@@ -1934,11 +1928,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert ret_value["project_id"] == self.project.id
         assert ret_value["segment_id"] is None
         assert ret_value["retention_days"] == 90
-
-        # convert ret_value_payload which is a list of bytes to a string
-        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
-
-        assert ret_value_payload == {
+        assert ret_value["payload"] == {
             "type": "event_link",
             "replay_id": replay_id,
             "error_id": event.event_id,
@@ -1973,11 +1963,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert ret_value["project_id"] == self.project.id
         assert ret_value["segment_id"] is None
         assert ret_value["retention_days"] == 90
-
-        # convert ret_value_payload which is a list of bytes to a string
-        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
-
-        assert ret_value_payload == {
+        assert ret_value["payload"] == {
             "type": "event_link",
             "replay_id": replay_id,
             "error_id": event.event_id,
@@ -2032,6 +2018,67 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert kafka_producer.return_value.publish.call_count == 0
         for args, _ in incr.call_args_list:
             self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
+
+
+class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
+    def test_user_report_gets_environment(self):
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
+
+        event_id = "a" * 32
+
+        event = self.create_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="foo",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
+
+    def test_user_report_gets_environment_with_new_link_features(self):
+        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
+
+            project = self.create_project()
+            environment = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            environment.add_project(project)
+
+            event_id = "a" * 32
+            event = self.store_event(
+                data={"environment": environment.name, "event_id": event_id},
+                project_id=project.id,
+            )
+            UserReport.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name="foo",
+                email="bar@example.com",
+                comments="It Broke!!!",
+            )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
@@ -2286,6 +2333,7 @@ class PostProcessGroupErrorTest(
     SDKCrashMonitoringTestMixin,
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
+    UserReportEventLinkTestMixin,
 ):
     def setUp(self):
         super().setUp()
@@ -2355,7 +2403,6 @@ class PostProcessGroupErrorTest(
 class PostProcessGroupPerformanceTest(
     TestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     CorePostProcessGroupTestMixin,
     InboxTestMixin,
     RuleProcessorTestMixin,
@@ -2371,18 +2418,6 @@ class PostProcessGroupPerformanceTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        group_states = (
-            [
-                {
-                    "id": event.group_id,
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                }
-            ]
-            if event.group_id
-            else None
-        )
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
@@ -2391,7 +2426,7 @@ class PostProcessGroupPerformanceTest(
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
-                group_states=group_states,
+                group_id=event.group_id,
                 project_id=event.project_id,
             )
         return cache_key
@@ -2410,7 +2445,8 @@ class PostProcessGroupPerformanceTest(
         generic_metrics_backend_mock,
     ):
         min_ago = before_now(minutes=1)
-        event = self.store_transaction(
+        event = store_transaction(
+            test_case=self,
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
             fingerprint=[],
@@ -2453,12 +2489,6 @@ class PostProcessGroupPerformanceTest(
     ):
         event = self.create_performance_issue()
         assert event.group
-        # cache_key = write_event_to_cache(event)
-        group_state = dict(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-        )
 
         # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
         # but because post-processing is async, this causes the assert to fail because it doesn't
@@ -2469,10 +2499,11 @@ class PostProcessGroupPerformanceTest(
         mock_process_rules.side_effect = None
 
         post_process_group(
-            **group_state,
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
             cache_key="dummykey",
             group_id=event.group_id,
-            group_states=[{"id": event.group.id, **group_state}],
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,
         )
@@ -2491,7 +2522,6 @@ class PostProcessGroupPerformanceTest(
 class PostProcessGroupAggregateEventTest(
     TestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     CorePostProcessGroupTestMixin,
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
@@ -2510,18 +2540,6 @@ class PostProcessGroupAggregateEventTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        group_states = (
-            [
-                {
-                    "id": event.group_id,
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                }
-            ]
-            if event.group_id
-            else None
-        )
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(
@@ -2532,7 +2550,7 @@ class PostProcessGroupAggregateEventTest(
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
-                group_states=group_states,
+                group_id=event.group_id,
                 project_id=event.project_id,
             )
         return cache_key
@@ -2567,7 +2585,6 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=None,
-            group_states=None,
         )
 
         assert mock_store_transaction_name.mock_calls == [
@@ -2707,11 +2724,23 @@ class PostProcessGroupFeedbackTest(
         project_id,
         assert_no_errors=True,
         feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        is_spam=False,
     ):
         data["type"] = "generic"
         event = self.store_event(
             data=data, project_id=project_id, assert_no_errors=assert_no_errors
         )
+
+        evidence_data = {
+            "Test": 123,
+            "source": feedback_type.value,
+        }
+        evidence_display = [
+            {"name": "hi", "value": "bye", "important": True},
+            {"name": "what", "value": "where", "important": False},
+        ]
+        if is_spam:
+            evidence_data["is_spam"] = True
 
         occurrence_data = self.build_occurrence_data(
             event_id=event.event_id,
@@ -2723,14 +2752,8 @@ class PostProcessGroupFeedbackTest(
                 "subtitle": "it was bad",
                 "culprit": "api/123",
                 "resource_id": "1234",
-                "evidence_data": {
-                    "Test": 123,
-                    "source": feedback_type.value,
-                },
-                "evidence_display": [
-                    {"name": "hi", "value": "bye", "important": True},
-                    {"name": "what", "value": "where", "important": False},
-                ],
+                "evidence_data": evidence_data,
+                "evidence_display": evidence_display,
                 "type": FeedbackGroup.type_id,
                 "detection_time": datetime.now().timestamp(),
                 "level": "info",
@@ -2743,6 +2766,7 @@ class PostProcessGroupFeedbackTest(
         group_event.occurrence = occurrence
         return group_event
 
+    @override_options({"feedback.spam-detection-actions": True})
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
@@ -2758,6 +2782,7 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_option_disabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
@@ -2783,6 +2808,33 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
+    @override_options({"feedback.spam-detection-actions": True})
+    def test_not_ran_if_spam(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+            is_spam=True,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        assert mock_process_func.call_count == 0
+
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_project_option_enabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", True)
 
@@ -2809,6 +2861,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_setting_option_epoch_0(self):
         self.project.update_option("sentry:option-epoch", 1)
         event = self.create_event(
@@ -2834,6 +2887,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_default_on_new_projects(self):
         event = self.create_event(
             data={},
@@ -2858,6 +2912,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
+    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
             data={},

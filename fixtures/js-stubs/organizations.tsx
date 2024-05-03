@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 export function OrganizationsFixture(params: Partial<Organization> = {}): Organization[] {
   return [

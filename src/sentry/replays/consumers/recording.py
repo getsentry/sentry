@@ -12,7 +12,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.codecs import ValidationError
+from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk.tracing import Span
 
@@ -21,7 +21,7 @@ from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
-RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
+RECORDINGS_CODEC: Codec[ReplayRecording] = get_codec("ingest-replay-recordings")
 
 
 @dataclasses.dataclass

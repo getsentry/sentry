@@ -6,7 +6,7 @@ import {
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 import SampleTable from './sampleTable';

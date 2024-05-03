@@ -250,17 +250,28 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=120, name="MONITOR_ADD", api_name="monitor.add", template="Monitor added"
+        event_id=118,
+        name="INTEGRATION_ROTATE_CLIENT_SECRET",
+        api_name="integration.rotate-client-secret",
+        template="rotated a client secret for {status} integration {sentry_app}",
     )
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=121, name="MONITOR_EDIT", api_name="monitor.edit", template="Monitor edited"
+        event_id=120, name="MONITOR_ADD", api_name="monitor.add", template="added monitor {name}"
     )
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=122, name="MONITOR_REMOVE", api_name="monitor.remove", template="Monitor removed"
+        event_id=121, name="MONITOR_EDIT", api_name="monitor.edit", template="edited monitor {name}"
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=122,
+        name="MONITOR_REMOVE",
+        api_name="monitor.remove",
+        template="removed monitor {name}",
     )
 )
 default_manager.add(
@@ -268,7 +279,7 @@ default_manager.add(
         event_id=123,
         name="MONITOR_ENVIRONMENT_REMOVE",
         api_name="monitor.environment.remove",
-        template="Monitor environment removed",
+        template="removed an environment from monitor {name}",
     )
 )
 default_manager.add(
@@ -276,7 +287,7 @@ default_manager.add(
         event_id=124,
         name="MONITOR_ENVIRONMENT_EDIT",
         api_name="monitor.environment.edit",
-        template="Monitor environment edited",
+        template="edited an environment from monitor {name}",
     )
 )
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())

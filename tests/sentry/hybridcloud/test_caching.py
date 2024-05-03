@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSumma
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
@@ -97,7 +97,7 @@ def test_caching_function_none_value():
     cache.clear()
 
     @back_with_silo_cache(
-        base_key="my-test-key", silo_mode=SiloMode.CONTROL, t=RpcOrganizationSummary
+        base_key="my-test-key", silo_mode=SiloMode.CONTROL, t=RpcOrganizationSummary, timeout=900
     )
     def get_org(org_id: int) -> RpcOrganizationSummary | None:
         return organization_service.get_org_by_id(id=org_id)

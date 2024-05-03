@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 /* eslint-env node */
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
 
@@ -95,8 +96,8 @@ jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
 jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
   return {
+    ...SentryReact,
     init: jest.fn(),
-    configureScope: jest.fn(), // Needed atm for getsentry - TODO: remove once we moved to v8 api in getsentry
     setTag: jest.fn(),
     setTags: jest.fn(),
     setExtra: jest.fn(),
@@ -111,17 +112,10 @@ jest.mock('@sentry/react', function sentryReact() {
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
     getClient: jest.spyOn(SentryReact, 'getClient'),
-    getActiveTransaction: jest.spyOn(SentryReact, 'getActiveTransaction'),
-    getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
     getCurrentScope: jest.spyOn(SentryReact, 'getCurrentScope'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
-    Hub: SentryReact.Hub,
-    Scope: SentryReact.Scope,
-    Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
     metrics: {
-      MetricsAggregator: jest.fn().mockReturnValue({}),
-      metricsAggregatorIntegration: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),
@@ -130,20 +124,9 @@ jest.mock('@sentry/react', function sentryReact() {
     reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
-    addGlobalEventProcessor: jest.fn(), // Kept atm for getsentry - TODO: remove once we moved to v8 api in getsentry
     addEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
-    }),
-    startTransaction: () => ({
-      // Kept atm for getsentry - TODO: remove once we moved to v8 api in getsentry
-      finish: jest.fn(),
-      setTag: jest.fn(),
-      setData: jest.fn(),
-      setStatus: jest.fn(),
-      startChild: jest.fn().mockReturnValue({
-        finish: jest.fn(),
-      }),
     }),
     startInactiveSpan: () => ({
       end: jest.fn(),
@@ -225,8 +208,14 @@ window.IntersectionObserver = class IntersectionObserver {
   thresholds = [];
   takeRecords = jest.fn();
 
-  constructor() {}
   observe() {}
   unobserve() {}
   disconnect() {}
 };
+
+// Mock the crypto.subtle API for Gravatar
+Object.defineProperty(global.self, 'crypto', {
+  value: {
+    subtle: webcrypto.subtle,
+  },
+});

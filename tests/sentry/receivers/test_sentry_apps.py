@@ -6,13 +6,17 @@ from unittest.mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import SentryAppInstallationStatus
+from sentry.issues.escalating import manage_issue_states
+from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
+from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.grouplink import GroupLink
 from sentry.models.release import Release
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
@@ -21,6 +25,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 
 
@@ -37,7 +42,9 @@ class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
 
-        self.sentry_app = self.create_sentry_app(events=["issue.resolved", "issue.ignored"])
+        self.sentry_app = self.create_sentry_app(
+            events=["issue.resolved", "issue.ignored", "issue.unresolved"]
+        )
 
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
@@ -51,6 +58,67 @@ class TestIssueWorkflowNotifications(APITestCase):
         data = {"status": "resolved"}
         data.update(_data or {})
         self.client.put(self.url, data=data, format="json")
+
+    @with_feature("organizations:webhooks-unresolved")
+    def test_notify_after_regress(self, delay):
+        # First we need to resolve the issue
+        self.update_issue({})
+        delay.assert_any_call(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="resolved",
+            user_id=self.user.id,
+            data={"resolution_type": "now"},
+        )
+
+        # Then marked it unresolved for regressed to make sense
+        self.update_issue({"status": "unresolved", "substatus": "regressed"})
+        delay.assert_any_call(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="unresolved",
+            user_id=self.user.id,
+            data={"substatus": "regressed"},
+        )
+        assert delay.call_count == 2
+
+    @with_feature("organizations:webhooks-unresolved")
+    def test_notify_after_bulk_ongoing(self, delay):
+        # First we need to have an ignored issue
+        self.update_issue({"status": "ignored", "substatus": "until_escalating"})
+        bulk_transition_group_to_ongoing(
+            from_status=GroupStatus.IGNORED,
+            from_substatus=GroupSubStatus.UNTIL_ESCALATING,
+            group_ids=[self.issue.id],
+        )
+        delay.assert_any_call(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="unresolved",
+            user_id=None,
+            data={"substatus": "ongoing"},
+        )
+        assert delay.call_count == 2
+
+    @with_feature("organizations:webhooks-unresolved")
+    def test_notify_after_escalating(self, delay):
+        # First we need to have an ignored issue
+        self.update_issue({"status": "ignored", "substatus": "until_escalating"})
+        event = self.issue.get_latest_event()
+        manage_issue_states(
+            group=self.issue,
+            group_inbox_reason=GroupInboxReason.ESCALATING,
+            event=event,
+            activity_data={},
+        )
+        delay.assert_any_call(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="unresolved",
+            user_id=None,
+            data={"substatus": "escalating"},
+        )
+        assert delay.call_count == 2
 
     def test_notify_after_basic_resolved(self, delay):
         self.update_issue()

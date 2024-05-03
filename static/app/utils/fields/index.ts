@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -1237,7 +1237,9 @@ export enum ReplayFieldKey {
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
+  SEEN_BY_ID = 'seen_by_id',
   URLS = 'urls',
+  VIEWED_BY_ID = 'viewed_by_id',
 }
 
 export enum ReplayClickFieldKey {
@@ -1288,12 +1290,14 @@ export const REPLAY_FIELDS = [
   FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
+  ReplayFieldKey.SEEN_BY_ID,
   FieldKey.TRACE,
   ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.VIEWED_BY_ID,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -1357,10 +1361,20 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.SEEN_BY_ID]: {
+    desc: t('Sentry user ID(s) who have seen this replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
   [ReplayFieldKey.URLS]: {
-    desc: t('List of urls that were visited within the Replay'),
+    desc: t('List of urls that were visited within the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.VIEWED_BY_ID]: {
+    desc: t('Sentry user ID(s) who have seen this replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
   },
 };
 
