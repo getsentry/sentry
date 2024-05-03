@@ -65,7 +65,12 @@ class OrganizationIndexEndpoint(Endpoint):
 
     @extend_schema(
         operation_id="List Your Organizations",
-        parameters=[OrganizationParams.OWNER, CursorQueryParam],
+        parameters=[
+            OrganizationParams.OWNER,
+            CursorQueryParam,
+            OrganizationParams.QUERY,
+            OrganizationParams.SORT_BY,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
