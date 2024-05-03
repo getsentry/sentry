@@ -588,6 +588,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_success_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
+        assert response["X-Sentry-Direct-Hit"] == "1"
 
     def test_lookup_by_short_id_alias(self):
         event_id = "f" * 32
@@ -598,8 +599,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         short_id = group.qualified_short_id
 
         self.login_as(user=self.user)
-        response = self.get_success_response(query=f"issue:{short_id}")
+        response = self.get_success_response(query=f"issue:{short_id}", shortIdLookup=1)
         assert len(response.data) == 1
+        assert response["X-Sentry-Direct-Hit"] == "1"
 
     def test_lookup_by_multiple_short_id_alias(self):
         self.login_as(self.user)
@@ -615,9 +617,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         with self.feature("organizations:global-views"):
             response = self.get_success_response(
-                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]"
+                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
+                shortIdLookup=1,
             )
         assert len(response.data) == 2
+        assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()
@@ -635,6 +639,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             organization.slug, project=project.id, query=short_id, shortIdLookup=1
         )
         assert len(response.data) == 1
+        assert response.get("X-Sentry-Direct-Hit") == "1"
 
     def test_lookup_by_short_id_no_perms(self):
         organization = self.create_organization()
@@ -649,6 +654,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_success_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
+        assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_group_id(self):
         self.login_as(user=self.user)
@@ -658,6 +664,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_2 = self.create_group()
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
+        assert response["X-Sentry-Direct-Hit"] == "1"
 
     def test_lookup_by_group_id_no_perms(self):
         organization = self.create_organization()
