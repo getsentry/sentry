@@ -1,13 +1,13 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import type {MetricsProperty} from 'sentry/views/starfish/types';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
+import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 type Props = {
   destination?: string;
   enabled?: boolean;
 };
 
-const yAxis: MetricsProperty[] = [
+const yAxis: SpanMetricsProperty[] = [
   'avg_if(span.self_time,span.op,queue.publish)',
   'avg_if(span.self_time,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
