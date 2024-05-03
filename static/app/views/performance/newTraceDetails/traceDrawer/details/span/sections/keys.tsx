@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {
   rawSpanKeys,
@@ -16,8 +16,9 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import type {
-  TraceTree,
+import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
+import {
+  type TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
@@ -67,9 +68,32 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const unknownKeys = Object.keys(span).filter(key => {
     return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
   });
-  const timingKeys = getSpanSubTimings(span) ?? [];
 
+  const timingKeys = getSpanSubTimings(span) ?? [];
   const items: SectionCardKeyValueList = [];
+
+  const aggregateMeasurements: SectionCardKeyValueList = useMemo(() => {
+    if (!node.value.op?.startsWith('ai.pipeline.')) {
+      return [];
+    }
+
+    let sum = 0;
+    TraceTreeNode.ForEachChild(node, n => {
+      if (
+        isSpanNode(n) &&
+        typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
+      ) {
+        sum += n.value.measurements.ai_total_tokens_used.value;
+      }
+    });
+    return [
+      {
+        key: 'ai.pipeline',
+        subject: 'sum(ai_total_tokens_used)',
+        value: sum,
+      },
+    ];
+  }, [node]);
 
   if (allZeroSizes) {
     items.push({
@@ -130,7 +154,12 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     });
   });
 
-  return <TraceDrawerComponents.SectionCard items={items} title={t('Additional Data')} />;
+  return (
+    <TraceDrawerComponents.SectionCard
+      items={[...items, ...aggregateMeasurements]}
+      title={t('Additional Data')}
+    />
+  );
 }
 
 function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {

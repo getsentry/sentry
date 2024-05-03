@@ -42,7 +42,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
         assert blocks[3]["elements"][0]["text"] == (
-            f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -65,7 +65,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
         assert blocks[3]["elements"][0]["text"] == (
-            f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -88,7 +88,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_performance_issue_blocks(
             blocks,
-            event.organization.slug,
+            event.organization,
             event.project.slug,
             event.group,
             "regression_activity-slack",
@@ -118,7 +118,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_generic_issue_blocks(
             blocks,
-            group_event.organization.slug,
+            group_event.organization,
             group_event.project.slug,
             group_event.group,
             "regression_activity-slack",

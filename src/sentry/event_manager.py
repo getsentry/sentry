@@ -100,7 +100,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
@@ -568,10 +567,6 @@ class EventManager:
         _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs)
         _tsdb_record_all_metrics(jobs)
-
-        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-            group_id=group_info.group.id, environment_id=job["environment"].id
-        )
 
         if attachments:
             attachments = filter_attachments_for_group(attachments, job)

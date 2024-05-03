@@ -7,7 +7,7 @@ from typing import Any
 
 from sentry_relay.processing import parse_release
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
@@ -18,10 +18,11 @@ from sentry.integrations.message_builder import (
     build_footer,
     format_actor_option,
     format_actor_options,
-    get_color,
     get_title_link,
 )
 from sentry.integrations.slack.message_builder import (
+    ACTION_EMOJI,
+    ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
@@ -375,14 +376,16 @@ def build_actions(
     group: Group,
     project: Project,
     text: str,
-    color: str,
     actions: Sequence[MessageAction] | None = None,
     identity: RpcIdentity | None = None,
-) -> tuple[Sequence[MessageAction], str, str]:
+) -> tuple[Sequence[MessageAction], str, bool]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
         text = get_action_text(text, actions, identity)
-        return [], text, "_actioned_issue"
+        if features.has("organizations:slack-improvements", project.organization):
+            # if actions are taken, return True at the end to show the white circle emoji
+            return [], text, True
+        return [], text, False
 
     status = group.get_status()
 
@@ -429,7 +432,7 @@ def build_actions(
         if a is not None
     ]
 
-    return action_list, text, color
+    return action_list, text, False
 
 
 class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
@@ -488,7 +491,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
-        color = get_color(event_for_tags, self.notification, self.group)
         footer = (
             self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
             if self.notification and self.recipient
@@ -500,11 +502,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, action_text, color = build_actions(
-                self.group, project, text, color, self.actions, self.identity
+            payload_actions, action_text, has_action = build_actions(
+                self.group, project, text, self.actions, self.identity
             )
         else:
             payload_actions = []
+            has_action = False
 
         rule_id = None
         if self.rules:
@@ -527,7 +530,21 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
-        if self.group.issue_category == GroupCategory.ERROR:
+        # build up actions text
+        if self.actions and self.identity and not action_text:
+            action_text = get_action_text(text, self.actions, self.identity)
+            if features.has("organizations:slack-improvements", self.group.project.organization):
+                has_action = True
+
+        is_error_issue = self.group.issue_category == GroupCategory.ERROR
+        if has_action:
+            # if issue is resolved, archived, or assigned, replace circle emojis with white circle
+            title_emoji = (
+                ACTION_EMOJI
+                if is_error_issue
+                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            )
+        elif is_error_issue:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
@@ -552,10 +569,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     max_block_text_length = MAX_BLOCK_TEXT_LENGTH
 
                 blocks.append(self.get_markdown_quote_block(text, max_block_text_length))
-
-        # build up actions text
-        if self.actions and self.identity and not action_text:
-            action_text = get_action_text(text, self.actions, self.identity)
 
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))

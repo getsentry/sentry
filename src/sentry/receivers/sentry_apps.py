@@ -20,6 +20,7 @@ from sentry.signals import (
     comment_deleted,
     comment_updated,
     issue_assigned,
+    issue_escalating,
     issue_ignored,
     issue_resolved,
     issue_unresolved,
@@ -72,7 +73,32 @@ def send_issue_unresolved_webhook(
     user: User | RpcUser | None = None,
     new_substatus: GroupSubStatus | None = None,
     **kwargs,
-):
+) -> None:
+    send_issue_unresolved_webhook_helper(
+        group=group, project=project, user=user, new_substatus=new_substatus, **kwargs
+    )
+
+
+@issue_escalating.connect(weak=False)
+def send_issue_escalating_webhook(
+    group: Group,
+    project: Project,
+    new_substatus: GroupSubStatus | None = None,
+    **kwargs,
+) -> None:
+    # Escalating is a form of unresolved so we send the same webhook
+    send_issue_unresolved_webhook_helper(
+        group=group, project=project, new_substatus=new_substatus, **kwargs
+    )
+
+
+def send_issue_unresolved_webhook_helper(
+    group: Group,
+    project: Project,
+    user: User | RpcUser | None = None,
+    new_substatus: GroupSubStatus | None = None,
+    **kwargs,
+) -> None:
     organization = project.organization
     if features.has("organizations:webhooks-unresolved", organization):
         send_workflow_webhooks(
