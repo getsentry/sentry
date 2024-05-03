@@ -267,25 +267,45 @@ class TraceSamplesExecutor:
             referrer=Referrer.API_TRACE_EXPLORER_METRICS_SPANS_LIST,
         )
 
-        min_timestamp, max_timestamp, trace_ids = executor.get_matching_traces(MAX_SNUBA_RESULTS)
+        trace_ids, timestamps = executor.get_matching_traces(MAX_SNUBA_RESULTS)
 
-        if not trace_ids:
+        min_timestamp = snuba_params.end
+        max_timestamp = snuba_params.start
+        assert min_timestamp is not None
+        assert max_timestamp is not None
+
+        for timestamp in timestamps:
+            if timestamp < min_timestamp:
+                min_timestamp = timestamp
+            if timestamp > max_timestamp:
+                max_timestamp = timestamp
+
+        if not trace_ids or min_timestamp > max_timestamp:
             return min_timestamp, max_timestamp, [], []
 
         self.refine_params(min_timestamp, max_timestamp)
 
-        # If there are user queries, further refine the trace ids by applying them
-        # leaving us with only traces where the metric exists and matches the user
-        # queries.
         if self.user_queries:
+            # If there are user queries, further refine the trace ids by applying them
+            # leaving us with only traces where the metric exists and matches the user
+            # queries.
             min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_span_conditions(
                 params, snuba_params, trace_ids
             )
 
             if not trace_ids:
                 return min_timestamp, max_timestamp, [], []
+        else:
+            # No user queries so take the first N trace ids as our list
+            trace_ids = trace_ids[: self.limit]
+            timestamps = timestamps[: self.limit]
+            for timestamp in timestamps:
+                if timestamp < min_timestamp:
+                    min_timestamp = timestamp
+                if timestamp < max_timestamp:
+                    max_timestamp = timestamp
 
-            self.refine_params(min_timestamp, max_timestamp)
+        self.refine_params(min_timestamp, max_timestamp)
 
         span_keys = executor.get_matching_spans_from_traces(
             trace_ids,

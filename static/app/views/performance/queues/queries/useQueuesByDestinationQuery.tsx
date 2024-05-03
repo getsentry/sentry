@@ -17,15 +17,15 @@ export function useQueuesByDestinationQuery({enabled}: Props) {
   const response = useSpanMetrics({
     search: mutableSearch,
     fields: [
-      //  TODO: Return destination instead of transaction
-      'transaction',
+      'messaging.destination.name',
       'count()',
-      'count_op(queue.submit.celery)',
-      'count_op(queue.task.celery)',
+      'count_op(queue.publish)',
+      'count_op(queue.process)',
       'sum(span.self_time)',
       'avg(span.self_time)',
-      'avg_if(span.self_time,span.op,queue.submit.celery)',
-      'avg_if(span.self_time,span.op,queue.task.celery)',
+      'avg_if(span.self_time,span.op,queue.publish)',
+      'avg_if(span.self_time,span.op,queue.process)',
+      'avg(messaging.message.receive.latency)',
     ],
     enabled,
     sorts: [],
