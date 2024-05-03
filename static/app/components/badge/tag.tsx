@@ -18,7 +18,7 @@ import type {Color} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
-  borderStyle?: 'solid' | 'dashed' | 'dotted';
+  borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'none';
   /**
    * Makes the tag clickable. Use for external links.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
