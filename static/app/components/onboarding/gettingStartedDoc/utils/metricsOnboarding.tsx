@@ -124,7 +124,7 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
   {
     type: StepType.VERIFY,
     description: tct(
-      "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. Try out this example:",
+      "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace.",
       {
         codeCounters: <code />,
         codeSets: <code />,
@@ -204,7 +204,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -363,6 +363,15 @@ Sentry.metrics().set(
   )
 )`;
 
+export const metricTagsExplanation = tct(
+  'You can also enrich your metrics with [codeTags:tags] (key/value pairs like [codePlatform:platform:ios], [codeRegion:region:EU]) to provide added context. Filter and group metrics in the product by these tags to refine your analysis.',
+  {
+    codeTags: <code />,
+    codePlatform: <code />,
+    codeRegion: <code />,
+  }
+);
+
 export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
   install: (params: DocsParams) => [
     {
@@ -411,7 +420,7 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -509,7 +518,7 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -614,7 +623,7 @@ export const getPythonMetricsOnboarding = ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -625,6 +634,10 @@ export const getPythonMetricsOnboarding = ({
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
               label: 'Counter',
@@ -722,7 +735,7 @@ export const getDotnetMetricsOnboarding = ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings].",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -733,6 +746,10 @@ export const getDotnetMetricsOnboarding = ({
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
               label: 'Counter',
@@ -830,7 +847,7 @@ export const getRubyMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -841,6 +858,10 @@ export const getRubyMetricsOnboarding = (): OnboardingConfig => ({
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
               label: 'Counter',
