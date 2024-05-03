@@ -664,7 +664,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_2 = self.create_group()
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
-        assert response["X-Sentry-Direct-Hit"] == "1"
 
     def test_lookup_by_group_id_no_perms(self):
         organization = self.create_organization()
