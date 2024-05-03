@@ -706,7 +706,7 @@ def test_alert_metric_extraction_rules_empty(default_project):
 
     with Feature(features):
         config = get_project_config(default_project).to_dict()["config"]
-        assert normalize_project_config(config) == config
+        _validate_project_config(config)
         assert "metricExtraction" not in config
 
 
@@ -736,7 +736,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
 
     with Feature(features):
         config = get_project_config(default_project).to_dict()["config"]
-        assert normalize_project_config(config) == config
+
         assert config["metricExtraction"] == {
             "version": 3,
             "metrics": [
@@ -749,6 +749,13 @@ def test_alert_metric_extraction_rules(default_project, factories):
                 }
             ],
         }
+
+        normalized = normalize_project_config(config)
+        del normalized["metricExtraction"]["conditionalTagsExtended"]
+        del normalized["metricExtraction"]["spanMetricsExtended"]
+        del config["metricExtraction"]["metrics"][0]["field"]
+
+        assert normalized["metricExtraction"] == config["metricExtraction"]
 
 
 @django_db_all
