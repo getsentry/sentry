@@ -42,7 +42,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'span.op', // TODO
+    key: 'span.op',
     name: t('Type'),
     width: COL_WIDTH_UNDEFINED,
   },
