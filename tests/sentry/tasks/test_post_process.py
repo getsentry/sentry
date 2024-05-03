@@ -30,6 +30,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
@@ -45,6 +46,7 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.integrations.integration import Integration
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.userreport import UserReport
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
@@ -2018,6 +2020,67 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
+class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
+    def test_user_report_gets_environment(self):
+        project = self.create_project()
+        environment = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        environment.add_project(project)
+
+        event_id = "a" * 32
+
+        event = self.create_event(
+            data={"environment": environment.name, "event_id": event_id},
+            project_id=project.id,
+        )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event_id,
+            name="foo",
+            email="bar@example.com",
+            comments="It Broke!!!",
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
+
+    def test_user_report_gets_environment_with_new_link_features(self):
+        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
+
+            project = self.create_project()
+            environment = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            environment.add_project(project)
+
+            event_id = "a" * 32
+            event = self.store_event(
+                data={"environment": environment.name, "event_id": event_id},
+                project_id=project.id,
+            )
+            UserReport.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                name="foo",
+                email="bar@example.com",
+                comments="It Broke!!!",
+            )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
+
+
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     @with_feature("projects:issue-priority")
@@ -2270,6 +2333,7 @@ class PostProcessGroupErrorTest(
     SDKCrashMonitoringTestMixin,
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
+    UserReportEventLinkTestMixin,
 ):
     def setUp(self):
         super().setUp()
