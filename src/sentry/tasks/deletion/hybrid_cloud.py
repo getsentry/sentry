@@ -76,6 +76,15 @@ def set_watermark(
     )
 
 
+def _get_metrics_tags(
+    model: type[Model], field: HybridCloudForeignKey, prefix: str
+) -> dict[str, str]:
+    metric_field_name = f"{model._meta.db_table}:{field.name}"
+    metric_tags = dict(field_name=metric_field_name, watermark_type=prefix)
+
+    return metric_tags
+
+
 def _chunk_watermark_batch(
     prefix: str,
     field: HybridCloudForeignKey,
@@ -96,8 +105,7 @@ def _chunk_watermark_batch(
         capped = batch_upper
 
     watermark_delta = max(upper - lower, 0)
-    metric_field_name = f"{model._meta.db_table}:{field.name}"
-    metric_tags = dict(field_name=metric_field_name, watermark_type=prefix)
+    metric_tags = _get_metrics_tags(model=model, field=field, prefix=prefix)
     metrics.gauge(
         "deletion.hybrid_cloud.watermark_delta",
         value=watermark_delta,
@@ -210,6 +218,7 @@ def _process_hybrid_cloud_foreign_key_cascade(
     """
     Called by the silo bound tasks above.
     """
+
     try:
         model = apps.get_model(app_label=app_name, model_name=model_name)
         try:
@@ -271,53 +280,55 @@ def _process_tombstone_reconciliation(
         prefix = "row"
         watermark_manager = field.model.objects
 
-    watermark_batch = _chunk_watermark_batch(
-        prefix, field, watermark_manager, batch_size=get_batch_size(), model=model
-    )
-    has_more = watermark_batch.has_more
-    if watermark_batch.low < watermark_batch.up:
-        to_delete_ids, oldest_seen = _get_model_ids_for_tombstone_cascade(
-            tombstone_cls=tombstone_cls,
-            model=model,
-            field=field,
-            row_after_tombstone=row_after_tombstone,
-            watermark_batch=watermark_batch,
+    metric_tags = _get_metrics_tags(model=model, field=field, prefix=prefix)
+    with metrics.timer("deletion.hybrid_cloud.process_cascade_batch_time", tags=metric_tags):
+        watermark_batch = _chunk_watermark_batch(
+            prefix, field, watermark_manager, batch_size=get_batch_size(), model=model
         )
-
-        if field.on_delete == "CASCADE":
-            task = deletions.get(
+        has_more = watermark_batch.has_more
+        if watermark_batch.low < watermark_batch.up:
+            to_delete_ids, oldest_seen = _get_model_ids_for_tombstone_cascade(
+                tombstone_cls=tombstone_cls,
                 model=model,
-                query={"id__in": to_delete_ids},
-                transaction_id=watermark_batch.transaction_id,
+                field=field,
+                row_after_tombstone=row_after_tombstone,
+                watermark_batch=watermark_batch,
             )
 
-            if task.chunk():
-                has_more = True  # The current batch is not complete, rerun this task again
-            else:
+            if field.on_delete == "CASCADE":
+                task = deletions.get(
+                    model=model,
+                    query={"id__in": to_delete_ids},
+                    transaction_id=watermark_batch.transaction_id,
+                )
+
+                if task.chunk():
+                    has_more = True  # The current batch is not complete, rerun this task again
+                else:
+                    set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
+
+            elif field.on_delete == "SET_NULL":
+                model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
                 set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
 
-        elif field.on_delete == "SET_NULL":
-            model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
-            set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
+            elif field.on_delete == "DO_NOTHING":
+                set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
 
-        elif field.on_delete == "DO_NOTHING":
-            set_watermark(prefix, field, watermark_batch.up, watermark_batch.transaction_id)
+            else:
+                raise ValueError(
+                    f"{field.model.__name__}.{field.name} has unexpected on_delete={field.on_delete}, could not process delete!"
+                )
 
-        else:
-            raise ValueError(
-                f"{field.model.__name__}.{field.name} has unexpected on_delete={field.on_delete}, could not process delete!"
+            metrics.timing(
+                "deletion.hybrid_cloud.processing_lag",
+                datetime.datetime.now().timestamp() - oldest_seen.timestamp(),
+                tags=dict(
+                    field_name=f"{model._meta.db_table}.{field.name}",
+                    watermark=prefix,
+                ),
             )
 
-        metrics.timing(
-            "deletion.hybrid_cloud.processing_lag",
-            datetime.datetime.now().timestamp() - oldest_seen.timestamp(),
-            tags=dict(
-                field_name=f"{model._meta.db_table}.{field.name}",
-                watermark=prefix,
-            ),
-        )
-
-    return has_more
+        return has_more
 
 
 def _get_model_ids_for_tombstone_cascade(
