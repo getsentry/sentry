@@ -1,5 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useMetricsSeries';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 type Props = {

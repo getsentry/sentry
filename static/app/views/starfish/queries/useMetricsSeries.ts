@@ -5,7 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/starfish/queries/getSeriesEventView';
-import type {MetricsProperty} from 'sentry/views/starfish/types';
+import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export interface MetricTimeseriesRow {
@@ -13,17 +13,30 @@ export interface MetricTimeseriesRow {
   interval: number;
 }
 
-interface UseSpanMetricsSeriesOptions<Fields> {
+interface UseMetricsSeriesOptions<Fields> {
   enabled?: boolean;
   referrer?: string;
   search?: MutableSearch;
   yAxis?: Fields;
 }
 
-export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
-  options: UseSpanMetricsSeriesOptions<Fields> = {}
+export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
+  options: UseMetricsSeriesOptions<Fields> = {}
 ) => {
-  const {search = undefined, yAxis = [], referrer = 'metrics-series'} = options;
+  return useSeries<Fields>(options, DiscoverDatasets.SPANS_METRICS);
+};
+
+export const useMetricsSeries = <Fields extends MetricsProperty[]>(
+  options: UseMetricsSeriesOptions<Fields> = {}
+) => {
+  return useSeries<Fields>(options, DiscoverDatasets.METRICS);
+};
+
+export const useSeries = <T extends string[]>(
+  options: UseMetricsSeriesOptions<T> = {},
+  dataset: DiscoverDatasets
+) => {
+  const {search = undefined, yAxis = [], referrer = 'span-metrics-series'} = options;
 
   const pageFilters = usePageFilters();
 
@@ -33,7 +46,7 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
     pageFilters.selection,
     yAxis,
     undefined,
-    DiscoverDatasets.METRICS
+    dataset
   );
 
   const result = useWrappedDiscoverTimeseriesQuery<MetricTimeseriesRow[]>({
@@ -56,7 +69,7 @@ export const useSpanMetricsSeries = <Fields extends MetricsProperty[]>(
       return series;
     }),
     'seriesName'
-  ) as Record<Fields[number], Series>;
+  ) as Record<T[number], Series>;
 
   return {...result, data: parsedData};
 };

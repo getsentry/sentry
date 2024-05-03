@@ -6,7 +6,7 @@ import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
+import {useMetricsSeries} from 'sentry/views/starfish/queries/useMetricsSeries';
 import type {MetricsQueryFilters} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
