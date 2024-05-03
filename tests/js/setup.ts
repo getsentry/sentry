@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 /**
- * Set locale to english
+ * Set locale to English
  */
 setLocale(DEFAULT_LOCALE_DATA);
 
