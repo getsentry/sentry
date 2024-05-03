@@ -467,6 +467,9 @@ export default class ReplayReader {
             'replay.init',
             'replay.mutations',
             'feedback',
+            'device.battery',
+            'device.connectivity',
+            'device.orientation',
           ].includes(frame.category)
         ),
         ...this._errors,
