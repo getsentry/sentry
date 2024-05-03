@@ -94,7 +94,7 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
-class SimilarIssuesEmbeddingsData(TypedDict):
+class RawSeerSimilarIssueData(TypedDict):
     stacktrace_distance: float
     message_distance: float
     should_group: bool
@@ -103,7 +103,7 @@ class SimilarIssuesEmbeddingsData(TypedDict):
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
-    responses: list[SimilarIssuesEmbeddingsData]
+    responses: list[RawSeerSimilarIssueData]
 
 
 def get_similar_issues_embeddings(
