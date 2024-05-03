@@ -5,7 +5,7 @@ from unittest import mock
 from unittest.mock import ANY, patch
 
 import pytest
-from sentry_relay.processing import validate_project_config
+from sentry_relay.processing import normalize_project_config
 
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.discover.models import TeamKeyTransaction
@@ -29,7 +29,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -95,7 +94,7 @@ def _validate_project_config(config):
     if features := config.get("features"):
         config["features"] = sorted(features)
 
-    validate_project_config(json.dumps(config), strict=True)
+    assert normalize_project_config(config) == config
 
 
 @django_db_all
@@ -707,7 +706,7 @@ def test_alert_metric_extraction_rules_empty(default_project):
 
     with Feature(features):
         config = get_project_config(default_project).to_dict()["config"]
-        validate_project_config(json.dumps(config), strict=False)
+        assert normalize_project_config(config) == config
         assert "metricExtraction" not in config
 
 
@@ -737,7 +736,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
 
     with Feature(features):
         config = get_project_config(default_project).to_dict()["config"]
-        validate_project_config(json.dumps(config), strict=False)
+        assert normalize_project_config(config) == config
         assert config["metricExtraction"] == {
             "version": 3,
             "metrics": [
@@ -760,7 +759,7 @@ def test_performance_calculate_score(default_project):
     for profile in config["performanceScore"]["profiles"]:
         profile["version"] = "1"
 
-    validate_project_config(json.dumps(config), strict=True)
+    assert normalize_project_config(config) == config
     performance_score = config["performanceScore"]["profiles"]
     assert performance_score[0] == {
         "name": "Chrome",
