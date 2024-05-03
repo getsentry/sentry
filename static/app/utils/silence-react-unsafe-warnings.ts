@@ -8,8 +8,6 @@ const ignoredWarnings = [
   /componentWill.* has been renamed, and is not recommended for use.*/,
   // Moment failures. Why is this happening?
   /moment construction falls back/,
-  // Locale not set during tests
-  /Locale not set, defaulting to English/,
 ];
 
 window.console.warn = (message: any, ...args: any[]) => {
