@@ -220,7 +220,7 @@ def get_context(group: Group) -> str:
     # only show event count and user count if event count > 1 or state != new
 
     state = None
-    event_count = ModuleNotFoundError
+    event_count = None
     if "State" in context:
         state = SUPPORTED_CONTEXT_DATA["State"](group)
     if "Events" in context:
