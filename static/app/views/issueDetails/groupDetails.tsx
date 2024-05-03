@@ -323,7 +323,13 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   useEffect(() => {
     return GroupStore.listen(() => {
       const [storeGroup] = GroupStore.getState();
-      if (defined(storeGroup) && storeGroup.id === groupId) {
+      if (
+        defined(storeGroup) &&
+        storeGroup.id === groupId &&
+        // Check for properties that are only set after the group has been loaded
+        defined(storeGroup.participants) &&
+        defined(storeGroup.activity)
+      ) {
         setApiQueryData(
           queryClient,
           makeFetchGroupQueryKey({
