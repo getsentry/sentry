@@ -2505,7 +2505,7 @@ register(
 )
 
 
-# default brownout crontab for Organiation Events API deprecations
+# default brownout crontab for Organization Events API deprecations
 # TODO: remove once endpoint is removed
 register(
     "api.organization-activity.brownout-cron",
