@@ -113,7 +113,7 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-export type MetricsResponse = {
+export type SpanMetricsResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
@@ -145,7 +145,7 @@ export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
 
-export type MetricsProperty = keyof MetricsResponse;
+export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
 export enum SpanIndexedField {
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
@@ -293,4 +293,31 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
+};
+
+// TODO - add more functions and fields, combine shared ones, etc
+
+export const METRICS_FUNCTIONS = ['count'] as const;
+
+export enum MetricsFields {
+  TRANSACTION_DURATION = 'transaction.duration',
+  TRANSACTION = 'transaction',
+}
+
+export type MetricsNumberFields = MetricsFields.TRANSACTION_DURATION;
+
+export type MetricsStringFields = MetricsFields.TRANSACTION;
+
+export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
+
+export type MetricsResponse = {
+  [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
+};
+
+export type MetricsProperty = keyof MetricsResponse;
+
+export type MetricsQueryFilters = {
+  [Field in MetricsStringFields]?: string;
+} & {
+  [SpanIndexedField.PROJECT_ID]?: string;
 };
