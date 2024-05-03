@@ -116,6 +116,7 @@ SPAN_COLUMN_MAP = {
     "parent_span": "parent_span_id",
     "platform": "platform",
     "project": "project_id",
+    "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
     "span.domain": "domain",
