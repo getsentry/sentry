@@ -3,14 +3,17 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
+from arroyo.backends.kafka import KafkaPayload
+from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MarkTimeout
+
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.monitors.schedule import get_prev_schedule
-from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
-logger = logging.getLogger("sentry")
+from .producer import MONITORS_CLOCK_TASKS_CODEC, produce_task
+
+logger = logging.getLogger(__name__)
 
 # This is the MAXIMUM number of pending MONITOR CHECKINS this job will check.
 #
@@ -18,38 +21,40 @@ logger = logging.getLogger("sentry")
 # monitors the larger the number of checkins to check will exist.
 CHECKINS_LIMIT = 10_000
 
-# XXX(epurkhiser): THIS MODULE IS BEING DEPRECATED.
-#
-# See the monitors.clock_tasks module, which contains a duplicated version of
-# this code as we migrate off these tasks being driven by celery and instead
-# being driven by a kafka topic.
 
+def dispatch_check_timeout(ts: datetime):
+    """
+    Given a clock tick timestamp determine which check-ins are past their
+    timeout_at.
 
-@instrumented_task(
-    name="sentry.monitors.tasks.check_timeout",
-    time_limit=15,
-    soft_time_limit=10,
-    silo_mode=SiloMode.REGION,
-)
-def check_timeout(current_datetime: datetime):
-    current_datetime = current_datetime.replace(second=0, microsecond=0)
-
-    qs = MonitorCheckIn.objects.filter(
-        status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
-    )[:CHECKINS_LIMIT]
-    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
+    This will dispatch MarkTimeout messages into monitors-clock-tasks.
+    """
+    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, timeout_at__lte=ts)[
+        :CHECKINS_LIMIT
+    ]
+    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=0)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        mark_checkin_timeout.delay(checkin.id, current_datetime)
+        message: MarkTimeout = {
+            "type": "mark_timeout",
+            "ts": ts.timestamp(),
+            "monitor_environment_id": checkin.monitor_environment_id,
+            "checkin_id": checkin.id,
+        }
+        # XXX(epurkhiser): Partitioning by monitor_environment.id is important
+        # here as these task messages will be consumed in a multi-consumer
+        # setup. If we backlogged clock-ticks we may produce multiple timeout
+        # tasks for the same monitor_environment. These MUST happen in-order.
+        payload = KafkaPayload(
+            checkin.monitor_environment_id.to_bytes(),
+            MONITORS_CLOCK_TASKS_CODEC.encode(message),
+            [],
+        )
+        produce_task(payload)
 
 
-@instrumented_task(
-    name="sentry.monitors.tasks.mark_checkin_timeout",
-    max_retries=0,
-    record_timing=True,
-)
-def mark_checkin_timeout(checkin_id: int, ts: datetime, **kwargs):
-    logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
+def mark_checkin_timeout(checkin_id: int, ts: datetime):
+    logger.info("checkin_timeout", extra={"checkin_id": checkin_id})
 
     checkin = (
         MonitorCheckIn.objects.select_related("monitor_environment")
@@ -60,16 +65,16 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime, **kwargs):
     monitor_environment = checkin.monitor_environment
     monitor = monitor_environment.monitor
 
-    logger.info(
-        "monitor_environment.checkin-timeout",
-        extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
+    affected = (
+        MonitorCheckIn.objects.filter(id=checkin_id)
+        .exclude(status=CheckInStatus.TIMEOUT)
+        .update(status=CheckInStatus.TIMEOUT)
     )
-    affected = checkin.update(status=CheckInStatus.TIMEOUT)
     if not affected:
         return
 
-    # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
-    # change
+    # we only mark the monitor as failed if a newer checkin wasn't responsible
+    # for the state change
     has_newer_result = MonitorCheckIn.objects.filter(
         monitor_environment=monitor_environment,
         date_added__gt=checkin.date_added,
