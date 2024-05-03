@@ -17,11 +17,21 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+// TODO: more types get added here
+type MobileBreadcrumbTypes = {
+  category: 'ui.tap';
+  data: any;
+  message: string;
+  timestamp: number;
+  type: string;
+};
+
 /**
  * Extra breadcrumb types not included in `@sentry/replay`
- * Also includes mobile frames
+ * Also includes mobile types
  */
 type ExtraBreadcrumbTypes =
+  | MobileBreadcrumbTypes
   | {
       category: 'navigation';
       data: {
@@ -31,13 +41,6 @@ type ExtraBreadcrumbTypes =
       message: string;
       timestamp: number;
       type: string; // For compatibility reasons
-    }
-  | {
-      category: 'ui.tap';
-      data: any;
-      message: string;
-      timestamp: number;
-      type: string;
     };
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
