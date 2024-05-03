@@ -317,20 +317,15 @@ class RuleProcessor:
         if not process_slow_conditions_later:
             condition_list = fast_conditions + slow_conditions  # type: ignore[operator]
 
-        for predicate_list, match, name in (
-            (filter_list, filter_match, "filter"),
-            (condition_list, condition_match, "condition"),
-        ):
-            if not predicate_list:
-                continue
-            predicate_iter = (self.condition_matches(f, state, rule) for f in predicate_list)
-            predicate_func = get_match_function(match)
+        # evaluate all filters and return if they fail, then do the enqueue logic for conditions
+        if filter_list:
+            predicate_iter = (self.condition_matches(f, state, rule) for f in filter_list)
+            predicate_func = get_match_function(filter_match)
             if predicate_func:
-                if not predicate_func(predicate_iter) and not slow_conditions:
-                    # prevent return here if slow_conditions exist, because we have more evaluation to do
+                if not predicate_func(predicate_iter):
                     return
             else:
-                log_string = f"Unsupported {name}_match {match!r} for rule {rule.id}"
+                log_string = f"Unsupported filter_match {filter_match} for rule {rule.id}"
                 logger.error(
                     log_string,
                     filter_match,
@@ -339,8 +334,51 @@ class RuleProcessor:
                 )
                 return
 
-        # If we've reached here we have slow conditions to evaluate
-        if process_slow_conditions_later and slow_conditions:
+        predicate_func = get_match_function(condition_match)
+        if condition_list:
+            predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
+            if not predicate_func:
+                log_string = f"Unsupported condition_match {condition_match} for rule {rule.id}"
+                logger.error(
+                    log_string,
+                    filter_match,
+                    rule.id,
+                    extra={**logging_details},
+                )
+                return
+
+            if condition_match == "any":  # is there an enum val for this
+                # a fast condition failed and we have no slow conditions to check
+                if not predicate_func(predicate_iter) and not slow_conditions:
+                    return
+                # a fast condition failed and we have slow conditions to enqueue for delayed processing
+                if (
+                    not predicate_func(predicate_iter)
+                    and slow_conditions
+                    and process_slow_conditions_later
+                ):
+                    self.enqueue_rule(rule)
+                    return
+                # no fast conditions to check, but we have slow conditions to enqueue for delayed processing
+                if not predicate_iter and slow_conditions and process_slow_conditions_later:
+                    self.enqueue_rule(rule)
+                    return
+
+            elif condition_match == "all":
+                # return early if the condition(s) failed. There's no point checking the slow conditions in this case, since we already failed.
+                if not predicate_func(predicate_iter):
+                    return
+
+                # all fast conditions passed and we have slow conditions to check
+                if (
+                    predicate_func(predicate_iter)
+                    and slow_conditions
+                    and process_slow_conditions_later
+                ):
+                    self.enqueue_rule(rule)
+                    return
+
+        if not condition_list and slow_conditions and process_slow_conditions_later:
             self.enqueue_rule(rule)
             return
 
