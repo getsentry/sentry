@@ -173,7 +173,10 @@ export function SearchQueryBuilderCombobox({
             {...listBoxProps}
             ref={listBoxRef}
             listState={state}
+            hasSearch={!!filterValue}
+            hiddenOptions={hiddenOptions}
             keyDownHandler={() => true}
+            overlayIsOpen={isOpen}
             size="md"
           />
         </Overlay>
