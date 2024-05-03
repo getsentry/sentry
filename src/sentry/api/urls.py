@@ -460,10 +460,6 @@ from .endpoints.organization_sdk_updates import (
     OrganizationSdkUpdatesEndpoint,
 )
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
-from .endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
-from .endpoints.organization_sentry_function_details import (
-    OrganizationSentryFunctionDetailsEndpoint,
-)
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -1983,16 +1979,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
         OrganizationReplayEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-replay-events-meta",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/functions/$",
-        OrganizationSentryFunctionEndpoint.as_view(),
-        name="sentry-api-0-organization-sentry-functions",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_id_or_slug>[^\/]+)/$",
-        OrganizationSentryFunctionDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-sentry-function-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",

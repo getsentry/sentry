@@ -8,7 +8,6 @@ export enum PlatformEvents {
   INTERNAL_DOCS = 'integrations.platform_internal_docs_clicked',
   CHOSE_PUBLIC = 'integrations.platform_create_modal_public_clicked',
   PUBLIC_DOCS = 'integrations.platform_public_docs_clicked',
-  CHOSE_SENTRY_FX = 'integrations.platform_create_modal_sentry_fx_clicked',
 }
 
 export type PlatformEventParameters = {
@@ -26,7 +25,6 @@ export const platformEventMap: Record<PlatformEvents, string> = {
     'Integrations: Platform Internal Integration Docs Clicked',
   [PlatformEvents.CHOSE_PUBLIC]: 'Integrations: Platform Chose Public Integration',
   [PlatformEvents.PUBLIC_DOCS]: 'Integrations: Platform Public Integration Docs Clicked',
-  [PlatformEvents.CHOSE_SENTRY_FX]: 'Integrations: Platform Chose Sentry FX',
 };
 
 export const platformEventLinkMap: Partial<Record<PlatformEvents, string>> = {

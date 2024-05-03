@@ -8,7 +8,7 @@ from celery import current_task
 from django.urls import reverse
 from requests.exceptions import RequestException
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event, GroupEvent
@@ -18,14 +18,12 @@ from sentry.models.integrations.sentry_app import VALID_EVENTS
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.sentryfunction import SentryFunction
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.services.hybrid_cloud.app.service import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.tasks.sentry_functions import send_sentry_function_webhook
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request
@@ -217,18 +215,6 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
         # Trigger a new task for each webhook
         send_resource_change_webhook.delay(installation_id=installation.id, event=event, data=data)
-
-    if features.has("organizations:sentry-functions", org):
-        data = {}
-        if not isinstance(instance, Event) and not isinstance(instance, GroupEvent):
-            data[name] = serialize(instance)
-            event_type = event.split(".")[0]
-            # not sending error webhooks as of yet, can be added later
-            for fn in SentryFunction.objects.get_sentry_functions(org, event_type):
-                if event_type == "issue":
-                    send_sentry_function_webhook.delay(
-                        fn.external_id, event, data["issue"]["id"], data
-                    )
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)

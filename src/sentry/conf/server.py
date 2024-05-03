@@ -1817,8 +1817,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:scim-team-roles": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enable Sentry Functions
-    "organizations:sentry-functions": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable core Session Replay backend APIs
