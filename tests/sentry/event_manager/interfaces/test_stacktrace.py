@@ -5,6 +5,13 @@ import pytest
 from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.interfaces.stacktrace import get_context, is_url
+from sentry.testutils.helpers import override_options
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"relay.enable-orjson": 0.0}):
+        yield
 
 
 def test_is_url():

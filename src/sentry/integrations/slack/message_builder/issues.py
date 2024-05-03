@@ -173,7 +173,8 @@ def format_release_tag(value: str, event: GroupEvent | Group):
     """Format the release tag using the short version and make it a link"""
     path = f"/releases/{value}/"
     url = event.project.organization.absolute_url(path)
-    release_description = parse_release(value).get("description")
+    json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
+    release_description = parse_release(value, json_loads=json_loads).get("description")
     return f"<{url}|{release_description}>"
 
 

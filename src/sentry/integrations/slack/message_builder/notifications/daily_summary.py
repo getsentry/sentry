@@ -52,7 +52,10 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
     def linkify_release(self, release, organization):
         path = f"/releases/{release.version}/"
         url = organization.absolute_url(path)
-        release_description = parse_release(release.version).get("description")
+        json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
+        release_description = parse_release(release.version, json_loads=json_loads).get(
+            "description"
+        )
         return f":rocket: *<{url}|Release {release_description}>*\n"
 
     def truncate_text(self, text):

@@ -28,7 +28,14 @@ from sentry.search.events.filter import (
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.utils.snuba import OPERATOR_TO_FUNCTION
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"relay.enable-orjson": 0.0}):
+        yield
 
 
 # Helper functions to make reading the expected output from the boolean tests easier to read. #

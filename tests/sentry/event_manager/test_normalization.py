@@ -6,6 +6,13 @@ from django.conf import settings
 
 from sentry.constants import DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager
+from sentry.testutils.helpers import override_options
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"relay.enable-orjson": 0.0}):
+        yield
 
 
 def make_event(**kwargs):
