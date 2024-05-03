@@ -108,7 +108,7 @@ def test_where(params, condition, expected):
 
 @django_db_all
 def test_where_project(params):
-    project = next(params["project_objects"])
+    project = next(iter(params["project_objects"]))
 
     for query in [f"project:{project.slug}", f"project.id:{project.id}"]:
         builder = SpansIndexedQueryBuilder(
