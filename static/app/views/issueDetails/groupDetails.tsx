@@ -4,7 +4,6 @@ import {
   isValidElement,
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from 'react';
 import type {RouteComponentProps} from 'react-router';
@@ -45,6 +44,7 @@ import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRout
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -316,35 +316,28 @@ function makeFetchGroupQueryKey({
  * Once we remove all references to GroupStore in the issue details page we
  * should remove this.
  */
-function useSyncGroupStore(incomingEnvs: string[]) {
+function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  const environmentsRef = useRef<string[]>(incomingEnvs);
-  environmentsRef.current = incomingEnvs;
-
-  const unlisten = useRef<Function>();
-  if (unlisten.current === undefined) {
-    unlisten.current = GroupStore.listen(() => {
+  // Start listening to GroupStore after the first render
+  // It's possible the overview page is still unloading the store
+  useEffectAfterFirstRender(() => {
+    return GroupStore.listen(() => {
       const [storeGroup] = GroupStore.getState();
-      const environments = environmentsRef.current;
-      if (defined(storeGroup)) {
+      if (defined(storeGroup) && storeGroup.id === groupId) {
         setApiQueryData(
           queryClient,
           makeFetchGroupQueryKey({
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
-            environments,
+            environments: incomingEnvs,
           }),
           storeGroup
         );
       }
-    }, undefined);
-  }
-
-  useEffect(() => {
-    return () => unlisten.current?.();
-  }, []);
+    }, undefined) as () => void;
+  }, [groupId, incomingEnvs, organization.slug, queryClient]);
 }
 
 function useFetchGroupDetails(): FetchGroupDetailsState {
@@ -408,7 +401,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [groupId, group]);
 
-  useSyncGroupStore(environments);
+  useSyncGroupStore(groupId, environments);
 
   useEffect(() => {
     if (group && event) {
