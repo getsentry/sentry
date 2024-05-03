@@ -8,7 +8,10 @@ from sentry.seer.utils import (
     detect_breakpoints,
     get_similar_issues_embeddings,
 )
+from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.types import NonNone
 
 
 @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
@@ -51,13 +54,16 @@ def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, s
     assert mock_capture_exception.called
 
 
+@django_db_all
 @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-def test_simple_similar_issues_embeddings(mock_seer_request):
+def test_simple_similar_issues_embeddings(mock_seer_request, default_project):
     """Test that valid responses are decoded and returned."""
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
+    similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
 
     raw_similar_issue_data = {
         "message_distance": 0.05,
-        "parent_group_id": 6,
+        "parent_group_id": NonNone(similar_event.group_id),
         "should_group": True,
         "stacktrace_distance": 0.01,
     }
@@ -66,8 +72,8 @@ def test_simple_similar_issues_embeddings(mock_seer_request):
     mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "group_id": 1,
-        "project_id": 1,
+        "group_id": NonNone(event.group_id),
+        "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
     }
@@ -75,15 +81,17 @@ def test_simple_similar_issues_embeddings(mock_seer_request):
     assert response == [raw_similar_issue_data]
 
 
+@django_db_all
 @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-def test_empty_similar_issues_embeddings(mock_seer_request):
+def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
     """Test that empty responses are returned."""
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
 
     mock_seer_request.return_value = HTTPResponse([])
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "group_id": 1,
-        "project_id": 1,
+        "group_id": NonNone(event.group_id),
+        "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
     }
