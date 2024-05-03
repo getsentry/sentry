@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -36,7 +36,6 @@ from sentry.models.rule import Rule
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -500,10 +499,8 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
         rule = None
-        if use_block_kit:
-            rule = get_rule(slack_request)
+        rule = get_rule(slack_request)
 
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
@@ -520,7 +517,7 @@ class SlackActionEndpoint(Endpoint):
 
         original_tags_from_request = slack_request.get_tags()
 
-        if use_block_kit and slack_request.type == "view_submission":
+        if slack_request.type == "view_submission":
             # TODO: if we use modals for something other than resolve and archive, this will need to be more specific
 
             # Masquerade a status action
@@ -617,22 +614,21 @@ class SlackActionEndpoint(Endpoint):
         # Handle interaction actions
         for action in action_list:
             try:
-                if action.name == "status" or (
-                    use_block_kit
-                    and action.name
-                    in (
-                        "ignored:forever",
-                        "ignored:until_escalating",
-                        "unresolved:ongoing",
-                    )  # TODO: delete the first two names when block kit is GA
+                if action.name in (
+                    "status",
+                    "ignored:forever",
+                    "ignored:until_escalating",
+                    "unresolved:ongoing",
                 ):
+                    # check to see which action names are in use
+                    logger.info("slack.action.name", extra={"name": action.name})
                     self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
                     self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
                     self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
-                elif action.name == "archive_dialog" and use_block_kit:
+                elif action.name == "archive_dialog":
                     self.open_archive_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
@@ -646,44 +642,32 @@ class SlackActionEndpoint(Endpoint):
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
-        if use_block_kit:
-            response = SlackIssuesMessageBuilder(
-                group,
-                identity=identity,
-                actions=action_list,
-                tags=original_tags_from_request,
-                rules=[rule] if rule else None,
-            ).build()
-            # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
-            # response so the unfurling endpoint understands the payload
-            if (
-                slack_request.data.get("container")
-                and slack_request.data["container"].get("is_app_unfurl")
-                and "text" in response
-            ):
-                del response["text"]
-            slack_client = SlackClient(integration_id=slack_request.integration.id)
-
-            if not slack_request.data.get("response_url"):
-                # XXX: when you click an option in a modal dropdown it submits the request even though "Submit" has not been clicked
-                return self.respond()
-            try:
-                slack_client.post(slack_request.data["response_url"], data=response, json=True)
-            except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
-
-            return self.respond(response)
-
-        attachment = SlackIssuesMessageBuilder(
+        response = SlackIssuesMessageBuilder(
             group,
             identity=identity,
             actions=action_list,
             tags=original_tags_from_request,
             rules=[rule] if rule else None,
         ).build()
-        body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
+        # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
+        # response so the unfurling endpoint understands the payload
+        if (
+            slack_request.data.get("container")
+            and slack_request.data["container"].get("is_app_unfurl")
+            and "text" in response
+        ):
+            del response["text"]
+        slack_client = SlackClient(integration_id=slack_request.integration.id)
 
-        return self.respond(body)
+        if not slack_request.data.get("response_url"):
+            # XXX: when you click an option in a modal dropdown it submits the request even though "Submit" has not been clicked
+            return self.respond()
+        try:
+            slack_client.post(slack_request.data["response_url"], data=response, json=True)
+        except ApiError as e:
+            logger.error("slack.action.response-error", extra={"error": str(e)})
+
+        return self.respond(response)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
         organization_integrations = integration_service.get_organization_integrations(
@@ -715,11 +699,9 @@ class SlackActionEndpoint(Endpoint):
         return action_option
 
     @classmethod
-    def get_action_list(
-        cls, slack_request: SlackActionRequest, use_block_kit: bool
-    ) -> list[MessageAction]:
+    def get_action_list(cls, slack_request: SlackActionRequest) -> list[MessageAction]:
         action_data = slack_request.data.get("actions")
-        if use_block_kit and action_data:
+        if action_data:
             # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
             # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
             if action_data[0].get("action_id"):
@@ -806,27 +788,8 @@ class SlackActionEndpoint(Endpoint):
         result = integration_service.organization_contexts(
             integration_id=slack_request.integration.id
         )
-        org_integrations = result.organization_integrations
-        use_block_kit = False
-        if len(org_integrations):
-            org_context = organization_service.get_organization_by_id(
-                id=org_integrations[0].organization_id, include_projects=False, include_teams=False
-            )
-            if org_context:
-                use_block_kit = any(
-                    [
-                        (
-                            True
-                            if features.has(
-                                "organizations:slack-block-kit", org_context.organization
-                            )
-                            else False
-                        )
-                        for oi in org_integrations
-                    ]
-                )
 
-        action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
+        action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:
