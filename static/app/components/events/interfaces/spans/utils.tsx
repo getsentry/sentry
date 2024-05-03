@@ -482,7 +482,6 @@ export function handleTraceDetailsRouting(
       organization,
       traceId,
       event.title,
-      location.query,
       getEventTimestamp(event),
       event.eventID
     );
