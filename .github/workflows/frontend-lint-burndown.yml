@@ -18,19 +18,15 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - name: Install dependencies
+      - name: Install dependencies & inject eslint-plugin-deprecation
         id: dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn add --dev eslint-plugin-deprecation
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
         run: |
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/eslint-stylish.json"
-
-      - name: Inject eslint-plugin-deprecation
-        run: |
-          yarn add --dev eslint-plugin-deprecation
 
       - name: ESLint
         env:
