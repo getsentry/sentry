@@ -117,7 +117,7 @@ def deprecated(
     :param suggested_api: The suggested API to use instead of the deprecated one;
     :param key: The key prefix for an option use for the brownout schedule and duration
                 If not set 'api.deprecation.brownout' will be used, which currently
-                is using schedule of 1 minute blackout at noon UTC.
+                is using schedule of a 1 minute blackout at noon UTC.
     """
 
     def decorator(func):
