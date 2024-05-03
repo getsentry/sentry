@@ -85,19 +85,19 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
 
 
 class SimilarIssuesEmbeddingsRequest(TypedDict):
-    group_id: int
     project_id: int
     stacktrace: str
     message: str
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
+    group_id: NotRequired[int]  # TODO: Remove this once we stop sending it to seer
 
 
 class SimilarIssuesEmbeddingsData(TypedDict):
-    parent_group_id: int
     stacktrace_distance: float
     message_distance: float
     should_group: bool
+    parent_group_id: NotRequired[int]  # TODO: Remove this once seer stops sending it
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
