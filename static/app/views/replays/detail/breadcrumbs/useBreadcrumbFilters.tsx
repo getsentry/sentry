@@ -49,6 +49,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   click: 'User Click',
   keydown: 'KeyDown',
   input: 'Input',
+  tap: 'User Tap',
 };
 
 const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
@@ -70,6 +71,7 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'replay.hydrate-error': 'hydrateError',
   'largest-contentful-paint': 'lcp',
   'ui.click': 'click',
+  'ui.tap': 'tap',
   'ui.keyDown': 'keydown',
   'ui.input': 'input',
   feedback: 'feedback',

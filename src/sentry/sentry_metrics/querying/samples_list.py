@@ -84,7 +84,7 @@ class AbstractSamplesListExecutor(ABC):
         return column in cls.sortable_columns
 
     @abstractmethod
-    def get_matching_traces(self, limit: int) -> tuple[datetime, datetime, list[str]]:
+    def get_matching_traces(self, limit: int) -> tuple[list[str], list[datetime]]:
         raise NotImplementedError
 
     @abstractmethod
@@ -210,7 +210,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
     def supports_mri(cls, mri: str) -> bool:
         return cls.mri_to_column(mri) is not None
 
-    def get_matching_traces(self, limit: int) -> tuple[datetime, datetime, list[str]]:
+    def get_matching_traces(self, limit: int) -> tuple[list[str], list[datetime]]:
         column = self.mri_to_column(self.mri)
         assert column
 
@@ -235,21 +235,9 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         query_results = builder.run_query(self.referrer.value)
         results = builder.process_results(query_results)
 
-        matching_trace_ids: list[str] = []
-        min_timestamp = self.snuba_params.end
-        max_timestamp = self.snuba_params.start
-        assert min_timestamp is not None
-        assert max_timestamp is not None
-
-        for row in results["data"]:
-            matching_trace_ids.append(row["trace"])
-            timestamp = datetime.fromisoformat(row["timestamp"])
-            if timestamp < min_timestamp:
-                min_timestamp = timestamp
-            if timestamp > max_timestamp:
-                max_timestamp = timestamp
-
-        return min_timestamp, max_timestamp, matching_trace_ids
+        trace_ids = [row["trace"] for row in results["data"]]
+        timestamps = [datetime.fromisoformat(row["timestamp"]) for row in results["data"]]
+        return trace_ids, timestamps
 
     def get_matching_spans_from_traces(
         self,
@@ -573,7 +561,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
     def supports_mri(cls, mri: str) -> bool:
         return cls.mri_to_column(mri) is not None
 
-    def get_matching_traces(self, limit: int) -> tuple[datetime, datetime, list[str]]:
+    def get_matching_traces(self, limit: int) -> tuple[list[str], list[datetime]]:
         column = self.mri_to_column(self.mri)
         assert column is not None
 
@@ -598,21 +586,9 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         query_results = builder.run_query(self.referrer.value)
         results = builder.process_results(query_results)
 
-        matching_trace_ids: list[str] = []
-        min_timestamp = self.snuba_params.end
-        max_timestamp = self.snuba_params.start
-        assert min_timestamp is not None
-        assert max_timestamp is not None
-
-        for row in results["data"]:
-            matching_trace_ids.append(row["trace"])
-            timestamp = datetime.fromisoformat(row["timestamp"])
-            if timestamp < min_timestamp:
-                min_timestamp = timestamp
-            if timestamp > max_timestamp:
-                max_timestamp = timestamp
-
-        return min_timestamp, max_timestamp, matching_trace_ids
+        trace_ids = [row["trace"] for row in results["data"]]
+        timestamps = [datetime.fromisoformat(row["timestamp"]) for row in results["data"]]
+        return trace_ids, timestamps
 
     def get_matching_spans_from_traces(
         self,
@@ -925,7 +901,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             return True
         return False
 
-    def get_matching_traces(self, limit: int) -> tuple[datetime, datetime, list[str]]:
+    def get_matching_traces(self, limit: int) -> tuple[list[str], list[datetime]]:
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
             self.params,
@@ -947,21 +923,9 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         query_results = builder.run_query(self.referrer.value)
         results = builder.process_results(query_results)
 
-        matching_trace_ids: list[str] = []
-        min_timestamp = self.snuba_params.end
-        max_timestamp = self.snuba_params.start
-        assert min_timestamp is not None
-        assert max_timestamp is not None
-
-        for row in results["data"]:
-            matching_trace_ids.append(row["trace"])
-            timestamp = datetime.fromisoformat(row["timestamp"])
-            if timestamp < min_timestamp:
-                min_timestamp = timestamp
-            if timestamp > max_timestamp:
-                max_timestamp = timestamp
-
-        return min_timestamp, max_timestamp, matching_trace_ids
+        trace_ids = [row["trace"] for row in results["data"]]
+        timestamps = [datetime.fromisoformat(row["timestamp"]) for row in results["data"]]
+        return trace_ids, timestamps
 
     def get_matching_spans_from_traces(
         self,
