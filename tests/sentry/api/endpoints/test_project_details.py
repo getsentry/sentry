@@ -801,7 +801,7 @@ class ProjectUpdateTest(APITestCase):
         )
         assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
         assert resp.data["relayCustomMetricCardinalityLimit"] == [
-            "Cardinality limit must be smaller or equal to 4_000_000_000."
+            "Cardinality limit must be smaller or equal to 4,000,000,000."
         ]
 
     def test_custom_metrics_cardinality_limit_accepts_none(self):
