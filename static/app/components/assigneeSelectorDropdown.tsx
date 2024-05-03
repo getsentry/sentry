@@ -407,12 +407,17 @@ export default function AssigneeSelectorDropdown({
     // Only bubble the current user to the top if they are not already assigned or suggested
     const isUserAssignedOrSuggested =
       assignedUser?.id === sessionUser.id ||
-      getSuggestedAssignees()?.find(
+      !!getSuggestedAssignees()?.find(
         suggestedAssignee => suggestedAssignee.id === sessionUser.id
       );
     if (!isUserAssignedOrSuggested) {
-      memList = memList?.filter(user => user.id !== sessionUser.id);
-      memList?.unshift(sessionUser);
+      const currentUser = memList?.find(user => user.id === sessionUser.id);
+      if (currentUser) {
+        memList = memList?.filter(user => user.id !== sessionUser.id);
+        // This can't be sessionUser even though they're the same thing
+        // because it would bork the tests
+        memList?.unshift(currentUser);
+      }
     }
 
     const memberOptions = {

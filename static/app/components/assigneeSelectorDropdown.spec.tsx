@@ -93,10 +93,6 @@ describe('AssigneeSelectorDropdown', () => {
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
-    // updateGroup2Store = async (_, actor, suggestedAssignee?) => {
-    //   await GroupStore.onAssignToSuccess(GROUP_2.id, actor, suggestedAssignee);
-    // }: OnAssignCallback
-
     MemberListStore.reset();
   });
 
