@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, SentryFunction} from 'sentry/types';
 
@@ -16,7 +17,7 @@ function ActionButtons({org, sentryFn, onDelete}: Props) {
     <StyledButton
       size="sm"
       icon={<IconDelete />}
-      aria-label="Delete"
+      aria-label={t('Delete')}
       onClick={() => onDelete(org, sentryFn)}
     />
   );
