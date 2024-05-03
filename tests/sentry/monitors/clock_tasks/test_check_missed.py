@@ -47,6 +47,9 @@ class MonitorClockTasksCheckMissingTest(TestCase):
 
         # Expected check-in was a full minute ago.
         monitor_environment = MonitorEnvironment.objects.create(
+            # XXX(epurkhiser): Arbitrarily large id to make sure we can
+            # correctly use the monitor_environment.id as the partition key
+            id=62702371781194950,
             monitor=monitor,
             environment_id=self.environment.id,
             last_checkin=ts - timedelta(minutes=2),
@@ -63,7 +66,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             "monitor_environment_id": monitor_environment.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -224,7 +227,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             "monitor_environment_id": monitor_environment.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -332,7 +335,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             "monitor_environment_id": monitor_environment.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )

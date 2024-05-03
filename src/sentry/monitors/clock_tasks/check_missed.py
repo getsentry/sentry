@@ -90,7 +90,7 @@ def dispatch_check_missing(ts: datetime):
         # setup. If we backlogged clock-ticks we may produce multiple missed
         # tasks for the same monitor_environment. These MUST happen in-order.
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
