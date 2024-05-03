@@ -84,6 +84,26 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return action
 
     @staticmethod
+    def get_button_action(action: MessageAction) -> SlackBlock:
+        button_text = action.label or action.name
+        button = {
+            "type": "button",
+            "text": {"type": "plain_text", "text": button_text},
+        }
+        if action.value:
+            button["action_id"] = action.value
+            button["value"] = action.value
+
+        if action.action_id:
+            button["action_id"] = action.action_id
+
+        if action.url:
+            button["url"] = action.url
+            button["value"] = "link_clicked"
+
+        return button
+
+    @staticmethod
     def get_link_button(action: MessageAction) -> SlackBlock:
         return {
             "type": "section",
