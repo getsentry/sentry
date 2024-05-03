@@ -50,6 +50,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   keydown: 'KeyDown',
   input: 'Input',
   tap: 'User Tap',
+  device: 'Device',
 };
 
 const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
@@ -75,6 +76,9 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'ui.keyDown': 'keydown',
   'ui.input': 'input',
   feedback: 'feedback',
+  'device.battery': 'device',
+  'device.connectivity': 'device',
+  'device.orientation': 'device',
 };
 
 function typeToLabel(val: string): string {
