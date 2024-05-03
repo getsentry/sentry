@@ -500,51 +500,102 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             "d:spans/http.response_transfer_size@byte",
             "d:custom/value@millisecond",
         ]:
-            query = {
-                "mri": mri,
-                "metricsQuery": ["foo:qux"],
-                "project": [project_1.id],
-                "field": ["id", "parent_span", "span.duration"],
-                "query": ["foo:qux"],
-                "suggestedQuery": ["foo:qux"],
-                "maxSpansPerTrace": 3,
-                "sort": ["-span.duration"],
-            }
+            for user_query in ["foo:qux", None]:
+                query = {
+                    "mri": mri,
+                    "metricsQuery": ["foo:qux"],
+                    "project": [project_1.id],
+                    "field": ["id", "parent_span", "span.duration"],
+                    "suggestedQuery": ["foo:qux"],
+                    "maxSpansPerTrace": 3,
+                    "sort": ["-span.duration"],
+                }
+                if user_query:
+                    query["query"] = user_query
 
-            response = self.do_request(query)
-            assert response.status_code == 200, (mri, response.data)
+                response = self.do_request(query)
+                assert response.status_code == 200, (mri, response.data)
 
-            result_data = sorted(response.data["data"], key=lambda trace: trace["trace"])
+                result_data = sorted(response.data["data"], key=lambda trace: trace["trace"])
 
-            assert result_data == [
-                {
-                    "trace": trace_id_3,
-                    "numErrors": 0,
-                    "numOccurrences": 0,
-                    "numSpans": 1,
-                    "project": project_1.slug,
-                    "name": "qux",
-                    "duration": 40_000,
-                    "start": int(timestamps[7].timestamp() * 1000),
-                    "end": int(timestamps[7].timestamp() * 1000) + 40_000,
-                    "breakdowns": [
-                        {
-                            "project": project_1.slug,
-                            "start": int(timestamps[7].timestamp() * 1000),
-                            "end": int(timestamps[7].timestamp() * 1000) + 40_000,
-                            "kind": "project",
-                        },
-                    ],
-                    "spans": [
-                        {
-                            "id": span_ids[7],
-                            "parent_span": "00",
-                            "span.duration": 40_000.0,
-                        },
-                    ],
-                    "suggestedSpans": [],
-                },
-            ], mri
+                assert result_data == [
+                    {
+                        "trace": trace_id_3,
+                        "numErrors": 0,
+                        "numOccurrences": 0,
+                        "numSpans": 1,
+                        "project": project_1.slug,
+                        "name": "qux",
+                        "duration": 40_000,
+                        "start": int(timestamps[7].timestamp() * 1000),
+                        "end": int(timestamps[7].timestamp() * 1000) + 40_000,
+                        "breakdowns": [
+                            {
+                                "project": project_1.slug,
+                                "start": int(timestamps[7].timestamp() * 1000),
+                                "end": int(timestamps[7].timestamp() * 1000) + 40_000,
+                                "kind": "project",
+                            },
+                        ],
+                        "spans": [
+                            {
+                                "id": span_ids[7],
+                                "parent_span": "00",
+                                "span.duration": 40_000.0,
+                            },
+                        ],
+                        "suggestedSpans": []
+                        if user_query
+                        else [
+                            {
+                                "id": span_ids[7],
+                                "parent_span": "00",
+                                "span.duration": 40_000.0,
+                            },
+                        ],
+                    },
+                ], (mri, user_query)
+
+    def test_matching_tag_metrics_but_no_matching_spans(self):
+        for mri in [
+            TransactionMRI.DURATION.value,
+            "d:transactions/measurements.lcp@millisecond",
+            SpanMRI.DURATION.value,
+            SpanMRI.SELF_TIME.value,
+            "d:spans/webvital.score.total@ratio",
+            "d:spans/webvital.score.inp@ratio",
+            "d:spans/webvital.score.weight.inp@ratio",
+            "d:spans/http.response_content_length@byte",
+            "d:spans/http.decoded_response_content_length@byte",
+            "d:spans/http.response_transfer_size@byte",
+            "d:custom/value@millisecond",
+        ]:
+            for user_query in ["foo:qux", None]:
+                query = {
+                    "mri": mri,
+                    "metricsQuery": ["foo:qux"],
+                    "project": [self.project.id],
+                    "field": ["id", "parent_span", "span.duration"],
+                    "query": "foo:foobar",
+                    "suggestedQuery": ["foo:qux"],
+                    "maxSpansPerTrace": 3,
+                    "sort": ["-span.duration"],
+                }
+
+                response = self.do_request(query)
+                assert response.status_code == 200, (mri, response.data)
+                assert response.data == {
+                    "data": [],
+                    "meta": {
+                        "dataset": "unknown",
+                        "datasetReason": "unchanged",
+                        "fields": {},
+                        "isMetricsData": False,
+                        "isMetricsExtractedData": False,
+                        "tips": {},
+                        "units": {},
+                    },
+                }
 
 
 @pytest.mark.parametrize(
