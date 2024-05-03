@@ -31,6 +31,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
+import {CardinalityLimit} from 'sentry/views/settings/projectMetrics/cardinalityLimit';
 
 type Props = {
   organization: Organization;
@@ -106,11 +107,15 @@ function ProjectMetrics({project, location}: Props) {
 
       <PermissionAlert project={project} />
 
+      <CardinalityLimit project={project} isLoading={isLoading} />
+
       <SearchWrapper>
+        <h6>{t('Emitted Metrics')}</h6>
         <SearchBar
           placeholder={t('Search Metrics')}
           onChange={debouncedSearch}
           query={query}
+          size="sm"
         />
       </SearchWrapper>
 
@@ -224,7 +229,15 @@ const TabPanelsWrapper = styled(TabPanels)`
 `;
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: ${space(4)};
+  margin-bottom: ${space(0)};
+
+  & > h6 {
+    margin: 0;
+  }
 `;
 
 const StyledPanelTable = styled(PanelTable)`
