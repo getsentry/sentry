@@ -44,7 +44,6 @@ import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRout
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -320,9 +319,8 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  // Start listening to GroupStore after the first render
   // It's possible the overview page is still unloading the store
-  useEffectAfterFirstRender(() => {
+  useEffect(() => {
     return GroupStore.listen(() => {
       const [storeGroup] = GroupStore.getState();
       if (defined(storeGroup) && storeGroup.id === groupId) {
