@@ -62,7 +62,6 @@ def handle_status_update(
                     group=group,
                     transition_type="manual",
                     sender=sender,
-                    new_substatus=new_substatus,
                 )
 
     elif new_status == GroupStatus.IGNORED:
