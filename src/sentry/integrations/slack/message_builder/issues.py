@@ -20,6 +20,7 @@ from sentry.integrations.message_builder import (
     format_actor_options,
     get_title_link,
 )
+from sentry.integrations.slack.actions.message_action import SlackMessageAction
 from sentry.integrations.slack.message_builder import (
     ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
@@ -372,13 +373,52 @@ def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) ->
     return action_text
 
 
+def _ignore_action(group: Group) -> SlackMessageAction | None:
+    if group.issue_category == GroupCategory.FEEDBACK:
+        return None
+
+    if group.get_status() == GroupStatus.IGNORED:
+        return SlackMessageAction(
+            name="status", label="Mark as Ongoing", value="unresolved:ongoing"
+        )
+
+    return SlackMessageAction(name="status", label="Archive", value="archive_dialog")
+
+
+def _resolve_action(group: Group, project: Project) -> SlackMessageAction:
+    if group.get_status() == GroupStatus.RESOLVED:
+        return SlackMessageAction(
+            name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
+        )
+    if not project.flags.has_releases:
+        return SlackMessageAction(name="status", label="Resolve", value="resolved")
+
+    return SlackMessageAction(
+        name="status",
+        label="Resolve",
+        value="resolve_dialog",
+    )
+
+
+def _assign_action(group: Group) -> SlackMessageAction:
+    assignee = group.get_assignee()
+    assign_button = SlackMessageAction(
+        name="assign",
+        label="Select Assignee...",
+        type="select",
+        selected_options=format_actor_options([assignee], True) if assignee else [],
+        option_groups=get_option_groups_block_kit(group),
+    )
+    return assign_button
+
+
 def build_actions(
     group: Group,
     project: Project,
     text: str,
     actions: Sequence[MessageAction] | None = None,
     identity: RpcIdentity | None = None,
-) -> tuple[Sequence[MessageAction], str, bool]:
+) -> tuple[Sequence[SlackMessageAction], str, bool]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
         text = get_action_text(text, actions, identity)
@@ -387,50 +427,9 @@ def build_actions(
             return [], text, True
         return [], text, False
 
-    status = group.get_status()
-
-    def _ignore_button() -> MessageAction | None:
-        if group.issue_category == GroupCategory.FEEDBACK:
-            return None
-        if status == GroupStatus.IGNORED:
-            return MessageAction(name="status", label="Mark as Ongoing", value="unresolved:ongoing")
-
-        return MessageAction(name="status", label="Archive", value="archive_dialog")
-
-    def _resolve_button() -> MessageAction:
-        if status == GroupStatus.RESOLVED:
-            return MessageAction(
-                name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
-            )
-        if not project.flags.has_releases:
-            return MessageAction(name="status", label="Resolve", value="resolved")
-
-        return MessageAction(
-            name="status",
-            label="Resolve",
-            value="resolve_dialog",
-        )
-
-    def _assign_button() -> MessageAction:
-        assignee = group.get_assignee()
-        assign_button = MessageAction(
-            name="assign",
-            label="Select Assignee...",
-            type="select",
-            selected_options=format_actor_options([assignee], True) if assignee else [],
-            option_groups=get_option_groups_block_kit(group),
-        )
-        return assign_button
-
-    action_list = [
-        a
-        for a in [
-            _resolve_button(),
-            _ignore_button(),
-            _assign_button(),
-        ]
-        if a is not None
-    ]
+    action_list = [_resolve_action(group=group, project=project), _assign_action(group=group)]
+    if (ignore_action := _ignore_action(group=group)) is not None:
+        action_list.append(ignore_action)
 
     return action_list, text, False
 

@@ -13,6 +13,7 @@ class BaseMessageAction:
 
     name: str
     type: Literal["button", "select"] = "button"
+    label: str
     # If the message action is a button type, the url is required
     url: str | None = None
     # If the message action is a select type, this is the selected value
@@ -20,28 +21,8 @@ class BaseMessageAction:
     # Denotes the type of action
     action_id: str | None = None
     block_id: str | None = None
+    option_groups: Sequence[Mapping[str, Any]] | None = None
     selected_options: Sequence[Mapping[str, Any]] | None = None
-
-    def _get_button_text(self) -> str:
-        return self.name
-
-    def get_button(self) -> Mapping[str, Any]:
-        button = {
-            "type": "button",
-            "text": {"type": "plain_text", "text": self._get_button_text()},
-        }
-        if self.value:
-            button["action_id"] = self.value
-            button["value"] = self.value
-
-        if self.action_id:
-            button["action_id"] = self.action_id
-
-        if self.url:
-            button["url"] = self.url
-            button["value"] = "link_clicked"
-
-        return button
 
 
 @dataclass
@@ -49,8 +30,4 @@ class MessageAction(BaseMessageAction):
     # Label is optional, if empty it falls back to name
     label: str | None = None
     style: Literal["primary", "danger", "default"] | None = None
-    option_groups: Sequence[Mapping[str, Any]] | None = None
     elements: Sequence[Mapping[str, Any]] | None = None
-
-    def _get_button_text(self) -> str:
-        return self.label or self.name

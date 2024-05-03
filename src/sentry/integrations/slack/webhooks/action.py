@@ -19,7 +19,7 @@ from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.integrations.slack.actions.message_action import BlockKitMessageAction
+from sentry.integrations.slack.actions.message_action import SlackMessageAction
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -750,7 +750,7 @@ class SlackActionEndpoint(Endpoint):
     @classmethod
     def get_action_list(
         cls, slack_request: SlackActionRequest, use_block_kit: bool
-    ) -> list[MessageAction] | list[BlockKitMessageAction]:
+    ) -> list[MessageAction] | list[SlackMessageAction]:
         slack_request_actions = slack_request.data.get("actions", [])
         if not use_block_kit or not slack_request_actions:
             return cls._get_default_action_list(slack_request_actions=slack_request_actions)
@@ -774,7 +774,7 @@ class SlackActionEndpoint(Endpoint):
                 value = slack_request_actions["value"]
                 selected_options = None
 
-            action = BlockKitMessageAction(
+            action = SlackMessageAction(
                 name=slack_request_actions["action_id"],
                 label=label,
                 type=slack_request_actions["type"],
