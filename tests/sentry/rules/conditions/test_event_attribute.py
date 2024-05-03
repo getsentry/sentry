@@ -770,10 +770,30 @@ class EventAttributeConditionTest(RuleTestCase):
         self.assertDoesNotPass(rule, event)
 
     def test_does_not_error_with_none(self):
-        event = self.get_event()
-        event["exception"]["values"].append(None)
+        exception = {
+            "values": [
+                None,
+                {
+                    "type": "SyntaxError",
+                    "value": "hello world",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "filename": "example.php",
+                                "module": "example",
+                                "context_line": 'echo "hello";',
+                                "abs_path": "path/to/example.php",
+                            }
+                        ]
+                    },
+                    "thread_id": 1,
+                },
+            ]
+        }
+
+        event = self.get_event(exception=exception)
 
         rule = self.get_rule(
-            data={"match": MatchType.CONTAINS, "attribute": "message", "value": "SyntaxError"}
+            data={"match": MatchType.EQUAL, "attribute": "exception.type", "value": "SyntaxError"}
         )
         self.assertPasses(rule, event)
