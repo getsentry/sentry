@@ -1390,6 +1390,7 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
 
 def link_event_to_user_report(job: PostProcessJob) -> None:
+    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
     from sentry.models.userreport import UserReport
 
     event = job["event"]
@@ -1408,6 +1409,19 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
             group_id__isnull=True,
             environment_id__isnull=True,
         )
+        for report in user_reports_without_group:
+            shim_to_feedback(
+                {
+                    "name": report.name,
+                    "email": report.email,
+                    "comments": report.comments,
+                    "event_id": report.event_id,
+                    "level": "error",
+                },
+                event,
+                project,
+                FeedbackCreationSource.USER_REPORT_ENVELOPE,
+            )
 
         user_reports_updated = user_reports_without_group.update(
             group_id=group.id, environment_id=event.get_environment().id
