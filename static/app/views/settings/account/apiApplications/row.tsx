@@ -59,7 +59,7 @@ function Row({app, onRemove}: Props) {
       </ApplicationNameWrapper>
 
       <Button
-        aria-label="Remove"
+        aria-label={t('Remove')}
         onClick={handleRemove}
         disabled={isLoading}
         size="sm"

@@ -155,7 +155,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             centered
-            aria-label="dropzone"
+            aria-label={t('dropzone')}
             draggedOver={dragCounter > 0}
           >
             <StyledUploadIcon className="upload-icon" size="xl" />
@@ -165,7 +165,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
               <UploadInput
                 name="file"
                 type="file"
-                aria-label="file-upload"
+                aria-label={t('file-upload')}
                 accept=".tar"
                 ref={inputFileRef}
                 onChange={e => handleFileChange(e)}

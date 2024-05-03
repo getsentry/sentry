@@ -54,7 +54,7 @@ export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Pr
       <MinimapContainer>{minimap}</MinimapContainer>
       <BreakdownContainer>{opsBreakdown}</BreakdownContainer>
       <LinkButton
-        aria-label="View Full Waterfall"
+        aria-label={t('View Full Waterfall')}
         size="sm"
         to={AggregateSpanWaterfallLocation}
       >
