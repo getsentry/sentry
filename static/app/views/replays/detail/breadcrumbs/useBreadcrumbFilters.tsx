@@ -115,7 +115,9 @@ function useBreadcrumbFilters({frames}: Options): Return {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
     const TYPE_TO_OPORCATEGORY = Object.entries(OPORCATEGORY_TO_TYPE).reduce(
       (dict, [key, value]) =>
-        dict[value] ? {...dict, [value]: [dict[value], key]} : {...dict, [value]: key},
+        dict[value]
+          ? {...dict, [value]: [dict[value], key].flat()}
+          : {...dict, [value]: key},
       {}
     );
     const OpOrCategory = type.flatMap(theType => TYPE_TO_OPORCATEGORY[theType]);
