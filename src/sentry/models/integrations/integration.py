@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import IntegrityError, models, router, transaction
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
@@ -15,6 +17,7 @@ from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, out
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
+from sentry.utils.json import JSONData
 
 if TYPE_CHECKING:
     from sentry.integrations import (
@@ -158,3 +161,14 @@ class Integration(DefaultFieldsModel):
 
         self.update(status=ObjectStatus.DISABLED)
         self.save()
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "external_id"))
+        sanitizer.set_json(json, SanitizableField(model_name, "metadata"), {})
+        sanitizer.set_string(json, SanitizableField(model_name, "provider"))

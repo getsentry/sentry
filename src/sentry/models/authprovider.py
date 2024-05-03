@@ -8,6 +8,8 @@ from django.db import models
 from django.utils import timezone
 
 from bitfield import TypedClassBitField
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -21,6 +23,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.types.region import find_regions_for_orgs
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -222,6 +225,16 @@ class AuthProvider(ReplicatedControlModel):
             )
             for region_name in find_regions_for_orgs([self.organization_id])
         ]
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_json(json, SanitizableField(model_name, "config"), {})
+        sanitizer.set_string(json, SanitizableField(model_name, "provider"))
 
 
 def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:
