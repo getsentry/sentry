@@ -33,11 +33,6 @@ const trackShowInView = (organization: Organization) =>
     organization,
   });
 
-const trackViewEventDetails = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.view_event_details', {
-    organization,
-  });
-
 const trackViewEventJSON = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_event_json', {
     organization,
@@ -82,7 +77,6 @@ const traceAnalytics = {
   trackFailedToFetchTraceState,
   // Drawer actions
   trackShowInView,
-  trackViewEventDetails,
   trackViewEventJSON,
   // Layout actions
   trackLayoutChange,
