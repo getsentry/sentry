@@ -50,7 +50,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         )
         assert (
             blocks[3]["elements"][0]["text"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -77,7 +77,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_performance_issue_blocks(
             blocks,
-            event.organization.slug,
+            event.organization,
             event.project.slug,
             event.group,
             "resolved_activity-slack",
@@ -111,7 +111,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_generic_issue_blocks(
             blocks,
-            group_event.organization.slug,
+            group_event.organization,
             group_event.project.slug,
             group_event.group,
             "resolved_activity-slack",
