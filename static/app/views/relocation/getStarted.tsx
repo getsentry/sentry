@@ -76,7 +76,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
           <Input
             type="text"
             name="orgs"
-            aria-label="org-slugs"
+            aria-label={t('org-slugs')}
             onChange={evt => {
               onUpdateRelocationState({orgSlugs: evt.target.value});
             }}
@@ -89,7 +89,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
           <RegionSelect
             value={regionUrl}
             name="region"
-            aria-label="region"
+            aria-label={t('region')}
             placeholder="Select Location"
             options={regions.map(r => ({label: prettyRegionName(r.name), value: r.url}))}
             onChange={opt => {
@@ -118,7 +118,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
               <PromoCodeInput
                 type="text"
                 name="promocode"
-                aria-label="promocode"
+                aria-label={t('promocode')}
                 onChange={evt => {
                   onUpdateRelocationState({promoCode: evt.target.value});
                 }}
