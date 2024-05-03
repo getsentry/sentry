@@ -336,8 +336,6 @@ class RuleProcessor:
 
         predicate_func = get_match_function(condition_match)
         if condition_list:
-            predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
-            result = predicate_func(predicate_iter)
             if not predicate_func:
                 log_string = f"Unsupported condition_match {condition_match} for rule {rule.id}"
                 logger.error(
@@ -347,20 +345,23 @@ class RuleProcessor:
                     extra={**logging_details},
                 )
                 return
+            predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
+            if predicate_iter:
+                result = predicate_func(predicate_iter)
 
-            if condition_match == "any" and not result:
-                if slow_conditions and process_slow_conditions_later:
-                    self.enqueue_rule(rule)
-                    return
-                return
-
-            elif condition_match == "all":
-                if not result:
+                if condition_match == "any" and not result:
+                    if slow_conditions and process_slow_conditions_later:
+                        self.enqueue_rule(rule)
+                        return
                     return
 
-                if slow_conditions and process_slow_conditions_later:
-                    self.enqueue_rule(rule)
-                    return
+                elif condition_match == "all":
+                    if not result:
+                        return
+
+                    if slow_conditions and process_slow_conditions_later:
+                        self.enqueue_rule(rule)
+                        return
 
         if slow_conditions and process_slow_conditions_later:
             self.enqueue_rule(rule)
