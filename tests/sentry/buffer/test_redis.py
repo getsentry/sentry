@@ -286,46 +286,44 @@ class TestRedisBuffer:
             model=Project,
             filters={"project_id": project_id},
             field=f"{rule_id}:{group_id}",
-            value=event_id,
+            value=json.dumps({"event_id": event_id, "occurrence_id": None}),
         )
         self.buf.push_to_hash(
             model=Project,
             filters={"project_id": project_id},
             field=f"{rule_id}:{group2_id}",
-            value=event2_id,
+            value=json.dumps({"event_id": event2_id, "occurrence_id": None}),
         )
         self.buf.push_to_hash(
             model=Project,
             filters={"project_id": project_id2},
             field=f"{rule2_id}:{group3_id}",
-            value=event3_id,
+            value=json.dumps({"event_id": event3_id, "occurrence_id": None}),
         )
 
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert project_ids
         project_ids_to_rule_data = self.group_rule_data_by_project_id(self.buf, project_ids)
-        assert project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}") == str(event_id)
-        assert project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}") == str(
-            event2_id
-        )
-        assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
-            event3_id
-        )
+        result = json.loads(project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}"))
+        assert result.get("event_id") == event_id
+        result = json.loads(project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}"))
+        assert result.get("event_id") == event2_id
+        result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
+        assert result.get("event_id") == event3_id
 
         # overwrite the value to event4_id
         self.buf.push_to_hash(
             model=Project,
             filters={"project_id": project_id2},
             field=f"{rule2_id}:{group3_id}",
-            value=event4_id,
+            value=json.dumps({"event_id": event4_id, "occurrence_id": None}),
         )
 
         project_ids_to_rule_data = project_ids_to_rule_data = self.group_rule_data_by_project_id(
             self.buf, project_ids
         )
-        assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
-            event4_id
-        )
+        result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
+        assert result.get("event_id") == event4_id
 
     def test_buffer_hook_registry(self):
         """Test that we can add an event to the registry and that the callback is invoked"""
@@ -366,7 +364,7 @@ class TestRedisBuffer:
                 model=Project,
                 filters={"project_id": project_id},
                 field=f"{rule_id}:{group_id}",
-                value=event_id,
+                value=json.dumps({"event_id": event_id, "occurrence_id": None}),
             )
         with freeze_time(one_minute_from_now):
             self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project2_id)
@@ -374,7 +372,7 @@ class TestRedisBuffer:
                 model=Project,
                 filters={"project_id": project2_id},
                 field=f"{rule2_id}:{group2_id}",
-                value=event2_id,
+                value=json.dumps({"event_id": event2_id, "occurrence_id": None}),
             )
 
         # retrieve them

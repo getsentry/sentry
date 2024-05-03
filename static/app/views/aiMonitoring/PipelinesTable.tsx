@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -7,7 +8,9 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -24,7 +27,6 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
   SpanMetricsResponse,
@@ -48,23 +50,23 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
-    name: `${t('Times')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
     key: 'ai_total_tokens_used()',
     name: t('Total tokens used'),
     width: 180,
   },
   {
     key: `avg(span.duration)`,
-    name: DataTitles.avg,
+    name: t('Pipeline Duration'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'spm()',
+    name: `${t('Pipeline runs')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.duration)', 'spm()'];
+const SORTABLE_FIELDS = ['ai_total_tokens_used()', 'avg(span.duration)', 'spm()'];
 
 type ValidSort = Sort & {
   field: 'spm()' | 'avg(span.duration)';
@@ -79,13 +81,17 @@ export function PipelinesTable() {
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
+  const spanDescription = decodeScalar(location.query?.['span.description'], '');
 
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
     sort = {field: 'spm()', kind: 'desc'};
   }
   const {data, isLoading, meta, pageLinks, error} = useSpanMetrics({
-    search: new MutableSearch('span.category:ai.pipeline'),
+    search: MutableSearch.fromQueryObject({
+      'span.category': 'ai.pipeline',
+      'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    }),
     fields: [
       'project.id',
       'span.group',
@@ -106,9 +112,10 @@ export function PipelinesTable() {
     isLoading: tokensUsedLoading,
     error: tokensUsedError,
   } = useSpanMetrics({
-    search: new MutableSearch(
-      `span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}] span.category:ai`
-    ),
+    search: MutableSearch.fromQueryObject({
+      'span.ai.pipeline.group': (data as Row[])?.map(x => x['span.group']).join(','),
+      'span.category': 'ai',
+    }),
     fields: ['span.ai.pipeline.group', 'ai_total_tokens_used()'],
   });
   if (!tokensUsedLoading) {
@@ -128,37 +135,55 @@ export function PipelinesTable() {
     });
   };
 
+  const handleSearch = (newQuery: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        'span.description': newQuery === '' ? undefined : newQuery,
+        [QueryParameterNames.SPANS_CURSOR]: undefined,
+      },
+    });
+  };
+
   return (
     <VisuallyCompleteWithData
       id="PipelinesTable"
       hasData={data.length > 0}
       isLoading={isLoading}
     >
-      <GridEditable
-        isLoading={isLoading}
-        error={error ?? tokensUsedError}
-        data={data}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[
-          {
-            key: sort.field,
-            order: sort.kind,
-          },
-        ]}
-        grid={{
-          renderHeadCell: column =>
-            renderHeadCell({
-              column,
-              sort,
-              location,
-              sortParameterName: QueryParameterNames.SPANS_SORT,
-            }),
-          renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
-        }}
-        location={location}
-      />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Container>
+        <SearchBar
+          placeholder={t('Search for pipeline')}
+          query={spanDescription}
+          onSearch={handleSearch}
+        />
+        <GridEditable
+          isLoading={isLoading}
+          error={error ?? tokensUsedError}
+          data={data}
+          columnOrder={COLUMN_ORDER}
+          columnSortBy={[
+            {
+              key: sort.field,
+              order: sort.kind,
+            },
+          ]}
+          grid={{
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                sort,
+                location,
+                sortParameterName: QueryParameterNames.SPANS_SORT,
+              }),
+            renderBodyCell: (column, row) =>
+              renderBodyCell(column, row, meta, location, organization),
+          }}
+          location={location}
+        />
+        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      </Container>
     </VisuallyCompleteWithData>
   );
 }
@@ -202,3 +227,9 @@ function renderBodyCell(
 
   return rendered;
 }
+
+const Container = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
