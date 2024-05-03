@@ -1544,6 +1544,7 @@ class BaseSpansTestCase(SnubaTestCase):
         store_only_summary: bool = False,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
+        category: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1581,6 +1582,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
+        if category is not None:
+            payload["sentry_tags"]["category"] = category
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
