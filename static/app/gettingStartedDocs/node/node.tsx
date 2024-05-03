@@ -90,7 +90,7 @@ const onboarding: OnboardingConfig = {
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/node/sourcemaps/',
     }),
   ],
-  verify: () => [
+  verify: ({isPerformanceSelected}) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -99,22 +99,26 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: `
-  const transaction = Sentry.startTransaction({
-    op: "test",
-    name: "My First Test Transaction",
-  });
-
-  setTimeout(() => {
-    try {
-      foo();
-    } catch (e) {
-      Sentry.captureException(e);
-    } finally {
-      transaction.finish();
-    }
-  }, 99);
-          `,
+          code: isPerformanceSelected
+            ? `
+Sentry.startSpan({
+  op: "test",
+  name: "My First Test Span",
+}, () => {
+  try {
+    foo();
+  } catch (e) {
+    Sentry.captureException(e);
+  }
+});`
+            : `
+setTimeout(() => {
+  try {
+    foo();
+  } catch (e) {
+    Sentry.captureException(e);
+  }
+}, 99);`,
         },
       ],
     },

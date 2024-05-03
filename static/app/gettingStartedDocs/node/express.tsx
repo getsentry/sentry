@@ -33,21 +33,10 @@ const productSelection = (params: Params): ProductSelectionMap => {
 
 const getSdkSetupSnippet = (params: Params) => `
 ${getDefaultNodeImports({productSelection: productSelection(params)}).join('\n')}
-import express from "express";
-
-const app = express();
 
 Sentry.init({
   dsn: "${params.dsn}",
   integrations: [${
-    params.isPerformanceSelected
-      ? `
-      // enable HTTP calls tracing
-      new Sentry.Integrations.Http({ tracing: true }),
-      // enable Express.js middleware tracing
-      new Sentry.Integrations.Express({ app }),`
-      : ''
-  }${
     params.isProfilingSelected
       ? `
       nodeProfilingIntegration(),`
@@ -68,15 +57,10 @@ Sentry.init({
 }
 });
 
-// The request handler must be the first middleware on the app
-app.use(Sentry.Handlers.requestHandler());${
-  params.isPerformanceSelected
-    ? `
+// Make sure to require/import this _after_ calling Sentry.init()!
+const express = require("express");
 
-// TracingHandler creates a trace for every incoming request
-app.use(Sentry.Handlers.tracingHandler());`
-    : ''
-}
+const app = express();
 
 // All your controllers should live here
 app.get("/", function rootHandler(req, res) {
@@ -84,7 +68,7 @@ app.get("/", function rootHandler(req, res) {
 });
 
 // The error handler must be registered before any other error middleware and after all controllers
-app.use(Sentry.Handlers.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 // Optional fallthrough error handler
 app.use(function onError(err, req, res, next) {
@@ -109,7 +93,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        "Initialize Sentry as early as possible in your application's lifecycle, for example in your [code:index.ts/js] entry point:",
+        "Initialize Sentry as early as possible in your application's lifecycle, for example in your [code:index.ts/js] entry point. Make sure to initialize it before importing any other package:",
         {code: <code />}
       ),
       configurations: [

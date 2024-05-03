@@ -31,10 +31,8 @@ const productSelection = (params: Params): ProductSelectionMap => {
 };
 
 const getSdkSetupSnippet = (params: Params) => `
-${getDefaultNodeImports({productSelection: productSelection(params)}).join('\n')}
-import connect from "connect";
+${getDefaultNodeImports({productSelection: productSelection(params)}).join('\n')} d
 
-// Configure Sentry before doing anything else
 Sentry.init({
   dsn: "${params.dsn}",
   integrations: [${
@@ -58,31 +56,16 @@ Sentry.init({
 }
 });
 
-function mainHandler(req, res) {
-  throw new Error("My first Sentry error!");
-}
+// Make sure to require/import this _after_ calling Sentry.init()!
+const connect = require("connect");
 
-function onError(err, req, res, next) {
-  // The error id is attached to \`res.sentry\` to be returned
-  // and optionally displayed to the user for support.
-  res.statusCode = 500;
-  res.end(res.sentry + "\\n");
-}
+const app = connect();
 
-connect(
-  // The request handler be the first item
-  Sentry.Handlers.requestHandler(),
+Sentry.setupConnectErrorHandler(app);
 
-  connect.bodyParser(),
-  connect.cookieParser(),
-  mainHandler,
+// All your controllers should live here
 
-  // The error handler must be before any other error middleware
-  Sentry.Handlers.errorHandler(),
-
-  // Optional fallthrough error handler
-  onError
-).listen(3000);
+app.listen(3000);
 `;
 
 const onboarding: OnboardingConfig = {
@@ -109,8 +92,27 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: getVerifySnippet(),
+        },
+      ],
+    },
+  ],
 };
+
+const getVerifySnippet = () => `
+app.use(async function () {
+  throw new Error("My first Sentry error!");
+});
+`;
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
