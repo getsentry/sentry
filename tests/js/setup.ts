@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 /**
- * Set locale to english like we do in bootstrap
+ * Set locale to english
  */
 setLocale(DEFAULT_LOCALE_DATA);
 
