@@ -36,6 +36,12 @@ import {
   SPAN_SORT_OPTIONS,
   SPAN_SORT_TO_FIELDS,
 } from './utils';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {
+  SpanMetricsField,
+  type SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
@@ -93,6 +99,23 @@ function SpansContent(props: Props) {
   const totalsView = getTotalsView(eventView);
 
   const {projects} = useProjects();
+
+  const filters: SpanMetricsQueryFilters = {
+    transaction: transactionName,
+  };
+
+  const data = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [
+      SpanMetricsField.SPAN_OP,
+      SpanMetricsField.SPAN_DESCRIPTION,
+      `count()`,
+      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+    ],
+  });
+
+  console.dir(data);
 
   return (
     <Layout.Main fullWidth>

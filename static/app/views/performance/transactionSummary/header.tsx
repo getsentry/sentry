@@ -200,7 +200,7 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.SPANS} hidden={hasTransactionSummaryCleanupFlag}>
+              <TabList.Item key={Tab.SPANS} hidden={false}>
                 {t('Spans')}
               </TabList.Item>
 
