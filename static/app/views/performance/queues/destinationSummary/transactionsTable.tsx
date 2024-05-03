@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -142,6 +142,11 @@ function renderBodyCell(
 
   if (!meta?.fields) {
     return row[column.key];
+  }
+
+  if (key.startsWith('avg')) {
+    const renderer = FIELD_FORMATTERS.duration.renderFunc;
+    return renderer(key, row);
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);

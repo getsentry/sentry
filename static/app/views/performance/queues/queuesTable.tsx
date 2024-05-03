@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -135,7 +135,7 @@ function renderBodyCell(
     );
   }
 
-  if (key === 'transaction') {
+  if (key === 'messaging.destination.name' && row[key]) {
     return <DestinationCell destination={row[key]} />;
   }
 
@@ -145,6 +145,11 @@ function renderBodyCell(
 
   if (key === 'failure_rate()') {
     return <AlignRight>{formatPercentage(row[key])}</AlignRight>;
+  }
+
+  if (key.startsWith('avg')) {
+    const renderer = FIELD_FORMATTERS.duration.renderFunc;
+    return renderer(key, row);
   }
 
   if (!meta?.fields) {
