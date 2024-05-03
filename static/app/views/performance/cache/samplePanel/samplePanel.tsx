@@ -26,7 +26,7 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useMetrics';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
   SpanFunction,
