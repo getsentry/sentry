@@ -1,5 +1,6 @@
+import contextlib
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
@@ -10,6 +11,7 @@ from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
+from rest_framework.exceptions import ErrorDetail
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
 from sentry import killswitches
@@ -17,7 +19,11 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
 from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
-from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
+from sentry.monitors.consumers.monitor_consumer import (
+    CheckinValidationError,
+    ProcessingError,
+    StoreMonitorCheckInStrategyFactory,
+)
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -27,6 +33,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.processing_errors import ProcessingErrorType
 from sentry.monitors.types import CheckinItem
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
@@ -70,6 +77,8 @@ class MonitorConsumerTest(TestCase):
         guid: str | None = None,
         ts: datetime | None = None,
         consumer: ProcessingStrategy | None = None,
+        expected_error: CheckinValidationError | None = None,
+        expected_monitor_slug: str | None = None,
         **overrides: Any,
     ) -> None:
         if ts is None:
@@ -99,16 +108,51 @@ class MonitorConsumerTest(TestCase):
             "retention_days": 90,
         }
 
-        consumer.submit(
-            Message(
-                BrokerValue(
-                    KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
-                    self.partition,
-                    1,
-                    ts,
+        with self.check_processing_errors(wrapper, expected_error, expected_monitor_slug):
+            consumer.submit(
+                Message(
+                    BrokerValue(
+                        KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
+                        self.partition,
+                        1,
+                        ts,
+                    )
                 )
             )
-        )
+
+    @contextlib.contextmanager
+    def check_processing_errors(
+        self,
+        expected_checkin: CheckIn,
+        expected_error: CheckinValidationError | None,
+        expected_monitor_slug: str | None,
+    ) -> Generator:
+        if expected_error is None:
+            yield None
+            return
+
+        with mock.patch(
+            "sentry.monitors.consumers.monitor_consumer.handle_processing_errors"
+        ) as handle_processing_errors:
+            yield
+
+            args_list = handle_processing_errors.call_args_list
+            assert len(args_list) == 1
+
+            checkin_item, error = args_list[0][0]
+            expected_checkin_item = CheckinItem(
+                datetime.fromtimestamp(expected_checkin["start_time"]),
+                self.partition.index,
+                expected_checkin,
+                json.loads(expected_checkin["payload"]),  # type: ignore[arg-type]
+            )
+            if expected_monitor_slug:
+                expected_error.monitor = Monitor.objects.get(
+                    project_id=expected_checkin["project_id"], slug=expected_monitor_slug
+                )
+            assert checkin_item == expected_checkin_item
+            assert error.monitor == expected_error.monitor
+            assert error.processing_errors == expected_error.processing_errors
 
     def send_clock_pulse(
         self,
@@ -551,7 +595,13 @@ class MonitorConsumerTest(TestCase):
         with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
             # Try to ingest two the second will be rate limited
             self.send_checkin("my-monitor", ts=now)
-            self.send_checkin("my-monitor", ts=now)
+            self.send_checkin(
+                "my-monitor",
+                ts=now,
+                expected_error=CheckinValidationError(
+                    [ProcessingError(ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED)]
+                ),
+            )
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 1
@@ -575,7 +625,21 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.monitor_environment.get_environment().name == "production"
 
-        self.send_checkin(monitor.slug, guid=self.guid, status="ok", environment="test")
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="ok",
+            environment="test",
+            expected_error=CheckinValidationError(
+                [
+                    ProcessingError(
+                        ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
+                        {"existing_environment": "production"},
+                    )
+                ],
+                monitor,
+            ),
+        )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
@@ -588,17 +652,93 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin("my-monitor", status="in_progress")
 
         # Invalid check-in updates
-        self.send_checkin("my-monitor", guid=self.guid, duration=-(1.0 / 1000))
+        self.send_checkin(
+            "my-monitor",
+            guid=self.guid,
+            duration=-(1.0 / 1000),
+            expected_error=CheckinValidationError(
+                [
+                    ProcessingError(
+                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        {
+                            "errors": {
+                                "duration": [
+                                    ErrorDetail(
+                                        string="Ensure this value is greater than or equal to 0.",
+                                        code="min_value",
+                                    )
+                                ]
+                            }
+                        },
+                    )
+                ],
+            ),
+        )
         self.send_checkin(
             "my-monitor",
             guid=self.guid,
             duration=((BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000),
+            expected_error=CheckinValidationError(
+                [
+                    ProcessingError(
+                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        {
+                            "errors": {
+                                "duration": [
+                                    ErrorDetail(
+                                        string="Ensure this value is less than or equal to 2147483647.",
+                                        code="max_value",
+                                    )
+                                ]
+                            }
+                        },
+                    )
+                ],
+            ),
         )
 
         # Invalid check-in creations
-        self.send_checkin("my-monitor", duration=-(1.0 / 1000))
         self.send_checkin(
-            "my-monitor", duration=(BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000
+            "my-monitor",
+            duration=-(1.0 / 1000),
+            expected_error=CheckinValidationError(
+                [
+                    ProcessingError(
+                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        {
+                            "errors": {
+                                "duration": [
+                                    ErrorDetail(
+                                        string="Ensure this value is greater than or equal to 0.",
+                                        code="min_value",
+                                    )
+                                ]
+                            }
+                        },
+                    )
+                ],
+            ),
+        )
+        self.send_checkin(
+            "my-monitor",
+            duration=(BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000,
+            expected_error=CheckinValidationError(
+                [
+                    ProcessingError(
+                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        {
+                            "errors": {
+                                "duration": [
+                                    ErrorDetail(
+                                        string="Ensure this value is less than or equal to 2147483647.",
+                                        code="max_value",
+                                    )
+                                ]
+                            }
+                        },
+                    )
+                ],
+            ),
         )
 
         # Only one check-in should be processed and it should still be IN_PROGRESS
@@ -691,6 +831,24 @@ class MonitorConsumerTest(TestCase):
             "my-invalid-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * * *"}},
             environment="my-environment",
+            expected_error=CheckinValidationError(
+                [
+                    ProcessingError(
+                        ProcessingErrorType.MONITOR_INVALID_CONFIG,
+                        {
+                            "errors": {
+                                "schedule": [
+                                    ErrorDetail(
+                                        string="Only 5 field crontab syntax is supported",
+                                        code="invalid",
+                                    )
+                                ]
+                            }
+                        },
+                    ),
+                    ProcessingError(ProcessingErrorType.MONITOR_NOT_FOUND),
+                ],
+            ),
         )
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
@@ -700,6 +858,21 @@ class MonitorConsumerTest(TestCase):
             "my-invalid-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "* * 31 2 *"}},
             environment="my-environment",
+            expected_error=CheckinValidationError(
+                [
+                    ProcessingError(
+                        ProcessingErrorType.MONITOR_INVALID_CONFIG,
+                        {
+                            "errors": {
+                                "schedule": [
+                                    ErrorDetail(string="Schedule is invalid", code="invalid")
+                                ]
+                            },
+                        },
+                    ),
+                    ProcessingError(ProcessingErrorType.MONITOR_NOT_FOUND),
+                ],
+            ),
         )
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
@@ -707,9 +880,22 @@ class MonitorConsumerTest(TestCase):
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_limits(self):
         for i in range(settings.MAX_MONITORS_PER_ORG + 2):
+            expected_error = None
+            if i > settings.MAX_MONITORS_PER_ORG:
+                expected_error = CheckinValidationError(
+                    [
+                        ProcessingError(
+                            ProcessingErrorType.MONITOR_LIMIT_EXCEEDED,
+                            {
+                                "reason": f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
+                            },
+                        )
+                    ]
+                )
             self.send_checkin(
                 f"my-monitor-{i}",
                 monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+                expected_error=expected_error,
             )
 
         monitors = Monitor.objects.filter(organization_id=self.organization.id)
@@ -717,14 +903,29 @@ class MonitorConsumerTest(TestCase):
 
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):
+        monitor_slug = "my-monitor"
         for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 2):
+            expected_error = None
+            if i > settings.MAX_ENVIRONMENTS_PER_MONITOR:
+                expected_error = CheckinValidationError(
+                    [
+                        ProcessingError(
+                            ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED,
+                            {
+                                "reason": f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
+                            },
+                        )
+                    ],
+                )
             self.send_checkin(
-                "my-monitor",
+                monitor_slug,
                 monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
                 environment=f"my-environment-{i}",
+                expected_error=expected_error,
+                expected_monitor_slug=monitor_slug,
             )
 
-        monitor = Monitor.objects.get(slug="my-monitor")
+        monitor = Monitor.objects.get(slug=monitor_slug)
         assert monitor is not None
 
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
@@ -732,14 +933,24 @@ class MonitorConsumerTest(TestCase):
 
     def test_monitor_environment_validation(self):
         invalid_name = "x" * 65
+        monitor_slug = "my-monitor"
 
         self.send_checkin(
-            "my-monitor",
+            monitor_slug,
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment=f"my-environment-{invalid_name}",
+            expected_error=CheckinValidationError(
+                [
+                    ProcessingError(
+                        ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT,
+                        {"reason": "Environment name too long"},
+                    )
+                ],
+            ),
+            expected_monitor_slug=monitor_slug,
         )
 
-        monitor = Monitor.objects.get(slug="my-monitor")
+        monitor = Monitor.objects.get(slug=monitor_slug)
         assert monitor is not None
 
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
@@ -747,7 +958,13 @@ class MonitorConsumerTest(TestCase):
 
     def test_monitor_disabled(self):
         monitor = self._create_monitor(status=ObjectStatus.DISABLED, slug="my-monitor")
-        self.send_checkin("my-monitor")
+        self.send_checkin(
+            "my-monitor",
+            expected_error=CheckinValidationError(
+                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED)],
+                monitor=monitor,
+            ),
+        )
 
         checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
         assert len(checkins) == 0
@@ -760,7 +977,12 @@ class MonitorConsumerTest(TestCase):
         )
 
         with self.options({"crons.organization.disable-check-in": opt_val}):
-            self.send_checkin(monitor.slug)
+            self.send_checkin(
+                monitor.slug,
+                expected_error=CheckinValidationError(
+                    [ProcessingError(ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED)],
+                ),
+            )
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
@@ -829,7 +1051,12 @@ class MonitorConsumerTest(TestCase):
         # Explicitly leaving off the "disabled" status to validate that we're
         # not dropping due to the monitor being disabled
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_checkin(monitor.slug)
+        self.send_checkin(
+            monitor.slug,
+            expected_error=CheckinValidationError(
+                [ProcessingError(ProcessingErrorType.MONITOR_OVER_QUOTA)],
+            ),
+        )
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
 
@@ -885,6 +1112,10 @@ class MonitorConsumerTest(TestCase):
             "my-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment="my-environment",
+            expected_error=CheckinValidationError(
+                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA)],
+            ),
+            expected_monitor_slug="my-monitor",
         )
 
         # Check-in was not produced as we could not assign a monitor seat
