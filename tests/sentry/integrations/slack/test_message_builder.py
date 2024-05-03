@@ -46,6 +46,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
@@ -1150,8 +1151,18 @@ class ActionsTest(TestCase):
         MOCKIDENTITY = Mock()
 
         assert build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
-        ) == ([], "", "_actioned_issue")
+            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
+        ) == ([], "", False)
+
+    @with_feature("organizations:slack-improvements")
+    def test_identity_and_action_has_action(self):
+        # returns True to indicate to use the white circle emoji
+        group = self.create_group(project=self.project)
+        MOCKIDENTITY = Mock()
+
+        assert build_actions(
+            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
+        ) == ([], "", True)
 
     def _assert_message_actions_list(self, actions, expected):
         actions_dict = [
@@ -1171,9 +1182,7 @@ class ActionsTest(TestCase):
             "value": "unresolved:ongoing",
         }
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1190,9 +1199,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "unresolved:ongoing",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1209,9 +1216,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "archive_dialog",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1228,9 +1233,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "archive_dialog",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1238,9 +1241,7 @@ class ActionsTest(TestCase):
 
     def test_no_ignore_if_feedback(self):
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         # no ignore action if feedback issue, so only assign and resolve
         assert len(res[0]) == 2
 
@@ -1249,9 +1250,7 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.RESOLVED
         group.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -1270,9 +1269,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = False
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             {
@@ -1290,9 +1287,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = True
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             {
@@ -1310,9 +1305,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = True
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],

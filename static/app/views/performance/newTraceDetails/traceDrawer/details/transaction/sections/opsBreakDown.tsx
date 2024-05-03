@@ -1,18 +1,12 @@
 import {useState} from 'react';
 
-import {generateStats} from 'sentry/components/events/opsBreakdown';
+import type {OpBreakdownType} from 'sentry/components/events/opsBreakdown';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types';
 
-export function OpsBreakdown({event}: {event: EventTransaction}) {
+export function OpsBreakdown({breakdown}: {breakdown: OpBreakdownType}) {
   const [showingAll, setShowingAll] = useState(false);
-  const breakdown = event && generateStats(event, {type: 'no_filter'});
-
-  if (breakdown.length <= 0) {
-    return null;
-  }
 
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
