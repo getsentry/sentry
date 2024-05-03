@@ -38,6 +38,7 @@ function SlideOverPanel(
       onOpen();
     }
   }, [collapsed, onOpen]);
+
   const initial = slidePosition ? INITIAL_STYLES[slidePosition] : INITIAL_STYLES.right;
   const final = slidePosition ? FINAL_STYLES[slidePosition] : FINAL_STYLES.right;
 
@@ -54,7 +55,7 @@ function SlideOverPanel(
         damping: 50,
       }}
     >
-      {children}
+      {collapsed ? null : children}
     </_SlideOverPanel>
   );
 }
