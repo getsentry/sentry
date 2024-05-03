@@ -11,6 +11,8 @@ import {ChartType} from './types';
 
 export const performanceCharts: RenderDescriptor<ChartType>[] = [];
 
+type PerformanceChartData = Omit<EventBreakpointChartData, 'chartType'>;
+
 function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
   options.legend = options.legend || {};
   options.legend.icon = 'none';
@@ -26,8 +28,36 @@ function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
 
 performanceCharts.push({
   key: ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
-  getOption: (data: EventBreakpointChartData) => {
-    const {chartOptions, series} = getBreakpointChartOptionsFromData(data, theme);
+  getOption: (data: PerformanceChartData) => {
+    const param = {
+      ...data,
+      chartType: ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
+    };
+
+    const {chartOptions, series} = getBreakpointChartOptionsFromData(param, theme);
+    const transformedSeries = transformToLineSeries({series});
+
+    return {
+      ...modifiedOptions,
+
+      backgroundColor: theme.background,
+      series: transformedSeries,
+      grid: slackChartDefaults.grid,
+      visualMap: modifiedOptions.options?.visualMap,
+    };
+  },
+  ...slackChartSize,
+});
+
+performanceCharts.push({
+  key: ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
+  getOption: (data: PerformanceChartData) => {
+    const param = {
+      ...data,
+      chartType: ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
+    };
+
+    const {chartOptions, series} = getBreakpointChartOptionsFromData(param, theme);
     const transformedSeries = transformToLineSeries({series});
     const modifiedOptions = modifyOptionsForSlack(chartOptions);
 
