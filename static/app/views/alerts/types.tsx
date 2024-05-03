@@ -1,4 +1,4 @@
-import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {AlertRuleActivation, IssueAlertRule} from 'sentry/types/alerts';
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
@@ -29,6 +29,7 @@ export type Incident = {
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
   title: string;
+  activation?: AlertRuleActivation;
   activities?: ActivityType[];
 };
 
@@ -51,7 +52,7 @@ export type ActivityTypeDraft = {
 
 export type ActivityType = ActivityTypeDraft & {
   previousValue: string | null;
-  value: string | null;
+  value: string | null; // determines IncidentStatus of the activity (CRITICAL/WARNING/etc.)
   eventStats?: {data: Data};
 };
 

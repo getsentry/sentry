@@ -441,12 +441,14 @@ class SubscriptionProcessor:
             return
 
         if not hasattr(self, "alert_rule"):
+            # QuerySubscriptions must _always_ have an associated AlertRule
             # If the alert rule has been removed then just skip
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription")
             logger.error(
                 "Received an update for a subscription, but no associated alert rule exists"
             )
-            # TODO: Delete subscription here.
+            # TODO: Delete QuerySubscription here
+            # TODO: Delete SnubaQuery here
             return
 
         if subscription_update["timestamp"] <= self.last_update:
