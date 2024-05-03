@@ -34,11 +34,11 @@ export function ThroughputChart({error}: Props) {
           [
             {
               seriesName: t('Published'),
-              data: data['count_op(queue.submit.celery)'].data,
+              data: data['count_op(queue.publish)'].data,
             },
             {
               seriesName: t('Processed'),
-              data: data['count_op(queue.task.celery)'].data,
+              data: data['count_op(queue.process)'].data,
             },
           ] ?? []
         }

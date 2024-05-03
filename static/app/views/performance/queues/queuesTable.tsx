@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,29 +26,29 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
   MetricsResponse,
-  | 'avg_if(span.self_time,span.op,queue.task.celery)'
-  | 'count_op(queue.submit.celery)'
-  | 'count_op(queue.task.celery)'
+  | 'avg_if(span.self_time,span.op,queue.process)'
+  | 'count_op(queue.publish)'
+  | 'count_op(queue.process)'
   | 'sum(span.self_time)'
-  | 'transaction'
+  | 'messaging.destination.name'
+  | 'avg(messaging.message.receive.latency)'
 >;
 
 type Column = GridColumnHeader<string>;
 
 const COLUMN_ORDER: Column[] = [
-  // TODO: Needs to be updated to display an actual destination, not transaction
   {
-    key: 'transaction',
+    key: 'messaging.destination.name',
     name: t('Destination'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'avg(messaging.message.receive.latency)',
     name: t('Avg Time in Queue'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.self_time,span.op,queue.task.celery)',
+    key: 'avg_if(span.self_time,span.op,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -58,12 +58,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.submit.celery)',
+    key: 'count_op(queue.publish)',
     name: t('Published'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.task.celery)',
+    key: 'count_op(queue.process)',
     name: t('Processed'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -135,7 +135,7 @@ function renderBodyCell(
     );
   }
 
-  if (key === 'transaction') {
+  if (key === 'messaging.destination.name' && row[key]) {
     return <DestinationCell destination={row[key]} />;
   }
 
@@ -145,6 +145,11 @@ function renderBodyCell(
 
   if (key === 'failure_rate()') {
     return <AlignRight>{formatPercentage(row[key])}</AlignRight>;
+  }
+
+  if (key.startsWith('avg')) {
+    const renderer = FIELD_FORMATTERS.duration.renderFunc;
+    return renderer(key, row);
   }
 
   if (!meta?.fields) {

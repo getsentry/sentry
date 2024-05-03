@@ -40,6 +40,7 @@ export enum SpanMetricsField {
   DEVICE_CLASS = 'device.class',
   CACHE_HIT = 'cache.hit',
   CACHE_ITEM_SIZE = 'cahce.item_size',
+  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'messaging.message.receive.latency',
 }
 
 export type SpanNumberFields =
@@ -47,7 +48,8 @@ export type SpanNumberFields =
   | SpanMetricsField.SPAN_DURATION
   | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
-  | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE;
+  | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE
+  | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY;
 
 export type SpanStringFields =
   | 'span.op'
@@ -62,7 +64,8 @@ export type SpanStringFields =
   | 'os.name'
   | 'span.status_code'
   | 'span.ai.pipeline.group'
-  | 'project';
+  | 'project'
+  | 'messaging.destination.name';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
