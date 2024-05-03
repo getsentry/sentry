@@ -3,6 +3,7 @@ import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData, {
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
+import {transformStatsResponse} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
 import {slackChartDefaults, slackChartSize} from './slack';
@@ -53,7 +54,7 @@ performanceCharts.push({
   key: ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
   getOption: (data: PerformanceChartData) => {
     const param = {
-      ...data,
+      ...transformStatsResponse('profileFunctions', ['p95()'], data),
       chartType: ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
     };
 
