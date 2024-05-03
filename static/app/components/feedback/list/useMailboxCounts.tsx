@@ -25,13 +25,13 @@ export default function useMailboxCounts({
   organization,
 }: Props): UseApiQueryResult<HookReturnType, RequestError> {
   const location = useLocation();
+  const locationQuery = location.query.query ?? '';
 
   // We should fetch the counts while taking the query into account
   const MAILBOX: Record<keyof HookReturnType, keyof ApiReturnType> = {
-    unresolved:
-      'issue.category:feedback is:unassigned is:unresolved ' + location.query.query,
-    resolved: 'issue.category:feedback is:unassigned is:resolved ' + location.query.query,
-    ignored: 'issue.category:feedback is:unassigned is:ignored ' + location.query.query,
+    unresolved: 'issue.category:feedback is:unassigned is:unresolved ' + locationQuery,
+    resolved: 'issue.category:feedback is:unassigned is:resolved ' + locationQuery,
+    ignored: 'issue.category:feedback is:unassigned is:ignored ' + locationQuery,
   };
 
   const mailboxQuery = Object.values(MAILBOX);
