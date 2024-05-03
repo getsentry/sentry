@@ -298,3 +298,27 @@ export enum ActivationConditionType {
   RELEASE_CREATION = 0,
   DEPLOY_CREATION = 1,
 }
+
+export type AlertRuleActivation = {
+  activator: string;
+  alertRuleId: string;
+  conditionType: string;
+  dateCreated: string;
+  finishedAt: string;
+  id: string;
+  isComplete: boolean;
+  querySubscriptionId: string;
+  metricValue?: number;
+};
+
+export enum ActivationTrigger {
+  ACTIVATED = 'activated',
+  FINISHED = 'finished',
+}
+
+export type ActivationTriggerActivity = {
+  activator: string;
+  conditionType: string;
+  dateCreated: string;
+  type: ActivationTrigger;
+};
