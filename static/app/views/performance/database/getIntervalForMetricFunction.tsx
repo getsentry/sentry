@@ -10,7 +10,7 @@ import type {Aggregate, SpanFunctions} from 'sentry/views/starfish/types';
 import {
   COUNTER_AGGREGATES,
   DISTRIBUTION_AGGREGATES,
-  METRICS_FUNCTIONS,
+  SPAN_FUNCTIONS,
 } from 'sentry/views/starfish/types';
 
 export function getIntervalForMetricFunction(
@@ -56,4 +56,4 @@ function registerGranularities(
 
 registerGranularities(COUNTER_AGGREGATES, COUNTER_GRANULARITIES);
 registerGranularities(DISTRIBUTION_AGGREGATES, DISTRIBUTION_GRANULARITIES);
-registerGranularities(METRICS_FUNCTIONS, COUNTER_GRANULARITIES);
+registerGranularities(SPAN_FUNCTIONS, COUNTER_GRANULARITIES);
