@@ -40,7 +40,7 @@ function IssueReplayCount({group}: Props) {
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/${group.id}/replays/`
         )}
-        aria-label={t('Replay Count')}
+        aria-label={t('replay-count')}
       >
         <IconPlay size="xs" />
         {countDisplay}

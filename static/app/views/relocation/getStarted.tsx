@@ -76,7 +76,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
           <Input
             type="text"
             name="orgs"
-            aria-label={t('Org Slugs')}
+            aria-label={t('org-slugs')}
             onChange={evt => {
               onUpdateRelocationState({orgSlugs: evt.target.value});
             }}

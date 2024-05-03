@@ -333,7 +333,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
             <Alert type="info" showIcon>
               {t('This will be the only time your client secret is visible!')}
             </Alert>
-            <TextCopyInput aria-label={t('New Client Secret')}>
+            <TextCopyInput aria-label={t('new-client-secret')}>
               {rotateResponse.clientSecret}
             </TextCopyInput>
           </Body>
