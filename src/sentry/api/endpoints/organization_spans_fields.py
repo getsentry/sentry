@@ -136,6 +136,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
                     ),
                 )
                 for row in results["data"]
+                if row[key] is not None
             ]
         )
 
