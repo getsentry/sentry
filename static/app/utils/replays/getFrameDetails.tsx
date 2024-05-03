@@ -224,6 +224,20 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'User Focus',
     icon: <IconUser size="xs" />,
   }),
+  'app.foreground': () => ({
+    color: 'blue300',
+    description: 'Video started recording',
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'App in Foreground',
+    icon: <IconUser size="xs" />,
+  }),
+  'app.background': () => ({
+    color: 'blue300',
+    description: 'Video stopped recording',
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'App in Background',
+    icon: <IconUser size="xs" />,
+  }),
   console: frame => ({
     color: 'gray300',
     description: frame.message ?? '',
