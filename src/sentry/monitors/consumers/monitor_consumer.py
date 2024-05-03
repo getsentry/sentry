@@ -254,6 +254,7 @@ class ProcessingError:
 
 class CheckinValidationError(Exception):
     def __init__(self, processing_errors: list[ProcessingError], monitor: Monitor | None = None):
+        # Monitor is optional, since we don't always have the monitor related to the checkin available
         self.processing_errors = processing_errors
         self.monitor = monitor
 
@@ -337,8 +338,9 @@ def update_existing_check_in(
     if not valid_duration(updated_duration):
         processing_errors.append(
             ProcessingError(
-                ProcessingErrorType.CHECKIN_INVALID_DURATION, {"duration": updated_duration}
-            ),
+                ProcessingErrorType.CHECKIN_INVALID_DURATION,
+                {"duration": updated_duration},
+            )
         )
         metrics.incr(
             "monitors.checkin.result",
@@ -898,6 +900,8 @@ def process_checkin(item: CheckinItem):
             op="_process_checkin",
             name="monitors.monitor_consumer",
         ) as txn:
+            # Deepcopy the checkin here so that it's not modified. We need the original when we get a
+            # `CheckinValidationError`
             _process_checkin(deepcopy(item), txn)
     except CheckinValidationError as e:
         handle_processing_errors(item, e)
