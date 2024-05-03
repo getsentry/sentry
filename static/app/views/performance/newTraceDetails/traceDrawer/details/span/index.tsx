@@ -109,7 +109,7 @@ export function SpanNodeDetails({
                 {issues.length > 0 ? (
                   <IssueList organization={organization} issues={issues} node={node} />
                 ) : null}
-                <div>
+                <TraceDrawerComponents.SectionCardGroup>
                   <SpanDescription
                     node={node}
                     organization={organization}
@@ -124,7 +124,7 @@ export function SpanNodeDetails({
                   <SpanHTTPInfo span={node.value} />
                   <Tags span={node.value} />
                   <SpanKeys node={node} />
-                </div>
+                </TraceDrawerComponents.SectionCardGroup>
                 {node.value._metrics_summary ? (
                   <CustomMetricsEventData
                     projectId={project?.id || ''}

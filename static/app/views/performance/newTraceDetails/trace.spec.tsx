@@ -39,7 +39,7 @@ class MockResizeObserver {
   }
 
   unobserve(_element: HTMLElement) {
-    throw new Error('not implemented');
+    return;
   }
 
   observe(element: HTMLElement) {

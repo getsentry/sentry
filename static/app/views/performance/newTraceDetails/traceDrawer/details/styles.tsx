@@ -1,4 +1,11 @@
-import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
+import {
+  Children,
+  Fragment,
+  type PropsWithChildren,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import startCase from 'lodash/startCase';
@@ -7,6 +14,7 @@ import * as qs from 'query-string';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
@@ -592,6 +600,37 @@ function SectionCard({
   );
 }
 
+function SectionCardGroup({children}: {children: React.ReactNode}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useIssueDetailsColumnCount(containerRef);
+
+  const columns: React.ReactNode[] = [];
+  const cards = Children.toArray(children);
+
+  // Evenly distributing the cards into columns.
+  const columnSize = Math.ceil(cards.length / columnCount);
+  for (let i = 0; i < cards.length; i += columnSize) {
+    columns.push(<CardsColumn key={i}>{cards.slice(i, i + columnSize)}</CardsColumn>);
+  }
+
+  return (
+    <CardsWrapper columnCount={columnCount} ref={containerRef}>
+      {columns}
+    </CardsWrapper>
+  );
+}
+
+const CardsWrapper = styled('div')<{columnCount: number}>`
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
+  gap: 10px;
+`;
+
+const CardsColumn = styled('div')`
+  grid-column: span 1;
+`;
+
 function Description({
   value,
   linkTarget,
@@ -627,6 +666,7 @@ const DescriptionText = styled('span')`
 `;
 
 const Card = styled(Panel)`
+  margin-bottom: 10px;
   padding: ${space(0.75)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -692,6 +732,7 @@ const TraceDrawerComponents = {
   IssuesLink,
   SectionCard,
   Description,
+  SectionCardGroup,
 };
 
 export {TraceDrawerComponents};
