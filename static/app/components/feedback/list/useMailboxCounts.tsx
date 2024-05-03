@@ -25,7 +25,7 @@ export default function useMailboxCounts({
   organization,
 }: Props): UseApiQueryResult<HookReturnType, RequestError> {
   const location = useLocation();
-  const locationQuery = location.query.query ?? '';
+  const locationQuery = decodeScalar(location.query.query, '');
 
   // We should fetch the counts while taking the query into account
   const MAILBOX: Record<keyof HookReturnType, keyof ApiReturnType> = {
