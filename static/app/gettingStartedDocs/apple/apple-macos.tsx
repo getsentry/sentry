@@ -31,11 +31,23 @@ func application(_ application: UIApplication,
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn}"
-        options.debug = true // Enabled debug when first installing is always helpful
+        options.debug = true // Enabled debug when first installing is always helpful${
+          params.isPerformanceSelected
+            ? `
 
         // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
         // We recommend adjusting this value in production.
-        options.tracesSampleRate = 1.0
+        options.tracesSampleRate = 1.0`
+            : ''
+        }${
+          params.isProfilingSelected
+            ? `
+
+        // Sample rate for profiling, applied on top of othe TracesSampleRate,
+        // We recommend adjusting this value in production.
+        options.profilesSampleRate = 1.0`
+            : ''
+        }
     }
 
     return true
@@ -49,11 +61,23 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn}"
-            options.debug = true // Enabled debug when first installing is always helpful
+            options.debug = true // Enabled debug when first installing is always helpful${
+              params.isPerformanceSelected
+                ? `
 
             // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
-            options.tracesSampleRate = 1.0
+            options.tracesSampleRate = 1.0`
+                : ''
+            }${
+              params.isProfilingSelected
+                ? `
+
+            // Sample rate for profiling, applied on top of othe TracesSampleRate,
+            // We recommend adjusting this value in production.
+            options.profilesSampleRate = 1.0`
+                : ''
+            }
         }
     }
 }`;
