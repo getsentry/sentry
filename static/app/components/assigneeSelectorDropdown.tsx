@@ -506,8 +506,6 @@ export default function AssigneeSelectorDropdown({
 const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-
-  /* manually align menu underneath dropdown caret */
 `;
 
 const DropdownButton = styled('button')`
@@ -521,7 +519,6 @@ const DropdownButton = styled('button')`
 `;
 
 const StyledIconUser = styled(IconUser)`
-  /* We need this to center with Avatar */
   margin-right: 2px;
 `;
 
