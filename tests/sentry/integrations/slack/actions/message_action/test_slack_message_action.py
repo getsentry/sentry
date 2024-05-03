@@ -13,8 +13,8 @@ class TestToSlackMessageAction(TestCase):
             value="test_value",
             action_id="test_action_id",
             block_id="test_block_id",
-            option_groups={"test_group": "test_option_group"},
-            selected_options={"test_option": "test_option_value"},
+            option_groups=[{"test_group": "test_option_group"}],
+            selected_options=[{"test_option": "test_option_value"}],
         )
 
     def test_to_slack_message_action(self) -> None:
@@ -102,8 +102,8 @@ class _BaseTestSlackMessageAction(TestCase):
             value="test_value",
             action_id="test_action_id",
             block_id="test_block_id",
-            option_groups={"test_group": "test_option_group"},
-            selected_options={"test_option": "test_option_value"},
+            option_groups=[{"test_group": "test_option_group"}],
+            selected_options=[{"test_option": "test_option_value"}],
         )
 
 
@@ -148,8 +148,8 @@ class TestGetButton(_BaseTestSlackMessageAction):
             value="test_value",
             action_id="test_action_id",
             block_id="test_block_id",
-            option_groups={"test_group": "test_option_group"},
-            selected_options={"test_option": "test_option_value"},
+            option_groups=[{"test_group": "test_option_group"}],
+            selected_options=[{"test_option": "test_option_value"}],
         )
         button = slack_action.get_button()
         assert button["action_id"] == "test_action_id"
@@ -163,8 +163,8 @@ class TestGetButton(_BaseTestSlackMessageAction):
             value="test_value",
             action_id=None,
             block_id="test_block_id",
-            option_groups={"test_group": "test_option_group"},
-            selected_options={"test_option": "test_option_value"},
+            option_groups=[{"test_group": "test_option_group"}],
+            selected_options=[{"test_option": "test_option_value"}],
         )
         button = slack_action.get_button()
         assert button["value"] == "link_clicked"
