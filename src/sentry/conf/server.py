@@ -1497,6 +1497,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
+    # Disables legacy cron ingest endpoints
+    "organizations:crons-write-user-feedback": False,
     # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
