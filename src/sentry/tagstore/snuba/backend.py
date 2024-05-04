@@ -3,7 +3,7 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
-from datetime import timezone
+from datetime import timedelta, timezone
 from typing import Any
 
 from dateutil.parser import parse as parse_datetime
@@ -440,7 +440,9 @@ class SnubaTagStorage(TagStorage):
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
         # that we don't cause performance issues for Snuba.
-        if len(projects) <= max_unsampled_projects:
+        # We also see issues with long timeranges in large projects,
+        # So only disable sampling if the timerange is short enough.
+        if len(projects) <= max_unsampled_projects and end - start > timedelta(days=14):
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
             projects,
