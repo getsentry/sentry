@@ -12,14 +12,20 @@ const TRANSACTION_TEXT_KEYS: (keyof TraceTree.Transaction)[] = [
   'transaction.op',
   'transaction.status',
 ];
-const TRANSACTION_NUMERIC_KEYS: (keyof TraceTree.Transaction)[] = ['project_id'];
+const TRANSACTION_NUMERIC_KEYS: (keyof TraceTree.Transaction)[] = [
+  'project_id',
+  'start_timestamp',
+  'timestamp',
+];
 const TRANSACTION_DURATION_KEYS: (keyof TraceTree.Transaction)[] = [
   'transaction.duration',
 ];
 
+// @TODO the current date parsing does not support timestamps, so we
+// exclude these keys for now and parse them as numeric keys
 const TRANSACTION_DATE_KEYS: (keyof TraceTree.Transaction)[] = [
-  'start_timestamp',
-  'timestamp',
+  //   'start_timestamp',
+  //   'timestamp',
 ];
 const TRANSACTION_BOOLEAN_KEYS: (keyof TraceTree.Transaction)[] = [];
 
@@ -34,12 +40,16 @@ const SPAN_TEXT_KEYS: (keyof TraceTree.Span)[] = [
   'trace_id',
   'status',
 ];
-const SPAN_NUMERIC_KEYS: (keyof TraceTree.Span)[] = [];
+const SPAN_NUMERIC_KEYS: (keyof TraceTree.Span)[] = ['timestamp', 'start_timestamp'];
 const SPAN_DURATION_KEYS: (keyof TraceTree.Span)[] = [
   // @TODO create aliases for self_time total_time and duration.
   'exclusive_time',
 ];
-const SPAN_DATE_KEYS: (keyof TraceTree.Span)[] = ['timestamp', 'start_timestamp'];
+// @TODO the current date parsing does not support timestamps, so we
+// exclude these keys for now and parse them as numeric keys
+const SPAN_DATE_KEYS: (keyof TraceTree.Span)[] = [
+  // 'timestamp', 'start_timestamp'
+];
 const SPAN_BOOLEAN_KEYS: (keyof TraceTree.Span)[] = ['same_process_as_parent'];
 
 // @TODO Issue keys

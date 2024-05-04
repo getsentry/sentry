@@ -5,6 +5,7 @@ import {
   toPostFix,
 } from 'sentry/components/searchSyntax/evaluator';
 import {
+  BooleanOperator,
   TermOperator,
   Token,
   type TokenResult,
@@ -210,6 +211,10 @@ export function traceSearchReducer(
   }
 }
 
+/**
+ * Evaluates the node based on freetext. This is a simple search that checks if the query
+ * is present in a very small subset of the node's properties.
+ */
 function evaluateNodeFreeText(
   query: string,
   node: TraceTreeNode<TraceTree.NodeValue>
@@ -259,6 +264,7 @@ function evaluateNodeFreeText(
   return false;
 }
 
+// Freetext search in the trace tree
 export function searchInTraceTreeText(
   tree: TraceTree,
   query: string,
@@ -318,7 +324,8 @@ export function searchInTraceTreeText(
   return handle;
 }
 
-const DURATION_ALIASES = new Set(['transaction.duration', 'duration']);
+// @TODO Alias self time, total time.
+const DURATION_ALIASES = new Set(['duration']);
 // Pulls the value from the node based on the key in the token
 function resolveValueFromKey(
   node: TraceTreeNode<TraceTree.NodeValue>,
@@ -343,7 +350,7 @@ function resolveValueFromKey(
       case Token.KEY_AGGREGATE:
       case Token.KEY_EXPLICIT_TAG:
       default: {
-        // @TODO monitor key type so we can improve syntax
+        Sentry.captureMessage(`Unsupported key type for filter, got ${token.key.type}`);
       }
     }
 
@@ -393,6 +400,66 @@ function evaluateValueNumber<T extends Token.VALUE_DURATION | Token.VALUE_NUMBER
   }
 }
 
+function evaluateValueDate<T extends Token.VALUE_ISO_8601_DATE>(
+  token: TokenResult<T>,
+  operator: TermOperator,
+  value: any
+): boolean {
+  if (!token.parsed || (typeof value !== 'number' && typeof value !== 'string')) {
+    return false;
+  }
+
+  if (typeof value === 'string') {
+    value = new Date(value).getTime();
+    if (isNaN(value)) return false;
+  }
+
+  const query = token.parsed.value.getTime();
+
+  switch (operator) {
+    case TermOperator.GREATER_THAN:
+      return value > query;
+    case TermOperator.GREATER_THAN_EQUAL:
+      return value >= query;
+    case TermOperator.LESS_THAN:
+      return value < query;
+    case TermOperator.LESS_THAN_EQUAL:
+      return value <= query;
+    case TermOperator.EQUAL:
+    case TermOperator.DEFAULT: {
+      return value === query;
+    }
+    default: {
+      Sentry.captureMessage('Unsupported operator for number filter, got ' + operator);
+      return false;
+    }
+  }
+}
+
+function booleanResult(
+  left: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+  right: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+  operator: BooleanOperator
+): Map<TraceTreeNode<TraceTree.NodeValue>, number> {
+  if (operator === BooleanOperator.AND) {
+    const result = new Map();
+    for (const [key, value] of left) {
+      right.has(key) && result.set(key, value);
+    }
+    return result;
+  }
+
+  if (operator === BooleanOperator.OR) {
+    const result = new Map(left);
+    for (const [key, value] of right) {
+      result.set(key, value);
+    }
+    return result;
+  }
+
+  throw new Error(`Unsupported boolean operator, received ${operator}`);
+}
+
 function evaluateTokenForValue(token: ProcessedTokenResult, value: any): boolean {
   if (token.type === Token.FILTER) {
     if (token.value.type === Token.VALUE_NUMBER) {
@@ -406,11 +473,26 @@ function evaluateTokenForValue(token: ProcessedTokenResult, value: any): boolean
     if (token.value.type === Token.VALUE_TEXT) {
       return typeof value === 'string' && value.includes(token.value.value);
     }
+    if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+      return (
+        typeof value === 'number' && evaluateValueDate(token.value, token.operator, value)
+      );
+    }
   }
 
   return false;
 }
 
+/**
+ * Evaluates the infix token representation against the token list. The logic is the same as
+ * if we were evaluating arithmetics expressions with the caveat that we have to handle and edge
+ * case the first time we evaluate two operands. Because our list contains tokens and not values,
+ * we need to evaluate the first two tokens, push the result back to the stack. From there on we can
+ * evaluate the rest of the tokens.
+ * [token, token, bool logic] -> [] -> [result, token, bool]
+ *   ^evaluate^ and push to stack        ^ left  ^ right ^ operator
+ * All next evaluations will be done with the result and the next token.
+ */
 export function searchInTraceTreeTokens(
   tree: TraceTree,
   tokens: TokenResult<Token>[],
@@ -423,33 +505,74 @@ export function searchInTraceTreeTokens(
     ]
   ) => void
 ): {id: number | null} {
+  let previousNodeSearchResult: {
+    resultIndex: number | undefined;
+    resultIteratorIndex: number | undefined;
+  } | null = null;
+  const handle: {id: number | null} = {id: 0};
+  const resultLookup = new Map();
   const postfix = toPostFix(tokens);
+
   if (postfix.length <= 1 && postfix[0].type === Token.FREE_TEXT) {
     return searchInTraceTreeText(tree, postfix[0].value, previousNode, cb);
   }
 
-  if (postfix.length <= 1 && postfix[0].type === Token.FREE_TEXT) {
-    // @TODO Implement single token search
+  let i = 0;
+  let matchCount = 0;
+  const count = tree.list.length;
+  const resultsForSingleToken: TraceSearchResult[] = [];
+
+  function searchSingleToken() {
+    const ts = performance.now();
+    while (i < count && performance.now() - ts < 12) {
+      const node = tree.list[i];
+      if (evaluateTokenForValue(postfix[0], resolveValueFromKey(node, postfix[0]))) {
+        resultsForSingleToken.push({index: i, value: node});
+        resultLookup.set(node, matchCount);
+
+        if (previousNode === node) {
+          previousNodeSearchResult = {
+            resultIndex: i,
+            resultIteratorIndex: matchCount,
+          };
+        }
+        matchCount++;
+      }
+      i++;
+    }
+
+    if (i < count) {
+      handle.id = requestAnimationFrame(searchSingleToken);
+    } else {
+      cb([resultsForSingleToken, resultLookup, previousNodeSearchResult]);
+    }
   }
 
-  const handle: {id: number | null} = {id: 0};
-  const results: TraceTreeNode<TraceTree.NodeValue>[] = [];
-  const resultLookup = new Map();
+  if (postfix.length <= 1 && postfix[0].type === Token.FILTER) {
+    handle.id = requestAnimationFrame(searchSingleToken);
+    return handle;
+  }
 
-  const count = tree.list.length;
+  let result_map: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
 
   let ti = 0;
   let li = 0;
   let ri = 0;
 
   let bool: TokenResult<Token.LOGIC_BOOLEAN> | null = null;
-  let leftToken: ProcessedTokenResult | null = null;
+  let leftToken:
+    | ProcessedTokenResult
+    | Map<TraceTreeNode<TraceTree.NodeValue>, number>
+    | null = null;
   let rightToken: ProcessedTokenResult | null = null;
 
-  const leftResult: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
-  const rightResult: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
+  const left: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
+  const right: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
 
-  const stack: ProcessedTokenResult[] = [];
+  const stack: (
+    | ProcessedTokenResult
+    | Map<TraceTreeNode<TraceTree.NodeValue>, number>
+  )[] = [];
 
   function search(): void {
     const ts = performance.now();
@@ -460,48 +583,100 @@ export function searchInTraceTreeTokens(
           bool = token;
           if (stack.length < 2) {
             Sentry.captureMessage('Unbalanced tree - missing left or right token');
+            typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+            cb([[], resultLookup, null]);
             return;
           }
-          leftToken = stack.pop()!;
+          // @ts-expect-error the type guard is handled and expected
           rightToken = stack.pop()!;
+          leftToken = stack.pop()!;
+          break;
         } else {
           stack.push(token);
         }
         ti++;
       }
+    }
+
+    if (!bool) {
+      Sentry.captureMessage(
+        'Invalid state in searchInTraceTreeTokens, missing boolean token'
+      );
+      typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+      cb([[], resultLookup, null]);
+      return;
+    }
+    if (!leftToken || !rightToken) {
+      Sentry.captureMessage(
+        'Invalid state in searchInTraceTreeTokens, missing left or right token'
+      );
+      typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+      cb([[], resultLookup, null]);
+      return;
+    }
+
+    if (li < count && !(leftToken instanceof Map)) {
+      while (li < count && performance.now() - ts < 12) {
+        const node = tree.list[li];
+        if (evaluateTokenForValue(leftToken, resolveValueFromKey(node, leftToken))) {
+          left.set(node, li);
+        }
+        li++;
+      }
+      handle.id = requestAnimationFrame(search);
+    } else if (ri < count && !(rightToken instanceof Map)) {
+      while (ri < count && performance.now() - ts < 12) {
+        const node = tree.list[ri];
+        if (evaluateTokenForValue(rightToken, resolveValueFromKey(node, rightToken))) {
+          right.set(node, ri);
+        }
+        ri++;
+      }
+      handle.id = requestAnimationFrame(search);
     } else {
-      if (!leftToken || !rightToken) {
-        Sentry.captureMessage(
-          'Invalid state in searchInTraceTreeTokens, missing left or right token'
+      if (
+        (li === count || leftToken instanceof Map) &&
+        (ri === count || rightToken instanceof Map)
+      ) {
+        result_map = booleanResult(
+          leftToken instanceof Map ? leftToken : left,
+          rightToken instanceof Map ? rightToken : right,
+          bool.value
         );
-        return;
+
+        // Reset the state for the next iteration
+        bool = null;
+        leftToken = null;
+        rightToken = null;
+        left.clear();
+        right.clear();
+        li = 0;
+        ri = 0;
+
+        // Push result to stack;
+        stack.push(result_map);
+        ti++;
       }
 
-      if (li < count) {
-        console.log('Evaluating left');
-        while (li < count && performance.now() - ts < 12) {
-          const node = tree.list[li];
-          if (evaluateTokenForValue(leftToken, resolveValueFromKey(node, leftToken))) {
-            leftResult.add(node);
+      if (ti === postfix.length) {
+        const result: TraceSearchResult[] = [];
+        let resultIdx = -1;
+
+        // @TODO We render up to 10k nodes and plan to load more, so this might be future bottleneck.
+        for (const [node, index] of result_map) {
+          result.push({index, value: node});
+          resultLookup.set(node, ++resultIdx);
+          if (previousNode === node) {
+            previousNodeSearchResult = {
+              resultIndex: index,
+              resultIteratorIndex: resultIdx,
+            };
           }
-          li++;
         }
-        handle.id = requestAnimationFrame(search);
-      } else if (ri < count) {
-        console.log('Evaluating right');
-        while (ri < count && performance.now() - ts < 12) {
-          const node = tree.list[ri];
-          if (evaluateTokenForValue(rightToken, resolveValueFromKey(node, rightToken))) {
-            rightResult.add(node);
-          }
-          ri++;
-        }
-        handle.id = requestAnimationFrame(search);
-      } else if (li === count && ri === count && ti < postfix.length) {
-        console.log('Merge left and right');
+
+        cb([result, resultLookup, previousNodeSearchResult]);
       } else {
-        console.log('Done');
-        cb([results.map((node, index) => ({index, value: node})), resultLookup, null]);
+        handle.id = requestAnimationFrame(search);
       }
     }
   }
