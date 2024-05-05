@@ -11,13 +11,17 @@ import {Button} from 'sentry/components/button';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
+import type {
+  Organization,
+  OrganizationIntegration,
+  ServerlessFunction,
+} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  integration: IntegrationWithConfig;
+  integration: OrganizationIntegration;
   onUpdateFunction: (serverlessFunctionUpdate: Partial<ServerlessFunction>) => void;
   organization: Organization;
   serverlessFunction: ServerlessFunction;

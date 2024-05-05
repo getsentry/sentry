@@ -3,7 +3,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import type {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
+import type {
+  Organization,
+  OrganizationIntegration,
+  ServerlessFunction,
+} from 'sentry/types';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -16,7 +20,7 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import IntegrationServerlessRow from './integrationServerlessRow';
 
 type Props = DeprecatedAsyncComponent['props'] & {
-  integration: IntegrationWithConfig;
+  integration: OrganizationIntegration;
   organization: Organization;
 };
 
