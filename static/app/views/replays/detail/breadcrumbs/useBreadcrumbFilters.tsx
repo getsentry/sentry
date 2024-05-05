@@ -49,6 +49,8 @@ const TYPE_TO_LABEL: Record<string, string> = {
   click: 'User Click',
   keydown: 'KeyDown',
   input: 'Input',
+  tap: 'User Tap',
+  device: 'Device',
 };
 
 const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
@@ -70,9 +72,13 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'replay.hydrate-error': 'hydrateError',
   'largest-contentful-paint': 'lcp',
   'ui.click': 'click',
+  'ui.tap': 'tap',
   'ui.keyDown': 'keydown',
   'ui.input': 'input',
   feedback: 'feedback',
+  'device.battery': 'device',
+  'device.connectivity': 'device',
+  'device.orientation': 'device',
 };
 
 function typeToLabel(val: string): string {
@@ -109,7 +115,9 @@ function useBreadcrumbFilters({frames}: Options): Return {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
     const TYPE_TO_OPORCATEGORY = Object.entries(OPORCATEGORY_TO_TYPE).reduce(
       (dict, [key, value]) =>
-        dict[value] ? {...dict, [value]: [dict[value], key]} : {...dict, [value]: key},
+        dict[value]
+          ? {...dict, [value]: [dict[value], key].flat()}
+          : {...dict, [value]: key},
       {}
     );
     const OpOrCategory = type.flatMap(theType => TYPE_TO_OPORCATEGORY[theType]);

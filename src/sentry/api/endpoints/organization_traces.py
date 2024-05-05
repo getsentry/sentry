@@ -37,6 +37,7 @@ class TraceInterval(TypedDict):
     start: int
     end: int
     kind: Literal["project", "missing", "other"]
+    opCategory: str | None
 
 
 class TraceResult(TypedDict):
@@ -55,6 +56,9 @@ class TraceResult(TypedDict):
 
 
 class OrganizationTracesSerializer(serializers.Serializer):
+    breakdownCategory = serializers.ListField(
+        required=False, allow_empty=True, child=serializers.CharField()
+    )
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     metricsQuery = serializers.CharField(required=False)
@@ -63,6 +67,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     suggestedQuery = serializers.CharField(required=False)
+    minBreakdownDuration = serializers.IntegerField(default=0, min_value=0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -101,6 +106,8 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             sort=serialized.get("sort"),
             limit=self.get_per_page(request),
             max_spans_per_trace=serialized["maxSpansPerTrace"],
+            breakdown_categories=serialized.get("breakdownCategory", []),
+            min_breakdown_duration=serialized["minBreakdownDuration"],
             get_all_projects=lambda: self.get_projects(
                 request,
                 organization,
@@ -139,6 +146,8 @@ class TraceSamplesExecutor:
         sort: str | None,
         limit: int,
         max_spans_per_trace: int,
+        breakdown_categories: list[str],
+        min_breakdown_duration: int,
         get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
@@ -151,6 +160,8 @@ class TraceSamplesExecutor:
         self.sort = sort
         self.limit = limit
         self.max_spans_per_trace = max_spans_per_trace
+        self.breakdown_categories = breakdown_categories
+        self.min_breakdown_duration = min_breakdown_duration
         self.get_all_projects = get_all_projects
         self._all_projects: list[Project] | None = None
 
@@ -202,8 +213,51 @@ class TraceSamplesExecutor:
                 query.process_results(result) for query, result in zip(all_queries, all_raw_results)
             ]
 
-            meta = self.process_meta_results(all_results)
-            data = self.process_final_results(all_results)
+            # the order of these results is defined by the order
+            # of the queries in `get_all_meta_data_queries`
+
+            idx = 0
+
+            traces_metas_results = all_results[idx]
+            idx += 1
+
+            traces_errors_results = all_results[idx]
+            idx += 1
+
+            traces_occurrences_results = all_results[idx]
+            idx += 1
+
+            traces_breakdown_projects_results = all_results[idx]
+            idx += 1
+
+            if self.breakdown_categories:
+                traces_breakdown_categories_results = all_results[idx]
+                idx += 1
+            else:
+                traces_breakdown_categories_results = {
+                    "data": [],
+                    "meta": {
+                        "fields": {},
+                        "tips": {},
+                    },
+                }
+
+            user_spans_results = all_results[idx]
+            idx += 1
+
+            suggested_spans_results = all_results[idx] if len(all_results) > idx else None
+            idx += 1
+
+            meta = self.process_meta_results(user_spans_results)
+            data = self.process_final_results(
+                traces_metas_results=traces_metas_results,
+                traces_errors_results=traces_errors_results,
+                traces_occurrences_results=traces_occurrences_results,
+                traces_breakdown_projects_results=traces_breakdown_projects_results,
+                traces_breakdown_categories_results=traces_breakdown_categories_results,
+                user_spans_results=user_spans_results,
+                suggested_spans_results=suggested_spans_results,
+            )
 
         return {"data": data, "meta": meta}
 
@@ -267,25 +321,45 @@ class TraceSamplesExecutor:
             referrer=Referrer.API_TRACE_EXPLORER_METRICS_SPANS_LIST,
         )
 
-        min_timestamp, max_timestamp, trace_ids = executor.get_matching_traces(MAX_SNUBA_RESULTS)
+        trace_ids, timestamps = executor.get_matching_traces(MAX_SNUBA_RESULTS)
 
-        if not trace_ids:
+        min_timestamp = snuba_params.end
+        max_timestamp = snuba_params.start
+        assert min_timestamp is not None
+        assert max_timestamp is not None
+
+        for timestamp in timestamps:
+            if timestamp < min_timestamp:
+                min_timestamp = timestamp
+            if timestamp > max_timestamp:
+                max_timestamp = timestamp
+
+        if not trace_ids or min_timestamp > max_timestamp:
             return min_timestamp, max_timestamp, [], []
 
         self.refine_params(min_timestamp, max_timestamp)
 
-        # If there are user queries, further refine the trace ids by applying them
-        # leaving us with only traces where the metric exists and matches the user
-        # queries.
         if self.user_queries:
+            # If there are user queries, further refine the trace ids by applying them
+            # leaving us with only traces where the metric exists and matches the user
+            # queries.
             min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_span_conditions(
                 params, snuba_params, trace_ids
             )
 
             if not trace_ids:
                 return min_timestamp, max_timestamp, [], []
+        else:
+            # No user queries so take the first N trace ids as our list
+            trace_ids = trace_ids[: self.limit]
+            timestamps = timestamps[: self.limit]
+            for timestamp in timestamps:
+                if timestamp < min_timestamp:
+                    min_timestamp = timestamp
+                if timestamp < max_timestamp:
+                    max_timestamp = timestamp
 
-            self.refine_params(min_timestamp, max_timestamp)
+        self.refine_params(min_timestamp, max_timestamp)
 
         span_keys = executor.get_matching_spans_from_traces(
             trace_ids,
@@ -445,12 +519,6 @@ class TraceSamplesExecutor:
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> list[QueryBuilder]:
-        traces_breakdowns_query = self.get_traces_breakdowns_query(
-            params,
-            snuba_params,
-            trace_ids,
-        )
-
         traces_metas_query = self.get_traces_metas_query(
             params,
             snuba_params,
@@ -469,12 +537,28 @@ class TraceSamplesExecutor:
             trace_ids,
         )
 
-        return [
-            traces_breakdowns_query,
+        traces_breakdown_projects_query = self.get_traces_breakdown_projects_query(
+            params,
+            snuba_params,
+            trace_ids,
+        )
+
+        queries = [
             traces_metas_query,
             traces_errors_query,
             traces_occurrences_query,
+            traces_breakdown_projects_query,
         ]
+
+        if self.breakdown_categories:
+            traces_breakdown_categories_query = self.get_traces_breakdown_categories_query(
+                params,
+                snuba_params,
+                trace_ids,
+            )
+            queries.append(traces_breakdown_categories_query)
+
+        return queries
 
     def get_all_span_samples_queries(
         self,
@@ -503,30 +587,34 @@ class TraceSamplesExecutor:
 
         return span_samples_queries
 
-    def process_final_results(self, results) -> list[TraceResult]:
-        # the order of these results is defined by the order
-        # of the queries in `get_all_meta_data_queries`
-        traces_breakdowns_results = results[0]
-        traces_metas_results = results[1]
-        traces_errors_results = results[2]
-        traces_occurrences_results = results[3]
-        user_spans_results = results[4]
-        suggested_spans_results = results[5] if len(results) > 5 else None
-
+    def process_final_results(
+        self,
+        *,
+        traces_metas_results,
+        traces_errors_results,
+        traces_occurrences_results,
+        traces_breakdown_projects_results,
+        traces_breakdown_categories_results,
+        user_spans_results,
+        suggested_spans_results,
+    ) -> list[TraceResult]:
         # mapping of trace id to a tuple of start/finish times
         traces_range = {
             row["trace"]: (row["first_seen()"], row["last_seen()"])
             for row in traces_metas_results["data"]
         }
 
-        traces_breakdowns = process_breakdowns(
-            traces_breakdowns_results["data"],
-            traces_range,
-        )
+        spans = [
+            *traces_breakdown_projects_results["data"],
+            *traces_breakdown_categories_results["data"],
+        ]
+        spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
+
+        traces_breakdowns = process_breakdowns(spans, traces_range)
 
         # mapping of trace id to a tuple of project slug + transaction name
         traces_names: MutableMapping[str, tuple[str, str]] = {}
-        for row in traces_breakdowns_results["data"]:
+        for row in traces_breakdown_projects_results["data"]:
             # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
             # So make sure to handle both in case something changes.
             if not row["parent_span"] or int(row["parent_span"], 16) == 0:
@@ -574,14 +662,13 @@ class TraceSamplesExecutor:
         ]
 
     def process_meta_results(self, results):
-        user_spans_results = results[4]
-        fields = user_spans_results["meta"].get("fields", {})
+        fields = results["meta"].get("fields", {})
         return {
-            **user_spans_results["meta"],
+            **results["meta"],
             "fields": {field: fields[field] for field in self.fields},
         }
 
-    def get_traces_breakdowns_query(
+    def get_traces_breakdown_projects_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
@@ -599,6 +686,46 @@ class TraceSamplesExecutor:
                 "project",
                 "parent_span",
                 "transaction",
+                "precise.start_ts",
+                "precise.finish_ts",
+            ],
+            orderby=["precise.start_ts", "precise.finish_ts"],
+            # limit the number of segments we fetch per trace so a single
+            # large trace does not result in the rest being blank
+            limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
+            limit=MAX_SNUBA_RESULTS,
+            config=QueryBuilderConfig(
+                transform_alias_to_input_format=True,
+            ),
+        )
+
+    def get_traces_breakdown_categories_query(
+        self,
+        params: ParamsType,
+        snuba_params: SnubaParams,
+        trace_ids: list[str],
+    ) -> QueryBuilder:
+        conditions = []
+
+        span_categories_str = ",".join(self.breakdown_categories)
+        conditions.append(f"span.category:[{span_categories_str}]")
+
+        trace_ids_str = ",".join(trace_ids)
+        conditions.append(f"trace:[{trace_ids_str}]")
+
+        if self.min_breakdown_duration > 0:
+            conditions.append(f"span.duration:>={self.min_breakdown_duration}")
+
+        return SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            params,
+            snuba_params=snuba_params,
+            query=" ".join(conditions),
+            selected_columns=[
+                "trace",
+                "project",
+                "transaction",
+                "span.category",
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
@@ -809,6 +936,13 @@ def process_breakdowns(data, traces_range):
     breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
     stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
 
+    def should_merge(interval_a, interval_b):
+        return (
+            interval_a["end"] >= interval_b["start"]
+            and interval_a["project"] == interval_b["project"]
+            and interval_a["opCategory"] == interval_b["opCategory"]
+        )
+
     def breakdown_push(trace, interval):
         # Clip the intervals os that it is within range of the trace
         if trace_range := traces_range.get(trace):
@@ -831,10 +965,11 @@ def process_breakdowns(data, traces_range):
             # A gap in the breakdown was found, fill it with a missing interval
             breakdown.append(
                 {
+                    "kind": "missing",
                     "project": None,
+                    "opCategory": None,
                     "start": last_interval["end"],
                     "end": interval["start"],
-                    "kind": "missing",
                 }
             )
 
@@ -842,11 +977,7 @@ def process_breakdowns(data, traces_range):
 
     def stack_push(trace, interval):
         last_interval = stack_peek(trace)
-        if (
-            last_interval
-            and last_interval["project"] == interval["project"]
-            and last_interval["end"] >= interval["start"]
-        ):
+        if last_interval and should_merge(last_interval, interval):
             # update the end of this interval and it will
             # be updated in the breakdown as well
             last_interval["end"] = max(interval["end"], last_interval["end"])
@@ -882,6 +1013,7 @@ def process_breakdowns(data, traces_range):
         cur: TraceInterval = {
             "kind": "project",
             "project": row["project"],
+            "opCategory": row.get("span.category"),
             "start": int(row["precise.start_ts"] * 1000),
             "end": int(row["precise.finish_ts"] * 1000),
         }
@@ -901,8 +1033,9 @@ def process_breakdowns(data, traces_range):
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
 
-        other = {
+        other: TraceInterval = {
             "project": None,
+            "opCategory": None,
             "start": trace_start,
             "end": trace_end,
             "kind": "other",

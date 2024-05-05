@@ -18,7 +18,7 @@ export function TraceShortcuts() {
   }, [organization]);
 
   return (
-    <Button size="xs" onClick={onOpenShortcutsClick} aria-label="Trace Shortcuts">
+    <Button size="xs" onClick={onOpenShortcutsClick} aria-label={t('Trace Shortcuts')}>
       ⌘
     </Button>
   );
