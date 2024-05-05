@@ -155,9 +155,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.self_time",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS.union(
-                                    constants.SPAN_METRIC_BYTES_COLUMNS
-                                ),
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                                | constants.SPAN_METRIC_BYTES_COLUMNS
+                                | constants.SPAN_METRIC_COUNT_COLUMNS,
                             ),
                         ),
                     ],
@@ -555,9 +555,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "count_op",
                     required_args=[
-                        SnQLStringArg(
-                            "op", allowed_strings=["queue.task.celery", "queue.submit.celery"]
-                        ),
+                        SnQLStringArg("op"),
                     ],
                     snql_distribution=self._resolve_count_op,
                     default_result_type="integer",

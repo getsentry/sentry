@@ -918,14 +918,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             300,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
-            tags={"span.op": "queue.task.celery"},
+            tags={"span.op": "queue.process"},
         )
 
         response = self.do_request(
             {
                 "field": [
                     "avg_if(span.self_time, release, foo)",
-                    "avg_if(span.self_time, span.op, queue.task.celery)",
+                    "avg_if(span.self_time, span.op, queue.process)",
                 ],
                 "query": "",
                 "project": self.project.id,
@@ -939,11 +939,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert len(data) == 1
         assert data[0]["avg_if(span.self_time, release, foo)"] == 150
-        assert data[0]["avg_if(span.self_time, span.op, queue.task.celery)"] == 300
+        assert data[0]["avg_if(span.self_time, span.op, queue.process)"] == 300
 
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["avg_if(span.self_time, release, foo)"] == "duration"
-        assert meta["fields"]["avg_if(span.self_time, span.op, queue.task.celery)"] == "duration"
+        assert meta["fields"]["avg_if(span.self_time, span.op, queue.process)"] == "duration"
 
     def test_device_class(self):
         self.store_span_metric(
@@ -1450,21 +1450,21 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             1,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
-            tags={"span.op": "queue.submit.celery"},
+            tags={"span.op": "queue.publish"},
         )
 
         self.store_span_metric(
             1,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
-            tags={"span.op": "queue.task.celery"},
+            tags={"span.op": "queue.process"},
         )
 
         response = self.do_request(
             {
                 "field": [
-                    "count_op(queue.submit.celery)",
-                    "count_op(queue.task.celery)",
+                    "count_op(queue.publish)",
+                    "count_op(queue.process)",
                 ],
                 "query": "",
                 "project": self.project.id,
@@ -1476,7 +1476,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert data == [
-            {"count_op(queue.submit.celery)": 1, "count_op(queue.task.celery)": 1},
+            {"count_op(queue.publish)": 1, "count_op(queue.process)": 1},
         ]
 
     def test_project_mapping(self):

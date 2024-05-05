@@ -94,6 +94,7 @@ export default function useFeedbackListQueryKey({
                 'pluginIssues', // Gives us plugin issues available
                 'integrationIssues', // Gives us integration issues available
                 'sentryAppIssues', // Gives us Sentry app issues available
+                'hasAttachments', // Gives us whether the feedback has screenshots
               ],
           shortIdLookup: 0,
           query: `issue.category:feedback status:${mailbox} ${fixedQueryView.query}`,

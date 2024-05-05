@@ -5,6 +5,7 @@ from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.actor import ActorTuple
 
 
 class ProjectTeamDetailsTest(APITestCase):
@@ -105,16 +106,18 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
             owner_team=another_team,
         )
         ar1 = self.create_alert_rule(
-            name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
+            name="test alert rule",
+            owner=ActorTuple.from_id(user_id=None, team_id=team.id),
+            projects=[project],
         )
         ar2 = self.create_alert_rule(
             name="another test alert rule",
-            owner=team.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=team.id),
             projects=[another_project],
         )
         ar3 = self.create_alert_rule(
             name="another test alert rule",
-            owner=another_team.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=another_team.id),
             projects=[another_project],
         )
 

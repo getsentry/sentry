@@ -180,10 +180,10 @@ sentry-cli==2.16.0
 sentry-devenv==1.6.2
 sentry-forked-django-stubs==4.2.7.post3
 sentry-forked-djangorestframework-stubs==3.14.5.post1
-sentry-kafka-schemas==0.1.74
+sentry-kafka-schemas==0.1.79
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
-sentry-relay==0.8.57
+sentry-relay==0.8.58
 sentry-sdk==2.0.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6

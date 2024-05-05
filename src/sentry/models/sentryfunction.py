@@ -17,6 +17,8 @@ class SentryFunctionManager(BaseManager["SentryFunction"]):
 
 @region_silo_model
 class SentryFunction(DefaultFieldsModel):
+    """UNUSED! WILL BE DELETED!"""
+
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")
