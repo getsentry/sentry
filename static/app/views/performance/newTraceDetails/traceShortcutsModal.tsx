@@ -16,6 +16,7 @@ export function TraceShortcuts() {
     traceAnalytics.trackViewShortcuts(organization);
     openModal(props => <TraceShortcutsModal {...props} />);
   }, [organization]);
+
   return (
     <Button size="xs" onClick={onOpenShortcutsClick} aria-label="Trace Shortcuts">
       ⌘

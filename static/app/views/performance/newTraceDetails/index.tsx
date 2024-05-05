@@ -51,7 +51,7 @@ import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
+import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
