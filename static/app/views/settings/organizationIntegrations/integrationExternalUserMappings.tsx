@@ -107,7 +107,7 @@ class IntegrationExternalUserMappings extends DeprecatedAsyncComponent<Props, St
       .filter(member => member.user)
       .map(({user, email, name}) => {
         const label = email !== name ? `${name} - ${email}` : `${email}`;
-        return {id: user?.id!, name: label};
+        return {id: user?.id, name: label};
       });
   }
 

@@ -25,7 +25,7 @@ type Props = Pick<FormProps, 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
     dataEndpoint: string;
     getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
     integration: Integration;
-    sentryNamesMapper: (v: any) => {id: string; name: string}[];
+    sentryNamesMapper: (v: any) => {id: string | undefined; name: string}[];
     type: 'user' | 'team';
     isInline?: boolean;
     mapping?: ExternalActorMappingOrSuggestion;
