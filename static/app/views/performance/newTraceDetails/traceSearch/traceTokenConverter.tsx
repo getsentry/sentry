@@ -1,4 +1,8 @@
-import {defaultConfig, type SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {
+  defaultConfig,
+  parseSearch,
+  type SearchConfig,
+} from 'sentry/components/searchSyntax/parser';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 // Transaction keys
@@ -69,3 +73,7 @@ export const TRACE_SEARCH_CONFIG: SearchConfig = {
   dateKeys: DATE_KEYS,
   booleanKeys: BOOLEAN_KEYS,
 };
+
+export function parseTraceSearch(query: string) {
+  return parseSearch(query, {...TRACE_SEARCH_CONFIG, parse: true});
+}

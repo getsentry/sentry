@@ -19,7 +19,6 @@ import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidg
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -52,7 +51,11 @@ import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {TRACE_SEARCH_CONFIG} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
+import {
+  searchInTraceTreeText,
+  searchInTraceTreeTokens,
+} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
+import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
 import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
 import {
   loadTraceViewPreferences,
@@ -66,7 +69,6 @@ import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
-import {searchInTraceTreeText, searchInTraceTreeTokens} from './traceState/traceSearch';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
 import {TraceHeader} from './traceHeader';
@@ -410,7 +412,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         });
       }
 
-      const tokens = parseSearch(query, {...TRACE_SEARCH_CONFIG, parse: true});
+      const tokens = parseTraceSearch(query);
 
       if (tokens) {
         searchingRaf.current = searchInTraceTreeTokens(tree, tokens, activeNode, done);
