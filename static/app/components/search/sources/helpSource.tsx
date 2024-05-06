@@ -53,9 +53,9 @@ class HelpSource extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(nextProps: Props) {
-    if (nextProps.query !== this.props.query) {
-      this.doSearch(nextProps.query);
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.query !== this.props.query) {
+      this.doSearch(this.props.query);
     }
   }
 
