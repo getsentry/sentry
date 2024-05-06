@@ -63,8 +63,11 @@ def create_alert(
     )
 
     alert_rule = AlertRule.objects.create(
-        snuba_query=snuba_query, threshold_period=1, organization=project.organization
+        snuba_query=snuba_query,
+        threshold_period=1,
+        organization=project.organization,
     )
+    alert_rule.projects.set(project)
 
     return alert_rule
 
