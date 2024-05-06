@@ -158,6 +158,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
         hasData={spanTransactionMetrics.length > 0}
       >
         <GridEditable
+          aria-label={t('Transactions')}
           isLoading={isLoading}
           error={error}
           data={spanTransactionsWithMetrics}
