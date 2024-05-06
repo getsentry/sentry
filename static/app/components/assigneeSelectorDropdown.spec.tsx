@@ -522,11 +522,11 @@ describe('AssigneeSelectorDropdown', () => {
       />
     );
 
-    expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
+    expect(await screen.findByTestId('suggested-avatar-stack')).toBeInTheDocument();
     // Hover over avatar
     await userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
     expect(await screen.findByText('Suggestion: Apple Bees')).toBeInTheDocument();
-    expect(screen.getByText('commit data')).toBeInTheDocument();
+    expect(await screen.findByText('commit data')).toBeInTheDocument();
 
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
