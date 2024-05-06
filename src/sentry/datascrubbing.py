@@ -78,7 +78,10 @@ def get_all_pii_configs(project):
     if pii_config:
         yield pii_config
 
-    yield convert_datascrubbing_config(get_datascrubbing_settings(project))
+    settings = get_datascrubbing_settings(project)
+
+    json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
+    yield convert_datascrubbing_config(settings, json_dumps=json_dumps, json_loads=json_loads)
 
 
 @sentry_sdk.tracing.trace
@@ -95,7 +98,8 @@ def scrub_data(project, event):
 
         metrics.distribution("datascrubbing.config.rules.size", total_rules)
 
-        event = pii_strip_event(config, event)
+        json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
+        event = pii_strip_event(config, event, json_loads=json_loads, json_dumps=json_dumps)
 
     return event
 

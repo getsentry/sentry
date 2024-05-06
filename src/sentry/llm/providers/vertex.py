@@ -63,6 +63,6 @@ class VertexProvider(LlmModelBase):
     def _get_access_token(self) -> str:
         # https://stackoverflow.com/questions/53472429/how-to-get-a-gcp-bearer-token-programmatically-with-python
 
-        creds, _ = google.auth.default()
+        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
         creds.refresh(google.auth.transport.requests.Request())
         return creds.token

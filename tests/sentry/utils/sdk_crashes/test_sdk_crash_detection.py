@@ -9,7 +9,7 @@ from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
@@ -61,13 +61,12 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-class PerformanceEventTestMixin(
-    BaseSDKCrashDetectionMixin, SnubaTestCase, PerfIssueTransactionTestMixin
-):
+class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
     def test_performance_event_not_detected(self, mock_sdk_crash_reporter):
         fingerprint = "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
-        event = self.store_transaction(
+        event = store_transaction(
+            test_case=self,
             project_id=self.project.id,
             user_id="hi",
             fingerprint=[fingerprint],
@@ -81,7 +80,8 @@ class PerformanceEventTestMixin(
     def test_performance_event_increments_counter(self, incr, mock_sdk_crash_reporter):
         fingerprint = "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
-        event = self.store_transaction(
+        event = store_transaction(
+            test_case=self,
             project_id=self.project.id,
             user_id="hi",
             fingerprint=[fingerprint],

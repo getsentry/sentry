@@ -25,10 +25,17 @@ type Options = {
 
 const DEFAULT_SORT_PARAMETER_NAME = 'sort';
 
-const {SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
-const {RESPONSE_CODE, CACHE_ITEM_SIZE} = SpanIndexedField;
-const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT, HTTP_RESPONSE_RATE} =
-  SpanFunction;
+const {SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH, CACHE_ITEM_SIZE} = SpanMetricsField;
+const {RESPONSE_CODE} = SpanIndexedField;
+const {
+  TIME_SPENT_PERCENTAGE,
+  SPS,
+  SPM,
+  HTTP_ERROR_COUNT,
+  HTTP_RESPONSE_RATE,
+  CACHE_HIT_RATE,
+  CACHE_MISS_RATE,
+} = SpanFunction;
 
 export const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
@@ -45,6 +52,9 @@ export const SORTABLE_FIELDS = new Set([
   `${HTTP_RESPONSE_RATE}(4)`,
   `${HTTP_RESPONSE_RATE}(5)`,
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+  `${CACHE_HIT_RATE}()`,
+  `${CACHE_MISS_RATE}()`,
+  `avg(${CACHE_ITEM_SIZE})`,
 ]);
 
 const NUMERIC_FIELDS = new Set([

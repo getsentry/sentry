@@ -1,6 +1,6 @@
-import {Link} from 'react-router';
 import * as qs from 'query-string';
 
+import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useCacheUrl} from 'sentry/views/performance/cache/utils';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';

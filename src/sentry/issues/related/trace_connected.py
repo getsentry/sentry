@@ -11,10 +11,11 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries
 
 
-def trace_connected_analysis(group: Group) -> list[int]:
+def trace_connected_analysis(group: Group) -> tuple[list[int], dict[str, str]]:
+    """Determine if the group has a trace connected to it and return other issues that were part of it."""
     event = group.get_recommended_event_for_environments()
     if not event or event.trace_id is None:
-        return []
+        return [], {}
 
     org_id = group.project.organization_id
     # XXX: Test without a list and validate the data type
@@ -40,4 +41,4 @@ def trace_connected_analysis(group: Group) -> list[int]:
             if datum["issue.id"] != group.id  # Exclude itself
         }
     )
-    return transformed_results
+    return transformed_results, {"event_id": event.event_id, "trace_id": event.trace_id}

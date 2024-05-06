@@ -16,6 +16,7 @@ import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 
 type SearchQueryValueBuilderProps = {
+  onChange: () => void;
   token: TokenResult<Token.FILTER>;
 };
 
@@ -52,7 +53,10 @@ function getPredefinedValues({key}: {key?: Tag}): string[] {
   }
 }
 
-export function SearchQueryBuilderValueCombobox({token}: SearchQueryValueBuilderProps) {
+export function SearchQueryBuilderValueCombobox({
+  token,
+  onChange,
+}: SearchQueryValueBuilderProps) {
   const [inputValue, setInputValue] = useState('');
 
   const {getTagValues, keys, dispatch} = useSearchQueryBuilder();
@@ -89,8 +93,9 @@ export function SearchQueryBuilderValueCombobox({token}: SearchQueryValueBuilder
         token: token.value,
         value: escapeTagValue(value),
       });
+      onChange();
     },
-    [dispatch, token.value]
+    [dispatch, onChange, token.value]
   );
 
   return (
@@ -99,14 +104,12 @@ export function SearchQueryBuilderValueCombobox({token}: SearchQueryValueBuilder
       items={items}
       onOptionSelected={handleSelectValue}
       onCustomValueSelected={handleSelectValue}
-      onExit={() => {
-        dispatch({type: 'EXIT_TOKEN'});
-      }}
       inputValue={inputValue}
       placeholder={formatFilterValue(token)}
       token={token}
       inputLabel={t('Edit filter value')}
       onInputChange={e => setInputValue(e.target.value)}
+      autoFocus
     >
       <Section>
         {items.map(item => (

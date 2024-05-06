@@ -136,7 +136,6 @@ export function MetricVisualization({
     interval,
     datetime: selection.datetime,
     onIntervalChange: onIntervalChange ?? (() => {}),
-    isCustomMetricsOnly: false,
   });
 
   const queries = useMemo(() => expressionsToApiQueries(expressions), [expressions]);

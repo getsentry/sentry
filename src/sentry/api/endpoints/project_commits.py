@@ -28,7 +28,7 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           commit belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      commits of.
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the commit key.

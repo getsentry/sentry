@@ -188,7 +188,7 @@ class U2fInterface(AuthenticatorInterface):
         return rv
 
     def try_enroll(self, enrollment_data, response_data, device_name=None, state=None):
-        data = json.loads(response_data)
+        data = json.loads_experimental("auth.enable-orjson", response_data)
         client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
         att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
         binding = self.webauthn_registration_server.register_complete(state, client_data, att_obj)

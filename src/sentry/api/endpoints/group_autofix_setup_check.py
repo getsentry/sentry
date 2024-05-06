@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+import requests
+from django.conf import settings
 from rest_framework.response import Response
 
 from sentry import features
@@ -10,11 +12,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.event_ai_suggested_fix import get_openai_policy
+from sentry.api.helpers.autofix import (
+    AutofixCodebaseIndexingStatus,
+    get_project_codebase_indexing_status,
+)
+from sentry.api.helpers.repos import get_repos_from_project_code_mappings
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +57,33 @@ def get_autofix_integration_setup_problems(organization: Organization) -> str | 
     return None
 
 
+def get_repos_and_access(project: Project) -> list[dict]:
+    """
+    Gets the repos that would be indexed for the given project from the code mappings, and checks if we have write access to them.
+
+    Returns a list of repos with the "ok" key set to True if we have write access, False otherwise.
+    """
+    repos = get_repos_from_project_code_mappings(project)
+
+    repos_and_access: list[dict] = []
+    for repo in repos:
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/repo/check-access",
+            data=json.dumps(
+                {
+                    "repo": repo,
+                }
+            ),
+            headers={"content-type": "application/json;charset=utf-8"},
+        )
+
+        response.raise_for_status()
+
+        repos_and_access.append({**repo, "ok": response.json().get("has_access", False)})
+
+    return repos_and_access
+
+
 @region_silo_endpoint
 class GroupAutofixSetupCheck(GroupEndpoint):
     publish_status = {
@@ -76,6 +112,11 @@ class GroupAutofixSetupCheck(GroupEndpoint):
 
         integration_check = get_autofix_integration_setup_problems(organization=org)
 
+        repos = get_repos_and_access(group.project)
+        write_access_ok = all(repo["ok"] for repo in repos)
+
+        codebase_indexing_status = get_project_codebase_indexing_status(group.project)
+
         return Response(
             {
                 "subprocessorConsent": {
@@ -89,6 +130,14 @@ class GroupAutofixSetupCheck(GroupEndpoint):
                 "integration": {
                     "ok": integration_check is None,
                     "reason": integration_check,
+                },
+                "githubWriteIntegration": {
+                    "ok": write_access_ok,
+                    "repos": repos,
+                },
+                "codebaseIndexing": {
+                    "ok": codebase_indexing_status == AutofixCodebaseIndexingStatus.UP_TO_DATE
+                    or codebase_indexing_status == AutofixCodebaseIndexingStatus.INDEXING,
                 },
             }
         )

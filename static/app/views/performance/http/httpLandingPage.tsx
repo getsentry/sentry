@@ -1,5 +1,4 @@
 import React, {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -12,6 +11,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -32,8 +32,8 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
@@ -108,6 +108,7 @@ export function HTTPLandingPage() {
   const domainsListResponse = useSpanMetrics({
     search: MutableSearch.fromQueryObject(tableFilters),
     fields: [
+      'project',
       'project.id',
       'span.domain',
       'spm()',
@@ -243,7 +244,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL="/performance/http"
-      features="performance-http-view"
+      features="spans-first-ui"
     >
       <HTTPLandingPage />
     </ModulePageProviders>

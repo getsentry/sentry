@@ -18,13 +18,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
-  MetricsResponse,
+  SpanMetricsResponse,
   | 'transaction'
   | 'transaction.method'
   | 'spm()'
@@ -78,7 +78,7 @@ interface Props {
   data: Row[];
   isLoading: boolean;
   sort: ValidSort;
-  span: Pick<MetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
+  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
   error?: Error | null;
   meta?: EventsMetaType;
   pageLinks?: string;
@@ -140,7 +140,7 @@ function renderBodyCell(
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
-  span: Pick<MetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>,
+  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>,
   location: Location,
   organization: Organization
 ) {
@@ -151,7 +151,7 @@ function renderBodyCell(
         : row.transaction;
 
     const pathname = normalizeUrl(
-      `/organizations/${organization.slug}$/performance/database/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
+      `/organizations/${organization.slug}/performance/database/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
     );
     const query: {[key: string]: string | undefined} = {
       ...location.query,

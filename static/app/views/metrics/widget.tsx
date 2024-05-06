@@ -29,6 +29,7 @@ import {
   getMetricsSeriesId,
   getMetricsSeriesName,
   isCumulativeOp,
+  isNotQueryOnly,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
@@ -56,7 +57,7 @@ import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
 import {useReleaseSeries} from 'sentry/views/metrics/chart/useMetricReleases';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {FormulaFormatter} from 'sentry/views/metrics/formulaParser/formatter';
+import {EquationFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
@@ -95,10 +96,6 @@ export type Sample = {
   transactionSpanId: string;
 };
 
-function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
-  return !('isQueryOnly' in query) || !query.isQueryOnly;
-}
-
 export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   const filteredQueries = queries.filter(isNotQueryOnly);
 
@@ -107,7 +104,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     if (isMetricFormula(firstQuery)) {
       return (
         <Fragment>
-          <FormulaFormatter formula={unescapeMetricsFormula(firstQuery.formula)} />
+          <EquationFormatter equation={unescapeMetricsFormula(firstQuery.formula)} />
         </Fragment>
       );
     }

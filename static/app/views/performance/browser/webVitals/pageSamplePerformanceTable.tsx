@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -10,6 +9,7 @@ import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEdit
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -19,8 +19,8 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
@@ -463,36 +463,34 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           </Wrapper>
         )}
       </SearchBarContainer>
-      <GridContainer>
-        {datatype === Datatype.PAGELOADS && (
-          <GridEditable
-            isLoading={isLoading}
-            columnOrder={PAGELOADS_COLUMN_ORDER}
-            columnSortBy={[]}
-            data={tableData}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-            minimumColWidth={70}
-          />
-        )}
-        {datatype === Datatype.INTERACTIONS && (
-          <GridEditable
-            isLoading={isInteractionsLoading}
-            columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
-            columnSortBy={[]}
-            data={interactionsTableData}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-            minimumColWidth={70}
-          />
-        )}
-      </GridContainer>
+      {datatype === Datatype.PAGELOADS && (
+        <GridEditable
+          isLoading={isLoading}
+          columnOrder={PAGELOADS_COLUMN_ORDER}
+          columnSortBy={[]}
+          data={tableData}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
+          location={location}
+          minimumColWidth={70}
+        />
+      )}
+      {datatype === Datatype.INTERACTIONS && (
+        <GridEditable
+          isLoading={isInteractionsLoading}
+          columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
+          columnSortBy={[]}
+          data={interactionsTableData}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
+          location={location}
+          minimumColWidth={70}
+        />
+      )}
     </span>
   );
 }
@@ -520,28 +518,6 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
   top: ${space(0.25)};
   position: relative;
   padding-right: ${space(1)};
-`;
-
-// Not pretty but we need to override gridEditable styles since the original
-// styles have too much padding for small spaces
-const GridContainer = styled('div')`
-  margin-bottom: ${space(1)};
-  th {
-    padding: 0 ${space(1)};
-  }
-  th:first-child {
-    padding-left: ${space(2)};
-  }
-  th:last-child {
-    padding-right: ${space(2)};
-  }
-  td {
-    padding: ${space(1)};
-  }
-  td:first-child {
-    padding-right: ${space(1)};
-    padding-left: ${space(2)};
-  }
 `;
 
 const NoValue = styled('span')`

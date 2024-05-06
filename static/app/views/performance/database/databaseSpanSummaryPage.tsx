@@ -28,8 +28,8 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -100,11 +100,12 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
       'time_spent_percentage()',
+      `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
     sorts: [sort],
     limit: TRANSACTIONS_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.span-summary-page-span-transactions-list',
+    referrer: 'api.starfish.span-transaction-metrics',
   });
 
   const span = {
@@ -271,7 +272,7 @@ const DEFAULT_SORT = {
   field: 'time_spent_percentage()' as const,
 };
 
-const TRANSACTIONS_TABLE_ROW_COUNT = 20;
+const TRANSACTIONS_TABLE_ROW_COUNT = 25;
 
 const ChartContainer = styled('div')`
   display: grid;

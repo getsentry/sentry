@@ -102,6 +102,7 @@ function getTagTreeRows({
       tagKey={tagKey}
       content={content}
       spacerCount={spacerCount}
+      data-test-id="tag-tree-row"
       {...props}
     />,
     ...subtreeRows,
@@ -185,6 +186,7 @@ export const TreeContainer = styled('div')<{columnCount: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
+  margin-left: -${space(1)};
 `;
 
 export const TreeColumn = styled('div')`

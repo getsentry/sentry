@@ -476,6 +476,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }
                     inline={false}
                     flexibleControlStateSize
+                    size="xs"
                   />
                   {` ${t('for')} `}
                   <SelectControl
@@ -486,6 +487,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     onChange={({value}) => onTimeWindowChange(value)}
                     inline={false}
                     flexibleControlStateSize
+                    size="xs"
                   />
                 </ActivatedAlertFields>
               ) : (
@@ -638,6 +640,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         }}
                         searchSource="alert_builder"
                         defaultQuery={initialData?.query ?? ''}
+                        metricAlert
                         {...getSupportedAndOmittedTags(dataset, organization)}
                         includeSessionTagsValues={dataset === Dataset.SESSIONS}
                         disabled={disabled || isErrorMigration}
@@ -782,7 +785,7 @@ const MonitorSelect = styled('div')`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  height: 6rem;
+  height: 5rem;
 `;
 
 type MonitorCardProps = {
@@ -795,7 +798,7 @@ type MonitorCardProps = {
 };
 
 const MonitorCard = styled('div')<MonitorCardProps>`
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   display: flex;
   flex-grow: 1;
   flex-direction: column;

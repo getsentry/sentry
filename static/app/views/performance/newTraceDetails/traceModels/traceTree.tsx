@@ -114,6 +114,7 @@ export declare namespace TraceTree {
   interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
+    measurements?: Record<string, Measurement>;
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
@@ -1865,6 +1866,27 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return null;
   }
 
+  static ForEachChild(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    cb: (node: TraceTreeNode<TraceTree.NodeValue>) => void
+  ): void {
+    const queue = [root];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+      cb(next);
+
+      if (isParentAutogroupedNode(next)) {
+        queue.push(next.head);
+      } else {
+        const children = next.spanChildren ? next.spanChildren : next.children;
+        for (const child of children) {
+          queue.push(child);
+        }
+      }
+    }
+  }
+
   static Root() {
     return new TraceTreeNode(null, null, {
       event_id: undefined,
@@ -2118,7 +2140,7 @@ function getRelatedPerformanceIssuesFromTransaction(
     return [];
   }
 
-  if (!node?.value?.performance_issues?.length && !node?.value?.errors?.length) {
+  if (!node?.value?.performance_issues?.length) {
     return [];
   }
 

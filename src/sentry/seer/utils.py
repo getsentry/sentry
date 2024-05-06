@@ -1,4 +1,6 @@
-from typing import TypedDict
+import logging
+from dataclasses import dataclass
+from typing import NotRequired, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -6,6 +8,9 @@ from urllib3 import Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import json
+from sentry.utils.json import JSONDecodeError
+
+logger = logging.getLogger(__name__)
 
 
 class SeerException(Exception):
@@ -80,27 +85,37 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     return {"data": []}
 
 
-class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
-    k: int
-    threshold: float
-
-
-class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):
-    group_id: int
+class SimilarIssuesEmbeddingsRequest(TypedDict):
     project_id: int
     stacktrace: str
     message: str
+    k: NotRequired[int]  # how many neighbors to find
+    threshold: NotRequired[float]
+    group_id: NotRequired[int]  # TODO: Remove this once we stop sending it to seer
+    group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
-class SimilarIssuesEmbeddingsData(TypedDict):
-    parent_group_id: int
+class RawSeerSimilarIssueData(TypedDict):
     stacktrace_distance: float
     message_distance: float
     should_group: bool
+    parent_group_id: NotRequired[int]  # TODO: Remove this once seer stops sending it
+    parent_group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
-    responses: list[SimilarIssuesEmbeddingsData | None]
+    responses: list[RawSeerSimilarIssueData]
+
+
+# Like the data that comes back from seer, but guaranteed to have a parent group id
+@dataclass
+class SeerSimilarIssueData:
+    stacktrace_distance: float
+    message_distance: float
+    should_group: bool
+    parent_group_id: int
+    # TODO: See if we end up needing the hash here
+    parent_group_hash: str | None = None
 
 
 def get_similar_issues_embeddings(
@@ -116,6 +131,16 @@ def get_similar_issues_embeddings(
 
     try:
         return json.loads(response.data.decode("utf-8"))
-    except AttributeError:
-        empty_response: SimilarIssuesEmbeddingsResponse = {"responses": []}
-        return empty_response
+    except (
+        AttributeError,  # caused by a response with no data and therefore no `.decode` method
+        UnicodeError,
+        JSONDecodeError,
+    ):
+        logger.exception(
+            "Failed to parse seer similar issues response",
+            extra={
+                "request_params": similar_issues_request,
+                "response_data": response.data,
+            },
+        )
+        return {"responses": []}

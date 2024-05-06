@@ -1,6 +1,21 @@
+import * as Sentry from '@sentry/react';
+
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
+
+const trackTraceShape = (shape: TraceType, organization: Organization) => {
+  Sentry.metrics.increment(`trace.trace_shape.${shape}`);
+  trackAnalytics('trace.shape', {
+    shape,
+    organization,
+  });
+};
+
+const trackFailedToFetchTraceState = () =>
+  Sentry.metrics.increment('trace.failed_to_fetch_trace');
+
+const trackEmptyTraceState = () => Sentry.metrics.increment('trace.empty_trace');
 
 const trackLayoutChange = (layout: string, organization: Organization) =>
   trackAnalytics('trace.trace_layout.change', {
@@ -15,11 +30,6 @@ const trackDrawerMinimize = (organization: Organization) =>
 
 const trackShowInView = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.show_in_view', {
-    organization,
-  });
-
-const trackViewEventDetails = (organization: Organization) =>
-  trackAnalytics('trace.trace_layout.view_event_details', {
     organization,
   });
 
@@ -61,9 +71,12 @@ const trackTraceWarningType = (type: TraceType, organization: Organization) =>
   });
 
 const traceAnalytics = {
+  // Trace shape
+  trackTraceShape,
+  trackEmptyTraceState,
+  trackFailedToFetchTraceState,
   // Drawer actions
   trackShowInView,
-  trackViewEventDetails,
   trackViewEventJSON,
   // Layout actions
   trackLayoutChange,

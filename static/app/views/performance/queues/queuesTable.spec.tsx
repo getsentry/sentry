@@ -13,32 +13,39 @@ describe('queuesTable', () => {
 
   let eventsMock;
 
+  const pageLinks =
+    '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
+    '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
+
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
+      headers: {Link: pageLinks},
       method: 'GET',
       body: {
         data: [
           {
-            transaction: 'celery.backend_cleanup',
-            'avg_if(span.self_time,span.op,queue.task.celery)': 3,
-            'sum(span.self_time)': 6,
-            'count_op(queue.submit.celery)': 0,
-            'count_op(queue.task.celery)': 2,
-            'avg_if(span.self_time,span.op,queue.submit.celery)': 0,
+            'messaging.destination.name': 'celery.backend_cleanup',
             'count()': 2,
+            'count_op(queue.publish)': 0,
+            'count_op(queue.process)': 2,
+            'sum(span.self_time)': 6,
             'avg(span.self_time)': 3,
+            'avg_if(span.self_time,span.op,queue.publish)': 0,
+            'avg_if(span.self_time,span.op,queue.process)': 3,
+            'avg(messaging.message.receive.latency)': 20,
           },
         ],
         meta: {
           fields: {
-            'avg_if(span.self_time,span.op,queue.task.celery)': 'duration',
-            'count_op(queue.submit.celery)': 'integer',
-            'avg_if(span.self_time,span.op,queue.submit.celery)': 'duration',
-            'count_op(queue.task.celery)': 'integer',
-            'sum(span.self_time)': 'duration',
             'count()': 'integer',
+            'count_op(queue.publish)': 'integer',
+            'count_op(queue.process)': 'integer',
+            'sum(span.self_time)': 'duration',
             'avg(span.self_time)': 'duration',
+            'avg_if(span.self_time,span.op,queue.publish)': 'duration',
+            'avg_if(span.self_time,span.op,queue.process)': 'duration',
+            'avg(messaging.message.receive.latency)': 'duration',
           },
         },
       },
@@ -63,22 +70,25 @@ describe('queuesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           field: [
-            'transaction',
+            'messaging.destination.name',
             'count()',
-            'count_op(queue.submit.celery)',
-            'count_op(queue.task.celery)',
+            'count_op(queue.publish)',
+            'count_op(queue.process)',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'avg_if(span.self_time,span.op,queue.submit.celery)',
-            'avg_if(span.self_time,span.op,queue.task.celery)',
+            'avg_if(span.self_time,span.op,queue.publish)',
+            'avg_if(span.self_time,span.op,queue.process)',
+            'avg(messaging.message.receive.latency)',
           ],
           dataset: 'spansMetrics',
         }),
       })
     );
     await screen.findByText('celery.backend_cleanup');
-    screen.getByText('3.00ms');
-    screen.getByText(2);
-    screen.getByText('6.00ms');
+    expect(screen.getByRole('cell', {name: '3.00ms'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '2'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '6.00ms'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '20.00ms'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
   });
 });

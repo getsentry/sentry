@@ -1,12 +1,12 @@
 import logging
 import random
 from collections.abc import Callable, Mapping
-from typing import Any
 
-import sentry_kafka_schemas
 import sentry_sdk
 from arroyo.types import Message
 from django.conf import settings
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry.sentry_metrics.configuration import (
@@ -33,9 +33,7 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.MOCK: MockIndexer,
 }
 
-INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
-    "ingest-metrics"
-)
+INGEST_CODEC: Codec[IngestMetric] = get_codec("ingest-metrics")
 
 
 class MessageProcessor:
