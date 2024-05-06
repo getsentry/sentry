@@ -1,4 +1,5 @@
 import dataclasses
+import itertools
 import math
 from collections import defaultdict
 from collections.abc import Callable, Mapping, MutableMapping
@@ -68,6 +69,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
     )
     suggestedQuery = serializers.CharField(required=False)
     minBreakdownDuration = serializers.IntegerField(default=0, min_value=0)
+    minBreakdownPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -108,6 +110,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             max_spans_per_trace=serialized["maxSpansPerTrace"],
             breakdown_categories=serialized.get("breakdownCategory", []),
             min_breakdown_duration=serialized["minBreakdownDuration"],
+            min_breakdown_percentage=serialized["minBreakdownPercentage"],
             get_all_projects=lambda: self.get_projects(
                 request,
                 organization,
@@ -148,6 +151,7 @@ class TraceSamplesExecutor:
         max_spans_per_trace: int,
         breakdown_categories: list[str],
         min_breakdown_duration: int,
+        min_breakdown_percentage: float,
         get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
@@ -162,6 +166,7 @@ class TraceSamplesExecutor:
         self.max_spans_per_trace = max_spans_per_trace
         self.breakdown_categories = breakdown_categories
         self.min_breakdown_duration = min_breakdown_duration
+        self.min_breakdown_percentage = min_breakdown_percentage
         self.get_all_projects = get_all_projects
         self._all_projects: list[Project] | None = None
 
@@ -608,13 +613,22 @@ class TraceSamplesExecutor:
     ) -> list[TraceResult]:
         # mapping of trace id to a tuple of start/finish times
         traces_range = {
-            row["trace"]: (row["first_seen()"], row["last_seen()"])
+            row["trace"]: {
+                "start": row["first_seen()"],
+                "end": row["last_seen()"],
+                "min": int(
+                    self.min_breakdown_percentage * (row["last_seen()"] - row["first_seen()"])
+                ),
+            }
             for row in traces_metas_results["data"]
         }
 
         spans = [
-            *traces_breakdown_projects_results["data"],
-            *traces_breakdown_categories_results["data"],
+            span
+            for span in itertools.chain(
+                traces_breakdown_projects_results["data"],
+                traces_breakdown_categories_results["data"],
+            )
         ]
         spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
 
@@ -940,6 +954,30 @@ class TraceSamplesExecutor:
         return suggested_spans_query
 
 
+def quantize_range(span_start, span_end, trace_range):
+    trace_start = trace_range["start"]
+    trace_end = trace_range["end"]
+    min_duration = trace_range["min"]
+
+    span_duration = span_end - span_start
+
+    if min_duration > 0:
+        rounded_start = (
+            round((span_start - trace_start) / min_duration) * min_duration + trace_start
+        )
+    else:
+        rounded_start = span_start
+
+    # To avoid creating gaps at the end of the trace,
+    # do not adjust the end if it's at the trace end.
+    if span_end >= trace_end:
+        rounded_end = span_end
+    else:
+        rounded_end = rounded_start + span_duration
+
+    return rounded_start, rounded_end
+
+
 def process_breakdowns(data, traces_range):
     breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
     stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
@@ -954,9 +992,10 @@ def process_breakdowns(data, traces_range):
     def breakdown_push(trace, interval):
         # Clip the intervals os that it is within range of the trace
         if trace_range := traces_range.get(trace):
-            left, right = trace_range
-            interval["start"] = clip(interval["start"], left, right)
-            interval["end"] = clip(interval["end"], left, right)
+            start = trace_range["start"]
+            end = trace_range["end"]
+            interval["start"] = clip(interval["start"], start, end)
+            interval["end"] = clip(interval["end"], start, end)
 
         breakdown = breakdowns[trace]
 
@@ -1018,12 +1057,21 @@ def process_breakdowns(data, traces_range):
     for row in data:
         trace = row["trace"]
 
+        precise_start = int(row["precise.start_ts"] * 1000)
+        precise_end = int(row["precise.finish_ts"] * 1000)
+
+        span_start, span_end = quantize_range(
+            precise_start,
+            precise_end,
+            traces_range[trace],
+        )
+
         cur: TraceInterval = {
             "kind": "project",
             "project": row["project"],
             "opCategory": row.get("span.category"),
-            "start": int(row["precise.start_ts"] * 1000),
-            "end": int(row["precise.finish_ts"] * 1000),
+            "start": span_start,
+            "end": span_end,
         }
 
         # Clear the stack of any intervals that end before the current interval
@@ -1037,16 +1085,16 @@ def process_breakdowns(data, traces_range):
         # that time has already be attributed to the most recent interval.
         stack_clear(trace, until=cur["end"])
 
-    for trace, (trace_start, trace_end) in traces_range.items():
+    for trace, trace_range in traces_range.items():
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
 
         other: TraceInterval = {
+            "kind": "other",
             "project": None,
             "opCategory": None,
-            "start": trace_start,
-            "end": trace_end,
-            "kind": "other",
+            "start": trace_range["start"],
+            "end": trace_range["end"],
         }
 
         # Clear the remaining intervals on the stack to find the latest end time
