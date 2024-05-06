@@ -67,8 +67,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
-
+_short_id_re = re.compile(r"^(?:issue+:)?(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 

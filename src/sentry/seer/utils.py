@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from typing import NotRequired, TypedDict
 
 import sentry_sdk
@@ -85,28 +86,41 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
 
 
 class SimilarIssuesEmbeddingsRequest(TypedDict):
-    group_id: int
     project_id: int
     stacktrace: str
     message: str
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
+    group_id: NotRequired[int]  # TODO: Remove this once we stop sending it to seer
+    group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
-class SimilarIssuesEmbeddingsData(TypedDict):
-    parent_group_id: int
+class RawSeerSimilarIssueData(TypedDict):
     stacktrace_distance: float
     message_distance: float
     should_group: bool
+    parent_group_id: NotRequired[int]  # TODO: Remove this once seer stops sending it
+    parent_group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
-    responses: list[SimilarIssuesEmbeddingsData]
+    responses: list[RawSeerSimilarIssueData]
+
+
+# Like the data that comes back from seer, but guaranteed to have a parent group id
+@dataclass
+class SeerSimilarIssueData:
+    stacktrace_distance: float
+    message_distance: float
+    should_group: bool
+    parent_group_id: int
+    # TODO: See if we end up needing the hash here
+    parent_group_hash: str | None = None
 
 
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
-) -> SimilarIssuesEmbeddingsResponse:
+) -> list[RawSeerSimilarIssueData]:
     """Call /v0/issues/similar-issues endpoint from seer."""
     response = seer_staging_connection_pool.urlopen(
         "POST",
@@ -116,7 +130,7 @@ def get_similar_issues_embeddings(
     )
 
     try:
-        return json.loads(response.data.decode("utf-8"))
+        response_data = json.loads(response.data.decode("utf-8"))
     except (
         AttributeError,  # caused by a response with no data and therefore no `.decode` method
         UnicodeError,
@@ -129,4 +143,6 @@ def get_similar_issues_embeddings(
                 "response_data": response.data,
             },
         )
-        return {"responses": []}
+        return []
+
+    return response_data.get("responses") or []
