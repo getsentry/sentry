@@ -2298,10 +2298,6 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-# Switch to read assemble status from Redis instead of memcache
-register("assemble.read_from_redis", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Sampling rates for testing Rust-based grouping enhancers
 
 # Rate at which to run the Rust implementation of `assemble_stacktrace_component`
