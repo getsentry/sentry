@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
 
 from sentry.utils.safe import get_path
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 SOURCE_MAPPING_URL_RE = re.compile(b"//# sourceMappingURL=(.*)$")
 
 
-def has_sourcemap(event):
+def has_sourcemap(event: Event) -> bool:
     if event.platform not in ("javascript", "node"):
         return False
 
@@ -17,7 +23,7 @@ def has_sourcemap(event):
     return False
 
 
-def find_sourcemap(sourcemap_header, body):
+def find_sourcemap(sourcemap_header: bytes | None, body: bytes) -> bytes | None:
     sourcemap_url = sourcemap_header
     if not sourcemap_header:
         parsed_body = body.split(b"\n")
