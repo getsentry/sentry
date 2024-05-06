@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
@@ -147,11 +147,23 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
     metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
 
     # If more than exactly a minute has passed then we've skipped a
-    # task run, report that to sentry, it is a problem.
+    # task run, backfill those ticks. This can happen when one partition has
+    # slowed down too much and is missing a minutes worth of check-ins
     if last_ts is not None and slowest_part_ts > last_ts + 60:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("last_ts", last_ts)
-            scope.set_extra("slowest_part_ts", slowest_part_ts)
-            sentry_sdk.capture_message("Monitor task dispatch minute skipped")
+        if options.get("crons.use_clock_pulse_consumer"):
+            # We only want to do backfills when we're using the clock tick
+            # consumer, otherwise the celery tasks may process out of order
+            backfill_tick = datetime.fromtimestamp(last_ts + 60, tz=timezone.utc)
+            while backfill_tick < tick:
+                extra = {"reference_datetime": str(backfill_tick)}
+                logger.info("monitors.consumer.clock_tick_backfill", extra=extra)
+
+                _dispatch_tick(backfill_tick)
+                backfill_tick = backfill_tick + timedelta(minutes=1)
+        else:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("last_ts", last_ts)
+                scope.set_extra("slowest_part_ts", slowest_part_ts)
+                sentry_sdk.capture_message("Monitor task dispatch minute skipped")
 
     _dispatch_tick(tick)
