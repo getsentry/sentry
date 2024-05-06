@@ -230,4 +230,23 @@ describe('EventTagsTree', function () {
     const errorRows = screen.queryAllByTestId('tag-tree-row-errors');
     expect(errorRows.length).toBe(2);
   });
+
+  it('avoids rendering nullish tags', function () {
+    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
+    const uniqueTagsEvent = EventFixture({
+      tags: [
+        {key: null, value: 'null tag'},
+        {key: undefined, value: 'undefined tag'},
+        {key: 'boring-tag', value: 'boring tag'},
+      ],
+    });
+    render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
+      organization: featuredOrganization,
+    });
+
+    expect(screen.getByText('boring-tag', {selector: 'div'})).toBeInTheDocument();
+    expect(screen.getByText('boring tag')).toBeInTheDocument();
+    expect(screen.queryByText('null tag')).not.toBeInTheDocument();
+    expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
+  });
 });
