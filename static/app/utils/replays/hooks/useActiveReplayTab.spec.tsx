@@ -94,12 +94,12 @@ describe('useActiveReplayTab', () => {
     const {result} = renderHook(useActiveReplayTab, {
       initialProps: {isVideoReplay: true},
     });
-    expect(result.current.getActiveTab()).toBe(TabKey.TAGS);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('foo bar');
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
-      query: {t_main: TabKey.TAGS},
+      query: {t_main: TabKey.BREADCRUMBS},
     });
   });
 });
