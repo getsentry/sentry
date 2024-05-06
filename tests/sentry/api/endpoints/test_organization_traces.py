@@ -766,7 +766,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 100)},
+            {"a" * 32: (0, 100, 0)},
             {
                 "a"
                 * 32: [
@@ -798,7 +798,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 100)},
+            {"a" * 32: (0, 100, 0)},
             {
                 "a"
                 * 32: [
@@ -844,7 +844,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 100)},
+            {"a" * 32: (0, 100, 0)},
             {
                 "a"
                 * 32: [
@@ -890,7 +890,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 75)},
+            {"a" * 32: (0, 75, 0)},
             {
                 "a"
                 * 32: [
@@ -936,7 +936,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 100)},
+            {"a" * 32: (0, 100, 0)},
             {
                 "a"
                 * 32: [
@@ -968,7 +968,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 100)},
+            {"a" * 32: (0, 100, 0)},
             {
                 "a"
                 * 32: [
@@ -1000,7 +1000,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 75)},
+            {"a" * 32: (0, 75, 0)},
             {
                 "a"
                 * 32: [
@@ -1053,7 +1053,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.06,
                 },
             ],
-            {"a" * 32: (0, 100)},
+            {"a" * 32: (0, 100, 0)},
             {
                 "a"
                 * 32: [
@@ -1106,7 +1106,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 100)},
+            {"a" * 32: (0, 100, 0)},
             {
                 "a"
                 * 32: [
@@ -1159,7 +1159,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 75)},
+            {"a" * 32: (0, 75, 0)},
             {
                 "a"
                 * 32: [
@@ -1212,7 +1212,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.06,
                 },
             ],
-            {"a" * 32: (0, 60)},
+            {"a" * 32: (0, 60, 0)},
             {
                 "a"
                 * 32: [
@@ -1265,7 +1265,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.04,
                 },
             ],
-            {"a" * 32: (0, 50)},
+            {"a" * 32: (0, 50, 0)},
             {
                 "a"
                 * 32: [
@@ -1297,7 +1297,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 50)},
+            {"a" * 32: (0, 50, 0)},
             {
                 "a"
                 * 32: [
@@ -1322,7 +1322,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.05,
                 },
             ],
-            {"a" * 32: (0, 100)},
+            {"a" * 32: (0, 100, 0)},
             {
                 "a"
                 * 32: [
@@ -1344,8 +1344,69 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
             id="adds other interval at end",
         ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.012,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "precise.start_ts": 0.013,
+                    "precise.finish_ts": 0.024,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "transaction": "foo1",
+                    "precise.start_ts": 0.032,
+                    "precise.finish_ts": 0.040,
+                },
+            ],
+            {"a" * 32: (0, 40, 10)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "opCategory": None,
+                        "start": 0,
+                        "end": 21,
+                        "kind": "project",
+                    },
+                    {
+                        "project": None,
+                        "opCategory": None,
+                        "start": 21,
+                        "end": 30,
+                        "kind": "missing",
+                    },
+                    {
+                        "project": "foo",
+                        "opCategory": None,
+                        "start": 30,
+                        "end": 40,
+                        "kind": "project",
+                    },
+                ],
+            },
+            id="merge quantized spans",
+        ),
     ],
 )
 def test_process_breakdowns(data, traces_range, expected):
+    traces_range = {
+        trace: {
+            "start": trace_start,
+            "end": trace_end,
+            "min": trace_min,
+        }
+        for trace, (trace_start, trace_end, trace_min) in traces_range.items()
+    }
     result = process_breakdowns(data, traces_range)
     assert result == expected
