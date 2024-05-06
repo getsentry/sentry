@@ -92,6 +92,7 @@ export default function PageloadModule() {
                       'sentry.cocoa',
                       'sentry.javascript.react-native',
                       'sentry.dart.flutter',
+                      'sentry.dart',
                     ]}
                     docsUrl="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#minimum-sdk-requirements"
                   >
