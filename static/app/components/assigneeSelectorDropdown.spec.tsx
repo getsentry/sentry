@@ -524,7 +524,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     expect(await screen.findByTestId('suggested-avatar-stack')).toBeInTheDocument();
     // Hover over avatar
-    await userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
+    await userEvent.hover(await screen.findByTestId('letter_avatar-avatar'));
     expect(await screen.findByText('Suggestion: Apple Bees')).toBeInTheDocument();
     expect(await screen.findByText('commit data')).toBeInTheDocument();
 
@@ -532,7 +532,7 @@ describe('AssigneeSelectorDropdown', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(await screen.findByText('Suggested Assignees')).toBeInTheDocument();
 
-    const options = screen.getAllByRole('option');
+    const options = await screen.findAllByRole('option');
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('AB');
     await userEvent.click(options[0]);
