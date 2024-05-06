@@ -563,7 +563,7 @@ describe('AssigneeSelectorDropdown', () => {
     );
 
     // Suggested assignees shouldn't show anymore because we assigned to the suggested actor
-    expect(screen.queryByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
 
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_2, {
       assignee: USER_1,
