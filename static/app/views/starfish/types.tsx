@@ -184,9 +184,10 @@ export enum SpanIndexedField {
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
   CACHE_ITEM_SIZE = 'measurements.cache.item_size',
-  MESSAGE_ID = 'message.id',
-  MESSAGE_SIZE = 'message.size',
-  MESSAGE_STATUS = 'message.status',
+  TRACE_STATUS = 'trace.status',
+  MESSAGE_ID = 'messaging.message.id',
+  MESSAGE_SIZE = 'measurements.messaging.message.body.size',
+  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
 }
 
 export type IndexedResponse = {
@@ -223,9 +224,10 @@ export type IndexedResponse = {
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
   [SpanIndexedField.CACHE_ITEM_SIZE]: number;
+  [SpanIndexedField.TRACE_STATUS]: string;
   [SpanIndexedField.MESSAGE_ID]: string;
   [SpanIndexedField.MESSAGE_SIZE]: number;
-  [SpanIndexedField.MESSAGE_STATUS]: string;
+  [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
 };
 
 export type IndexedProperty = keyof IndexedResponse;
@@ -243,6 +245,7 @@ export enum SpanFunction {
   HTTP_RESPONSE_RATE = 'http_response_rate',
   CACHE_HIT_RATE = 'cache_hit_rate',
   CACHE_MISS_RATE = 'cache_miss_rate',
+  COUNT_OP = 'count_op',
 }
 
 export const StarfishDatasetFields = {
@@ -293,6 +296,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.CACHE_MISS_RATE]: {
     desc: t('Percentage of cache misses'),
     defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.COUNT_OP]: {
+    desc: t('Count of spans with matching operation'),
+    defaultOutputType: 'integer',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
