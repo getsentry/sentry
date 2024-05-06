@@ -114,8 +114,8 @@ class EventAttributeCondition(EventCondition):
                 return value
             return [value]
 
-        elif len(path) < 2 or len(path) > 3:
-            return []
+        elif len(path) < 2:
+            return []  # all attribute paths below have at least 2 elements
 
         elif path[0] == "exception":
             if path[1] not in ("type", "value"):
@@ -210,6 +210,9 @@ class EventAttributeCondition(EventCondition):
                 if response is None:
                     response = {}
                 return [response.get(path[1])]
+
+        elif len(path) < 3:
+            return []  # all attribute paths below have at least 3 elements
 
         elif path[0] == "os":
             if path[1] in ("distribution"):

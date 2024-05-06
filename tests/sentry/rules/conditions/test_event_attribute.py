@@ -763,7 +763,14 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
-    def test_os_distribution(self):
+    def test_os_distribution_only(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "os.distribution", "value": "irrelevant"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_os_distribution_name_and_version(self):
         event = self.get_event()
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "os.distribution.name", "value": "ubuntu"}
