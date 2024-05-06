@@ -47,7 +47,7 @@ function getValueRectFromSeries(series: Series[]) {
     yMax: Math.max(0, ...yValues) / scalingFactor,
   };
 
-  // happens when refenceSeries has all 0 values, commonlt seen when using min() aggregation
+  // happens when refenceSeries has all 0 values, commonly seen when using min() aggregation
   if (rect.yMin === rect.yMax) {
     return {xMin: rect.xMin, xMax: rect.xMax, yMin: -Infinity, yMax: Infinity};
   }
