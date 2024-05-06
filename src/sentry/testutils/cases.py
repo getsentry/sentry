@@ -20,7 +20,6 @@ from zlib import compress
 import pytest
 import requests
 import responses
-import sentry_kafka_schemas
 from click.testing import CliRunner
 from django.conf import settings
 from django.contrib.auth import login
@@ -63,6 +62,7 @@ from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
 from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstream.snuba import SnubaEventStream
@@ -1770,9 +1770,9 @@ class BaseMetricsTestCase(SnubaTestCase):
         # need to be able to make changes to the indexer's output protocol
         # without having to update a million tests
         if entity.startswith("generic_"):
-            codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
+            codec = get_topic_codec(Topic.SNUBA_GENERIC_METRICS)
         else:
-            codec = sentry_kafka_schemas.get_codec("snuba-metrics")
+            codec = get_topic_codec(Topic.SNUBA_METRICS)
 
         for bucket in buckets:
             codec.validate(bucket)
