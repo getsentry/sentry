@@ -328,8 +328,8 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             assert self.group.status == self.initial_status
             assert self.group.substatus == self.initial_substatus
 
-    @patch("sentry.issues.status_change_consumer.logger.error")
-    def test_invalid_hashes(self, mock_logger_error) -> None:
+    @patch("sentry.issues.status_change_consumer.metrics.incr")
+    def test_invalid_hashes(self, mock_metrics_incr: MagicMock) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -357,14 +357,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             status_change=bad_status_change_resolve,
         )
         group.refresh_from_db()
-        mock_logger_error.assert_called_with(
-            "grouphash.not_found",
-            extra={
-                "project_id": group.project_id,
-                "fingerprint": wrong_fingerprint["fingerprint"][0],
-            },
-            exc_info=True,
-        )
+        mock_metrics_incr.assert_any_call("occurrence_ingest.grouphash.not_found")
         assert group.status == initial_status
         assert group.substatus == initial_substatus
 
