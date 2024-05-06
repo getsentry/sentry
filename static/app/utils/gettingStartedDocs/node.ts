@@ -126,8 +126,10 @@ export function getDefaultServerlessImports({
   library: `google-cloud-serverless` | `aws-serverless`;
   productSelection: ProductSelectionMap;
 }) {
-  const imports: string[] = getImport(library);
-
+  const imports: string[] = [
+    `// You can also use ESM \`import * as Sentry from "@sentry/${library}"\` instead of \`require\``,
+    `const Sentry = require("@sentry/${library}");`,
+  ];
   if (productSelection.profiling) {
     imports.push(
       `const { nodeProfilingIntegration } = require("@sentry/profiling-node");`
