@@ -205,9 +205,12 @@ export function getTableData(
       name: query.name,
       // @ts-expect-error use DashboardMetricsExpression type
       id: query.id,
-      label: isMetricFormula(query)
-        ? unescapeMetricsFormula(query.formula)
-        : formatMRIField(MRIToField(query.mri, query.op)),
+      label:
+        // TODO(metrics): consider consolidating with getMetricQueryName (different types)
+        query.alias ??
+        (isMetricFormula(query)
+          ? unescapeMetricsFormula(query.formula)
+          : formatMRIField(MRIToField(query.mri, query.op))),
       type: 'field',
       order: query.orderBy,
     })),
