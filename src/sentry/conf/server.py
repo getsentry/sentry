@@ -1761,6 +1761,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Enable linking to trace explorer from metrics
+    "organizations:performance-trace-explorer-with-metrics": False,
     # Experimental performance issue for streamed spans - ingestion
     "organizations:performance-streamed-spans-exp-ingest": False,
     # Experimental performance issue for streamed spans - UI
