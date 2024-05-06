@@ -13,7 +13,7 @@ from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegme
 
 from sentry import options
 from sentry.spans.consumers.detect_performance_issues.message import process_segment
-from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_codec("buffered-segments")
 
@@ -70,7 +70,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTaskWithMultiprocessing(
+        return run_task_with_multiprocessing(
             function=_process_message,
             next_step=CommitOffsets(commit),
             max_batch_size=self.max_batch_size,

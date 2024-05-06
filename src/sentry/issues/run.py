@@ -14,7 +14,7 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
-from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
     ) -> ProcessingStrategy[KafkaPayload]:
         assert self.pool is not None
-        return RunTaskWithMultiprocessing(
+        return run_task_with_multiprocessing(
             function=process_message,
             next_step=CommitOffsets(commit),
             max_batch_size=self.max_batch_size,

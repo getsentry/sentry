@@ -16,7 +16,7 @@ from arroyo.types import Commit, FilteredPayload, Message, Partition
 
 from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
-from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 from .attachment_event import decode_and_process_chunks, process_attachments_and_events
 from .simple_event import process_simple_event_message
@@ -42,7 +42,7 @@ def maybe_multiprocess_step(
 ) -> ProcessingStrategy[FilteredPayload | TInput]:
     if mp is not None:
         assert pool is not None
-        return RunTaskWithMultiprocessing(
+        return run_task_with_multiprocessing(
             function=function,
             next_step=next_step,
             max_batch_size=mp.max_batch_size,
