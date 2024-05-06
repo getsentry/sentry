@@ -37,6 +37,7 @@ from sentry.sentry_metrics.querying.errors import (
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
+from sentry.sentry_metrics.querying.metadata.tags import get_tag_keys
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
 from sentry.sentry_metrics.use_case_id_registry import (
@@ -47,8 +48,8 @@ from sentry.sentry_metrics.use_case_id_registry import (
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
-    get_all_tags,
     get_metrics_meta,
+    get_mri,
     get_series,
     get_single_metric_info,
     get_tag_values,
@@ -219,20 +220,26 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         if not projects:
             raise InvalidParams("You must supply at least one project to see the tag names")
 
-        start, end = get_date_range_from_params(request.GET)
-
         try:
-            tags = get_all_tags(
-                projects=projects,
-                metric_names=metric_names,
-                use_case_id=get_use_case_id(request),
-                start=start,
-                end=end,
+            mris = self._convert_metric_names_to_mris(metric_names)
+            tags = get_tag_keys(
+                organization, projects=projects, use_case_ids=[get_use_case_id(request)], mris=mris
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
         return Response(tags, status=200)
+
+    @staticmethod
+    def _convert_metric_names_to_mris(metric_names: list[str]) -> list[str]:
+        mris: list[str] = []
+        for metric_name in metric_names or ():
+            if is_mri(metric_name):
+                mris.append(metric_name)
+            else:
+                mris.append(get_mri(metric_name))
+
+        return mris
 
 
 @region_silo_endpoint
