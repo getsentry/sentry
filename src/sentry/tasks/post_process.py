@@ -1393,15 +1393,15 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
     from sentry.models.userreport import UserReport
 
-    if job["is_reprocessed"]:
-        return
-
     event = job["event"]
     project = event.project
     group = event.group
 
-    if features.has(
-        "organizations:user-feedback-event-link-ingestion-changes", project.organization
+    if (
+        features.has(
+            "organizations:user-feedback-event-link-ingestion-changes", project.organization
+        )
+        and not job["is_reprocessed"]
     ):
         metrics.incr("event_manager.save._update_user_reports_with_event_link")
         event = job["event"]
