@@ -102,11 +102,6 @@ def derive_code_mappings(
         logger.info("Event should not be processed.", extra=extra)
         return
 
-    if data["platform"].startswith("go") and not features.has(
-        "organizations:derive-code-mappings-go", org
-    ):
-        return
-
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
         logger.info("No stacktrace paths found.", extra=extra)
