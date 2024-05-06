@@ -344,15 +344,20 @@ class RuleProcessor:
                 extra={**logging_details},
             )
             return
-
+        skip_slow_conditions_check = False
         if condition_list:
             predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
             result = predicate_func(predicate_iter)
 
-            if condition_match == "any" and not result:
-                if slow_conditions and process_slow_conditions_later:
+            if condition_match == "any":
+                # result = False
+                if not result and slow_conditions and process_slow_conditions_later:
                     self.enqueue_rule(rule)
-                return
+                    return
+                elif result:
+                    skip_slow_conditions_check = True
+                elif not result:
+                    return
 
             elif condition_match == "all":
                 if not result:
@@ -361,8 +366,7 @@ class RuleProcessor:
                 if slow_conditions and process_slow_conditions_later:
                     self.enqueue_rule(rule)
                     return
-
-        if slow_conditions and process_slow_conditions_later:
+        if slow_conditions and process_slow_conditions_later and not skip_slow_conditions_check:
             self.enqueue_rule(rule)
             return
 
@@ -383,7 +387,6 @@ class RuleProcessor:
                 organization_id=rule.project.organization.id,
                 rule_id=rule.id,
             )
-
         notification_uuid = str(uuid.uuid4())
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(

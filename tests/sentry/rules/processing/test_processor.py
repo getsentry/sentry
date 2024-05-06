@@ -193,16 +193,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         Test that a rule with a 'slow' condition, a 'fast' condition, and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
         """
         first_seen_condition = {
-            "id": "sentry.rules.conditions.regression_event.RegressionEventCondition"
-        }
-        event_frequency_condition = {
-            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            "interval": "1h",
-            "value": 1,
+            "id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"
         }
         self.rule.update(
             data={
-                "conditions": [first_seen_condition, event_frequency_condition],
+                "conditions": [first_seen_condition, self.event_frequency_condition],
                 "action_match": "any",
                 "actions": [EMAIL_ACTION_DATA],
             },
@@ -212,7 +207,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
-            has_reappeared=True,
+            has_reappeared=False,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -226,6 +221,28 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
             )
         }
+
+    @with_feature("organizations:process-slow-alerts")
+    def test_rule_match_any_slow_fast_conditions_fast_passes(self):
+        """
+        Test that a rule with both 'slow' and 'fast' conditions and action match of 'any' where a fast condition passes fires and doesn't get enqueued
+        """
+        self.rule.update(
+            data={
+                "conditions": [EVERY_EVENT_COND_DATA, self.event_frequency_condition],
+                "action_match": "any",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 1
 
     @with_feature("organizations:process-slow-alerts")
     def test_delayed_rule_match_all(self):
