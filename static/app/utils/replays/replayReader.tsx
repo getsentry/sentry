@@ -478,6 +478,8 @@ export default class ReplayReader {
             'device.battery',
             'device.connectivity',
             'device.orientation',
+            'app.foreground',
+            'app.background',
           ].includes(frame.category)
         ),
         ...this._errors,

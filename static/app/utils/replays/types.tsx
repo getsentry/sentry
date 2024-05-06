@@ -244,6 +244,8 @@ export type FeedbackFrame = {
   type: string;
 };
 
+export type ForegroundFrame = HydratedBreadcrumb<'app.foreground'>;
+export type BackgroundFrame = HydratedBreadcrumb<'app.background'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
@@ -278,6 +280,8 @@ export const BreadcrumbCategories = [
   'ui.keyDown',
   'ui.multiClick',
   'ui.slowClickDetected',
+  'app.foreground',
+  'app.background',
 ];
 
 // Spans
