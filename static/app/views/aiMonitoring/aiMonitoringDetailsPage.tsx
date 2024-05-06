@@ -13,7 +13,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {CurrencyUnit, DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -140,7 +140,7 @@ export default function AiMonitoringPage({params}: Props) {
                                 'ai_total_tokens_used(c:spans/ai.total_cost@none)'
                               ]
                             }
-                            unit={'USD'}
+                            unit={CurrencyUnit.USD}
                             isLoading={isTotalTokenDataLoading}
                           />
 

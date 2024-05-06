@@ -8,12 +8,15 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
-import type {
-  CountUnit,
-  PercentageUnit,
-  PercentChangeUnit,
+import {
+  type CountUnit,
+  CurrencyUnit,
+  DurationUnit,
+  type PercentageUnit,
+  type PercentChangeUnit,
+  RateUnit,
+  SizeUnit,
 } from 'sentry/utils/discover/fields';
-import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatPercentage,
@@ -28,7 +31,7 @@ type Unit =
   | CountUnit
   | PercentageUnit
   | PercentChangeUnit
-  | 'USD';
+  | CurrencyUnit;
 
 interface Props {
   title: string;
@@ -102,7 +105,7 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
     );
   }
 
-  if (unit === 'USD') {
+  if (unit === CurrencyUnit.USD) {
     const numericValue = typeof value === 'string' ? parseFloat(value) : value;
     if (numericValue < 0.01) {
       renderedValue = (
