@@ -57,8 +57,8 @@ type ExtraBreadcrumbTypes =
   | {
       category: 'navigation';
       data: {
-        from: string;
         to: string;
+        from?: string;
       };
       message: string;
       timestamp: number;
