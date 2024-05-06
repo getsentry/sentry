@@ -25,7 +25,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer.redis import ProcessSegmentsContext, RedisSpansBuffer, SegmentKey
 from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils import metrics
-from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -309,7 +309,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=batch_processor,
         )
 
-        return RunTaskWithMultiprocessing(
+        return run_task_with_multiprocessing(
             function=process_message,
             next_step=batch_step,
             max_batch_size=self.max_batch_size,
