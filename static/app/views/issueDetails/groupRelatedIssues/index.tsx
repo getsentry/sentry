@@ -94,11 +94,9 @@ function GroupRelatedIssues({params}: Props) {
                     </LinkButton>
                   </TextButtonWrapper>
                   <GroupList
-                    endpointPath={`/organizations/${orgSlug}/issues/`}
                     orgSlug={orgSlug}
                     queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
-                    query=""
-                    source="related-issues-tab"
+                    source="similar-issues-tab"
                     canSelectGroups={false}
                     withChart={false}
                   />
@@ -133,11 +131,9 @@ function GroupRelatedIssues({params}: Props) {
                     </LinkButton>
                   </TextButtonWrapper>
                   <GroupList
-                    endpointPath={`/organizations/${orgSlug}/issues/`}
                     orgSlug={orgSlug}
                     queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
-                    query=""
-                    source="related-issues-tab"
+                    source="similar-issues-tab"
                     canSelectGroups={false}
                     withChart={false}
                   />
