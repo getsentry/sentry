@@ -27,7 +27,8 @@ type Unit =
   | RateUnit
   | CountUnit
   | PercentageUnit
-  | PercentChangeUnit;
+  | PercentChangeUnit
+  | 'USD';
 
 interface Props {
   title: string;
@@ -99,6 +100,21 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
         {formatAbbreviatedNumber(typeof value === 'string' ? parseInt(value, 10) : value)}
       </NumberContainer>
     );
+  }
+
+  if (unit === 'USD') {
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (numericValue < 0.01) {
+      renderedValue = (
+        <NumberContainer align={align}>US {numericValue * 100}¢</NumberContainer>
+      );
+    } else if (numericValue >= 1) {
+      renderedValue = (
+        <NumberContainer align={align}>
+          US ${formatAbbreviatedNumber(numericValue)}
+        </NumberContainer>
+      );
+    }
   }
 
   if (unit === 'percentage') {
