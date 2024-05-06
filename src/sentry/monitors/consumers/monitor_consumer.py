@@ -28,8 +28,6 @@ from sentry import quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -54,8 +52,8 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
+from sentry.services.hybrid_cloud.actor import ActorType, parse_and_validate_actor
 from sentry.utils import json, metrics
-from sentry.utils.actor import parse_and_validate_actor
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -100,9 +98,9 @@ def _ensure_monitor_with_config(
             },
         )
     else:
-        if owner_actor and owner_actor.type == User:
+        if owner_actor and owner_actor.actor_type == ActorType.USER:
             owner_user_id = owner_actor.id
-        elif owner_actor and owner_actor.type == Team:
+        elif owner_actor and owner_actor.actor_type == ActorType.TEAM:
             owner_team_id = owner_actor.id
 
     validator = ConfigValidator(data=config)

@@ -14,12 +14,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.rule import Rule
-from sentry.models.team import Team
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.utils.actor import ActorTuple
 
 NOT_SET = object()
 
@@ -68,7 +66,7 @@ class BaseAlertRuleSerializerTest:
             assert result["environment"] is None
 
         if alert_rule.user_id or alert_rule.team_id:
-            owner = ActorTuple.from_id(user_id=alert_rule.user_id, team_id=alert_rule.team_id)
+            owner = RpcActor.from_id(user_id=alert_rule.user_id, team_id=alert_rule.team_id)
             assert owner
             assert result["owner"] == owner.identifier
         else:
@@ -109,11 +107,10 @@ class BaseAlertRuleSerializerTest:
         if data.get("date_added"):
             rule.date_added = data["date_added"]
         if data.get("owner"):
-            actor = ActorTuple.from_actor_identifier(data["owner"])
-            assert actor, "Should not be None"
-            if actor.type == User:
+            actor = RpcActor.from_identifier(data["owner"])
+            if actor.actor_type == ActorType.USER:
                 rule.owner_user_id = actor.id
-            if actor.type == Team:
+            if actor.actor_type == ActorType.TEAM:
                 rule.owner_team_id = actor.id
 
         rule.save()
@@ -205,7 +202,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(
             environment=self.environment,
             user=user,
-            owner=ActorTuple.from_id(team_id=self.team.id, user_id=None),
+            owner=RpcActor.from_id(team_id=self.team.id, user_id=None),
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)

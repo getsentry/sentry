@@ -13,8 +13,8 @@ from rest_framework.serializers import ValidationError
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils.actor import ActorTuple
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
@@ -412,13 +412,11 @@ def convert_codeowners_syntax(
     return result
 
 
-def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, ActorTuple]:
+def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, RpcActor]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
     from sentry.models.team import Team
-    from sentry.models.user import User
-    from sentry.utils.actor import ActorTuple
 
     if not owners:
         return {}
@@ -457,7 +455,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
 
         actors.update(
             {
-                ("user", email.lower()): ActorTuple(u_id, User)
+                ("user", email.lower()): RpcActor(id=u_id, actor_type=ActorType.USER)
                 # This will need to be broken in hybrid cloud world, querying users from region silo won't be possible
                 # without an explicit service call.
                 for u_id, email in user_id_email_tuples
@@ -467,7 +465,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
     if teams:
         actors.update(
             {
-                ("team", slug): ActorTuple(t_id, Team)
+                ("team", slug): RpcActor(id=t_id, actor_type=ActorType.TEAM)
                 for t_id, slug in Team.objects.filter(
                     slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
                 ).values_list("id", "slug")

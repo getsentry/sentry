@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from collections import defaultdict
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Iterable, MutableMapping, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Union, overload
 
@@ -47,7 +47,7 @@ class RpcActor(RpcModel):
         return hash((self.id, self.actor_type))
 
     @classmethod
-    def resolve_many(cls, actors: Iterable["RpcActor"]) -> list["Team | RpcUser"]:
+    def resolve_many(cls, actors: Sequence["RpcActor"]) -> list["Team | RpcUser"]:
         """
         Resolve a list of actors in a batch to the Team/User the Actor references.
 

@@ -26,11 +26,11 @@ from sentry.incidents.models.incident import Incident
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.utils.actor import ActorTuple
 
 logger = logging.getLogger(__name__)
 
@@ -198,8 +198,8 @@ class AlertRuleSerializer(Serializer):
             )
             result[item]["activations"] = serialize(activations, **kwargs)
 
-            actor = ActorTuple.from_id(user_id=item.user_id, team_id=item.team_id)
-            if actor:
+            if item.user_id or item.team_id:
+                actor = RpcActor.from_id(user_id=item.user_id, team_id=item.team_id)
                 result[item]["owner"] = actor.identifier
 
         if "original_alert_rule" in self.expand:

@@ -29,7 +29,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.actor import ActorTuple
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -229,7 +228,7 @@ class ProjectTest(APITestCase, TestCase):
         alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[project],
-            owner=ActorTuple.from_actor_identifier(f"team:{team.id}"),
+            owner=RpcActor.from_identifier(f"team:{team.id}"),
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
@@ -378,7 +377,7 @@ class ProjectTest(APITestCase, TestCase):
 
         rule = Rule.objects.create(project=self.project, label="issa rule", owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
-            organization=self.organization, owner=ActorTuple.from_id(user_id=None, team_id=team.id)
+            organization=self.organization, owner=RpcActor.from_id(team_id=team.id)
         )
         self.project.remove_team(team)
 
