@@ -46,14 +46,6 @@ describe('useActiveReplayTab', () => {
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
-  it('should use Tags as a default for video replays', () => {
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {isVideoReplay: true},
-    });
-
-    expect(result.current.getActiveTab()).toBe(TabKey.TAGS);
-  });
-
   it('should use Breadcrumbs as a default, when there is a click search in the url', () => {
     mockLocation('click.tag:button');
 
@@ -80,19 +72,6 @@ describe('useActiveReplayTab', () => {
   it('should set the default tab if the name is invalid', () => {
     const {result} = renderHook(useActiveReplayTab, {
       initialProps: {},
-    });
-    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
-
-    result.current.setActiveTab('foo bar');
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.BREADCRUMBS},
-    });
-  });
-
-  it('should set the default tab if the name is invalid for video replays', () => {
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {isVideoReplay: true},
     });
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
