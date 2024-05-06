@@ -653,7 +653,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
         self.login_as(self.user)
         alert_rule = self.alert_rule
-        alert_rule.owner = self.team.actor
+        alert_rule.team = self.team
+        alert_rule.user_id = None
         alert_rule.save()
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
@@ -1294,7 +1295,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         )
         self.login_as(self.user)
         alert_rule = self.alert_rule
-        alert_rule.owner = self.team.actor
+        alert_rule.team = self.team
         alert_rule.save()
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         OrganizationMemberTeam.objects.filter(
@@ -1305,7 +1306,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             resp = self.get_response(self.organization.slug, alert_rule.id)
         assert resp.status_code == 204
         another_alert_rule = self.alert_rule
-        alert_rule.owner = self.team.actor
+        alert_rule.team = self.team
         another_alert_rule.save()
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
@@ -1320,7 +1321,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         team = self.create_team(organization=self.organization, members=[self.user])
         project = self.create_project(name="boo", organization=self.organization, teams=[team])
         alert_rule = self.create_alert_rule(projects=[project])
-        alert_rule.owner = team.actor
         alert_rule.team_id = team.id
         alert_rule.save()
 
@@ -1331,7 +1331,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             name="ahh", organization=self.organization, teams=[other_team]
         )
         other_alert_rule = self.create_alert_rule(projects=[other_project])
-        other_alert_rule.owner = other_team.actor
         other_alert_rule.team_id = other_team.id
         other_alert_rule.save()
 

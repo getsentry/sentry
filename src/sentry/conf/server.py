@@ -187,8 +187,6 @@ SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
-CDC_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "cdc")
-
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -1819,8 +1817,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:scim-team-roles": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enable Sentry Functions
-    "organizations:sentry-functions": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable core Session Replay backend APIs
@@ -1952,6 +1948,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # User Feedback Error Link Ingestion Changes
+    "organizations:user-feedback-event-link-ingestion-changes": False,
     # Enabled unresolved issue webhook for organization
     "organizations:webhooks-unresolved": False,
     # Enable view hierarchies options
@@ -2728,9 +2726,6 @@ SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # metrics in the development environment. Note: this is "metrics" the product
 SENTRY_USE_METRICS_DEV = False
 
-# This flags activates the Change Data Capture backend in the development environment
-SENTRY_USE_CDC_DEV = False
-
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
@@ -2774,18 +2769,6 @@ SENTRY_USE_SPOTLIGHT = False
 #         }
 #     )
 # }
-
-
-def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]]:
-    return (
-        {
-            os.path.join(settings.CDC_CONFIG_DIR, "init_hba.sh"): {
-                "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
-            }
-        }
-        if settings.SENTRY_USE_CDC_DEV
-        else {}
-    )
 
 
 # platform.processor() changed at some point between these:
@@ -2839,8 +2822,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "volumes": {
                 "postgres": {"bind": "/var/lib/postgresql/data"},
                 "wal2json": {"bind": "/wal2json"},
-                settings.CDC_CONFIG_DIR: {"bind": "/cdc"},
-                **build_cdc_postgres_init_db_volume(settings),
             },
             "command": [
                 "postgres",
@@ -2851,7 +2832,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "-c",
                 "max_wal_senders=1",
             ],
-            "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
         }
     ),
     "kafka": lambda settings, options: (
@@ -2988,7 +2968,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "chartcuterie": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/chartcuterie:latest",
+            "image": "us-central1-docker.pkg.dev/sentryio/chartcuterie/image:latest",
             "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
             "environment": {
                 "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
@@ -2998,14 +2978,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
             "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
             or options.get("chart-rendering.enabled"),
-        }
-    ),
-    "cdc": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/cdc:latest",
-            "only_if": settings.SENTRY_USE_CDC_DEV,
-            "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
-            "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
         }
     ),
     "vroom": lambda settings, options: (

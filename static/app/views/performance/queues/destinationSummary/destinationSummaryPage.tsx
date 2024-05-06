@@ -93,15 +93,13 @@ function DestinationSummaryPage() {
                   <MetricsRibbon>
                     <MetricReadout
                       title={t('Avg Time In Queue')}
-                      value={undefined}
+                      value={data[0]?.['avg(messaging.message.receive.latency)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={false}
                     />
                     <MetricReadout
                       title={t('Avg Processing Latency')}
-                      value={
-                        data[0]?.['avg_if(span.self_time,span.op,queue.task.celery)']
-                      }
+                      value={data[0]?.['avg_if(span.self_time,span.op,queue.process)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={false}
                     />
@@ -113,13 +111,13 @@ function DestinationSummaryPage() {
                     />
                     <MetricReadout
                       title={t('Published')}
-                      value={data[0]?.['count_op(queue.submit.celery)']}
+                      value={data[0]?.['count_op(queue.publish)']}
                       unit={'count'}
                       isLoading={false}
                     />
                     <MetricReadout
                       title={t('Processed')}
-                      value={data[0]?.['count_op(queue.task.celery)']}
+                      value={data[0]?.['count_op(queue.process)']}
                       unit={'count'}
                       isLoading={false}
                     />

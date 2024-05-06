@@ -10,6 +10,7 @@ from sentry.search.events import builder, constants
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
+    ColumnArg,
     ColumnTagArg,
     IntervalDefault,
     NullableNumberRange,
@@ -319,6 +320,13 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="duration",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "array_join",
+                    required_args=[ColumnArg("column", allowed_columns=["tags.key"])],
+                    snql_column=lambda args, alias: Function("arrayJoin", [args["column"]], alias),
+                    default_result_type="string",
                     private=True,
                 ),
             ]

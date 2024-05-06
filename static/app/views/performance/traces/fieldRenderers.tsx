@@ -58,7 +58,6 @@ export const TraceBreakdownContainer = styled('div')`
   min-width: 150px;
   height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
   background-color: ${p => p.theme.gray100};
-  overflow: hidden;
 `;
 
 const RectangleTraceBreakdown = styled(RowRectangle)<{
@@ -71,7 +70,10 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
   ${p => `
     opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
   `}
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  ${p => `
+    transform: var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0));
+  `}
+  transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export function TraceBreakdownRenderer({
@@ -243,7 +245,6 @@ export function TraceIdRenderer({
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {},
     stringOrNumberTimestamp,
     transactionId
   );

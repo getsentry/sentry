@@ -10,7 +10,7 @@ import jsonschema
 
 from sentry import features, options
 from sentry.constants import DataCategory
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.spam_detection import is_spam
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -297,7 +297,7 @@ class UserReportShimDict(TypedDict):
 
 def shim_to_feedback(
     report: UserReportShimDict,
-    event: Event,
+    event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
 ):
