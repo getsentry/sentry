@@ -111,3 +111,14 @@ class DatadogMetricsBackend(MetricsBackend):
     ) -> None:
         # We keep the same implementation for Datadog.
         self.timing(key, value, instance, tags, sample_rate)
+
+    def event(
+        self,
+        key: str,
+        value: float,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        raise NotImplementedError
