@@ -1933,7 +1933,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             return self.builder.default_filter_converter(search_filter)
 
     def _transaction_status_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        return filter_aliases.span_status_filter_converter(self, search_filter)
+        return filter_aliases.span_status_filter_converter(self.builder, search_filter)
 
     def _performance_issue_ids_filter_converter(
         self, search_filter: SearchFilter
