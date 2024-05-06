@@ -80,11 +80,20 @@ const onboarding: OnboardingConfig = {
           <List symbol="bullet">
             <ListItem>
               {tct(
-                'Create [clientCode:sentry.client.config.js] and [serverCode:sentry.server.config.js] with the default [sentryInitCode:Sentry.init].',
+                'Create [serverCode:sentry.server.config.js], [clientCode:sentry.client.config.js] and [edgeCode:sentry.edge.config.js] with the default [sentryInitCode:Sentry.init].',
                 {
                   clientCode: <code />,
                   serverCode: <code />,
+                  edgeCode: <code />,
                   sentryInitCode: <code />,
+                }
+              )}
+            </ListItem>
+            <ListItem>
+              {tct(
+                'Create or update the Next.js instrumentation file [instrumentationCode:instrumentation.ts] to initialize the SDK with the configuration files added in the previous step.',
+                {
+                  instrumentationCode: <code />,
                 }
               )}
             </ListItem>
@@ -98,17 +107,14 @@ const onboarding: OnboardingConfig = {
             </ListItem>
             <ListItem>
               {tct(
-                'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
+                'Create a [bundlerPluginsEnv:.env.sentry-build-plugin] with an auth token (which is used to upload source maps when building the application).',
                 {
-                  sentryClircCode: <code />,
-                  sentryPropertiesCode: <code />,
+                  bundlerPluginsEnv: <code />,
                 }
               )}
             </ListItem>
             <ListItem>
-              {tct('Add an example page to your app to verify your Sentry setup.', {
-                sentryClircCode: <code />,
-              })}
+              {t('Add an example page to your app to verify your Sentry setup.')}
             </ListItem>
           </List>
           <br />
@@ -182,8 +188,13 @@ const replayOnboarding: OnboardingConfig = {
         <Fragment>
           <TracePropagationMessage />
           {tct(
-            'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it into [sentryServer:sentry.server.config.js] or [sentryEdge:sentry.edge.config.js] may break your build.',
-            {sentryClient: <code />, sentryServer: <code />, sentryEdge: <code />}
+            'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+            {
+              sentryClient: <code />,
+              sentryServer: <code />,
+              sentryEdge: <code />,
+              instrumentation: <code />,
+            }
           )}
         </Fragment>
       ),
@@ -231,9 +242,22 @@ const feedbackOnboarding: OnboardingConfig = {
           ],
         },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/#crash-report-modal',
-      }),
+      additionalInfo: (
+        <Fragment>
+          {tct(
+            'Alert: The User Feedback integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+            {
+              sentryClient: <code />,
+              sentryServer: <code />,
+              sentryEdge: <code />,
+              instrumentation: <code />,
+            }
+          )}
+          {crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/#crash-report-modal',
+          })}
+        </Fragment>
+      ),
     },
   ],
   verify: () => [],
