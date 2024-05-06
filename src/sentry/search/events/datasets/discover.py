@@ -91,7 +91,7 @@ from sentry.search.events.fields import (
     normalize_percentile_alias,
     with_default,
 )
-from sentry.search.events.filter import to_list, translate_transaction_status
+from sentry.search.events.filter import to_list
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.referrer import Referrer
@@ -1933,22 +1933,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             return self.builder.default_filter_converter(search_filter)
 
     def _transaction_status_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        # Handle "has" queries
-        if search_filter.value.raw_value == "":
-            return Condition(
-                self.builder.resolve_field(search_filter.key.name),
-                Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
-            )
-        internal_value = (
-            [translate_transaction_status(val) for val in search_filter.value.raw_value]
-            if search_filter.is_in_filter
-            else translate_transaction_status(search_filter.value.raw_value)
-        )
-        return Condition(
-            self.builder.resolve_field(search_filter.key.name),
-            Op(search_filter.operator),
-            internal_value,
-        )
+        return filter_aliases.span_status_filter_converter(self, search_filter)
 
     def _performance_issue_ids_filter_converter(
         self, search_filter: SearchFilter
