@@ -109,12 +109,14 @@ export function getDefaultNodeImports({
 
 export function getDefaulServerlessImports({
   productSelection,
+  library,
 }: {
+  library: `google-cloud-serverless` | `aws-serverless`;
   productSelection: ProductSelectionMap;
 }) {
   const imports: string[] = [
-    `// You can also use ESM \`import * as Sentry from "@sentry/serverless"\` instead of \`require\``,
-    `const Sentry = require("@sentry/serverless");`,
+    `// You can also use ESM \`import * as Sentry from "@sentry/${library}"\` instead of \`require\``,
+    `const Sentry = require("@sentry/${library}");`,
   ];
   if (productSelection.profiling) {
     imports.push(

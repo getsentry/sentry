@@ -35,7 +35,7 @@ const getSdkSetupSnippet = (params: Params) => `
 
 ${getDefaultNodeImports({productSelection: productSelection(params)}).join('\n')}
 
-Sentry..init({
+Sentry.init({
   dsn: "${params.dsn}",
   integrations: [${
     params.isProfilingSelected

@@ -30,7 +30,7 @@ const productSelection = (params: Params): ProductSelectionMap => {
 const getInstallSnippet = (params: Params) => `
 dependencies: {
   //...
-  "@sentry/serverless": "^7",${
+  "@sentry/serverless": "^8",${
     params.isProfilingSelected
       ? `
   "@sentry/profiling-node": "^1",`
@@ -40,9 +40,9 @@ dependencies: {
 }`;
 
 const getSdkSetupSnippet = (params: Params) => `
-${getDefaulServerlessImports({productSelection: productSelection(params)}).join('\n')}
+${getDefaulServerlessImports({productSelection: productSelection(params), library: 'google-cloud-serverless'}).join('\n')}
 
-Sentry.GCPFunction.init({
+Sentry.init({
   dsn: "${params.dsn}",
   integrations: [${
     params.isProfilingSelected
@@ -66,31 +66,31 @@ Sentry.GCPFunction.init({
 });
 
 // Use wrapHttpFunction to instrument your http functions
-exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
+exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
   /* Your function code */
 });
 
 // Use wrapEventFunction to instrument your background functions
-exports.helloEvents = Sentry.GCPFunction.wrapEventFunction(
+exports.helloEvents = Sentry.wrapEventFunction(
   (data, context, callback) => {
     /* Your function code */
   }
 );
 
 // Use wrapCloudEventFunction to instrument your CloudEvent functions
-exports.helloEvents = Sentry.GCPFunction.wrapCloudEventFunction(
+exports.helloEvents = Sentry.wrapCloudEventFunction(
   (context, callback) => {
     /* Your function code */
   }
 );`;
 
 const getVerifySnippet = () => `
-exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
+exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
   throw new Error("oh, hello there!");
 });`;
 
 const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.GCPFunction.init({
+Sentry.init({
   dsn: "${params.dsn}",
   _experiments: {
     metricsAggregator: true,
@@ -153,7 +153,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/serverless]:',
+        'You need a minimum version [codeVersion:8.0.0] of [codePackage:@sentry/google-cloud-serverless]:',
         {
           codeVersion: <code />,
           codePackage: <code />,
