@@ -40,6 +40,8 @@ OPTION_KEYS = frozenset(
         "sentry:feedback_ai_spam_detection",
         "sentry:feedback_user_report_notifications",
         "sentry:fingerprinting_rules",
+        "sentry:highlight_tags",
+        "sentry:highlight_context",
         "sentry:grouping_auto_update",
         "sentry:grouping_config",
         "sentry:grouping_enhancements_base",
