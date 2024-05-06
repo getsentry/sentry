@@ -43,7 +43,7 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
 
         url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
 
-        response = self.client.get(url, format="json")
+        response = self.client.get(url, {"statsPeriod": "14d"}, format="json")
         assert response.status_code == 200, response.content
         data = response.data
         data.sort(key=lambda val: val["totalValues"], reverse=True)
