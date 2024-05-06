@@ -25,8 +25,8 @@ import {
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
-import {Chart} from 'sentry/views/performance/mobile/ui/screens/chart';
 import {UIScreensTable} from 'sentry/views/performance/mobile/ui/screens/table';
+import {TopScreensChart} from 'sentry/views/performance/mobile/ui/screens/topScreensChart';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -160,21 +160,21 @@ export function UIScreens() {
   return (
     <Layout>
       <ChartContainer>
-        <Chart
+        <TopScreensChart
           yAxis={YAXIS_COLUMNS[YAxis.SLOW_FRAMES]}
           isLoading={isReleaseEventsLoading}
           chartHeight={200}
           topTransactions={topTransactions}
           transformedReleaseEvents={transformedReleaseEvents}
         />
-        <Chart
+        <TopScreensChart
           yAxis={YAXIS_COLUMNS[YAxis.FROZEN_FRAMES]}
           isLoading={isReleaseEventsLoading}
           chartHeight={200}
           topTransactions={topTransactions}
           transformedReleaseEvents={transformedReleaseEvents}
         />
-        <Chart
+        <TopScreensChart
           yAxis={YAXIS_COLUMNS[YAxis.FRAMES_DELAY]}
           isLoading={isReleaseEventsLoading}
           chartHeight={200}

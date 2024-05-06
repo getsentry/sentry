@@ -4,7 +4,28 @@ import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screen
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 
-export function Chart({
+function getChartTitle(yAxis: string, countTopScreens: number) {
+  const TITLES = {
+    ['avg(mobile.slow_frames)']: [
+      t('Top Screen Slow Frames'),
+      t('Top %s Screen Slow Frames', countTopScreens),
+    ],
+    ['avg(mobile.frozen_frames)']: [
+      t('Top Screen Frozen Frames'),
+      t('Top %s Screen Frozen Frames', countTopScreens),
+    ],
+    ['avg(mobile.frames_delay)']: [
+      t('Top Screen Frames Delay'),
+      t('Top %s Screen Frames Delay', countTopScreens),
+    ],
+  };
+
+  const [singularTopScreenTitle, pluralTopScreenTitle] = TITLES[yAxis];
+
+  return countTopScreens > 1 ? pluralTopScreenTitle : singularTopScreenTitle;
+}
+
+export function TopScreensChart({
   yAxis,
   topTransactions,
   transformedReleaseEvents,
@@ -16,17 +37,11 @@ export function Chart({
 
   const countTopScreens = Math.min(TOP_SCREENS, topTransactions.length);
 
-  // TODO
-  const [singularTopScreenTitle, pluralTopScreenTitle] = [
-    t('Top Screen Data'),
-    t('Top %s Screen Data', countTopScreens),
-  ];
-
   return (
     <ScreensBarChart
       chartOptions={[
         {
-          title: countTopScreens > 1 ? pluralTopScreenTitle : singularTopScreenTitle,
+          title: getChartTitle(yAxis, countTopScreens),
           yAxis,
           xAxisLabel: topTransactions,
           series: Object.values(transformedReleaseEvents[yAxis]),
