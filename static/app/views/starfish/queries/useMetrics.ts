@@ -25,7 +25,7 @@ interface UseMetricsOptions<Fields> {
 export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsOptions<Fields> = {}
 ) => {
-  return useMetricsBase<Fields, SpanMetricsResponse>(
+  return useDiscover<Fields, SpanMetricsResponse>(
     options,
     DiscoverDatasets.SPANS_METRICS
   );
@@ -34,10 +34,10 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
 export const useMetrics = <Fields extends MetricsProperty[]>(
   options: UseMetricsOptions<Fields> = {}
 ) => {
-  return useMetricsBase<Fields, MetricsResponse>(options, DiscoverDatasets.METRICS);
+  return useDiscover<Fields, MetricsResponse>(options, DiscoverDatasets.METRICS);
 };
 
-const useMetricsBase = <T extends Extract<keyof ResponseType, string>[], ResponseType>(
+const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseType>(
   options: UseMetricsOptions<T> = {},
   dataset: DiscoverDatasets
 ) => {
