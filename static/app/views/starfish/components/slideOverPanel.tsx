@@ -3,21 +3,21 @@ import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
 const PANEL_WIDTH = '50vw';
 const PANEL_HEIGHT = '50vh';
 
-const INITIAL_STYLES = {
-  bottom: {opacity: 0, x: 0, y: 0},
-  right: {opacity: 0, x: PANEL_WIDTH, y: 0},
+const OPEN_STYLES = {
+  bottom: {opacity: 1, x: 0, y: 0},
+  right: {opacity: 1, x: 0, y: 0},
 };
 
-const FINAL_STYLES = {
+const COLLAPSED_STYLES = {
   bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
-  right: {opacity: 0, x: PANEL_WIDTH},
+  right: {opacity: 0, x: PANEL_WIDTH, y: 0},
 };
 
 type SlideOverPanelProps = {
@@ -38,33 +38,40 @@ function SlideOverPanel(
       onOpen();
     }
   }, [collapsed, onOpen]);
-  const initial = slidePosition ? INITIAL_STYLES[slidePosition] : INITIAL_STYLES.right;
-  const final = slidePosition ? FINAL_STYLES[slidePosition] : FINAL_STYLES.right;
+
+  const openStyle = slidePosition ? OPEN_STYLES[slidePosition] : OPEN_STYLES.right;
+
+  const collapsedStyle = slidePosition
+    ? COLLAPSED_STYLES[slidePosition]
+    : COLLAPSED_STYLES.right;
 
   return (
-    <_SlideOverPanel
-      ref={ref}
-      collapsed={collapsed}
-      initial={initial}
-      animate={!collapsed ? {opacity: 1, x: 0, y: 0} : final}
-      slidePosition={slidePosition}
-      transition={{
-        type: 'spring',
-        stiffness: 500,
-        damping: 50,
-      }}
-    >
-      {children}
-    </_SlideOverPanel>
+    <AnimatePresence>
+      {!collapsed && (
+        <_SlideOverPanel
+          ref={ref}
+          initial={collapsedStyle}
+          animate={openStyle}
+          exit={collapsedStyle}
+          slidePosition={slidePosition}
+          transition={{
+            type: 'spring',
+            stiffness: 500,
+            damping: 50,
+          }}
+        >
+          {children}
+        </_SlideOverPanel>
+      )}
+    </AnimatePresence>
   );
 }
 
 const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
-    ['animate', 'transition', 'initial'].includes(prop) ||
+    ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
-  collapsed: boolean;
   slidePosition?: 'right' | 'bottom';
 }>`
   position: fixed;
@@ -109,14 +116,4 @@ const _SlideOverPanel = styled(motion.div, {
             left: auto;
           `}
   }
-
-  ${p =>
-    p.collapsed
-      ? css`
-          overflow: hidden;
-        `
-      : css`
-          overflow-x: hidden;
-          overflow-y: auto;
-        `}
 `;
