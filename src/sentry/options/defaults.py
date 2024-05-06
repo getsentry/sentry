@@ -1710,7 +1710,7 @@ register(
     type=Int,
     default=2500,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # hours
+)
 register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
