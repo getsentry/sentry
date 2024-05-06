@@ -101,7 +101,7 @@ export function CacheLandingPage() {
     search: new MutableSearch(
       `transaction:[${transactionsList.map(({transaction}) => transaction).join(',')}]`
     ),
-    fields: [`avg(transaction.duration)`],
+    fields: [`avg(transaction.duration)`, 'transaction'],
     enabled: !isTransactionsListLoading && transactionsList.length > 0,
   });
 
@@ -110,8 +110,8 @@ export function CacheLandingPage() {
   const transactionsListWithDuration =
     transactionsList?.map(transaction => ({
       ...transaction,
-      'transaction.duration':
-        transactionDurationsMap[transaction.transaction]?.['transaction.duration'],
+      'avg(transaction.duration)':
+        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)'],
     })) || [];
 
   return (

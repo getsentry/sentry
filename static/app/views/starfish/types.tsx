@@ -315,6 +315,8 @@ export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
+} & {
+  [Property in MetricsStringFields as `${Property}`]: string;
 };
 
 export type MetricsProperty = keyof MetricsResponse;
