@@ -442,7 +442,7 @@ class SnubaTagStorage(TagStorage):
         # that we don't cause performance issues for Snuba.
         # We also see issues with long timeranges in large projects,
         # So only disable sampling if the timerange is short enough.
-        if len(projects) <= max_unsampled_projects and end - start > timedelta(days=14):
+        if len(projects) <= max_unsampled_projects and end - start <= timedelta(days=14):
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
             projects,
