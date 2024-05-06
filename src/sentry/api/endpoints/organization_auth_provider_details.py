@@ -26,7 +26,7 @@ class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
         currently installed auth_provider
         ``````````````````````````````````````````````````````
 
-        :pparam string organization_id_or_slug: the id or slug of the organization
+        :pparam string organization_slug: the organization short name
         :auth: required
         """
         auth_provider = auth_service.get_auth_provider(organization_id=organization.id)

@@ -5,9 +5,9 @@
     "operationId": "List a Project's Issues",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issues belong to.",
+        "description": "The slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -143,9 +143,9 @@
     "operationId": "Bulk Mutate a List of Issues",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issues belong to.",
+        "description": "The slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -304,9 +304,9 @@
     "operationId": "Bulk Remove a List of Issues",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issues belong to.",
+        "description": "The slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"

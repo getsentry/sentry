@@ -51,7 +51,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
         Return details on an individual team.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
+        :pparam string organization_slug: the slug of the organization the
                                           team belongs to.
         :pparam string team_id_or_slug: the id or slug of the team to get.
         :qparam list expand: an optional list of strings to opt in to additional
@@ -81,7 +81,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         Update various attributes and configurable settings for the given
         team.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
+        :pparam string organization_slug: the slug of the organization the
                                           team belongs to.
         :pparam string team_id_or_slug: the id or slug of the team to get.
         :param string name: the new name for the team.

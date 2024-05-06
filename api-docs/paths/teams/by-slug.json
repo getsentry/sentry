@@ -5,9 +5,9 @@
     "operationId": "Retrieve a Team",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the team belongs to.",
+        "description": "The slug of the organization the team belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -83,9 +83,9 @@
     "operationId": "Update a Team",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the team belongs to.",
+        "description": "The slug of the organization the team belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -172,9 +172,9 @@
     "operationId": "Delete a Team",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the team belongs to.",
+        "description": "The slug of the organization the team belongs to.",
         "required": true,
         "schema": {
           "type": "string"

@@ -5,9 +5,9 @@
     "operationId": "List a Project's Debug Information Files",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the file belongs to.",
+        "description": "The slug of the organization the file belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -49,9 +49,9 @@
     "operationId": "Upload a New File",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the project belongs to.",
+        "description": "The slug of the organization the project belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -117,9 +117,9 @@
     "operationId": "Delete a Specific Project's Debug Information File",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the file belongs to.",
+        "description": "The slug of the organization the file belongs to.",
         "required": true,
         "schema": {
           "type": "string"

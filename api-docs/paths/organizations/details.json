@@ -5,9 +5,9 @@
     "operationId": "Retrieve an Organization",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization to look up.",
+        "description": "The slug of the organization to look up.",
         "required": true,
         "schema": {
           "type": "string"
@@ -230,9 +230,9 @@
     "operationId": "Update an Organization",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization to update.",
+        "description": "The slug of the organization to update.",
         "required": true,
         "schema": {
           "type": "string"

@@ -41,7 +41,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Get list of user who have viewed a replay",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ReplayParams.REPLAY_ID,
         ],

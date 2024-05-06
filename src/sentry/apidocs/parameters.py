@@ -18,9 +18,9 @@ def build_typed_list(type: Any):
 
 
 class GlobalParams:
-    ORG_ID_OR_SLUG = OpenApiParameter(
-        name="organization_id_or_slug",
-        description="The id or slug of the organization the resource belongs to.",
+    ORG_SLUG = OpenApiParameter(
+        name="organization_slug",
+        description="The slug of the organization the resource belongs to.",
         required=True,
         type=str,
         location="path",

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import logging
 import re
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, cast
@@ -39,7 +38,6 @@ class BaseClassification(abc.ABC):
 class PluginClassification(BaseClassification):
     plugin_prefix = "/plugins/"
     """Prefix for plugin requests."""
-    logger = logging.getLogger(f"{__name__}.plugin")
 
     def should_operate(self, request: HttpRequest) -> bool:
         from .parsers import PluginRequestParser
@@ -54,14 +52,12 @@ class PluginClassification(BaseClassification):
         from .parsers import PluginRequestParser
 
         rp = PluginRequestParser(request=request, response_handler=self.response_handler)
-        self.logger.info("routing_request.plugin", extra={"path": request.path})
         return rp.get_response()
 
 
 class IntegrationClassification(BaseClassification):
     integration_prefix = "/extensions/"
     """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
-    logger = logging.getLogger(f"{__name__}.integration")
 
     @property
     def integration_parsers(self) -> Mapping[str, type[BaseRequestParser]]:
@@ -153,14 +149,5 @@ class IntegrationClassification(BaseClassification):
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
             tags={"url_name": parser.match.url_name, "status_code": response.status_code},
             sample_rate=1.0,
-        )
-        self.logger.info(
-            f"integration_control.routing_request.{parser.provider}.response",
-            extra={
-                "request.path": request.path,
-                "request.method": request.method,
-                "url_name": parser.match.url_name,
-                "response.status_code": response.status_code,
-            },
         )
         return response

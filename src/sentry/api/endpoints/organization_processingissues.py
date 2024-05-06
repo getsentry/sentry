@@ -21,7 +21,7 @@ class OrganizationProcessingIssuesEndpoint(OrganizationEndpoint):
         For each Project in an Organization, list its processing issues. Can
         be passed `project` to filter down to specific projects.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string organization_slug: the slug of the organization.
         :qparam array[string] project: An optional list of project ids to filter
         to within the organization
         :auth: required

@@ -45,7 +45,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.STATS_PERIOD,
             OrganizationParams.PROJECT,
             SessionsParams.FIELD,

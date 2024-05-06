@@ -37,7 +37,7 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
 
     object_type = "unknown"
 
-    def fetch_instance(self, request: Request, organization_id_or_slug: int | str, id: int) -> T:
+    def fetch_instance(self, request: Request, organization_slug: str, id: int) -> T:
         raise NotImplementedError()
 
     def unsubscribe(self, request: Request, instance: T):
@@ -46,12 +46,10 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
     def add_instance_data(self, data: dict[str, Any], instance: T) -> dict[str, Any]:
         return data
 
-    def get(
-        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
-    ) -> Response:
+    def get(self, request: Request, organization_slug: str, id: int, **kwargs) -> Response:
         if not request.user_from_signed_request:
             raise NotFound()
-        instance = self.fetch_instance(request, organization_id_or_slug, id)
+        instance = self.fetch_instance(request, organization_slug, id)
         view_url = ""
         if hasattr(instance, "get_absolute_url"):
             view_url = str(instance.get_absolute_url())
@@ -67,12 +65,10 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         }
         return Response(self.add_instance_data(data, instance), 200)
 
-    def post(
-        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
-    ) -> Response:
+    def post(self, request: Request, organization_slug: str, id: int, **kwargs) -> Response:
         if not request.user_from_signed_request:
             raise NotFound()
-        instance = self.fetch_instance(request, organization_id_or_slug, id)
+        instance = self.fetch_instance(request, organization_slug, id)
 
         if request.data.get("cancel"):
             self.unsubscribe(request, instance)
@@ -83,18 +79,16 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
 class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
     object_type = "project"
 
-    def fetch_instance(
-        self, request: Request, organization_id_or_slug: int | str, id: int
-    ) -> Project:
+    def fetch_instance(self, request: Request, organization_slug: str, id: int) -> Project:
         try:
             project = Project.objects.select_related("organization").get(id=id)
         except Project.DoesNotExist:
             raise NotFound()
-        if str(organization_id_or_slug).isdecimal():
-            if project.organization.id != int(organization_id_or_slug):
+        if str(organization_slug).isdecimal():
+            if project.organization.id != int(organization_slug):
                 raise NotFound()
         else:
-            if project.organization.slug != organization_id_or_slug:
+            if project.organization.slug != organization_slug:
                 raise NotFound()
         if not OrganizationMember.objects.filter(
             user_id=request.user.pk, organization_id=project.organization_id
@@ -121,18 +115,16 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
 class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
     object_type = "issue"
 
-    def fetch_instance(
-        self, request: Request, organization_id_or_slug: int | str, issue_id: int
-    ) -> Group:
+    def fetch_instance(self, request: Request, organization_slug: str, issue_id: int) -> Group:
         try:
             issue = Group.objects.get_from_cache(id=issue_id)
         except Group.DoesNotExist:
             raise NotFound()
-        if str(organization_id_or_slug).isdecimal():
-            if issue.organization.id != int(organization_id_or_slug):
+        if str(organization_slug).isdecimal():
+            if issue.organization.id != int(organization_slug):
                 raise NotFound()
         else:
-            if issue.organization.slug != organization_id_or_slug:
+            if issue.organization.slug != organization_slug:
                 raise NotFound()
 
         if not OrganizationMember.objects.filter(

@@ -34,7 +34,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         Return details on an individual release.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
+        :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      release of.
@@ -78,7 +78,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         Update a release.  This can change some metadata associated with
         the release (the ref, url, and dates).
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
+        :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.
@@ -154,7 +154,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         Permanently remove a release and all of its files.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
+        :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to delete the
                                      release of.

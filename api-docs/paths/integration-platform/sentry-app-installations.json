@@ -5,7 +5,7 @@
     "operationId": "List an Organization's Integration Platform Installations",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
         "description": "The organization short name.",
         "required": true,

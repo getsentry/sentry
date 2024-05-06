@@ -54,28 +54,22 @@ class OrganizationRegionEndpoint(Endpoint):
     permission_classes = (OrganizationRegionEndpointPermissions,)
 
     def convert_args(
-        self,
-        request: Request,
-        organization_id_or_slug: int | str | None = None,
-        *args: Any,
-        **kwargs: Any,
+        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if not organization_id_or_slug:
+        if not organization_slug:
             raise ResourceDoesNotExist
 
         try:
             # We don't use the lookup since OrganizationMapping uses a BigIntField for organization_id instead of a ForeignKey
             if (
                 id_or_slug_path_params_enabled(
-                    self.convert_args.__qualname__, str(organization_id_or_slug)
+                    self.convert_args.__qualname__, str(organization_slug)
                 )
-                and str(organization_id_or_slug).isdecimal()
+                and str(organization_slug).isdecimal()
             ):
-                org_mapping = OrganizationMapping.objects.get(
-                    organization_id=organization_id_or_slug
-                )
+                org_mapping = OrganizationMapping.objects.get(organization_id=organization_slug)
             else:
-                org_mapping = OrganizationMapping.objects.get(slug=organization_id_or_slug)
+                org_mapping = OrganizationMapping.objects.get(slug=organization_slug)
         except OrganizationMapping.DoesNotExist:
             raise ResourceDoesNotExist
 

@@ -5,9 +5,9 @@
     "operationId": "List a Tag's Values Related to an Issue",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
+        "name": "organization_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issue belongs to.",
+        "description": "The slug of the organization the issue belongs to.",
         "required": true,
         "schema": {
           "type": "string"

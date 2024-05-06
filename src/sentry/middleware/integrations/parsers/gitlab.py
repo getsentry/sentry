@@ -45,17 +45,11 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         try:
             _view, _args, kwargs = resolve(self.request.path)
             # Non-webhook endpoints
-            if "integration_id" in kwargs and "organization_id_or_slug" in kwargs:
-                if str(kwargs["organization_id_or_slug"]).isdecimal():
-                    self._integration = Integration.objects.filter(
-                        id=kwargs["integration_id"],
-                        organization_id=kwargs["organization_slug"],
-                    ).first()
-                else:
-                    self._integration = Integration.objects.filter(
-                        id=kwargs["integration_id"],
-                        organization_slug=kwargs["organization_slug"],
-                    ).first()
+            if "integration_id" in kwargs and "organization_slug" in kwargs:
+                self._integration = Integration.objects.filter(
+                    id=kwargs["integration_id"],
+                    organization_slug=kwargs["organization_slug"],
+                ).first()
                 return self._integration
 
             # Webhook endpoints

@@ -75,12 +75,12 @@ class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_id_or_slug: int | str | None = None,
+        organization_slug: str | int | None = None,
         integration_id: str | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         kwargs["integration_id"] = self.validate_integration_id(integration_id or "")
         return args, kwargs

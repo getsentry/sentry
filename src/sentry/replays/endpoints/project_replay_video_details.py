@@ -41,7 +41,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Fetch Replay Video",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ReplayParams.REPLAY_ID,
             ReplayParams.SEGMENT_ID,
