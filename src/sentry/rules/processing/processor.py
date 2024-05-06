@@ -335,16 +335,17 @@ class RuleProcessor:
                 return
 
         predicate_func = get_match_function(condition_match)
+        if not predicate_func:
+            log_string = f"Unsupported condition_match {condition_match} for rule {rule.id}"
+            logger.error(
+                log_string,
+                filter_match,
+                rule.id,
+                extra={**logging_details},
+            )
+            return
+
         if condition_list:
-            if not predicate_func:
-                log_string = f"Unsupported condition_match {condition_match} for rule {rule.id}"
-                logger.error(
-                    log_string,
-                    filter_match,
-                    rule.id,
-                    extra={**logging_details},
-                )
-                return
             predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
             result = predicate_func(predicate_iter)
 
