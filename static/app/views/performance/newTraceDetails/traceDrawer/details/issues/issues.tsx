@@ -207,7 +207,7 @@ function IssueListHeader({
                 count: errorIssues.length,
                 text: errorIssues.length > 1 ? plural : singular,
               })
-            : performanceIssues.length > 0 && performanceIssues.length === 0
+            : performanceIssues.length > 0 && errorIssues.length === 0
               ? tct('[count] [text]', {
                   count: performanceIssues.length,
                   text: tn(
