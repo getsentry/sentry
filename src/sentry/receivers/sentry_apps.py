@@ -10,6 +10,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.sentry_apps.apps import consolidate_events
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -59,7 +60,6 @@ def send_issue_resolved_webhook(organization_id, project, group, user, resolutio
 def send_issue_ignored_webhook(project, user, group_list, **kwargs):
     for issue in group_list:
         send_workflow_webhooks(project.organization, issue, user, "issue.ignored")
-        send_workflow_webhooks(project.organization, issue, user, "issue.archived")
 
 
 @issue_unresolved.connect(weak=False)
@@ -118,7 +118,7 @@ def send_comment_deleted_webhook(project, user, group, data, **kwargs):
 def send_comment_webhooks(organization, issue, user, event, data=None):
     data = data or {}
 
-    for install in installations_to_notify(organization, event):
+    for install in installations_to_notify(organization, "comment"):
         build_comment_webhook.delay(
             installation_id=install.id,
             issue_id=issue.id,
@@ -136,17 +136,36 @@ def send_workflow_webhooks(
     data: Mapping[str, Any] | None = None,
 ) -> None:
     data = data or {}
-
-    for install in installations_to_notify(organization, event):
+    for install in installations_to_notify(
+        organization=organization, resource_type=event.split(".")[0]
+    ):
+        event_type = backwards_compatible_event_name(install=install, event=event).split(".")[-1]
         workflow_notification.delay(
             installation_id=install.id,
             issue_id=issue.id,
-            type=event.split(".")[-1],
+            type=event_type,
             user_id=coerce_id_from(user),
             data=data,
         )
 
 
-def installations_to_notify(organization, event) -> list[RpcSentryAppInstallation]:
+def installations_to_notify(
+    organization: Organization, resource_type: str
+) -> list[RpcSentryAppInstallation]:
     installations = app_service.get_installed_for_organization(organization_id=organization.id)
-    return [i for i in installations if event in i.sentry_app.events]
+    # All issue webhooks are under one subscription, so if an intallation is subscribed to any issue
+    # events it should get notified for all the issue events
+    # TODO: Refactor sentry_app model so it doesn't store event, instead it stores subscription
+    return [i for i in installations if resource_type in consolidate_events(i.sentry_app.events)]
+
+
+def backwards_compatible_event_name(install: RpcSentryAppInstallation, event: str) -> str:
+    # If we rename an event we should still send the old one to the old integrations
+    installation_events = install.sentry_app.events
+    if (
+        event == "issue.ignored"
+        and "issue.ignored" not in installation_events
+        and "issue.archived" in installation_events
+    ):
+        return "issue.archived"
+    return event

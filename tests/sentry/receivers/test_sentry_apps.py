@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import patch
 
 from sentry.constants import SentryAppInstallationStatus
@@ -23,15 +22,6 @@ from sentry.testutils.silo import assume_test_silo_mode
 # Issues and kick off side effects are just chillin in the endpoint code -_-
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.utils import json
-
-
-def _as_serialized(a: Any) -> Any:
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return a
-    if "user" in a:
-        a["user"] = json.loads(json.dumps(a["user"]))
-    return a
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
@@ -380,4 +370,30 @@ class TestComments(APITestCase):
             type="comment.deleted",
             user_id=self.user.id,
             data=data,
+        )
+
+
+@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
+    def setUp(self):
+        self.issue = self.create_group(project=self.project)
+
+        # Creating an app that is not subscribed to issue.resolved, but subscription is by resource
+        # so if an app is subscribed to issue.anything it should receive webhooks for issue.*
+        self.sentry_app = self.create_sentry_app(events=["issue.ignored"])
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        self.url = f"/api/0/projects/{self.organization.slug}/{self.issue.project.slug}/issues/?id={self.issue.id}"
+        self.login_as(self.user)
+
+    def test_notify_for_issue_event_if_subscribed_to_all_issue_events(self, delay):
+        self.client.put(self.url, data={"status": "resolved"}, format="json")
+
+        delay.assert_called_once_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="resolved",
+            user_id=self.user.id,
+            data={"resolution_type": "now"},
         )
