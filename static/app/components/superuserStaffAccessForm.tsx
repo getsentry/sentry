@@ -26,7 +26,6 @@ type Props = {
 };
 
 type State = {
-  authenticators: Array<Authenticator>;
   error: boolean;
   errorType: string;
   isLoading: boolean;
@@ -39,8 +38,8 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   constructor(props) {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
+    this.authenticators = [];
     this.state = {
-      authenticators: [],
       error: false,
       errorType: '',
       showAccessForms: true,
@@ -60,16 +59,17 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     }
 
     const authenticators = await this.getAuthenticators();
-    this.setState({authenticators: authenticators});
+    this.authenticators = authenticators;
 
     // Set the error state if there are no authenticators and U2F is on
-    if (!this.state.authenticators.length && !disableU2FForSUForm) {
+    if (!this.authenticators.length && !disableU2FForSUForm) {
       this.handleError(ErrorCodes.NO_AUTHENTICATOR);
     }
     this.setState({isLoading: false});
   }
 
   authUrl: string;
+  authenticators: Authenticator[];
 
   handleSubmitCOPS = () => {
     this.setState({
@@ -80,7 +80,8 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
 
   handleSubmit = async data => {
     const {api} = this.props;
-    const {superuserAccessCategory, superuserReason, authenticators} = this.state;
+    const {superuserAccessCategory, superuserReason} = this.state;
+    const authenticators = this.authenticators;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
@@ -193,7 +194,8 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   }
 
   render() {
-    const {authenticators, error, errorType, showAccessForms, isLoading} = this.state;
+    const {error, errorType, showAccessForms, isLoading} = this.state;
+    const authenticators = this.authenticators;
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
       this.handleLogout();
       return null;
