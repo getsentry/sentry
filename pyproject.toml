@@ -588,6 +588,7 @@ module = [
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.utils.actor",
+    "sentry.utils.arroyo",
     "sentry.utils.assets",
     "sentry.utils.audit",
     "sentry.utils.canonical",

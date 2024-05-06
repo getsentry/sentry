@@ -3444,7 +3444,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
 }
 
 
-# If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
+# If True, sentry.utils.arroyo.run_task_with_multiprocessing will actually be
 # single-threaded under the hood for performance
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 
