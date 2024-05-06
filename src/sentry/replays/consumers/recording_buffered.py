@@ -51,10 +51,10 @@ from arroyo.processing.strategies.buffer import Buffer
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BaseValue, Commit, Message, Partition
-from sentry_kafka_schemas import get_codec
-from sentry_kafka_schemas.codecs import ValidationError
+from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
@@ -71,7 +71,7 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
+RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
 
 def cast_payload_bytes(x: Any) -> bytes:

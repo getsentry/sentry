@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -10,9 +10,10 @@ import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
 import type {
+  TraceErrorOrIssue,
   TraceFullDetailed,
   TraceMeta,
   TraceSplitResults,
@@ -24,6 +25,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
+import {TraceDrawerComponents} from './traceDrawer/details/styles';
 import type {TraceTree} from './traceModels/traceTree';
 import {isTraceNode} from './guards';
 
@@ -87,25 +89,61 @@ export function TraceHeader({
   tree,
   traceID,
 }: TraceHeaderProps) {
-  if (traces?.transactions.length === 0 && traces.orphan_errors.length === 0) {
-    return <TraceHeaderEmptyTrace />;
-  }
-
   const traceNode = tree.root.children[0];
-
-  if (!(traceNode && isTraceNode(traceNode))) {
-    throw new Error('Expected a trace node');
-  }
-
-  const errors = traceNode.errors.size || metaResults.data?.errors || 0;
-  const performanceIssues =
-    traceNode.performance_issues.size || metaResults.data?.performance_issues || 0;
-  const errorsAndIssuesCount = errors + performanceIssues;
 
   const replay_id = rootEventResults?.data?.contexts?.replay?.replay_id;
   const showLoadingIndicator =
     (rootEventResults.isLoading && rootEventResults.fetchStatus !== 'idle') ||
     metaResults.isLoading;
+
+  const uniqueErrorIssues = useMemo(() => {
+    if (!traceNode) {
+      return [];
+    }
+
+    const unique: TraceErrorOrIssue[] = [];
+
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of traceNode.errors) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }, [traceNode]);
+
+  const uniquePerformanceIssues = useMemo(() => {
+    if (!traceNode) {
+      return [];
+    }
+
+    const unique: TraceErrorOrIssue[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of traceNode.performance_issues) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }, [traceNode]);
+
+  const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
+
+  if (traces?.transactions.length === 0 && traces.orphan_errors.length === 0) {
+    return <TraceHeaderEmptyTrace />;
+  }
+
+  if (!(traceNode && isTraceNode(traceNode))) {
+    throw new Error('Expected a trace node');
+  }
 
   return (
     <TraceHeaderContainer>
@@ -203,14 +241,16 @@ export function TraceHeader({
           bodyText={
             <Tooltip
               title={
-                errorsAndIssuesCount > 0 ? (
+                uniqueIssuesCount > 0 ? (
                   <Fragment>
-                    <div>{tn('%s error issue', '%s error issues', errors)}</div>
+                    <div>
+                      {tn('%s error issue', '%s error issues', uniqueErrorIssues.length)}
+                    </div>
                     <div>
                       {tn(
                         '%s performance issue',
                         '%s performance issues',
-                        performanceIssues
+                        uniquePerformanceIssues.length
                       )}
                     </div>
                   </Fragment>
@@ -221,8 +261,10 @@ export function TraceHeader({
             >
               {metaResults.isLoading ? (
                 <LoadingIndicator size={20} mini />
-              ) : errorsAndIssuesCount >= 0 ? (
-                errorsAndIssuesCount
+              ) : uniqueIssuesCount > 0 ? (
+                <TraceDrawerComponents.IssuesLink>
+                  {uniqueIssuesCount}
+                </TraceDrawerComponents.IssuesLink>
               ) : (
                 '\u2014'
               )}

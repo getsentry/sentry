@@ -5,6 +5,13 @@ import responses
 
 from sentry.auth.providers.fly.client import FlyClient
 from sentry.auth.providers.fly.constants import ACCESS_TOKEN_URL
+from sentry.testutils.helpers import override_options
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"auth.enable-orjson": 0.0}):
+        yield
 
 
 @pytest.fixture

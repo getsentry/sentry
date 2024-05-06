@@ -592,7 +592,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            ActorTuple.from_actor_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -656,7 +656,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            ActorTuple.from_actor_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -816,7 +816,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            ActorTuple.from_actor_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -911,7 +911,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            ActorTuple.from_actor_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -979,7 +979,7 @@ class TestHandleAssignedTo(TestCase):
 
         # assign the issue to the team
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            ActorTuple.from_actor_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -1035,7 +1035,7 @@ class TestHandleAssignedTo(TestCase):
 
         # assign the issue back to the team
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            ActorTuple.from_actor_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,

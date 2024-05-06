@@ -1,9 +1,5 @@
 import Link from 'sentry/components/links/link';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -29,18 +25,12 @@ export function SpanIdCell({
 
   const url = normalizeUrl(
     generateLinkToEventInTraceView({
-      eventSlug: generateEventSlug({
-        id: transactionId,
-        project: projectSlug,
-      }),
+      eventId: transactionId,
+      projectSlug,
+      traceSlug: traceId,
+      timestamp,
       organization,
       location,
-      eventView: EventView.fromLocation(location),
-      dataRow: {
-        id: transactionId,
-        trace: traceId,
-        timestamp,
-      },
       spanId,
     })
   );

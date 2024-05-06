@@ -1,5 +1,4 @@
 import {useCallback, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/utils';
 import type {Location} from 'history';
@@ -15,9 +14,11 @@ import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';

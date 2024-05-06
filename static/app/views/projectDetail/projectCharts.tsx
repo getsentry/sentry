@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {Location} from 'history';
@@ -31,6 +30,7 @@ import {t} from 'sentry/locale';
 import type {Organization, Project, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';

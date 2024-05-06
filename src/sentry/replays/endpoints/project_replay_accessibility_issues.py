@@ -42,9 +42,9 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         }
     }
 

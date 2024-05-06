@@ -116,6 +116,7 @@ SPAN_COLUMN_MAP = {
     "parent_span": "parent_span_id",
     "platform": "platform",
     "project": "project_id",
+    "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
     "span.domain": "domain",
@@ -144,15 +145,20 @@ SPAN_COLUMN_MAP = {
     "category": "sentry_tags[category]",
     "span.category": "sentry_tags[category]",
     "span.status_code": "sentry_tags[status_code]",
+    "replay_id": "sentry_tags[replay_id]",
+    "replay.id": "sentry_tags[replay_id]",
     "resource.render_blocking_status": "sentry_tags[resource.render_blocking_status]",
     "http.response_content_length": "sentry_tags[http.response_content_length]",
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
     "app_start_type": "sentry_tags[app_start_type]",
-    "replay.id": "sentry_tags[replay_id]",
     "browser.name": "sentry_tags[browser.name]",
     "origin.transaction": "sentry_tags[transaction]",
     "is_transaction": "is_segment",
+    "sdk.name": "sentry_tags[sdk.name]",
+    "trace.status": "sentry_tags[trace.status]",
+    "messaging.destination.name": "sentry_tags[messaging.destination.name]",
+    "tags.key": "tags.key",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -853,17 +859,6 @@ def raw_snql_query(
     return bulk_snuba_queries([request], referrer, use_cache)[0]
 
 
-def bulk_snql_query(
-    requests: list[Request],
-    referrer: str | None = None,
-    use_cache: bool = False,
-) -> ResultSet:
-    """
-    Alias for `bulk_snuba_queries`, kept for backwards compatibility.
-    """
-    return bulk_snuba_queries(requests, referrer, use_cache)
-
-
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,
@@ -1031,6 +1026,8 @@ def _bulk_snuba_query(
                     raise RateLimitExceeded(error["message"])
                 elif error["type"] == "schema":
                     raise SchemaValidationError(error["message"])
+                elif error["type"] == "invalid_query":
+                    raise UnqualifiedQueryError(error["message"])
                 elif error["type"] == "clickhouse":
                     raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
                         error["message"]
@@ -1224,6 +1221,7 @@ def resolve_column(dataset) -> Callable:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
+
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         elif (
@@ -1248,7 +1246,6 @@ def resolve_column(dataset) -> Callable:
         span_op_breakdown_name = get_span_op_breakdown_name(col)
         if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
-
         return f"tags[{col}]"
 
     return _resolve_column

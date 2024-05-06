@@ -724,6 +724,17 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     });
   };
 
+  logDocsOpenedEvent = () => {
+    const {searchSource, savedSearchType, organization} = this.props;
+
+    trackAnalytics('search.docs_opened', {
+      organization,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: searchSource,
+      query: this.state.query,
+    });
+  };
+
   runShortcutOnClick = (shortcut: Shortcut) => {
     this.runShortcut(shortcut);
     this.logShortcutEvent(shortcut.shortcutType, 'click');
@@ -2088,6 +2099,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             numericKeys={this.props.numericKeys}
             percentageKeys={this.props.percentageKeys}
             sizeKeys={this.props.sizeKeys}
+            onDocsOpen={this.logDocsOpenedEvent}
             textOperatorKeys={this.props.textOperatorKeys}
           />
         )}

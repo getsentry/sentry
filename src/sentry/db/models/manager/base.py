@@ -18,7 +18,7 @@ from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
-from sentry.silo import SiloLimit
+from sentry.silo.base import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 

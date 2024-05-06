@@ -9,14 +9,13 @@ from rest_framework import serializers
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models.actor import Actor
     from sentry.models.team import Team
     from sentry.models.user import User
 
 
 class ActorTuple(namedtuple("Actor", "id type")):
     @property
-    def identifier(self):
+    def identifier(self) -> str:
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @overload
@@ -46,8 +45,9 @@ class ActorTuple(namedtuple("Actor", "id type")):
             "team:1231" -> look up Team by id
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
-        """
 
+        Deprecated: Use RpcActor.from_identifier instead.
+        """
         if not actor_identifier:
             return None
 
@@ -74,6 +74,9 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     @classmethod
     def from_id(cls, user_id: int | None, team_id: int | None) -> ActorTuple | None:
+        """
+        Deprecated: Use RpcActor.from_id() instead.
+        """
         from sentry.models.team import Team
         from sentry.models.user import User
 
@@ -99,17 +102,6 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def resolve(self) -> Team | RpcUser:
         return fetch_actor_by_id(self.type, self.id)
 
-    def resolve_to_actor(self) -> Actor:
-        from sentry.models.actor import Actor, get_actor_for_user
-        from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
-
-        obj = self.resolve()
-        if isinstance(obj, (User, RpcUser)):
-            return get_actor_for_user(obj)
-        # Team case. Teams have actors generated as a post_save signal
-        return Actor.objects.get(id=obj.actor_id)
-
     @classmethod
     def resolve_many(cls, actors: Sequence[ActorTuple]) -> Sequence[Team | RpcUser]:
         """
@@ -117,6 +109,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
         as the input, minus any actors we couldn't resolve.
         :param actors:
         :return:
+
+        Deprecated: Replace with RpcActor.from_many_object()
         """
         from sentry.models.user import User
         from sentry.services.hybrid_cloud.user.service import user_service

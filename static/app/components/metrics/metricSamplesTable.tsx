@@ -21,10 +21,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString, MRI, PageFilters, ParsedMRI} from 'sentry/types';
+import type {DateString, PageFilters} from 'sentry/types/core';
+import type {MRI, ParsedMRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
@@ -36,7 +38,6 @@ import {
   type Summary,
   useMetricsSamples,
 } from 'sentry/utils/metrics/useMetricsSamples';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -421,6 +422,8 @@ function renderBodyCell(op?: string, unit?: string) {
         <SpanDescription
           description={dataRow['span.description']}
           project={dataRow.project}
+          trace={dataRow.trace}
+          timestamp={dataRow.timestamp}
           selfTime={dataRow['span.self_time']}
           duration={dataRow['span.duration']}
           spanId={dataRow.id}
@@ -491,6 +494,8 @@ function SpanDescription({
   spanId,
   transaction,
   transactionId,
+  trace,
+  timestamp,
   selfTimeColor = '#694D99',
   durationColor = 'gray100',
 }: {
@@ -499,6 +504,8 @@ function SpanDescription({
   project: string;
   selfTime: number;
   spanId: string;
+  timestamp: DateString;
+  trace: string;
   transaction: string;
   transactionId: string | null;
   durationColor?: string;
@@ -508,13 +515,16 @@ function SpanDescription({
   const organization = useOrganization();
   const {projects} = useProjects({slugs: [project]});
   const transactionDetailsTarget = defined(transactionId)
-    ? getTransactionDetailsUrl(
-        organization.slug,
-        `${project}:${transactionId}`,
-        undefined,
-        undefined,
-        spanId
-      )
+    ? generateLinkToEventInTraceView({
+        eventId: transactionId,
+        projectSlug: project,
+        traceSlug: trace,
+        timestamp: timestamp?.toString() ?? '',
+        location,
+        organization,
+        spanId,
+        transactionName: transaction,
+      })
     : undefined;
 
   const colorStops = useMemo(() => {
@@ -659,7 +669,6 @@ function TraceId({
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {},
     stringOrNumberTimestamp,
     eventId
   );

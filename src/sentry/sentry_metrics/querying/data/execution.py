@@ -11,7 +11,7 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import SNUBA_QUERY_LIMIT
-from sentry.sentry_metrics.querying.data.mapping.mapper import Mapper
+from sentry.sentry_metrics.querying.data.mapping.base import Mapper
 from sentry.sentry_metrics.querying.data.preparation.base import IntermediateQuery
 from sentry.sentry_metrics.querying.data.utils import adjust_time_bounds_with_interval
 from sentry.sentry_metrics.querying.errors import (
@@ -372,8 +372,8 @@ class QueryResult:
             series_query=series_query,
             totals_query=totals_query,
             result={
-                "series": {"data": {}, "meta": {}},
-                "totals": {"data": {}, "meta": {}},
+                "series": {"data": [], "meta": []},
+                "totals": {"data": [], "meta": []},
                 # We want to honor the date ranges of the supplied query.
                 "modified_start": scheduled_query.metrics_query.start,
                 "modified_end": scheduled_query.metrics_query.end,

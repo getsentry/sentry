@@ -1,12 +1,15 @@
 # pylint: skip-file
 # flake8: noqa
 
+import base64
 import datetime
+import functools
 import itertools
 import json
 import pprint
 import random
 import string
+import struct
 
 import click
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
@@ -14,71 +17,105 @@ from arroyo.types import Topic
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
-make_counter_payload = lambda use_case, org_id, rand_str: {
-    "name": f"c:{use_case}/{use_case}@none",
-    "tags": {
-        "environment": "production",
-        "session.status": "init",
-        f"metric_e2e_{use_case}_counter_k_{rand_str}": f"metric_e2e_{use_case}_counter_v_{rand_str}",
-    },
-    "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
-    "type": "c",
-    "value": 1,
-    "org_id": org_id,
-    "retention_days": 90,
-    "project_id": 3,
-}
 
-make_dist_payload = lambda use_case, org_id, rand_str, value_len: {
-    "name": f"d:{use_case}/duration@second",
-    "tags": {
-        "environment": "production",
-        "session.status": "healthy",
-        f"metric_e2e_{use_case}_dist_k_{rand_str}": f"metric_e2e_{use_case}_dist_v_{rand_str}",
-    },
-    "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
-    "type": "d",
-    "value": {"format": "array", "data": [random.random() for _ in range(value_len)]},
-    "org_id": org_id,
-    "retention_days": 90,
-    "project_id": 3,
-}
+def make_counter_payload(use_case, org_id, rand_str):
+    return {
+        "name": f"c:{use_case}/{use_case}@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+            f"metric_e2e_{use_case}_counter_k_{rand_str}": f"metric_e2e_{use_case}_counter_v_{rand_str}",
+        },
+        "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
+        "type": "c",
+        "value": 1,
+        "org_id": org_id,
+        "retention_days": 90,
+        "project_id": 3,
+    }
 
-make_set_payload = lambda use_case, org_id, rand_str, value_len: {
-    "name": f"s:{use_case}/error@none",
-    "tags": {
-        "environment": "production",
-        "session.status": "errored",
-        f"metric_e2e_{use_case}_set_k_{rand_str}": f"metric_e2e_{use_case}_set_v_{rand_str}",
-    },
-    "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
-    "type": "s",
-    "value": {"format": "array", "data": [random.randint(0, 2048) for _ in range(value_len)]},
-    "org_id": org_id,
-    "retention_days": 90,
-    "project_id": 3,
-}
 
-make_gauge_payload = lambda use_case, org_id, rand_str: {
-    "name": f"s:{use_case}/error@none",
-    "tags": {
-        "environment": "production",
-        "session.status": "errored",
-        f"metric_e2e_{use_case}_set_k_{rand_str}": f"metric_e2e_{use_case}_set_v_{rand_str}",
-    },
-    "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
-    "type": "g",
-    "value": {
-        "min": 1,
-        "max": 1,
-        "sum": 1,
-        "count": 1,
-        "last": 1,
-    },
-    "org_id": org_id,
-    "retention_days": 90,
-    "project_id": 3,
-}
+def make_dist_payload(use_case, org_id, rand_str, value_len, b64_encode):
+    nums = [random.random() for _ in range(value_len)]
+    return {
+        "name": f"d:{use_case}/duration@second",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+            f"metric_e2e_{use_case}_dist_k_{rand_str}": f"metric_e2e_{use_case}_dist_v_{rand_str}",
+        },
+        "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
+        "type": "d",
+        "value": (
+            {
+                "format": "base64",
+                "data": base64.b64encode(struct.pack(f"<{len(nums)}d", *nums)).decode("ascii"),
+            }
+            if b64_encode
+            else {
+                "format": "array",
+                "data": nums,
+            }
+        ),
+        "org_id": org_id,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+
+def make_set_payload(use_case, org_id, rand_str, value_len, b64_encode):
+    INT_WIDTH = 4
+    nums = [random.randint(0, 2048) for _ in range(value_len)]
+    return {
+        "name": f"s:{use_case}/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+            f"metric_e2e_{use_case}_set_k_{rand_str}": f"metric_e2e_{use_case}_set_v_{rand_str}",
+        },
+        "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
+        "type": "s",
+        "value": (
+            {
+                "format": "base64",
+                "data": base64.b64encode(
+                    b"".join([num.to_bytes(INT_WIDTH, byteorder="little") for num in nums])
+                ).decode("ascii"),
+            }
+            if b64_encode
+            else {
+                "format": "array",
+                "data": nums,
+            }
+        ),
+        "org_id": org_id,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+
+def make_gauge_payload(use_case, org_id, rand_str):
+    return {
+        "name": f"s:{use_case}/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+            f"metric_e2e_{use_case}_set_k_{rand_str}": f"metric_e2e_{use_case}_set_v_{rand_str}",
+        },
+        "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
+        "type": "g",
+        "value": {
+            "min": 1,
+            "max": 1,
+            "sum": 1,
+            "count": 1,
+            "last": 1,
+        },
+        "org_id": org_id,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
 
 make_psql = (
     lambda rand_str, is_generic: f"""
@@ -145,6 +182,9 @@ def produce_msgs(messages, is_generic, host, dryrun, quiet):
 
 @click.command()
 @click.option(
+    "--metric-types", default="cdsg", show_default=True, help="The types of metrics to send"
+)
+@click.option(
     "--use-cases",
     multiple=True,
     default=[
@@ -197,8 +237,24 @@ def produce_msgs(messages, is_generic, host, dryrun, quiet):
     show_default=True,
     help="Number of elements for metrics (sets and distributions).",
 )
+@click.option(
+    "--b64-encode",
+    default=True,
+    show_default=True,
+    help="Encode sets and distribution metrics values in base64",
+)
 def main(
-    use_cases, rand_str, host, dryrun, quiet, start_org_id, end_org_id, num_bad_msg, value_len
+    metric_types,
+    use_cases,
+    rand_str,
+    host,
+    dryrun,
+    quiet,
+    start_org_id,
+    end_org_id,
+    num_bad_msg,
+    value_len,
+    b64_encode,
 ):
     if UseCaseID.SESSIONS.value in use_cases and len(use_cases) > 1:
         click.secho(
@@ -208,32 +264,36 @@ def main(
         )
         exit(1)
 
-    rand_str = rand_str or "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
-
     is_generic = UseCaseID.SESSIONS.value not in use_cases
+    metric_types = "".join(set(metric_types))
+    rand_str = rand_str or "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    payload_generators = {
+        "c": functools.partial(make_counter_payload, rand_str=rand_str),
+        "d": functools.partial(
+            make_dist_payload, rand_str=rand_str, value_len=value_len, b64_encode=b64_encode
+        ),
+        "s": functools.partial(
+            make_set_payload, rand_str=rand_str, value_len=value_len, b64_encode=b64_encode
+        ),
+        "g": functools.partial(make_gauge_payload, rand_str=rand_str),
+    }
 
     messages = list(
         itertools.chain.from_iterable(
             (
-                make_counter_payload(use_case, org, rand_str),
-                make_dist_payload(use_case, org, rand_str, value_len),
-                make_set_payload(use_case, org, rand_str, value_len),
-                make_gauge_payload(use_case, org, rand_str),
+                payload_generators[metric_type](use_case=use_case, org_id=org_id)
+                for metric_type in metric_types
             )
             for use_case in use_cases
-            for org in range(start_org_id, end_org_id + 1)
+            for org_id in range(start_org_id, end_org_id + 1)
         )
     )
-
     messages.extend([{"BAD_VALUE": rand_str, "idx": i} for i in range(num_bad_msg)])
 
     random.shuffle(messages)
-
     produce_msgs(messages, is_generic, host, dryrun, quiet)
 
-    metrics_per_use_case = 4
     strs_per_use_case = 3
-
     print(
         f"Use the following SQL to verify postgres, "
         f"there should be {strs_per_use_case} strings for each use cases, "
@@ -244,8 +304,8 @@ def main(
     if is_generic:
         print(
             f"Use the following SQL to verify clickhouse, "
-            f"there should be {metrics_per_use_case} metrics for each use cases, "
-            f"{metrics_per_use_case * len(use_cases) * (end_org_id - start_org_id + 1)} in total."
+            f"there should be {len(metric_types)} metrics for each use cases, "
+            f"{len(metric_types) * len(use_cases) * (end_org_id - start_org_id + 1)} in total."
         )
         print(make_csql(rand_str, is_generic))
 

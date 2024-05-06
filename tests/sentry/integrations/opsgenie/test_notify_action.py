@@ -6,7 +6,7 @@ import responses
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -58,9 +58,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
         notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
-        results = list(
-            rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
-        )
+        results = list(rule.after(event=event, notification_uuid=notification_uuid))
         assert len(results) == 1
 
         responses.add(
@@ -194,7 +192,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": integration.id, "team": team2["id"]})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -260,7 +258,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         event = self.get_event()
         rule = self.get_rule(data={"account": integration.id, "team": team2["id"]})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -269,7 +267,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         event = self.get_event()
         rule = self.get_rule(data={"account": integration.id, "team": team2["id"]})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 0
         assert (
             mock_logger.error.call_args.args[0]
@@ -284,7 +282,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         event = self.get_event()
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 0
         assert (
             mock_logger.error.call_args.args[0]
@@ -296,7 +294,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     def test_api_error(self, mock_logger: MagicMock):
         event = self.get_event()
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(

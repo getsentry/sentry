@@ -15,6 +15,7 @@ from sentry.search.events.filter import (
     handle_operator_negation,
     parse_semver,
     to_list,
+    translate_transaction_status,
 )
 from sentry.search.events.types import WhereType
 from sentry.search.utils import DEVICE_CLASS, parse_release
@@ -305,7 +306,32 @@ def lowercase_search(
     builder: builder.QueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     """Convert the search value to lower case"""
-    value = search_filter.value.value
+    raw_value = search_filter.value.raw_value
+    if isinstance(raw_value, list):
+        raw_value = [val.lower() for val in raw_value]
+    else:
+        raw_value = raw_value.lower()
     return builder.default_filter_converter(
-        SearchFilter(search_filter.key, search_filter.operator, SearchValue(value.lower()))
+        SearchFilter(search_filter.key, search_filter.operator, SearchValue(raw_value))
+    )
+
+
+def span_status_filter_converter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    # Handle "has" queries
+    if search_filter.value.raw_value == "":
+        return Condition(
+            builder.resolve_field(search_filter.key.name),
+            Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
+        )
+    internal_value = (
+        [translate_transaction_status(val) for val in search_filter.value.raw_value]
+        if search_filter.is_in_filter
+        else translate_transaction_status(search_filter.value.raw_value)
+    )
+    return Condition(
+        builder.resolve_field(search_filter.key.name),
+        Op(search_filter.operator),
+        internal_value,
     )

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Optional
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
 
@@ -88,14 +88,6 @@ def parse_duration(value: str, interval: str) -> float:
         )
 
     return delta.total_seconds() * 1000.0
-
-
-def parse_bool(value: str) -> bool:
-    if value == "1" or value.lower() == "true":
-        return True
-    if value == "0" or value.lower() == "false":
-        return False
-    raise InvalidQuery(f"{value} is not a valid boolean value")
 
 
 def parse_size(value: str, size: str) -> float:
@@ -711,7 +703,10 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
 
 
 def parse_query(
-    projects: Sequence[Project], query: str, user: User, environments: Sequence[Environment]
+    projects: Sequence[Project],
+    query: str,
+    user: User | AnonymousUser,
+    environments: Sequence[Environment],
 ) -> dict[str, Any]:
     """| Parses the query string and returns a dict of structured query term values:
     | Required:
@@ -818,20 +813,6 @@ def convert_user_tag_to_query(key: str, value: str) -> str | None:
         if KEYWORD_MAP.get_key(sub_key, None):
             return 'user.{}:"{}"'.format(sub_key, value.replace('"', '\\"'))
     return None
-
-
-@dataclass
-class SupportedConditions:
-    field_name: str
-    operators: frozenset[str] | None = None
-
-
-supported_cdc_conditions = [
-    SupportedConditions("status", frozenset(["IN"])),
-]
-supported_cdc_conditions_lookup = {
-    condition.field_name: condition for condition in supported_cdc_conditions
-}
 
 
 # Mapping of device class to the store corresponding tag value

@@ -18,7 +18,7 @@ from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
@@ -83,7 +83,7 @@ def pr_to_issue_query(pr_id: int):
                 pr.organization_id org_id,
                 array_agg(go.group_id ORDER BY go.date_added) issues
             FROM sentry_groupowner go
-            JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::int
+            JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::bigint
             JOIN sentry_pull_request pr ON c.pull_request_id = pr.id
             WHERE go.type=0
             AND pr.id={pr_id}

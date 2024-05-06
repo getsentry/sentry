@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   fireEvent,
@@ -11,6 +9,7 @@ import {
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import Relocation from 'sentry/views/relocation/relocation';
 
 jest.mock('sentry/actionCreators/indicator');

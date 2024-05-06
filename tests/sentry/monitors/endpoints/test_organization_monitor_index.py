@@ -216,28 +216,36 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         team_2 = self.create_team()
         self.create_team_membership(team_2, user=self.user)
 
-        mon_1 = self._create_monitor(name="A monitor", owner_user_id=user_1.id)
-        mon_2 = self._create_monitor(name="B monitor", owner_user_id=user_2.id)
-        mon_3 = self._create_monitor(name="C monitor", owner_user_id=None, owner_team_id=team_1.id)
-        mon_4 = self._create_monitor(name="C monitor", owner_user_id=None, owner_team_id=team_2.id)
+        mon_a = self._create_monitor(name="A monitor", owner_user_id=user_1.id)
+        mon_b = self._create_monitor(name="B monitor", owner_user_id=user_2.id)
+        mon_c = self._create_monitor(name="C monitor", owner_user_id=None, owner_team_id=team_1.id)
+        mon_d = self._create_monitor(name="D monitor", owner_user_id=None, owner_team_id=team_2.id)
+        mon_e = self._create_monitor(name="E monitor", owner_user_id=None, owner_team_id=None)
 
         # Monitor by user
         response = self.get_success_response(self.organization.slug, owner=[f"user:{user_1.id}"])
-        self.check_valid_response(response, [mon_1])
+        self.check_valid_response(response, [mon_a])
 
         # Monitors by users and teams
         response = self.get_success_response(
             self.organization.slug,
             owner=[f"user:{user_1.id}", f"user:{user_2.id}", f"team:{team_1.id}"],
         )
-        self.check_valid_response(response, [mon_1, mon_2, mon_3])
+        self.check_valid_response(response, [mon_a, mon_b, mon_c])
 
         # myteams
         response = self.get_success_response(
             self.organization.slug,
             owner=["myteams"],
         )
-        self.check_valid_response(response, [mon_4])
+        self.check_valid_response(response, [mon_d])
+
+        # unassigned monitors
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["unassigned", f"user:{user_1.id}"],
+        )
+        self.check_valid_response(response, [mon_a, mon_e])
 
         # Invalid user ID
         response = self.get_success_response(

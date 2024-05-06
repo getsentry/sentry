@@ -197,6 +197,7 @@ describe('Breadcrumbs', () => {
     });
 
     it('should render Sentry Transactions crumb', async function () {
+      props.organization.features = ['performance-view'];
       props.data.values = [
         {
           message: '12345678123456781234567812345678',
