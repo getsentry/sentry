@@ -20,6 +20,7 @@ from sentry.db.models import (
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
+    from sentry.models.group import Group
     from sentry.models.release import Release
 
 
@@ -71,5 +72,5 @@ class Commit(Model):
             return self.key[:7]
         return self.key
 
-    def find_referenced_groups(self):
+    def find_referenced_groups(self) -> set[Group]:
         return find_referenced_groups(self.message, self.organization_id)

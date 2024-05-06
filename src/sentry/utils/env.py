@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -42,7 +43,7 @@ def gcp_project_id() -> str:
 
 
 # TODO(getsentry/team-ospo#190): Remove once fully deployed.
-def log_gcp_credentials_details(logger) -> None:
+def log_gcp_credentials_details(logger: logging.Logger) -> None:
     if in_test_environment():
         return
 
