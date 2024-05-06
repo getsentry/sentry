@@ -87,16 +87,16 @@ function GroupRelatedIssues({params}: Props) {
                     <LinkButton
                       to={`/organizations/${orgSlug}/issues/?query=issue.id:[${groupId},${sameRootCauseIssues}]`}
                       size="xs"
+                      analyticsEventName="Clicked Open Issues from same-root related issues"
+                      analyticsEventKey="similar_issues.same_root_cause_clicked_open_issues"
                     >
                       {t('Open in Issues')}
                     </LinkButton>
                   </TextButtonWrapper>
                   <GroupList
-                    endpointPath={`/organizations/${orgSlug}/issues/`}
                     orgSlug={orgSlug}
                     queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
-                    query=""
-                    source="related-issues-tab"
+                    source="similar-issues-tab"
                     canSelectGroups={false}
                     withChart={false}
                   />
@@ -124,16 +124,16 @@ function GroupRelatedIssues({params}: Props) {
                     <LinkButton
                       to={`/organizations/${orgSlug}/issues/?query=trace:${traceMeta.trace_id}`}
                       size="xs"
+                      analyticsEventName="Clicked Open Issues from trace-connected related issues"
+                      analyticsEventKey="similar_issues.trace_connected_issues_clicked_open_issues"
                     >
                       {t('Open in Issues')}
                     </LinkButton>
                   </TextButtonWrapper>
                   <GroupList
-                    endpointPath={`/organizations/${orgSlug}/issues/`}
                     orgSlug={orgSlug}
                     queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
-                    query=""
-                    source="related-issues-tab"
+                    source="similar-issues-tab"
                     canSelectGroups={false}
                     withChart={false}
                   />

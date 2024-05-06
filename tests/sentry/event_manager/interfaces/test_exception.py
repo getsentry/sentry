@@ -4,6 +4,13 @@ from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.interfaces.exception import Exception
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.testutils.helpers import override_options
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"relay.enable-orjson": 0.0}):
+        yield
 
 
 @pytest.fixture

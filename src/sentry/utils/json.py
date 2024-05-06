@@ -5,8 +5,9 @@ from __future__ import annotations
 import contextlib
 import datetime
 import decimal
+import json  # noqa: S003
 import uuid
-from collections.abc import Generator, Mapping
+from collections.abc import Callable, Generator, Mapping
 from enum import Enum
 from typing import IO, TYPE_CHECKING, Any, NoReturn, TypeVar, overload
 
@@ -174,6 +175,18 @@ def dumps_htmlsafe(value: object) -> SafeString:
     return mark_safe(_default_escaped_encoder.encode(value))
 
 
+# TODO: remove this when orjson experiment is successful
+def methods_for_experiment(
+    option_name: str,
+) -> tuple[Callable[[str | bytes], Any], Callable[[Any], Any]]:
+    from sentry.features.rollout import in_random_rollout
+
+    if in_random_rollout(option_name):
+        return orjson.loads, orjson.dumps
+    else:
+        return json.loads, json.dumps
+
+
 @overload
 def prune_empty_keys(obj: None) -> None:
     ...
@@ -211,4 +224,7 @@ __all__ = (
     "load",
     "loads",
     "prune_empty_keys",
+    "methods_for_experiment",
+    "loads_experimental",
+    "dumps_experimental",
 )

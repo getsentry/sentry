@@ -75,7 +75,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type="unresolved",
             user_id=self.user.id,
-            data={"substatus": "regressed"},
+            data={},
         )
         assert delay.call_count == 2
 
@@ -93,7 +93,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type="unresolved",
             user_id=None,
-            data={"substatus": "ongoing"},
+            data={},
         )
         assert delay.call_count == 2
 
@@ -113,7 +113,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type="unresolved",
             user_id=None,
-            data={"substatus": "escalating"},
+            data={},
         )
         assert delay.call_count == 2
 
