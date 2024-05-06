@@ -52,16 +52,25 @@ def _resolve_redirect_url(request, activeorg):
     if redirect_subdomain:
         redirect_url = generate_organization_url(activeorg)
     result = resolve(request.path)
-    org_slug_path_mismatch = (
-        result.kwargs
-        and "organization_slug" in result.kwargs
-        and result.kwargs["organization_slug"] != activeorg
+    org_slug_path_mismatch = result.kwargs and (
+        ("organization_slug" in result.kwargs and result.kwargs["organization_slug"] != activeorg)
+        or (
+            "organization_id_or_slug" in result.kwargs
+            and result.kwargs["organization_id_or_slug"] != activeorg
+            and not str(result.kwargs["organization_id_or_slug"]).isdecimal()
+        )
     )
     if not redirect_subdomain and not org_slug_path_mismatch:
         return None
     kwargs = {**result.kwargs}
+
+    # Make sure if organization_id_or_slug is passed in, it is a slug
     if org_slug_path_mismatch:
-        kwargs["organization_slug"] = activeorg
+        if "organization_slug" in kwargs:
+            kwargs["organization_slug"] = activeorg
+        else:
+            kwargs["organization_id_or_slug"] = activeorg
+
     path = reverse(result.url_name or result.func, kwargs=kwargs)
     qs = _query_string(request)
     redirect_url = f"{redirect_url}{path}{qs}"
