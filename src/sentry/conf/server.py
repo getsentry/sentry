@@ -135,6 +135,7 @@ SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
+SENTRY_ASSEMBLE_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -3444,7 +3445,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
 }
 
 
-# If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
+# If True, sentry.utils.arroyo.run_task_with_multiprocessing will actually be
 # single-threaded under the hood for performance
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 
