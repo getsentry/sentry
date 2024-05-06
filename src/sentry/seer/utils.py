@@ -17,6 +17,14 @@ class SeerException(Exception):
     pass
 
 
+class IncompleteSeerDataError(Exception):
+    pass
+
+
+class SimilarGroupNotFoundError(Exception):
+    pass
+
+
 class BreakpointData(TypedDict):
     project: str
     # For legacy reasons, the group name is always
