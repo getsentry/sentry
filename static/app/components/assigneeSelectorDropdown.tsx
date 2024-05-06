@@ -444,7 +444,7 @@ export default function AssigneeSelectorDropdown({
 
     const suggestedOptions = {
       value: '_suggested_assignees',
-      label: t('Suggested Assignees'),
+      label: t('Suggested'),
       options:
         suggestedUsers
           .map(makeSuggestedAssigneeOption)
@@ -512,7 +512,7 @@ export default function AssigneeSelectorDropdown({
             : ''
         }
         onClear={() => handleSelect(null)}
-        menuTitle={t('Select Assignee')}
+        menuTitle={t('Assignee')}
         searchPlaceholder="Search users or teams..."
         size="sm"
         onChange={handleSelect}
