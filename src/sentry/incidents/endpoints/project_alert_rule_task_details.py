@@ -38,9 +38,7 @@ class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
 
         if rule_id and status == "success":
             try:
-                alert_rule = AlertRule.objects.get(
-                    snuba_query__subscriptions__project=project, id=rule_id
-                )
+                alert_rule = AlertRule.objects.get(projects=project, id=rule_id)
                 context["alertRule"] = serialize(alert_rule, request.user)
             except AlertRule.DoesNotExist:
                 raise Http404
