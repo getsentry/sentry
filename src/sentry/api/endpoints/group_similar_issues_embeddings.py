@@ -16,7 +16,7 @@ from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.seer.utils import (
-    SimilarIssuesEmbeddingsData,
+    RawSeerSimilarIssueData,
     SimilarIssuesEmbeddingsRequest,
     get_similar_issues_embeddings,
 )
@@ -108,7 +108,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
     def get_formatted_results(
         self,
-        similar_issues_data: Sequence[SimilarIssuesEmbeddingsData],
+        similar_issues_data: Sequence[RawSeerSimilarIssueData],
         user: User | AnonymousUser,
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
