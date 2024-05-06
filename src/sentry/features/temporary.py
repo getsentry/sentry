@@ -275,6 +275,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:similarity-embeddings-metadata", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("projects:similarity-embeddings-remove-seer-grouping-record-table-init", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

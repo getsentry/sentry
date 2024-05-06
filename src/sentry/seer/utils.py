@@ -115,6 +115,7 @@ class CreateGroupingRecordsRequest(TypedDict):
     group_id_list: list[int]
     data: list[CreateGroupingRecordData]
     stacktrace_list: list[str]
+    remove_grouping_record_table_init: bool
 
 
 class BulkCreateGroupingRecordsResponse(TypedDict):
@@ -153,6 +154,9 @@ def post_bulk_grouping_records(
     grouping_records_request: CreateGroupingRecordsRequest,
 ) -> BulkCreateGroupingRecordsResponse:
     """Call /v0/issues/similar-issues/grouping-record endpoint from seer."""
+    if not grouping_records_request.get("data"):
+        return {"success": True}
+
     extra = {
         "group_ids": json.dumps(grouping_records_request["group_id_list"]),
         "project_id": grouping_records_request["data"][0]["project_id"],

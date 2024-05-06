@@ -34,6 +34,7 @@ from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
 ITERATOR_CHUNK = 20
+SEER_BACKFILL_DELAY_PER_RECORD = 0.1
 BACKFILL_NAME = "backfill_grouping_records"
 LAST_PROCESSED_REDIS_KEY = "grouping_record_backfill.last_processed_id"
 
@@ -64,7 +65,7 @@ def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) 
         return num_groups_records_created
 
     project_id = project.id
-    time = datetime.now()
+    time_now = datetime.now()
     events_entity = Entity("events", alias="events")
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
@@ -95,9 +96,9 @@ def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) 
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column("group_id"), Op.IN, group_id_batch),
                 Condition(
-                    Column("timestamp", entity=events_entity), Op.GTE, time - timedelta(days=90)
+                    Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
                 ),
-                Condition(Column("timestamp", entity=events_entity), Op.LT, time),
+                Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
             ],
             orderby=[OrderBy(Column("group_id"), Direction.ASC)],
         )
@@ -128,11 +129,15 @@ def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) 
             data = lookup_group_data_stacktrace_bulk_with_fallback(
                 project, rows, group_id_message_batch, group_hashes_dict
             )
+            remove_grouping_record_table_init = features.has(
+                "projects:similarity-embeddings-remove-seer-grouping-record-table-init", project
+            )
             response = post_bulk_grouping_records(
                 CreateGroupingRecordsRequest(
                     group_id_list=group_id_batch,
                     data=data["data"],
                     stacktrace_list=data["stacktrace_list"],
+                    remove_grouping_record_table_init=remove_grouping_record_table_init,
                 )
             )
             if response["success"]:
@@ -154,6 +159,7 @@ def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) 
                             }
                         }
                 num_groups_records_created += Group.objects.bulk_update(groups, ["data"])
+            time.sleep(ITERATOR_CHUNK * SEER_BACKFILL_DELAY_PER_RECORD)
 
     return num_groups_records_created
 

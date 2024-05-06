@@ -1,3 +1,4 @@
+import copy
 from unittest import mock
 
 import pytest
@@ -24,6 +25,7 @@ CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
         {"hash": "hash-2", "project_id": 1, "message": "message 2"},
     ],
     "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
+    "remove_grouping_record_table_init": False,
 }
 
 
@@ -169,3 +171,16 @@ def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
             "reason": "INTERNAL SERVER ERROR",
         },
     )
+
+
+@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+def test_post_bulk_grouping_records_empty_data(mock_seer_request):
+    """Test that function handles empty data. This should not happen, but we do not want to error if it does."""
+    expected_return_value = {"success": True}
+    mock_seer_request.return_value = HTTPResponse(
+        json.dumps(expected_return_value).encode("utf-8"), status=200
+    )
+    empty_data = copy.deepcopy(CREATE_GROUPING_RECORDS_REQUEST_PARAMS)
+    empty_data["data"] = []
+    response = post_bulk_grouping_records(empty_data)
+    assert response == expected_return_value
