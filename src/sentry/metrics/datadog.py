@@ -115,10 +115,34 @@ class DatadogMetricsBackend(MetricsBackend):
     def event(
         self,
         key: str,
-        value: float,
+        value: str,
+        alert_type: str | None = None,
+        aggregation_key: str | None = None,
+        source_type_name: str | None = None,
+        date_happened: int | None = None,
+        priority: str | None = None,
         instance: str | None = None,
         tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
-        raise NotImplementedError
+        tags = dict(tags or ())
+
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags["instance"] = instance
+
+        tags_list = [f"{k}:{v}" for k, v in tags.items()]
+        self.stats.event(
+            title=self._get_key(key),
+            message=value,
+            alert_type=alert_type,
+            aggregation_key=aggregation_key,
+            source_type_name=source_type_name,
+            date_happened=date_happened,
+            priority=priority,
+            tags=tags_list,
+            host_name=self.host,
+            sample_rate=sample_rate,
+        )

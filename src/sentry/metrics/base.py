@@ -82,7 +82,12 @@ class MetricsBackend(local):
     def event(
         self,
         key: str,
-        value: float,
+        value: str,
+        alert_type: str | None = None,
+        aggregation_key: str | None = None,
+        source_type_name: str | None = None,
+        date_happened: int | None = None,
+        priority: str | None = None,
         instance: str | None = None,
         tags: Tags | None = None,
         sample_rate: float = 1,
