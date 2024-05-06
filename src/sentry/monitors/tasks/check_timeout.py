@@ -18,6 +18,12 @@ logger = logging.getLogger("sentry")
 # monitors the larger the number of checkins to check will exist.
 CHECKINS_LIMIT = 10_000
 
+# XXX(epurkhiser): THIS MODULE IS BEING DEPRECATED.
+#
+# See the monitors.clock_tasks module, which contains a duplicated version of
+# this code as we migrate off these tasks being driven by celery and instead
+# being driven by a kafka topic.
+
 
 @instrumented_task(
     name="sentry.monitors.tasks.check_timeout",

@@ -16,6 +16,8 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -1853,6 +1855,47 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["sentryAppIssues"][0]["displayName"] == issue_1.display_name
         assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
 
+    @with_feature("organizations:event-attachments")
+    def test_expand_has_attachments(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["hasAttachments"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        # No attachments
+        assert response.data[0]["hasAttachments"] is False
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "hasAttachments" not in response.data[0]
+
+        # Add 1 attachment
+        file_attachment = File.objects.create(name="hello.png", type="image/png")
+        EventAttachment.objects.create(
+            group_id=event.group.id,
+            event_id=event.event_id,
+            project_id=event.project_id,
+            file_id=file_attachment.id,
+            type=file_attachment.type,
+            name="hello.png",
+        )
+
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["hasAttachments"]
+        )
+        assert response.status_code == 200
+        assert response.data[0]["hasAttachments"] is True
+
     def test_expand_owners(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -2924,6 +2967,60 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="issue.category:replay issue.type:performance_n_plus_one_db_queries",
         )
         assert len(response.data) == 0
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_pagination_and_x_hits_header(self):
+        # Create 30 issues
+        for i in range(30):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=i)),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+
+        self.login_as(user=self.user)
+
+        # Request the first page with a limit of 10
+        response = self.get_success_response(limit=10, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+        assert response.headers.get("X-Hits") == "30"
+        assert "Link" in response.headers
+
+        # Parse the Link header to get the cursor for the next page
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "true"
+        cursor = next_obj["cursor"]
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "false"
+
+        # Request the second page using the cursor
+        response = self.get_success_response(limit=10, cursor=cursor, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+
+        # Check for the presence of the next cursor
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "true"
+        cursor = next_obj["cursor"]
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "true"
+
+        # Request the third page using the cursor
+        response = self.get_success_response(limit=10, cursor=cursor, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+
+        # Check that there is no next page
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "false"
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "true"
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

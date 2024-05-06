@@ -1,5 +1,5 @@
 ---
-created: '2024-04-30T11:46:28.288534+00:00'
+created: '2024-05-02T21:08:26.482609+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -21,7 +21,6 @@ config:
     scrubDefaults: true
     sensitiveFields: []
   features:
-  - organizations:session-replay-video
   - organizations:transaction-name-mark-scrubbed-as-sanitized
   - organizations:transaction-name-normalize
   filterSettings:

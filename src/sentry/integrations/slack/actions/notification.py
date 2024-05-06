@@ -93,18 +93,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 for block in additional_attachment:
                     blocks["blocks"].append(block)
 
+            payload = {
+                "text": blocks.get("text"),
+                "channel": channel,
+                "unfurl_links": False,
+                "unfurl_media": False,
+            }
             if payload_blocks := blocks.get("blocks"):
-                payload = {
-                    "text": blocks.get("text"),
-                    "blocks": json.dumps_orjson(payload_blocks),
-                    "channel": channel,
-                    "unfurl_links": False,
-                    "unfurl_media": False,
-                }
-                self.logger.info(
-                    "rule.slack_post.attachments",
-                    extra={"organization_id": event.group.project.organization_id},
-                )
+                payload["blocks"] = json.dumps_orjson(payload_blocks)
 
             rule = rules[0] if rules else None
             rule_to_use = self.rule if self.rule else rule
@@ -156,6 +152,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     # To reply to a thread, use the specific key in the payload as referenced by the docs
                     # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
                     payload["thread_ts"] = parent_notification_message.message_identifier
+                    # If this flow is triggered again for the same issue, we want it to be seen in the main channel
+                    payload["reply_broadcast"] = True
 
             client = SlackClient(integration_id=integration.id)
             try:

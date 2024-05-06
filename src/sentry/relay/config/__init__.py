@@ -62,7 +62,6 @@ EXPOSABLE_FEATURES = [
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
-    "organizations:session-replay-video",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
@@ -291,8 +290,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "namespace": namespace.value,
             }
             if id in passive_limits:
-                # HACK inc-730: reduce pressure on memory by disabling limits for passive projects
-                continue
+                limit["passive"] = True
             cardinality_limits.append(limit)
             existing_ids.add(id)
 

@@ -416,7 +416,7 @@ function ExpressionAliasForm({
       <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
         <StyledButton
           icon={<IconDelete size="xs" />}
-          aria-label="Clear Alias"
+          aria-label={t('Clear Alias')}
           onClick={() => onChange(undefined)}
         />
       </Tooltip>
