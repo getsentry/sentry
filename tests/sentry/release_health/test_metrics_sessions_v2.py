@@ -44,14 +44,14 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_id_or_slug": (org or self.organization1).slug},
+            kwargs={"organization_slug": (org or self.organization1).slug},
         )
         return self.client.get(url, query, format="json")
 
     def get_sessions_data(self, groupby: list[str], interval):
         response = self.do_request(
             {
-                "organization_id_or_slug": [self.organization1],
+                "organization_slug": [self.organization1],
                 "project": [self.project1.id],
                 "field": ["sum(session)"],
                 "groupBy": groupby,

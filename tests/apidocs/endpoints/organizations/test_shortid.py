@@ -11,7 +11,7 @@ class OrganizationShortIDDocs(APIDocsTestCase):
         self.url = reverse(
             "sentry-api-0-short-id-lookup",
             kwargs={
-                "organization_id_or_slug": self.organization.slug,
+                "organization_slug": self.organization.slug,
                 "short_id": group.qualified_short_id,
             },
         )

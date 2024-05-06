@@ -86,7 +86,7 @@ class OrganizationInviteRequestCreateTest(
 
         self.url = reverse(
             "sentry-api-0-organization-invite-request-index",
-            kwargs={"organization_id_or_slug": self.organization.slug},
+            kwargs={"organization_slug": self.organization.slug},
         )
 
     def test_simple(self):

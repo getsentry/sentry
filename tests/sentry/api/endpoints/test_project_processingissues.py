@@ -26,7 +26,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-processing-issues",
             kwargs={
-                "organization_id_or_slug": project1.organization.slug,
+                "organization_slug": project1.organization.slug,
                 "project_id_or_slug": project1.slug,
             },
         )
@@ -65,7 +65,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-processing-issues",
             kwargs={
-                "organization_id_or_slug": project1.organization.slug,
+                "organization_slug": project1.organization.slug,
                 "project_id_or_slug": project1.slug,
             },
         )
@@ -94,7 +94,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-processing-issues",
             kwargs={
-                "organization_id_or_slug": project1.organization.slug,
+                "organization_slug": project1.organization.slug,
                 "project_id_or_slug": project1.slug,
             },
         )

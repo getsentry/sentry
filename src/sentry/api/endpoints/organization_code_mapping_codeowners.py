@@ -30,10 +30,8 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, config_id, *args, **kwargs):
-        args, kwargs = super().convert_args(
-            request, organization_id_or_slug, config_id, *args, **kwargs
-        )
+    def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):
+        args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
         organization = kwargs["organization"]
 
         try:

@@ -32,7 +32,7 @@ class OrganizationReleaseDetailsDocsTest(APIDocsTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-release-details",
-            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+            kwargs={"organization_slug": org.slug, "version": release.version},
         )
 
     def test_get(self):

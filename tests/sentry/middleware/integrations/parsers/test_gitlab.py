@@ -199,7 +199,7 @@ class GitlabRequestParserTest(TestCase):
         path = reverse(
             "sentry-extensions-gitlab-search",
             kwargs={
-                "organization_id_or_slug": self.organization.slug,
+                "organization_slug": self.organization.slug,
                 "integration_id": self.integration.id,
             },
         )

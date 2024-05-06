@@ -34,7 +34,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Replays",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReplayValidator],
+        parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("ListReplays", list[ReplayDetailsResponse]),
             400: RESPONSE_BAD_REQUEST,

@@ -32,7 +32,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-details",
             kwargs={
-                "organization_id_or_slug": project.organization.slug,
+                "organization_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "key": "foo",
             },
@@ -64,7 +64,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-details",
             kwargs={
-                "organization_id_or_slug": project.organization.slug,
+                "organization_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "key": key,
             },
@@ -89,7 +89,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-details",
             kwargs={
-                "organization_id_or_slug": project.organization.slug,
+                "organization_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "key": "environment",
             },

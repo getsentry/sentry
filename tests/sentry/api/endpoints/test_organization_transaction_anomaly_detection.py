@@ -24,7 +24,7 @@ class OrganizationTransactionAnomalyDetectionEndpointTest(APITestCase, SnubaTest
     def do_request(self, data, url=None, features=None):
         self.url = reverse(
             "sentry-api-0-organization-transaction-anomaly-detection",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
 
         if features is None:
@@ -39,7 +39,7 @@ class OrganizationTransactionAnomalyDetectionEndpointTest(APITestCase, SnubaTest
     def test_without_feature(self):
         self.url = reverse(
             "sentry-api-0-organization-transaction-anomaly-detection",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
 
         response = self.client.get(self.url, data={}, format="json")

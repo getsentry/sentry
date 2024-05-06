@@ -195,7 +195,7 @@ class JiraServerRequestParserTest(TestCase):
         route = reverse(
             "sentry-extensions-jiraserver-search",
             kwargs={
-                "organization_id_or_slug": self.organization.slug,
+                "organization_slug": self.organization.slug,
                 "integration_id": self.integration.id,
             },
         )

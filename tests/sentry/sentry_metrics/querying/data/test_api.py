@@ -1148,7 +1148,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql(
             "min",
             TransactionMRI.DURATION.value,
-            "transaction:/api/0/organizations/{organization_id_or_slug}/",
+            "transaction:/api/0/organizations/{organization_slug}/",
         )
 
         with pytest.raises(InvalidMetricsQueryError):

@@ -26,7 +26,7 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
 
         Retrieve a list of commits for a given project.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
+        :pparam string organization_slug: the slug of the organization the
                                           commit belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to list the
                                      commits of.

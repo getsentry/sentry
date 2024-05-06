@@ -21,7 +21,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         self.project = self.create_project()
         self.url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         self.features = {"organizations:discover-basic": True}
 
@@ -88,7 +88,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
         url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_id_or_slug": no_project_org.slug},
+            kwargs={"organization_slug": no_project_org.slug},
         )
         with self.feature(self.features):
             response = self.client.get(url, format="json")
@@ -110,7 +110,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         self.store_event(data=data, project_id=self.project.id)
         url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         with self.feature(self.features):
             response = self.client.get(url, {"query": "transaction.duration:>1"}, format="json")
@@ -130,7 +130,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         assert group_info is not None
         url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         with self.feature(self.features):
             response = self.client.get(
@@ -153,7 +153,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             ).group
         url = reverse(
             "sentry-api-0-organization-events-meta",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         with self.feature(self.features):
             response = self.client.get(
@@ -258,7 +258,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_id_or_slug": project.organization.slug},
+            kwargs={"organization_slug": project.organization.slug},
         )
         response = self.client.get(url, {"transaction": "/beth/sanchez"}, format="json")
 
@@ -278,7 +278,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_id_or_slug": project.organization.slug},
+            kwargs={"organization_slug": project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -299,7 +299,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_id_or_slug": project.organization.slug},
+            kwargs={"organization_slug": project.organization.slug},
         )
         response = self.client.get(url, {"transaction": "/morty/sanchez"}, format="json")
 
@@ -329,7 +329,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_id_or_slug": project.organization.slug},
+            kwargs={"organization_slug": project.organization.slug},
         )
         response = self.client.get(
             url, {"transaction": "/beth/sanchez", "statsPeriod": "24h"}, format="json"
@@ -364,7 +364,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_id_or_slug": project1.organization.slug},
+            kwargs={"organization_slug": project1.organization.slug},
         )
         response = self.client.get(
             url,
@@ -392,7 +392,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_id_or_slug": project.organization.slug},
+            kwargs={"organization_slug": project.organization.slug},
         )
         response = self.client.get(
             url,
@@ -407,7 +407,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-related-issues",
-            kwargs={"organization_id_or_slug": project.organization.slug},
+            kwargs={"organization_slug": project.organization.slug},
         )
         response = self.client.get(
             url,
@@ -428,7 +428,7 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
     def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
         self.login_as(user=self.user)
         project = self.create_project()
-        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+        url = reverse(self.url_name, kwargs={"organization_slug": project.organization.slug})
 
         response = self.client.get(
             url,

@@ -63,7 +63,7 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Retrieve a Group Firing History for an Issue Alert",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],

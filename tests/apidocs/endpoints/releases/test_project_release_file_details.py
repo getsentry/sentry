@@ -24,7 +24,7 @@ class ProjectReleaseFileDetailsDocsTest(APIDocsTestCase):
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "project_id_or_slug": project.slug,
-                "organization_id_or_slug": project.organization.slug,
+                "organization_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },

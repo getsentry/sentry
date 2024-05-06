@@ -9,9 +9,7 @@ from sentry.testutils.silo import no_silo_test
 class SudoTest(APITestCase):
     def test_sudo_required_del_org(self):
         org = self.create_organization()
-        url = reverse(
-            "sentry-api-0-organization-details", kwargs={"organization_id_or_slug": org.slug}
-        )
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
         user = self.create_user(email="foo@example.com")
         self.create_member(organization=org, user=user, role="owner")

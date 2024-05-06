@@ -29,7 +29,7 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
 
         self.url = reverse(
             "sentry-api-0-organization-stats-v2",
-            kwargs={"organization_id_or_slug": self.organization.slug},
+            kwargs={"organization_slug": self.organization.slug},
         )
 
     def test_get(self):

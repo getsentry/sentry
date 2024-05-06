@@ -29,7 +29,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_id_or_slug": project.organization.slug,
+                "organization_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -64,7 +64,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_id_or_slug": project.organization.slug,
+                "organization_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -86,7 +86,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
                 "version": self.release.version,
                 "file_id": file_id,
             },
@@ -138,7 +138,7 @@ class ReleaseFileUpdateTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_id_or_slug": project.organization.slug,
+                "organization_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -179,7 +179,7 @@ class ReleaseFileDeleteTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_id_or_slug": project.organization.slug,
+                "organization_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },

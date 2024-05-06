@@ -17,7 +17,7 @@ class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_id_or_slug": self.organization.slug},
+            kwargs={"organization_slug": self.organization.slug},
         )
 
         self.login_as(user=self.user)

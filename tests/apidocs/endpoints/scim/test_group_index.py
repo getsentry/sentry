@@ -12,7 +12,7 @@ class SCIMTeamIndexDocs(APIDocsTestCase, SCIMTestCase):
         self.team = self.create_team(organization=self.organization, members=[self.user])
         self.url = reverse(
             "sentry-api-0-organization-scim-team-index",
-            kwargs={"organization_id_or_slug": self.organization.slug},
+            kwargs={"organization_slug": self.organization.slug},
         )
 
     def test_get(self):

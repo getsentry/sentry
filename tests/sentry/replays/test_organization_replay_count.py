@@ -34,7 +34,7 @@ class OrganizationReplayCountEndpointTest(
         self.login_as(user=self.user)
         self.url = reverse(
             "sentry-api-0-organization-replay-count",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         self.features = {"organizations:session-replay": True}
 

@@ -19,7 +19,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-alert-rule-task-details",
             kwargs={
-                "organization_id_or_slug": project1.organization.slug,
+                "organization_slug": project1.organization.slug,
                 "project_id_or_slug": project1.slug,
                 "task_uuid": self.uuid,
             },

@@ -52,7 +52,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
         Returns a list of deploys based on the organization, version, and project.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization
+        :pparam string organization_slug: the organization short name
         :pparam string version: the version identifier of the release.
         """
         try:
@@ -92,7 +92,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
         Create a deploy for a given release.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization
+        :pparam string organization_slug: the organization short name
         :pparam string version: the version identifier of the release.
         :param string environment: the environment you're deploying to
         :param string name: the optional name of the deploy

@@ -20,7 +20,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         self.project_2 = self.create_project()
         self.url = reverse(
             "sentry-api-0-organization-replay-events-meta",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         self.features = {"organizations:session-replay": True}
 

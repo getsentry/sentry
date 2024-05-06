@@ -26,7 +26,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-facets-performance-histogram",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
 
     # Function to set up some transactions for most tests

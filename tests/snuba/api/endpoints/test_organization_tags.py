@@ -41,9 +41,7 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        url = reverse(
-            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
-        )
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -60,9 +58,7 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         org = self.create_organization(owner=user)
         self.login_as(user=user)
 
-        url = reverse(
-            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
-        )
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -78,9 +74,7 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         with self.options({"snuba.tagstore.cache-tagkeys-rate": 1.0}):
-            url = reverse(
-                "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
-            )
+            url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
             response = self.client.get(url, {"use_cache": "1", "statsPeriod": "14d"}, format="json")
             assert response.status_code == 200, response.content
             assert mock_snuba_query.call_count == 1
@@ -100,9 +94,7 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         with self.options({"snuba.tagstore.cache-tagkeys-rate": 1.0}):
-            url = reverse(
-                "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
-            )
+            url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
             response = self.client.get(url, {"use_cache": "1", "statsPeriod": "14d"}, format="json")
             assert response.status_code == 200, response.content
             # Empty cache, we should query snuba
@@ -125,9 +117,7 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         with self.options({"snuba.tagstore.cache-tagkeys-rate": 1.0}):
             start = iso_format(before_now(minutes=10))
             end = iso_format(before_now(minutes=5))
-            url = reverse(
-                "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
-            )
+            url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
             response = self.client.get(
                 url, {"use_cache": "1", "start": start, "end": end}, format="json"
             )
@@ -161,17 +151,13 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
             )
             self.login_as(user=user)
 
-            url = reverse(
-                "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
-            )
+            url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
             response = self.client.get(
                 url, {"use_cache": "1", "start": start, "end": end}, format="json"
             )
             original_data = response.data
 
-            url = reverse(
-                "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
-            )
+            url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
             response = self.client.get(
                 url, {"use_cache": "1", "start": start, "end": end}, format="json"
             )

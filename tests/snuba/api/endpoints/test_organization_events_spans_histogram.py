@@ -20,7 +20,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org)
         self.url = reverse(
             self.URL,
-            kwargs={"organization_id_or_slug": self.org.slug},
+            kwargs={"organization_slug": self.org.slug},
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)

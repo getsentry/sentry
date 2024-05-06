@@ -104,7 +104,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Retrieve Monitors for an Organization",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
             MonitorParams.OWNER,
@@ -272,7 +272,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Create a Monitor",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_SLUG],
         request=MonitorValidator,
         responses={
             201: MonitorSerializer,
@@ -348,7 +348,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Bulk Edit Monitors",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_SLUG],
         request=MonitorBulkEditValidator,
         responses={
             200: inline_sentry_response_serializer(

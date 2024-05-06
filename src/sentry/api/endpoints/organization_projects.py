@@ -51,7 +51,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
     @extend_schema(
         operation_id="List an Organization's Projects",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        parameters=[GlobalParams.ORG_SLUG, CursorQueryParam],
         request=None,
         responses={
             200: inline_sentry_response_serializer(

@@ -90,7 +90,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-stats-summary",
-            kwargs={"organization_id_or_slug": (org or self.organization).slug},
+            kwargs={"organization_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 

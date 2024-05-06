@@ -15,7 +15,7 @@ class ShortIdLookupEndpointTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-short-id-lookup",
-            kwargs={"organization_id_or_slug": org.slug, "short_id": group.qualified_short_id},
+            kwargs={"organization_slug": org.slug, "short_id": group.qualified_short_id},
         )
         response = self.client.get(url, format="json")
 

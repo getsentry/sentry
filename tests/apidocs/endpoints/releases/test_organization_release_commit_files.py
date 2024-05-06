@@ -36,10 +36,7 @@ class CommitFileChangeDocsTest(APIDocsTestCase):
         )
         self.url = reverse(
             "sentry-api-0-release-commitfilechange",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "version": release.version,
-            },
+            kwargs={"organization_slug": project.organization.slug, "version": release.version},
         )
 
         self.login_as(user=self.user)

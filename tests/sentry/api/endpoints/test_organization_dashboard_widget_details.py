@@ -28,7 +28,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
     def url(self):
         return reverse(
             "sentry-api-0-organization-dashboard-widget-details",
-            kwargs={"organization_id_or_slug": self.organization.slug},
+            kwargs={"organization_slug": self.organization.slug},
         )
 
     def test_valid_widget(self):

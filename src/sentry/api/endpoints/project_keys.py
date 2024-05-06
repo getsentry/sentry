@@ -33,7 +33,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="List a Project's Client Keys",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             CursorQueryParam,
             ProjectParams.STATUS,
@@ -72,7 +72,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Create a New Client Key",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectKeyPostSerializer,

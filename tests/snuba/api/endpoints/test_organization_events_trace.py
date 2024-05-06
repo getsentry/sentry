@@ -42,7 +42,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         self.url = reverse(
             self.url_name,
             kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
                 "trace_id": self.trace_id,
             },
         )
@@ -154,7 +154,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         url = reverse(
             self.url_name,
-            kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
+            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
         )
 
         with self.feature(self.FEATURES):
@@ -189,10 +189,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         # Fake trace id
         self.url = reverse(
             "sentry-api-0-organization-events-trace-light",
-            kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
-                "trace_id": uuid4().hex,
-            },
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": uuid4().hex},
         )
 
         with self.feature(self.FEATURES):
@@ -209,7 +206,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             self.url = reverse(
                 "sentry-api-0-organization-events-trace-light",
                 kwargs={
-                    "organization_id_or_slug": self.project.organization.slug,
+                    "organization_slug": self.project.organization.slug,
                     "trace_id": "not-a-trace",
                 },
             )
@@ -228,10 +225,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         )
         url = reverse(
             "sentry-api-0-organization-events-trace-light",
-            kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
-                "trace_id": no_root_trace,
-            },
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": no_root_trace},
         )
 
         with self.feature(self.FEATURES):
@@ -717,7 +711,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         url = reverse(
             self.url_name,
-            kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
+            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
         )
 
         with self.feature(self.FEATURES):
@@ -792,7 +786,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         url = reverse(
             self.url_name,
-            kwargs={"organization_id_or_slug": self.project.organization.slug, "trace_id": trace},
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace},
         )
 
         with self.feature(self.FEATURES):
@@ -924,10 +918,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         )
         self.url = reverse(
             self.url_name,
-            kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
-                "trace_id": trace_id,
-            },
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace_id},
         )
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -1622,7 +1613,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
 
         url = reverse(
             self.url_name,
-            kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
+            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
         )
 
         with self.feature(self.FEATURES):
@@ -1637,10 +1628,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         # Fake trace id
         self.url = reverse(
             self.url_name,
-            kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
-                "trace_id": uuid4().hex,
-            },
+            kwargs={"organization_slug": self.project.organization.slug, "trace_id": uuid4().hex},
         )
 
         with self.feature(self.FEATURES):
@@ -1661,7 +1649,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
             self.url = reverse(
                 self.url_name,
                 kwargs={
-                    "organization_id_or_slug": self.project.organization.slug,
+                    "organization_slug": self.project.organization.slug,
                     "trace_id": "not-a-trace",
                 },
             )

@@ -95,7 +95,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List an Organization's Selectors",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.ENVIRONMENT,
             ReplaySelectorValidator,
             CursorQueryParam,

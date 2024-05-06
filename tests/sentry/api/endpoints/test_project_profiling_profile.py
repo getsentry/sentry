@@ -29,7 +29,7 @@ class ProjectProfilingFunctionsEndpoint(APITestCase):
         self.url = reverse(
             self.endpoint,
             kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )

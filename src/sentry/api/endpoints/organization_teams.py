@@ -80,7 +80,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List an Organization's Teams",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             TeamParams.DETAILED,
             CursorQueryParam,
         ],
@@ -161,7 +161,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Create a New Team",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
         ],
         request=TeamPostSerializer,
         responses={

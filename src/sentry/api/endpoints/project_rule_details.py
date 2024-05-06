@@ -108,7 +108,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Retrieve an Issue Alert Rule for a Project",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
@@ -208,7 +208,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Update an Issue Alert Rule",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
@@ -398,7 +398,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Delete an Issue Alert Rule",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],

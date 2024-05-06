@@ -26,7 +26,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -41,7 +41,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -55,7 +55,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         # Make current project incompatible by having nothing
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -71,7 +71,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -107,7 +107,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -140,7 +140,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -154,7 +154,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -167,7 +167,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         # Make current project incompatible by having nothing
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -182,7 +182,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -220,7 +220,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -244,7 +244,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
 
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 

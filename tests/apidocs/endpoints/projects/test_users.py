@@ -18,7 +18,7 @@ class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
         self.url = reverse(
             "sentry-api-0-project-users",
             kwargs={
-                "organization_id_or_slug": self.organization.slug,
+                "organization_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )

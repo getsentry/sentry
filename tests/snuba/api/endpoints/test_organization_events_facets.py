@@ -21,7 +21,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.project2 = self.create_project()
         self.url = reverse(
             "sentry-api-0-organization-events-facets",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
+            kwargs={"organization_slug": self.project.organization.slug},
         )
         self.min_ago_iso = iso_format(self.min_ago)
         self.features = {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -330,7 +330,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
         url = reverse(
-            "sentry-api-0-organization-events-facets", kwargs={"organization_id_or_slug": org.slug}
+            "sentry-api-0-organization-events-facets", kwargs={"organization_slug": org.slug}
         )
         with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")

@@ -38,7 +38,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_id_or_slug": event.project.organization.slug,
+                "organization_slug": event.project.organization.slug,
             },
         )
 
@@ -68,7 +68,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_id_or_slug": event.project.organization.slug,
+                "organization_slug": event.project.organization.slug,
             },
         )
 
@@ -91,7 +91,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_id_or_slug": event.project.organization.slug,
+                "organization_slug": event.project.organization.slug,
             },
         )
 
@@ -134,7 +134,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_id_or_slug": event.project.organization.slug,
+                "organization_slug": event.project.organization.slug,
             },
         )
 
@@ -178,7 +178,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_id_or_slug": event.project.organization.slug,
+                "organization_slug": event.project.organization.slug,
             },
         )
 
@@ -238,7 +238,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_id_or_slug": event.project.organization.slug,
+                "organization_slug": event.project.organization.slug,
             },
         )
 

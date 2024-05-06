@@ -125,7 +125,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Retrieve an Organization's Events Count by Project",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsSummaryQueryParamsSerializer],
+        parameters=[GlobalParams.ORG_SLUG, OrgStatsSummaryQueryParamsSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer(

@@ -40,7 +40,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         Return a list of version control repositories for a given organization.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization
+        :pparam string organization_slug: the organization short name
         :qparam string query: optional filter by repository name
         :auth: required
         """

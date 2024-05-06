@@ -16,7 +16,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-sdk-updates",
-            kwargs={"organization_id_or_slug": self.organization.slug},
+            kwargs={"organization_slug": self.organization.slug},
         )
         self.features = {}
 
@@ -81,7 +81,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-sdk-updates",
-            kwargs={"organization_id_or_slug": org.slug},
+            kwargs={"organization_slug": org.slug},
         )
 
         with self.feature(self.features):

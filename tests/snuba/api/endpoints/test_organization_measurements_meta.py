@@ -21,7 +21,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.DEFAULT_METRIC_TIMESTAMP = self.day_ago
         self.url = reverse(
-            self.endpoint, kwargs={"organization_id_or_slug": self.project.organization.slug}
+            self.endpoint, kwargs={"organization_slug": self.project.organization.slug}
         )
         self.features = {"organizations:performance-use-metrics": True}
 

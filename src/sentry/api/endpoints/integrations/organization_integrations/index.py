@@ -64,7 +64,7 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
     @extend_schema(
         operation_id="List an Organization's Available Integrations",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             IntegrationParams.PROVIDER_KEY,
             IntegrationParams.FEATURES,
             IntegrationParams.INCLUDE_CONFIG,

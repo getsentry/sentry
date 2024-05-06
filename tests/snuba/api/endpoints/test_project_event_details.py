@@ -56,7 +56,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             kwargs={
                 "event_id": self.cur_event.event_id,
                 "project_id_or_slug": self.project.slug,
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -73,7 +73,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             kwargs={
                 "event_id": self.prev_event.event_id,
                 "project_id_or_slug": self.project.slug,
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -90,7 +90,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             kwargs={
                 "event_id": self.cur_event.event_id,
                 "project_id_or_slug": self.project.slug,
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(
@@ -109,7 +109,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             kwargs={
                 "event_id": self.next_event.event_id,
                 "project_id_or_slug": self.project.slug,
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -180,7 +180,7 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             kwargs={
                 "event_id": self.cur_event.event_id,
                 "project_id_or_slug": self.project.slug,
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.cur_group.id})
@@ -251,7 +251,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             kwargs={
                 "event_id": self.cur_transaction_event.event_id,
                 "project_id_or_slug": self.cur_transaction_event.project.slug,
-                "organization_id_or_slug": self.cur_transaction_event.project.organization.slug,
+                "organization_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -269,7 +269,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             kwargs={
                 "event_id": self.prev_transaction_event.event_id,
                 "project_id_or_slug": self.prev_transaction_event.project.slug,
-                "organization_id_or_slug": self.prev_transaction_event.project.organization.slug,
+                "organization_slug": self.prev_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -287,7 +287,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             kwargs={
                 "event_id": self.next_transaction_event.event_id,
                 "project_id_or_slug": self.next_transaction_event.project.slug,
-                "organization_id_or_slug": self.next_transaction_event.project.organization.slug,
+                "organization_slug": self.next_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -303,7 +303,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             kwargs={
                 "event_id": self.cur_transaction_event.event_id,
                 "project_id_or_slug": self.cur_transaction_event.project.slug,
-                "organization_id_or_slug": self.cur_transaction_event.project.organization.slug,
+                "organization_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -334,7 +334,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_id_or_slug": self.organization.slug,
+                "organization_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "event_id": self.event_id,
             },
@@ -355,7 +355,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_id_or_slug": self.organization.slug,
+                "organization_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "event_id": "no" * 16,
             },
@@ -377,7 +377,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_id_or_slug": self.organization.slug,
+                "organization_slug": self.organization.slug,
                 "project_id_or_slug": project2.slug,
                 "event_id": self.event_id,
             },

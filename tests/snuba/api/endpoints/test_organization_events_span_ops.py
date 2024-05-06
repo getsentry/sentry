@@ -15,7 +15,7 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-events-span-ops",
-            kwargs={"organization_id_or_slug": self.organization.slug},
+            kwargs={"organization_slug": self.organization.slug},
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)

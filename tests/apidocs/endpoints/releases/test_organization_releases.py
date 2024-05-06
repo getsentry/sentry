@@ -42,7 +42,7 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
         release2.add_project(self.project2)
 
         self.url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug}
         )
 
     def test_get(self):

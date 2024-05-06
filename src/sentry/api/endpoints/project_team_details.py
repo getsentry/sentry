@@ -39,21 +39,21 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_id_or_slug: int | str,
+        organization_slug: str | int,
         project_id_or_slug: int | str,
         team_id_or_slug: int | str,
         *args,
         **kwargs,
     ):
         (args, kwargs) = super().convert_args(
-            request, organization_id_or_slug, project_id_or_slug, *args, **kwargs
+            request, organization_slug, project_id_or_slug, *args, **kwargs
         )
 
         project = kwargs["project"]
 
         try:
             if id_or_slug_path_params_enabled(
-                self.convert_args.__qualname__, organization_id_or_slug=project.organization.slug
+                self.convert_args.__qualname__, organization_slug=project.organization.slug
             ):
                 team = Team.objects.get(
                     organization__slug__id_or_slug=project.organization.slug,
@@ -72,7 +72,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Add a Team to a Project",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
         ],
@@ -103,7 +103,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Delete a Team from a Project",
         parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
         ],

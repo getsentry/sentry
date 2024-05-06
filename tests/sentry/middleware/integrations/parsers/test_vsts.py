@@ -90,7 +90,7 @@ class VstsRequestParserTest(TestCase):
         search_request = self.factory.get(
             reverse(
                 "sentry-extensions-vsts-search",
-                kwargs={"organization_id_or_slug": "albertos-apples", "integration_id": 1234},
+                kwargs={"organization_slug": "albertos-apples", "integration_id": 1234},
             ),
         )
         parser = VstsRequestParser(request=search_request, response_handler=self.get_response)
