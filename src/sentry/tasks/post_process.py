@@ -1393,6 +1393,9 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
     from sentry.models.userreport import UserReport
 
+    if job["is_reprocessed"]:
+        return
+
     event = job["event"]
     project = event.project
     group = event.group
