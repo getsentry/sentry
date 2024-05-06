@@ -49,16 +49,18 @@ type MobileBreadcrumbTypes =
     };
 
 /**
- * Extra breadcrumb types not included in `@sentry/replay`
- * Also includes mobile types
+ * Extra breadcrumb types not included in `@sentry/replay`.
+ * Also includes mobile types.
+ * The navigation breadcrumb has data['from'] marked as optional
+ * because the mobile SDK does not send that property currently.
  */
 type ExtraBreadcrumbTypes =
   | MobileBreadcrumbTypes
   | {
       category: 'navigation';
       data: {
-        from: string;
         to: string;
+        from?: string;
       };
       message: string;
       timestamp: number;

@@ -188,6 +188,19 @@ class OrganizationTestEndpoint(Endpoint):
         )
 
 
+class OrganizationIdOrSlugTestEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, organization_id_or_slug):
+        return Response(
+            {
+                "organization_id_or_slug": organization_id_or_slug,
+                "subdomain": request.subdomain,
+                "activeorg": request.session.get("activeorg", None),
+            }
+        )
+
+
 urlpatterns = [
     re_path(
         r"^api/0/(?P<organization_id_or_slug>[^\/]+)/$",
@@ -197,6 +210,11 @@ urlpatterns = [
     re_path(
         r"^api/0/(?P<organization_id_or_slug>[^\/]+)/nameless/$",
         OrganizationTestEndpoint.as_view(),
+    ),
+    re_path(
+        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/idorslug/$",
+        OrganizationIdOrSlugTestEndpoint.as_view(),
+        name="org-events-endpoint-id-or-slug",
     ),
     re_path(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
 ]
@@ -255,6 +273,36 @@ class End2EndTest(APITestCase):
             # No redirect response
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "some-org"}),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+            assert response.data == {
+                "organization_id_or_slug": "some-org",
+                "subdomain": None,
+                "activeorg": "test",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "test"
+
+            response = self.client.get(
+                reverse("org-events-endpoint-id-or-slug", kwargs={"organization_id_or_slug": 1234}),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+            assert response.data == {
+                "organization_id_or_slug": "1234",
+                "subdomain": None,
+                "activeorg": "test",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "test"
+
+            response = self.client.get(
+                reverse(
+                    "org-events-endpoint-id-or-slug", kwargs={"organization_id_or_slug": "some-org"}
+                ),
                 follow=True,
             )
             assert response.status_code == 200
@@ -340,6 +388,37 @@ class End2EndTest(APITestCase):
             # No redirect for http methods that is not GET
             response = self.client.post(
                 reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "some-org"}),
+                data={"querystring": "value"},
+                HTTP_HOST="albertos-apples.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
+            # Redirect response for org id or slug path mismatch
+            response = self.client.get(
+                reverse(
+                    "org-events-endpoint-id-or-slug", kwargs={"organization_id_or_slug": "some-org"}
+                ),
+                data={"querystring": "value"},
+                HTTP_HOST="albertos-apples.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                ("/api/0/albertos-apples/idorslug/?querystring=value", 302)
+            ]
+            assert response.data == {
+                "organization_id_or_slug": "albertos-apples",
+                "subdomain": "albertos-apples",
+                "activeorg": "albertos-apples",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "albertos-apples"
+
+            # No redirect for id
+            response = self.client.get(
+                reverse("org-events-endpoint-id-or-slug", kwargs={"organization_id_or_slug": 1234}),
                 data={"querystring": "value"},
                 HTTP_HOST="albertos-apples.testserver",
                 follow=True,

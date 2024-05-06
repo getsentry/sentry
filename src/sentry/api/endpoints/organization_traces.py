@@ -398,7 +398,15 @@ class TraceSamplesExecutor:
                 )
 
                 # restrict the query to just this subset of trace ids
-                query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
+                query.add_conditions(
+                    [
+                        Condition(
+                            Column("trace_id"),
+                            Op.IN,
+                            Function("splitByChar", [",", ",".join(chunk)]),
+                        )
+                    ]
+                )
 
                 all_queries.append(query)
         else:
