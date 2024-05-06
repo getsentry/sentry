@@ -30,7 +30,7 @@ export function AssigneeBadge({
   //   codeowners: t('Matching Codeowners Rule'),
   // };
 
-  const makeAssignedIcon = actor => {
+  const makeAssignedIcon = (actor: Actor) => {
     return (
       <Fragment>
         <ActorAvatar
@@ -65,80 +65,8 @@ export function AssigneeBadge({
   return assignedTo ? (
     <StyledTag icon={makeAssignedIcon(assignedTo)} />
   ) : (
-    // How to override border here?
     <StyledTag icon={makeUnassignedIcon()} borderStyle="dashed" />
   );
-
-  // {assignedTo ? (
-  //   <Tag icon={makeAvatar(assignedTo)}/>
-  // ) : (
-  //   <Tag icon={makeAvatar(assignedTo)}/>
-  // )
-  // }
-
-  // <PillOutline assigneeExists={!!assignedTo}>
-  //   {assignedTo ? (
-  //     <ActorAvatar
-  //       actor={assignedTo}
-  //       className="avatar"
-  //       size={16}
-  //       tooltip={
-  //         <TooltipWrapper>
-  //           {tct('Assigned to [name]', {
-  //             name:
-  //               assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
-  //           })}
-  //           {assignmentReason && <TooltipSubtext>{assignmentReason}</TooltipSubtext>}
-  //         </TooltipWrapper>
-  //       }
-  //     />
-  //   ) : (
-  //     <Placeholder shape="circle" width={'16px'} height={'16px'} />
-  //   )}
-  //   {assignedTo && showName && <Fragment>{assignedTo.name}</Fragment>}
-  //   <Chevron direction="down" size="small" />
-  // </PillOutline>
-
-  // return (
-  //   <PillOutline assigneeExists={!!assignedTo}>
-  //     <ActorAvatar
-  //       actor={actor}
-  //       className="avatar"
-  //       size={16}
-  //       tooltip={
-  //         <TooltipWrapper>
-  //           {tct('Assigned to [name]', {
-  //             name: actor.type === 'team' ? `#${actor.name}` : actor.name,
-  //           })}
-  //           {assignmentReason && <TooltipSubtext>{assignmentReason}</TooltipSubtext>}
-  //         </TooltipWrapper>
-  //       }
-  //     />
-  //     {assignedTo && showName && <Fragment>{assignedTo.name}</Fragment>}
-  //     <Chevron direction="down" size="small" />
-  //   </PillOutline>
-  //   // <Tooltip
-  //   //   isHoverable
-  //   //   skipWrapper
-  //   //   title={
-  //   //     <TooltipWrapper>
-  //   //       <div>{t('Unassigned')}</div>
-  //   //       <TooltipSubtext>
-  //   //         {tct(
-  //   //           'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
-  //   //           {
-  //   //             issueOwners: (
-  //   //               <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-  //   //             ),
-  //   //           }
-  //   //         )}
-  //   //       </TooltipSubtext>
-  //   //     </TooltipWrapper>
-  //   //   }
-  //   // >
-  //   //   <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
-  //   // </Tooltip>
-  // );
 }
 
 // const StyledIconUser = styled(IconUser)`
