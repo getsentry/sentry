@@ -88,7 +88,7 @@ class GithubCommentTestCase(IntegrationTestCase):
         self.pr_key = 1
         self.commit_sha = 1
         self.fingerprint = 1
-        patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1").start()
+        patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1").start()
 
     def add_commit_to_repo(self, repo, user, project):
         if user not in self.user_to_commit_author_map:
