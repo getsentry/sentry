@@ -342,8 +342,9 @@ def _detect_performance_problems(
     ]
 
     for detector in detectors:
-        with sentry_sdk.start_span(op="function", description="run_detector_on_data") as span:
-            span.set_tag("detector.type.value", detector.type.value)
+        with sentry_sdk.start_span(
+            op="function", description=f"run_detector_on_data.{detector.type.value}"
+        ):
             run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
