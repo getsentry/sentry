@@ -31,9 +31,9 @@ const productSelection = (params: Params): ProductSelectionMap => {
 };
 
 const getSdkSetupSnippet = (params: Params) => `
-${getDefaulServerlessImports({productSelection: productSelection(params)}).join('\n')}
+${getDefaulServerlessImports({productSelection: productSelection(params), library: 'aws-serverless'}).join('\n')}
 
-Sentry.AWSLambda.init({
+Sentry.init({
   dsn: "${params.dsn}",
   integrations: [${
     params.isProfilingSelected
@@ -56,17 +56,17 @@ Sentry.AWSLambda.init({
 }
 });
 
-exports.handler = Sentry.AWSLambda.wrapHandler(async (event, context) => {
+exports.handler = Sentry.wrapHandler(async (event, context) => {
   // Your handler code
 });`;
 
 const getVerifySnippet = () => `
-exports.handler = Sentry.AWSLambda.wrapHandler(async (event, context) => {
+exports.handler = Sentry.wrapHandler(async (event, context) => {
   throw new Error("This should show up in Sentry!")
 });`;
 
 const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.AWSLambda.init({
+Sentry.init({
   dsn: "${params.dsn}",
   _experiments: {
     metricsAggregator: true,
@@ -77,9 +77,9 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry Serverless SDK as a dependency:'),
+      description: t('Add the Sentry AWS Serverless SDK as a dependency:'),
       configurations: getInstallConfig(params, {
-        basePackage: '@sentry/serverless',
+        basePackage: '@sentry/aws-serverless',
       }),
     },
   ],
@@ -126,14 +126,14 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/serverless]:',
+        'You need a minimum version [codeVersion:8.0.0] of [codePackage:@sentry/aws-serverless]:',
         {
           codeVersion: <code />,
           codePackage: <code />,
         }
       ),
       configurations: getInstallConfig(params, {
-        basePackage: '@sentry/serverless',
+        basePackage: '@sentry/aws-serverless',
       }),
     },
   ],
