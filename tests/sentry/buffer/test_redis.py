@@ -15,11 +15,7 @@ from sentry.rules.processing.delayed_processing import PROJECT_ID_BUFFER_LIST_KE
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.redis import (
-    get_cluster_routing_client,
-    is_instance_rb_cluster,
-    is_instance_redis_cluster,
-)
+from sentry.utils.redis import get_cluster_routing_client
 
 
 def _hgetall_decode_keys(client, key, is_redis_cluster):
@@ -200,60 +196,6 @@ class TestRedisBuffer:
             assert pending == [key]
         else:
             assert pending == [key.encode("utf-8")]
-
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.redis.process_incr")
-    @mock.patch("sentry.buffer.redis.process_pending")
-    def test_process_pending_partitions_none(self, process_pending, process_incr):
-        self.buf.pending_partitions = 2
-        if is_instance_redis_cluster(self.buf.cluster, self.buf.is_redis_cluster):
-            self.buf.cluster.zadd("b:p:0", {"foo": 1})
-            self.buf.cluster.zadd("b:p:1", {"bar": 1})
-            self.buf.cluster.zadd("b:p", {"baz": 1})
-        elif is_instance_rb_cluster(self.buf.cluster, self.buf.is_redis_cluster):
-            with self.buf.cluster.map() as client:
-                client.zadd("b:p:0", {"foo": 1})
-                client.zadd("b:p:1", {"bar": 1})
-                client.zadd("b:p", {"baz": 1})
-        else:
-            raise RuntimeError("unreachable")
-
-        # On first pass, we are expecting to do:
-        # * process the buffer that doesn't have a partition (b:p)
-        # * queue up 2 jobs, one for each partition to process.
-        self.buf.process_pending()
-        assert len(process_incr.apply_async.mock_calls) == 1
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]})
-        assert len(process_pending.apply_async.mock_calls) == 2
-        assert process_pending.apply_async.mock_calls == [
-            mock.call(kwargs={"partition": 0}),
-            mock.call(kwargs={"partition": 1}),
-        ]
-
-        # Confirm that we've only processed the unpartitioned buffer
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
-
-        assert client.zrange("b:p", 0, -1) == []
-        assert client.zrange("b:p:0", 0, -1) != []
-        assert client.zrange("b:p:1", 0, -1) != []
-
-        # partition 0
-        self.buf.process_pending(partition=0)
-        assert len(process_incr.apply_async.mock_calls) == 2
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo"]})
-        assert client.zrange("b:p:0", 0, -1) == []
-
-        # Make sure we didn't queue up more
-        assert len(process_pending.apply_async.mock_calls) == 2
-
-        # partition 1
-        self.buf.process_pending(partition=1)
-        assert len(process_incr.apply_async.mock_calls) == 3
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["bar"]})
-        assert client.zrange("b:p:1", 0, -1) == []
-
-        # Make sure we didn't queue up more
-        assert len(process_pending.apply_async.mock_calls) == 2
 
     def group_rule_data_by_project_id(self, buffer, project_ids):
         project_ids_to_rule_data = defaultdict(list)

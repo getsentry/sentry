@@ -15,9 +15,8 @@ from rediscluster import RedisCluster
 
 from sentry.buffer.base import Buffer
 from sentry.db import models
-from sentry.tasks.process_buffer import process_incr, process_pending
+from sentry.tasks.process_buffer import process_incr
 from sentry.utils import json, metrics
-from sentry.utils.compat import crc32
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import (
@@ -123,13 +122,11 @@ class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = "b:p"
 
-    def __init__(self, pending_partitions: int = 1, incr_batch_size: int = 2, **options: object):
+    def __init__(self, incr_batch_size: int = 2, **options: object):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_BUFFER_OPTIONS", options
         )
-        self.pending_partitions = pending_partitions
         self.incr_batch_size = incr_batch_size
-        assert self.pending_partitions > 0
         assert self.incr_batch_size > 0
 
     def validate(self) -> None:
@@ -150,27 +147,6 @@ class RedisBuffer(Buffer):
             "&".join(f"{k}={self._coerce_val(v)!r}" for k, v in sorted(filters.items()))
         ).hexdigest()
         return f"b:k:{model._meta}:{md5}"
-
-    def _make_pending_key(self, partition: int | None = None) -> str:
-        """
-        Returns the key to be used for the pending buffer.
-        When partitioning is enabled, there is a key for each
-        partition, without it, there's only the default pending_key
-        """
-        if partition is None:
-            return self.pending_key
-        assert partition >= 0
-        return "%s:%d" % (self.pending_key, partition)
-
-    def _make_pending_key_from_key(self, key: str) -> str:
-        """
-        Return the pending_key for a given key. This is used
-        to route a key into the correct pending buffer. If partitioning
-        is disabled, route into the no partition buffer.
-        """
-        if self.pending_partitions == 1:
-            return self.pending_key
-        return self._make_pending_key(crc32(key) % self.pending_partitions)
 
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
@@ -268,8 +244,7 @@ class RedisBuffer(Buffer):
     def _execute_redis_operation(
         self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
     ) -> Any:
-        pending_key = self._make_pending_key_from_key(key)
-        pipe = self.get_redis_connection(pending_key)
+        pipe = self.get_redis_connection(self.pending_key)
         getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:
             pipe.expire(key, self.key_expire)
@@ -328,21 +303,9 @@ class RedisBuffer(Buffer):
 
         return decoded_hash
 
-    def handle_pending_partitions(self, partition: int | None) -> None:
-        if partition is None and self.pending_partitions > 1:
-            # If we're using partitions, this one task fans out into
-            # N subtasks instead.
-            for i in range(self.pending_partitions):
-                process_pending.apply_async(kwargs={"partition": i})
-            # Explicitly also run over the unpartitioned buffer as well
-            # to ease in transition. In practice, this should just be
-            # super fast and is fine to do redundantly.
-
     def process_batch(self, partition: int | None = None) -> None:
-        self.handle_pending_partitions(partition)
-        pending_key = self._make_pending_key(partition)
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._lock_key(client, pending_key, ex=10)
+        lock_key = self._lock_key(client, self.pending_key, ex=10)
         if not lock_key:
             return
 
@@ -370,7 +333,6 @@ class RedisBuffer(Buffer):
         - Add hashmap key to pending flushes
         """
         key = self._make_key(model, filters)
-        pending_key = self._make_pending_key_from_key(key)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
         pipe = self.get_redis_connection(key)
@@ -400,7 +362,7 @@ class RedisBuffer(Buffer):
             pipe.hset(key, "s", "1")
 
         pipe.expire(key, self.key_expire)
-        pipe.zadd(pending_key, {key: time()})
+        pipe.zadd(self.pending_key, {key: time()})
         pipe.execute()
 
         metrics.incr(
@@ -409,12 +371,11 @@ class RedisBuffer(Buffer):
             tags={"module": model.__module__, "model": model.__name__},
         )
 
-    def process_pending(self, partition: int | None = None) -> None:
-        self.handle_pending_partitions(partition)
+    # TODO: `partition` is unused, remove after a deploy
 
-        pending_key = self._make_pending_key(partition)
+    def process_pending(self, partition: int | None = None) -> None:
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._lock_key(client, pending_key, ex=60)
+        lock_key = self._lock_key(client, self.pending_key, ex=60)
         if not lock_key:
             return
 
@@ -423,7 +384,7 @@ class RedisBuffer(Buffer):
         try:
             keycount = 0
             if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-                keys = self.cluster.zrange(pending_key, 0, -1)
+                keys = self.cluster.zrange(self.pending_key, 0, -1)
                 keycount += len(keys)
 
                 for key in keys:
@@ -431,10 +392,10 @@ class RedisBuffer(Buffer):
                     if pending_buffer.full():
                         process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
 
-                self.cluster.zrem(pending_key, *keys)
+                self.cluster.zrem(self.pending_key, *keys)
             elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
                 with self.cluster.all() as conn:
-                    results = conn.zrange(pending_key, 0, -1)
+                    results = conn.zrange(self.pending_key, 0, -1)
 
                 with self.cluster.all() as conn:
                     for host_id, keysb in results.value.items():
@@ -447,7 +408,7 @@ class RedisBuffer(Buffer):
                                 process_incr.apply_async(
                                     kwargs={"batch_keys": pending_buffer.flush()}
                                 )
-                        conn.target([host_id]).zrem(pending_key, *keysb)
+                        conn.target([host_id]).zrem(self.pending_key, *keysb)
             else:
                 raise AssertionError("unreachable")
 
@@ -488,12 +449,10 @@ class RedisBuffer(Buffer):
             logger.debug("buffer.revoked.locked", extra={"redis_key": key})
             return
 
-        pending_key = self._make_pending_key_from_key(key)
-
         try:
             pipe = self.get_redis_connection(key, transaction=False)
             pipe.hgetall(key)
-            pipe.zrem(pending_key, key)
+            pipe.zrem(self.pending_key, key)
             pipe.delete(key)
             values = pipe.execute()[0]
 

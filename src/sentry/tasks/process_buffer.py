@@ -10,6 +10,9 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 
+# TODO: `partition` is unused, remove after a deploy
+
+
 def get_process_lock(lock_name: str, partition: str | None = None):
     from sentry.locks import locks
 
@@ -34,7 +37,7 @@ def process_pending(partition=None):
 
     try:
         with lock.acquire():
-            buffer.process_pending(partition=partition)
+            buffer.process_pending()
     except UnableToAcquireLock as error:
         logger.warning("process_pending.fail", extra={"error": error, "partition": partition})
 
@@ -52,7 +55,7 @@ def process_pending_batch(partition=None):
 
     try:
         with lock.acquire():
-            buffer.process_batch(partition=partition)
+            buffer.process_batch()
     except UnableToAcquireLock as error:
         logger.warning("process_pending_batch.fail", extra={"error": error, "partition": partition})
 
