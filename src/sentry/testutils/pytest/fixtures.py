@@ -262,7 +262,6 @@ def dyn_sampling_data():
     # return a function that returns fresh config so we don't accidentally get tests interfering with each other
     def inner(active=True):
         return {
-            "mode": "total",
             "rules": [
                 {
                     "sampleRate": 0.7,

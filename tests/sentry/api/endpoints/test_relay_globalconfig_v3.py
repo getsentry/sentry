@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry_relay.processing import normalize_global_config
 
 from sentry.relay.globalconfig import get_global_config
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
@@ -31,24 +32,39 @@ def call_endpoint(client, relay, private_key):
 
 
 @pytest.mark.django_db
+@override_options(
+    {
+        # Set options to Relay's non-default values to avoid Relay skipping deserialization
+        "relay.cardinality-limiter.error-sample-rate": 1.0,
+        "relay.metric-stats.rollout-rate": 0.5,
+        "feedback.ingest-topic.rollout-rate": 0.5,
+        "profiling.profile_metrics.unsampled_profiles.enabled": True,
+        "profiling.profile_metrics.unsampled_profiles.platforms": ["fake-platform"],
+        "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,
+        "relay.span-usage-metric": True,
+        "relay.cardinality-limiter.mode": "passive",
+        "profiling.generic_metrics.functions_ingestion.enabled": True,
+        "feedback.ingest-inline-attachments": True,
+        "relay.disable_normalization.processing": True,
+        "relay.force_full_normalization": True,
+        "relay.metric-bucket-distribution-encodings": {
+            "custom": "array",
+            "metric_stats": "array",
+            "profiles": "array",
+            "spans": "array",
+            "transactions": "array",
+        },
+        "relay.metric-bucket-set-encodings": {
+            "custom": "base64",
+            "metric_stats": "base64",
+            "profiles": "base64",
+            "spans": "base64",
+            "transactions": "base64",
+        },
+    }
+)
 def test_global_config():
     config = get_global_config()
-    # Set options to Relay's non-default values to avoid Relay skipping deserialization
-    config["options"]["relay.cardinality-limiter.error-sample-rate"] = 1.0
-    config["options"]["relay.metric-stats.rollout-rate"] = 0.5
-    config["options"]["feedback.ingest-topic.rollout-rate"] = 0.5
-    config["options"]["profiling.profile_metrics.unsampled_profiles.enabled"] = True
-    config["options"]["profiling.profile_metrics.unsampled_profiles.platforms"] = ["fake-platform"]
-    config["options"]["profiling.profile_metrics.unsampled_profiles.sample_rate"] = 1.0
-
-    config["options"]["relay.span-usage-metric"] = True
-    config["options"]["relay.cardinality-limiter.mode"] = "passive"
-
-    config["options"]["profiling.generic_metrics.functions_ingestion.enabled"] = True
-
-    # Default coming from options `{}` is removed because empty in librelay
-    del config["options"]["relay.metric-bucket-distribution-encodings"]
-    del config["options"]["relay.metric-bucket-set-encodings"]
 
     normalized = normalize_global_config(config)
     assert normalized == config
