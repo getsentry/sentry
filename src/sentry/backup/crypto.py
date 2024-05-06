@@ -135,7 +135,7 @@ def create_encrypted_export_tarball(json_export: json.JSONData, encryptor: Encry
     pem = encryptor.get_public_key_pem()
     data_encryption_key = Fernet.generate_key()
     backup_encryptor = Fernet(data_encryption_key)
-    encrypted_json_export = backup_encryptor.encrypt(json.dumps_orjson(json_export).encode())
+    encrypted_json_export = backup_encryptor.encrypt(json.dumpsb_orjson(json_export))
 
     # Encrypt the newly minted DEK using asymmetric public key encryption.
     dek_encryption_key = serialization.load_pem_public_key(pem, default_backend())

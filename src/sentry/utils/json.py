@@ -164,7 +164,11 @@ def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = F
 
 
 def dumps_orjson(data: JSONData) -> str:
-    return orjson.dumps(data).decode()
+    return dumpsb_orjson(data).decode()
+
+
+def dumpsb_orjson(data: JSONData) -> bytes:
+    return orjson.dumps(data)
 
 
 # dumps JSON with `orjson` or the default function depending on `option_name`
