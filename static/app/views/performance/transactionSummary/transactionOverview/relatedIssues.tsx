@@ -30,7 +30,7 @@ type Props = {
 };
 
 class RelatedIssues extends Component<Props> {
-  getIssuesEndpoint() {
+  getIssuesEndpointQueryParams() {
     const {transaction, start, end, statsPeriod, location} = this.props;
 
     const queryParams = {
@@ -87,7 +87,7 @@ class RelatedIssues extends Component<Props> {
 
   render() {
     const {organization} = this.props;
-    const {queryParams} = this.getIssuesEndpoint();
+    const {queryParams} = this.getIssuesEndpointQueryParams();
     const issueSearch = {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {referrer: 'performance-related-issues', ...queryParams},
