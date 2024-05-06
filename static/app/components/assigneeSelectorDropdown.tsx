@@ -456,7 +456,10 @@ export default function AssigneeSelectorDropdown({
     return options;
   };
 
-  const makeTrigger = (props, isOpen) => {
+  const makeTrigger = (
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
+  ) => {
     const avatarElement = (
       <AssigneeAvatar
         assignedTo={group.assignedTo}
