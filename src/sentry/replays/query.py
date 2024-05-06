@@ -502,7 +502,7 @@ def _filter_empty_uuids(column_name):
 FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "id": ["replay_id"],
     "replay_type": ["replay_type"],
-    "project_id": ["project_id"],
+    "project_id": ["agg_project_id"],
     "project": ["project_id"],
     "platform": ["platform"],
     "environment": ["agg_environment"],
@@ -597,7 +597,11 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
 
 QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": Column("replay_id"),
-    "project_id": Column("project_id"),
+    "agg_project_id": Function(
+        "anyIf",
+        parameters=[Column("project_id"), Function("equals", parameters=[Column("segment_id"), 0])],
+        alias="agg_project_id",
+    ),
     "trace_ids": Function(
         "arrayMap",
         parameters=[
@@ -777,7 +781,7 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
 def collect_aliases(fields: list[str]) -> list[str]:
     """Return a unique list of aliases required to satisfy the fields."""
     # Required fields.
-    result = {"is_archived", "finished_at", "agg_environment"}
+    result = {"is_archived", "finished_at", "agg_environment", "agg_project_id"}
 
     saw_tags = False
     for field in fields:

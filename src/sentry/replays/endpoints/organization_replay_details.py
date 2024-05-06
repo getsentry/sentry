@@ -67,8 +67,11 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response(status=404)
 
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_ids = [project.id for project in projects]
+
         snuba_response = query_replay_instance(
-            project_id=filter_params["project_id"],
+            project_id=project_ids,
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],

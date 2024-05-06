@@ -320,7 +320,7 @@ def make_full_aggregation_query(
         #
         # This condition ensures that every replay shown to the user is valid.
         having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
-        groupby=[Column("project_id"), Column("replay_id")],
+        groupby=[Column("replay_id")],
         granularity=Granularity(3600),
     )
 
