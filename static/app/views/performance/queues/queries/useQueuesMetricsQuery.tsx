@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 type Props = {
   destination?: string;

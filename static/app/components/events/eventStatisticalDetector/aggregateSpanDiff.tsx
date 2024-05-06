@@ -11,7 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 import {EventRegressionTable} from './eventRegressionTable';
 
