@@ -462,9 +462,8 @@ describe('AssigneeSelectorDropdown', () => {
     await userEvent.type(screen.getByRole('textbox'), 'Cert');
 
     // 1 total item
-    await waitFor(() => {
-      expect(screen.getAllByRole('option')).toHaveLength(1);
-    });
+    expect(await screen.findAllByRole('option')).toHaveLength(1);
+
     expect(screen.getByText(`${USER_2.name}`)).toBeInTheDocument();
 
     await userEvent.click(screen.getByText(`${USER_2.name}`));
