@@ -6,7 +6,9 @@
 from collections import defaultdict
 from collections.abc import Iterable, MutableMapping
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Union, overload
+
+from rest_framework import serializers
 
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -157,6 +159,16 @@ class RpcActor(RpcModel):
     def from_rpc_team(cls, team: "RpcTeam") -> "RpcActor":
         return cls(id=team.id, actor_type=ActorType.TEAM, slug=team.slug)
 
+    @overload
+    @classmethod
+    def from_identifier(cls, id: None) -> None:
+        ...
+
+    @overload
+    @classmethod
+    def from_identifier(cls, id: int | str) -> "RpcActor":
+        ...
+
     @classmethod
     def from_identifier(cls, id: str | int | None) -> "RpcActor | None":
         """
@@ -212,15 +224,57 @@ class RpcActor(RpcModel):
             and self.actor_type == other.actor_type
         )
 
-    def resolve(self) -> Union["Team", "RpcUser"] | None:
+    def resolve(self) -> "Team | RpcUser":
+        """
+        Resolve an Actor into the Team or RpcUser it represents.
+
+        Will raise Team.DoesNotExist or User.DoesNotExist when the actor is invalid
+        """
         from sentry.models.team import Team
+        from sentry.models.user import User
         from sentry.services.hybrid_cloud.user.service import user_service
 
         if self.actor_type == ActorType.TEAM:
-            return Team.objects.filter(id=self.id).first()
+            return Team.objects.filter(id=self.id).get()
         if self.actor_type == ActorType.USER:
-            return user_service.get_user(user_id=self.id)
+            user = user_service.get_user(user_id=self.id)
+            if user:
+                return user
+            # TODO(actor) would be better to have an error for 'InvalidActor'
+            raise User.DoesNotExist()
+        raise ValueError("Cannot resolve invalid RpcActor")
 
     @property
     def identifier(self) -> str:
         return f"{self.actor_type.lower()}:{self.id}"
+
+
+def parse_and_validate_actor(actor_identifier: str | None, organization_id: int) -> RpcActor | None:
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.team import Team
+    from sentry.models.user import User
+
+    if not actor_identifier:
+        return None
+
+    try:
+        actor = RpcActor.from_identifier(actor_identifier)
+    except Exception:
+        raise serializers.ValidationError(
+            "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
+        )
+    try:
+        obj = actor.resolve()
+    except (Team.DoesNotExist, User.DoesNotExist):
+        raise serializers.ValidationError(f"{actor.actor_type} does not exist")
+
+    if isinstance(obj, Team):
+        if obj.organization_id != organization_id:
+            raise serializers.ValidationError("Team is not a member of this organization")
+    elif isinstance(obj, RpcUser):
+        if not OrganizationMember.objects.filter(
+            organization_id=organization_id, user_id=obj.id
+        ).exists():
+            raise serializers.ValidationError("User is not a member of this organization")
+
+    return actor
