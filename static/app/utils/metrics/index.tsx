@@ -437,3 +437,7 @@ export function areResultsLimited(response: MetricsQueryApiResponse) {
     meta => (meta[meta.length - 1] as MetricsQueryApiResponseLastMeta).has_more
   );
 }
+
+export function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
+  return !('isQueryOnly' in query) || !query.isQueryOnly;
+}
