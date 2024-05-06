@@ -319,6 +319,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                             "transaction": "queue-processor",
                             "messaging.destination.name": "events",
                             "messaging.message.id": "abc123",
+                            "trace.status": "ok",
                         },
                     },
                     start_ts=self.ten_mins_ago,
@@ -350,6 +351,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["transaction"] == "queue-processor"
         assert data[0]["messaging.destination.name"] == "events"
         assert data[0]["messaging.message.id"] == "abc123"
+        assert data[0]["trace.status"] == "ok"
         assert data[0]["measurements.messaging.message.receive.latency"] == 1000
         assert data[0]["measurements.messaging.message.body.size"] == 1024
         assert data[0]["measurements.messaging.message.retry.count"] == 2
