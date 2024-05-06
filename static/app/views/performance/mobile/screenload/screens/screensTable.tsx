@@ -24,7 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {TOP_SCREENS} from 'sentry/views/performance/mobile/screenload/screens';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,

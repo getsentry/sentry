@@ -2,6 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {Project} from 'sentry/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
 import {UIScreens} from 'sentry/views/performance/mobile/ui/screens';
@@ -14,6 +15,29 @@ jest.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5',
   isLoading: false,
   secondaryRelease: 'com.example.vu.android@2.10.3+42',
+});
+
+const createMockTablePayload = ({
+  transaction,
+  project,
+}: {
+  project: Project;
+  transaction: string;
+}) => ({
+  'avg_compare(mobile.frames_delay,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
+    null,
+  'avg_compare(mobile.frozen_frames,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
+    null,
+  'avg_compare(mobile.slow_frames,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
+    null,
+  'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.5)': 0,
+  'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.3+42)': 0.259326119,
+  'avg_if(mobile.frozen_frames,release,com.example.vu.android@2.10.5)': 0,
+  'avg_if(mobile.frozen_frames,release,com.example.vu.android@2.10.3+42)': 0,
+  'avg_if(mobile.slow_frames,release,com.example.vu.android@2.10.5)': 0,
+  'avg_if(mobile.slow_frames,release,com.example.vu.android@2.10.3+42)': 2,
+  'project.id': project.id,
+  transaction,
 });
 
 describe('Performance Mobile UI Screens', () => {
@@ -79,6 +103,54 @@ describe('Performance Mobile UI Screens', () => {
             'avg_compare(mobile.frozen_frames,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)',
             'avg_compare(mobile.frames_delay,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)',
           ],
+        }),
+      })
+    );
+  });
+
+  it('queries for the correct chart data using the top transactions', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          createMockTablePayload({transaction: 'top 1', project}),
+          createMockTablePayload({transaction: 'top 2', project}),
+          createMockTablePayload({transaction: 'top 3', project}),
+          createMockTablePayload({transaction: 'top 4', project}),
+          createMockTablePayload({transaction: 'top 5', project}),
+          createMockTablePayload({transaction: 'top 6', project}), // excluded
+        ],
+      },
+      match: [MockApiClient.matchQuery({referrer: Referrer.OVERVIEW_SCREENS_TABLE})],
+    });
+
+    const chartDataRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: [],
+      match: [MockApiClient.matchQuery({referrer: Referrer.MOBILE_UI_BAR_CHART})],
+    });
+
+    render(<UIScreens />);
+
+    await screen.findByText('top 1');
+
+    screen.getByText('Top 5 Screen Slow Frames');
+    screen.getByText('Top 5 Screen Frozen Frames');
+    screen.getByText('Top 5 Screen Frames Delay');
+
+    expect(chartDataRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: [
+            'transaction',
+            'release',
+            'avg(mobile.slow_frames)',
+            'avg(mobile.frozen_frames)',
+            'avg(mobile.frames_delay)',
+          ],
+          query:
+            'release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42] transaction:["top 1","top 2","top 3","top 4","top 5"]',
         }),
       })
     );

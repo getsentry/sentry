@@ -13,7 +13,7 @@ import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator
 import Breakdown from 'sentry/views/performance/mobile/appStarts/screens/breakdown';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
-import {TOP_SCREENS} from 'sentry/views/performance/mobile/screenload/screens';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colors';
 import {
   PRIMARY_RELEASE_ALIAS,

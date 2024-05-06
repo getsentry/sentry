@@ -12,7 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
-import {TOP_SCREENS} from 'sentry/views/performance/mobile/screenload/screens';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
