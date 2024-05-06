@@ -114,10 +114,6 @@ function TransactionHeader({
   });
   const replaysCount = getReplayCountForTransaction(transactionName);
 
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
-
   return (
     <Layout.Header>
       <Layout.HeaderContent>

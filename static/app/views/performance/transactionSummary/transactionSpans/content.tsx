@@ -42,6 +42,9 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
+import {useLocation} from 'sentry/utils/useLocation';
+import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
@@ -100,22 +103,12 @@ function SpansContent(props: Props) {
 
   const {projects} = useProjects();
 
-  const filters: SpanMetricsQueryFilters = {
-    transaction: transactionName,
-  };
+  const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
 
-  const data = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      SpanMetricsField.SPAN_OP,
-      SpanMetricsField.SPAN_DESCRIPTION,
-      `count()`,
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-    ],
-  });
-
-  console.dir(data);
+  // TODO: Remove this flag when the feature is GA'd and replace the old content entirely
+  if (hasNewSpansUIFlag) {
+    return <SpansContentV2 {...props} />;
+  }
 
   return (
     <Layout.Main fullWidth>
@@ -195,6 +188,71 @@ function SpansContent(props: Props) {
           );
         }}
       </DiscoverQuery>
+    </Layout.Main>
+  );
+}
+
+// TODO: Temporary component while we make the switch to spans only. Will fully replace the old Spans tab when GA'd
+function SpansContentV2(props: Props) {
+  const {location, organization, eventView, projectId, transactionName} = props;
+
+  function handleChange(key: string) {
+    return function (value: string | undefined) {
+      ANALYTICS_VALUES[key]?.(organization, value);
+
+      const queryParams = normalizeDateTimeParams({
+        ...(location.query || {}),
+        [key]: value,
+      });
+
+      // do not propagate pagination when making a new search
+      const toOmit = ['cursor'];
+      if (!defined(value)) {
+        toOmit.push(key);
+      }
+      const searchQueryParams = omit(queryParams, toOmit);
+
+      browserHistory.push({
+        ...location,
+        query: searchQueryParams,
+      });
+    };
+  }
+
+  return (
+    <Layout.Main fullWidth>
+      <FilterActions>
+        <OpsFilter
+          location={location}
+          eventView={eventView}
+          organization={organization}
+          handleOpChange={handleChange('spanOp')}
+          transactionName={transactionName}
+        />
+        <PageFilterBar condensed>
+          <EnvironmentPageFilter />
+          <DatePageFilter
+            maxPickableDays={SPAN_RETENTION_DAYS}
+            relativeOptions={SPAN_RELATIVE_PERIODS}
+          />
+        </PageFilterBar>
+        <StyledSearchBar
+          organization={organization}
+          projectIds={eventView.project}
+          query={''}
+          fields={eventView.fields}
+          onSearch={handleChange('query')}
+        />
+        {/* <CompactSelect
+        value={sort.field}
+        options={SPAN_SORT_OPTIONS.map(opt => ({value: opt.field, label: opt.label}))}
+        onChange={opt => handleChange('sort')(opt.value)}
+        triggerProps={{prefix: sort.prefix}}
+        triggerLabel={sort.label}
+      /> */}
+      </FilterActions>
+
+      <SpanMetricsTable />
     </Layout.Main>
   );
 }
