@@ -78,6 +78,8 @@ def check_missing(current_datetime: datetime):
         )[:MONITOR_LIMIT]
     )
 
+    logger.info("tasks.check_missing", extra={"reference_datetime": str(current_datetime)})
+
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
         mark_environment_missing.delay(monitor_environment.id, current_datetime)
