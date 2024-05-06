@@ -1,5 +1,5 @@
 ---
-created: '2024-04-25T18:22:28.906727+00:00'
+created: '2024-05-02T22:04:54.161383+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -12,7 +12,9 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_updated
+  - external_id
   - name
+  - provider
 - model_name: sentry.option
   ordinal: 1
   sanitized_fields:
@@ -32,6 +34,7 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.organizationintegration
   ordinal: 1
   sanitized_fields:
+  - config
   - date_added
   - date_updated
 - model_name: sentry.organizationoption
@@ -63,23 +66,28 @@ source: tests/sentry/backup/test_sanitize.py
   - slug
 - model_name: sentry.projectintegration
   ordinal: 1
-  sanitized_fields: []
+  sanitized_fields:
+  - config
 - model_name: sentry.projectkey
   ordinal: 1
   sanitized_fields:
   - date_added
+  - secret_key
 - model_name: sentry.projectkey
   ordinal: 2
   sanitized_fields:
   - date_added
+  - secret_key
 - model_name: sentry.projectkey
   ordinal: 3
   sanitized_fields:
   - date_added
+  - secret_key
 - model_name: sentry.projectkey
   ordinal: 4
   sanitized_fields:
   - date_added
+  - secret_key
 - model_name: sentry.projectoption
   ordinal: 1
   sanitized_fields: []
@@ -127,17 +135,24 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
 - model_name: sentry.relay
   ordinal: 1
-  sanitized_fields: []
+  sanitized_fields:
+  - public_key
+  - relay_id
 - model_name: sentry.relayusage
   ordinal: 1
   sanitized_fields:
   - first_seen
   - last_seen
+  - public_key
+  - relay_id
 - model_name: sentry.repository
   ordinal: 1
   sanitized_fields:
   - date_added
+  - external_id
   - name
+  - provider
+  - url
 - model_name: sentry.team
   ordinal: 1
   sanitized_fields:
@@ -151,7 +166,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
+  - password
+  - username
 - model_name: sentry.user
   ordinal: 2
   sanitized_fields:
@@ -159,7 +175,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
+  - password
+  - username
 - model_name: sentry.user
   ordinal: 3
   sanitized_fields:
@@ -167,7 +184,8 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
+  - password
+  - username
 - model_name: sentry.user
   ordinal: 4
   sanitized_fields:
@@ -175,14 +193,14 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
+  - password
+  - username
 - model_name: sentry.user
   ordinal: 5
   sanitized_fields:
   - date_joined
-  - email
   - last_active
-  - name
+  - username
 - model_name: sentry.user
   ordinal: 6
   sanitized_fields:
@@ -190,16 +208,19 @@ source: tests/sentry/backup/test_sanitize.py
   - email
   - last_active
   - last_password_change
-  - name
+  - password
+  - username
 - model_name: sentry.userip
   ordinal: 1
   sanitized_fields:
   - first_seen
+  - ip_address
   - last_seen
 - model_name: sentry.userip
   ordinal: 2
   sanitized_fields:
   - first_seen
+  - ip_address
   - last_seen
 - model_name: sentry.useroption
   ordinal: 1
@@ -246,6 +267,8 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - name
+  - token_hashed
+  - token_last_characters
 - model_name: sentry.organizationmember
   ordinal: 1
   sanitized_fields:
@@ -261,7 +284,7 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
-  - name
+  - guid
   - slug
 - model_name: sentry.environment
   ordinal: 1
@@ -292,7 +315,6 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 5
   sanitized_fields:
   - date_added
-  - email
 - model_name: sentry.email
   ordinal: 6
   sanitized_fields:
@@ -320,10 +342,13 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+  - provider
 - model_name: sentry.authidentity
   ordinal: 1
   sanitized_fields:
+  - data
   - date_added
+  - ident
   - last_synced
   - last_verified
 - model_name: sentry.authenticator
@@ -338,9 +363,13 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+  - key
+  - label
 - model_name: sentry.apiapplication
   ordinal: 1
   sanitized_fields:
+  - client_id
+  - client_secret
   - date_added
   - name
 - model_name: sentry.useremail
@@ -348,31 +377,36 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_hash_added
   - email
+  - validation_hash
 - model_name: sentry.useremail
   ordinal: 2
   sanitized_fields:
   - date_hash_added
   - email
+  - validation_hash
 - model_name: sentry.useremail
   ordinal: 3
   sanitized_fields:
   - date_hash_added
   - email
+  - validation_hash
 - model_name: sentry.useremail
   ordinal: 4
   sanitized_fields:
   - date_hash_added
   - email
+  - validation_hash
 - model_name: sentry.useremail
   ordinal: 5
   sanitized_fields:
   - date_hash_added
-  - email
+  - validation_hash
 - model_name: sentry.useremail
   ordinal: 6
   sanitized_fields:
   - date_hash_added
   - email
+  - validation_hash
 - model_name: sentry.snubaquery
   ordinal: 1
   sanitized_fields:
@@ -388,10 +422,17 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.sentryapp
   ordinal: 1
   sanitized_fields:
+  - author
+  - creator_label
   - date_added
   - date_updated
   - name
+  - overview
+  - redirect_url
+  - schema
   - slug
+  - uuid
+  - webhook_url
 - model_name: sentry.rule
   ordinal: 1
   sanitized_fields:
@@ -451,20 +492,36 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - expires_at
+  - hashed_refresh_token
+  - hashed_token
+  - refresh_token
+  - token
+  - token_last_characters
 - model_name: sentry.apitoken
   ordinal: 2
   sanitized_fields:
   - date_added
+  - hashed_refresh_token
+  - hashed_token
   - name
+  - refresh_token
+  - token
+  - token_last_characters
 - model_name: sentry.apitoken
   ordinal: 3
   sanitized_fields:
   - date_added
+  - hashed_token
   - name
+  - token
+  - token_last_characters
+  - token_type
 - model_name: sentry.apigrant
   ordinal: 1
   sanitized_fields:
+  - code
   - expires_at
+  - redirect_uri
 - model_name: sentry.apiauthorization
   ordinal: 1
   sanitized_fields:
@@ -505,9 +562,13 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_updated
+  - uuid
 - model_name: sentry.sentryappcomponent
   ordinal: 1
-  sanitized_fields: []
+  sanitized_fields:
+  - schema
+  - type
+  - uuid
 - model_name: sentry.rulesnooze
   ordinal: 1
   sanitized_fields:
@@ -572,10 +633,17 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+  - guid
+  - secret
+  - url
 - model_name: sentry.servicehook
   ordinal: 2
   sanitized_fields:
   - date_added
+  - events
+  - guid
+  - secret
+  - url
 - model_name: sentry.incident
   ordinal: 1
   sanitized_fields:

@@ -25,11 +25,11 @@ import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/messageSp
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 // We're defining our own query filter here, apart from settings.ts because the spans endpoint doesn't accept IN operations
-const DEFAULT_QUERY_FILTER = 'span.op:queue.task.celery OR span.op:queue.submit.celery';
+const DEFAULT_QUERY_FILTER = 'span.op:queue.process OR span.op:queue.publish';
 
 export function MessageConsumerSamplesPanel() {
   const router = useRouter();
@@ -61,6 +61,7 @@ export function MessageConsumerSamplesPanel() {
   // TODO: This should also filter on destination
   const search = new MutableSearch(DEFAULT_QUERY_FILTER);
   search.addFilterValue('transaction', query.transaction);
+  search.addFilterValue('messaging.destination.name', query.destination);
 
   const {data: transactionMetrics, isFetching: aretransactionMetricsFetching} =
     useQueuesMetricsQuery({
@@ -168,16 +169,14 @@ export function MessageConsumerSamplesPanel() {
               />
               <MetricReadout
                 title={t('Avg Time In Queue')}
-                value={undefined}
+                value={transactionMetrics[0]?.['avg(messaging.message.receive.latency)']}
                 unit={DurationUnit.MILLISECOND}
                 isLoading={false}
               />
               <MetricReadout
                 title={t('Avg Processing Latency')}
                 value={
-                  transactionMetrics[0]?.[
-                    'avg_if(span.self_time,span.op,queue.task.celery)'
-                  ]
+                  transactionMetrics[0]?.['avg_if(span.self_time,span.op,queue.process)']
                 }
                 unit={DurationUnit.MILLISECOND}
                 isLoading={false}

@@ -593,6 +593,7 @@ def post_process_group(
             # instead.
 
             def get_event_raise_exception() -> Event:
+                assert occurrence is not None
                 retrieved = eventstore.backend.get_event_by_id(
                     project_id,
                     occurrence.event_id,
@@ -658,15 +659,16 @@ def post_process_group(
 
             group_event.occurrence = occurrence
 
-            group_job: PostProcessJob = {
-                "event": group_event,
-                "group_state": group_state,
-                "is_reprocessed": is_reprocessed,
-                "has_reappeared": bool(not group_state["is_new"]),
-                "has_alert": False,
-                "has_escalated": False,
-            }
-            run_post_process_job(group_job)
+            run_post_process_job(
+                {
+                    "event": group_event,
+                    "group_state": group_state,
+                    "is_reprocessed": is_reprocessed,
+                    "has_reappeared": bool(not group_state["is_new"]),
+                    "has_alert": False,
+                    "has_escalated": False,
+                }
+            )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
         if not is_reprocessed and event.data.get("received"):
@@ -700,7 +702,7 @@ def post_process_group(
                 )
 
 
-def run_post_process_job(job: PostProcessJob):
+def run_post_process_job(job: PostProcessJob) -> None:
     group_event = job["event"]
     issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
@@ -851,7 +853,6 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.eventstore.models import Event, GroupEvent
     from sentry.issues.escalating import is_escalating, manage_issue_states
     from sentry.models.group import GroupStatus
     from sentry.models.groupinbox import GroupInboxReason
@@ -865,8 +866,6 @@ def process_snoozes(job: PostProcessJob) -> None:
             "Group not found on event while processing snoozes", extra={"event_id": event.event_id}
         )
         return
-    if isinstance(event, Event):
-        event = GroupEvent.from_event(event, group)
 
     if not group.issue_type.should_detect_escalation(group.organization):
         return
@@ -999,23 +998,12 @@ def process_replay_link(job: PostProcessJob) -> None:
 
 
 def process_rules(job: PostProcessJob) -> None:
-    from sentry.eventstore.models import Event, GroupEvent
-
     if job["is_reprocessed"]:
         return
 
     from sentry.rules.processing.processor import RuleProcessor
 
     group_event = job["event"]
-    if isinstance(group_event, Event):
-        if group_event.group:
-            group_event = GroupEvent.from_event(group_event, group_event.group)
-        else:
-            logger.error(
-                "Group not found on event while processing rules",
-                extra={"event_id": group_event.event_id},
-            )
-            return
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
@@ -1401,6 +1389,53 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
         )
 
 
+def link_event_to_user_report(job: PostProcessJob) -> None:
+    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
+    from sentry.models.userreport import UserReport
+
+    event = job["event"]
+    project = event.project
+    group = event.group
+
+    if features.has(
+        "organizations:user-feedback-event-link-ingestion-changes", project.organization
+    ):
+        metrics.incr("event_manager.save._update_user_reports_with_event_link")
+        event = job["event"]
+        project = event.project
+        user_reports_without_group = UserReport.objects.filter(
+            project_id=project.id,
+            event_id=event.event_id,
+            group_id__isnull=True,
+            environment_id__isnull=True,
+        )
+        for report in user_reports_without_group:
+            shim_to_feedback(
+                {
+                    "name": report.name,
+                    "email": report.email,
+                    "comments": report.comments,
+                    "event_id": report.event_id,
+                    "level": "error",
+                },
+                event,
+                project,
+                FeedbackCreationSource.USER_REPORT_ENVELOPE,
+            )
+
+        user_reports_updated = user_reports_without_group.update(
+            group_id=group.id, environment_id=event.get_environment().id
+        )
+
+        if user_reports_updated:
+            metrics.incr("event_manager.save._update_user_reports_with_event_link_updated")
+
+    else:
+        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
+            group_id=group.id, environment_id=event.get_environment().id
+        )
+
+
 MAX_NEW_ESCALATION_AGE_HOURS = 24
 MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
@@ -1499,6 +1534,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         fire_error_processed,
         sdk_crash_monitoring,
         process_replay_link,
+        link_event_to_user_report,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

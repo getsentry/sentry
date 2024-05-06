@@ -61,7 +61,12 @@ class UnsupportedFrameFilename(Exception):
 class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
         self.raw_path = frame_file_path
-        if frame_file_path[0] == "/":
+        is_windows_path = False
+        if "\\" in frame_file_path:
+            is_windows_path = True
+            frame_file_path = frame_file_path.replace("\\", "/")
+
+        if frame_file_path[0] == "/" or frame_file_path[0] == "\\":
             frame_file_path = frame_file_path[1:]
 
         # Using regexes would be better but this is easier to understand
@@ -69,7 +74,6 @@ class FrameFilename:
             not frame_file_path
             or frame_file_path[0] in ["[", "<"]
             or frame_file_path.find(" ") > -1
-            or frame_file_path.find("\\") > -1  # Windows support
             or frame_file_path.find("/") == -1
         ):
             raise UnsupportedFrameFilename("This path is not supported.")
@@ -79,8 +83,20 @@ class FrameFilename:
         if not self.extension:
             raise UnsupportedFrameFilename("It needs an extension.")
 
+        # Remove drive letter if it exists
+        if is_windows_path and frame_file_path[1] == ":":
+            frame_file_path = frame_file_path[2:]
+            # windows drive letters can be like C:\ or C:
+            # so we need to remove the slash if it exists
+            if frame_file_path[0] == "/":
+                frame_file_path = frame_file_path[1:]
+
         start_at_index = get_straight_path_prefix_end_index(frame_file_path)
         self.straight_path_prefix = frame_file_path[:start_at_index]
+
+        # We normalize the path to be as close to what the path would
+        # look like in the source code repository, hence why we remove
+        # the straight path prefix and drive letter
         self.normalized_path = frame_file_path[start_at_index:]
         if start_at_index == 0:
             self.root = frame_file_path.split("/")[0]
@@ -145,7 +161,7 @@ class CodeMappingTreesHelper:
                     )
                     continue
 
-                if stack_path.replace(stack_root, source_root, 1) != source_path:
+                if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
                     logger.info(
                         "Unexpected stack_path/source_path found. A code mapping was not generated.",
                         extra={
@@ -259,7 +275,7 @@ class CodeMappingTreesHelper:
             )
             return []
 
-        if stack_path.replace(stack_root, source_root, 1) != source_path:
+        if stack_path.replace(stack_root, source_root, 1).replace("\\", "/") != source_path:
             logger.info(
                 "Unexpected stack_path/source_path found. A code mapping was not generated.",
                 extra={
@@ -370,6 +386,10 @@ def convert_stacktrace_frame_path_to_source_path(
     If the code mapping does not apply to the frame, returns None.
     """
 
+    stack_root = code_mapping.stack_root
+    if "\\" in code_mapping.stack_root:
+        stack_root = code_mapping.stack_root.replace("\\", "/")
+
     # In most cases, code mappings get applied to frame.filename, but some platforms such as Java
     # contain folder info in other parts of the frame (e.g. frame.module="com.example.app.MainActivity"
     # gets transformed to "com/example/app/MainActivity.java"), so in those cases we use the
@@ -379,13 +399,13 @@ def convert_stacktrace_frame_path_to_source_path(
     )
 
     if stacktrace_path and stacktrace_path.startswith(code_mapping.stack_root):
-        return stacktrace_path.replace(code_mapping.stack_root, code_mapping.source_root, 1)
+        return stacktrace_path.replace(stack_root, code_mapping.source_root, 1)
 
     # Some platforms only provide the file's name without folder paths, so we
     # need to use the absolute path instead. If the code mapping has a non-empty
     # stack_root value and it matches the absolute path, we do the mapping on it.
     if frame.abs_path and frame.abs_path.startswith(code_mapping.stack_root):
-        return frame.abs_path.replace(code_mapping.stack_root, code_mapping.source_root, 1)
+        return frame.abs_path.replace(stack_root, code_mapping.source_root, 1)
 
     return None
 
@@ -505,8 +525,8 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
     If there is no overlap, raise an exception since this should not happen
     """
     stack_root = ""
-    if stack_path[0] == "/":
-        stack_root += "/"
+    if stack_path[0] == "/" or stack_path[0] == "\\":
+        stack_root += stack_path[0]
         stack_path = stack_path[1:]
 
     if stack_path == source_path:
@@ -534,7 +554,7 @@ def find_roots(stack_path: str, source_path: str) -> tuple[str, str]:
             source_root = source_path.rpartition(overlap)[0]
             stack_root += stack_path_delim.join(stack_root_items)
 
-            if stack_root and stack_root[-1] != SLASH:  # append trailing slash
+            if stack_root and stack_root[-1] != stack_path_delim:  # append trailing slash
                 stack_root = f"{stack_root}{stack_path_delim}"
             if source_root and source_root[-1] != SLASH:
                 source_root = f"{source_root}{SLASH}"

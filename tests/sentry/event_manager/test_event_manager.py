@@ -74,7 +74,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.models.userreport import UserReport
 from sentry.options import set
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
@@ -1318,54 +1317,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             received_timestamp=event.data["received"],
             group_states=[{"id": event.group.id, **group_states2}],
         )
-
-    def test_user_report_gets_environment(self):
-        project = self.create_project()
-        environment = Environment.objects.create(
-            organization_id=project.organization_id, name="production"
-        )
-        environment.add_project(project)
-
-        event_id = "a" * 32
-
-        UserReport.objects.create(
-            project_id=project.id,
-            event_id=event_id,
-            name="foo",
-            email="bar@example.com",
-            comments="It Broke!!!",
-        )
-
-        self.store_event(
-            data=make_event(environment=environment.name, event_id=event_id), project_id=project.id
-        )
-
-        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
-
-    def test_user_report_gets_environment_with_new_link_features(self):
-        with self.feature("organizations:user-feedback-event-link-ingestion-changes"):
-            project = self.create_project()
-            environment = Environment.objects.create(
-                organization_id=project.organization_id, name="production"
-            )
-            environment.add_project(project)
-
-            event_id = "a" * 32
-
-            UserReport.objects.create(
-                project_id=project.id,
-                event_id=event_id,
-                name="foo",
-                email="bar@example.com",
-                comments="It Broke!!!",
-            )
-
-            self.store_event(
-                data=make_event(environment=environment.name, event_id=event_id),
-                project_id=project.id,
-            )
-
-            assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
     def test_default_event_type(self):
         manager = EventManager(make_event(message="foo bar"))

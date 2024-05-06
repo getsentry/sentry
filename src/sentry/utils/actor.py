@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 class ActorTuple(namedtuple("Actor", "id type")):
     @property
-    def identifier(self):
+    def identifier(self) -> str:
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @overload

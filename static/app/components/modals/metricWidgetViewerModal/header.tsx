@@ -4,6 +4,7 @@ import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 
@@ -47,7 +48,7 @@ export function MetricWidgetTitle({
           <h3>{titleToDisplay}</h3>
         )}
         <Button
-          aria-label="Edit Title"
+          aria-label={t('Edit Title')}
           size="sm"
           borderless
           icon={title.isEditing ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />}
