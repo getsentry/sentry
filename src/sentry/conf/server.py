@@ -1942,8 +1942,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-ingest": False,
     # Use ReplayClipPreview inside the User Feedback Details panel
     "organizations:user-feedback-replay-clip": False,
-    # Enable User Feedback spam auto filtering feature UI
-    "organizations:user-feedback-spam-filter-ui": False,
     # Enable User Feedback spam auto filtering feature ingest
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
