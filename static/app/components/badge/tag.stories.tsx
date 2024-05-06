@@ -70,6 +70,27 @@ export default storyBook(Tag, story => {
     );
   });
 
+  story('borderStyle', () => {
+    return (
+      <Fragment>
+        <p>
+          The <JSXProperty name="borderStyle" value /> prop can be used to change the
+          border style of the tag to the following 3 options. By default, it is set to{' '}
+          <JSXProperty name="borderStyle" value="solid" />.
+        </p>
+        <Tag type="default" borderStyle="solid">
+          default
+        </Tag>
+        <Tag type="default" borderStyle="dashed">
+          dashed
+        </Tag>
+        <Tag type="default" borderStyle="dotted">
+          dotted
+        </Tag>
+      </Fragment>
+    );
+  });
+
   story('to vs href', () => {
     return (
       <Fragment>
