@@ -39,14 +39,13 @@ BACKEND_HIGHLIGHTS: HighlightPreset = {
     "context": {"trace": ["trace_id"], "runtime": ["name", "version"]},
 }
 FRONTEND_HIGHLIGHTS: HighlightPreset = {
-    "tags": SENTRY_TAGS + ["url", "transaction", "browser", "replayId", "user"],
+    "tags": SENTRY_TAGS + ["url", "transaction", "browser", "user"],
     "context": {"browser": ["name"], "user": ["email"]},
 }
 MOBILE_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS + ["mobile", "main_thread"],
     "context": {"profile": ["profile_id"], "app": ["name"], "device": ["family"]},
 }
-
 FALLBACK_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS,
     "context": {"user": ["email"], "trace": ["trace_id"]},
