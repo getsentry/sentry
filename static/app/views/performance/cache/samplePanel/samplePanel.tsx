@@ -70,6 +70,7 @@ export function CacheSamplePanel() {
         `${SpanFunction.CACHE_MISS_RATE}()`,
         `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
       ],
       enabled: isPanelOpen,
       referrer: Referrer.SAMPLES_CACHE_METRICS_RIBBON,
@@ -172,6 +173,17 @@ export function CacheSamplePanel() {
 
           <ModuleLayout.Full>
             <MetricsRibbon>
+              <MetricReadout
+                align="left"
+                title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
+                value={
+                  cacheTransactionMetrics?.[0]?.[
+                    `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`
+                  ]
+                }
+                unit={RateUnit.PER_MINUTE}
+                isLoading={areCacheTransactionMetricsFetching}
+              />
               <MetricReadout
                 align="left"
                 title={getThroughputTitle('cache')}

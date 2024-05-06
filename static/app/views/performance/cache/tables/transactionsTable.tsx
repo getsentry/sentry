@@ -62,7 +62,7 @@ const COLUMN_ORDER: Column[] = [
   },
   {
     key: `avg(${CACHE_ITEM_SIZE})`,
-    name: t('Avg Value Size'),
+    name: DataTitles[`avg(${CACHE_ITEM_SIZE})`],
     width: COL_WIDTH_UNDEFINED,
   },
   {
