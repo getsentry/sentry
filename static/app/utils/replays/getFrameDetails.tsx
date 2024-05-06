@@ -226,14 +226,14 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
   'app.foreground': () => ({
     color: 'blue300',
-    description: 'Video started recording',
+    description: 'Replay started',
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Foreground',
     icon: <IconUser size="xs" />,
   }),
   'app.background': () => ({
     color: 'blue300',
-    description: 'Video stopped recording',
+    description: 'Replay paused',
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Background',
     icon: <IconUser size="xs" />,
