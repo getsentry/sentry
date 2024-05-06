@@ -55,6 +55,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         if args and args[0] is not None:
             organization_id_or_slug = args[0]
             # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
+            # TODO: Remove this once we remove the old `organization_slug` parameter from getsentry
             args = args[1:]
         else:
             organization_id_or_slug = kwargs.pop("organization_id_or_slug", None) or kwargs.pop(
