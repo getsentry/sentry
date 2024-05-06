@@ -32,7 +32,7 @@ def dispatch_check_timeout(ts: datetime):
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, timeout_at__lte=ts)[
         :CHECKINS_LIMIT
     ]
-    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=0)
+    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1.0)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         message: MarkTimeout = {
