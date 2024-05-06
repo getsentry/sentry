@@ -91,7 +91,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         relations.append(
             ModelRelation(
                 AlertRule,
-                {"snuba_query__subscriptions__project": instance, "include_all_projects": False},
+                {"projects": instance, "include_all_projects": False},
             )
         )
 

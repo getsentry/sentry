@@ -89,18 +89,12 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     def fetch_for_organization(self, organization, projects=None):
         queryset = self.filter(organization=organization)
         if projects is not None:
-            # TODO - Cleanup Subscription Project Mapping
-            queryset = queryset.filter(
-                Q(snuba_query__subscriptions__project__in=projects) | Q(projects__in=projects)
-            ).distinct()
+            queryset = queryset.filter(Q(projects__in=projects)).distinct()
 
         return queryset
 
     def fetch_for_project(self, project):
-        # TODO - Cleanup Subscription Project Mapping
-        return self.filter(
-            Q(snuba_query__subscriptions__project=project) | Q(projects=project)
-        ).distinct()
+        return self.filter(projects=project).distinct()
 
     @classmethod
     def __build_subscription_cache_key(cls, subscription_id):
