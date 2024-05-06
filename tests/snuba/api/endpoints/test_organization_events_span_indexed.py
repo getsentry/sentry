@@ -335,6 +335,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     "measurements.messaging.message.receive.latency",
                     "measurements.messaging.message.body.size",
                     "measurements.messaging.message.retry.count",
+                    "trace.status",
                     "count()",
                 ],
                 "query": 'messaging.destination.name:"events"',
