@@ -176,9 +176,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature(
-        {"organizations:performance-view": True, "auth:enterprise-superuser-read-write": True}
-    )
+    @with_feature("organizations:performance-view")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_put_superuser_read_write_updates_detection_setting(self):
         # superuser read-only cannot hit put
         self.get_error_response(

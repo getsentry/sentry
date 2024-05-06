@@ -14,12 +14,13 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
+    from sentry.models.group import Group
     from sentry.models.release import Release
 
 
@@ -32,7 +33,7 @@ class CommitManager(BaseManager["Commit"]):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class Commit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -71,5 +72,5 @@ class Commit(Model):
             return self.key[:7]
         return self.key
 
-    def find_referenced_groups(self):
+    def find_referenced_groups(self) -> set[Group]:
         return find_referenced_groups(self.message, self.organization_id)

@@ -1,5 +1,14 @@
+import pytest
+
 from sentry.event_manager import EventManager
 from sentry.event_manager import get_culprit as get_culprit_impl
+from sentry.testutils.helpers import override_options
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"relay.enable-orjson": 0.0}):
+        yield
 
 
 def get_culprit(data):

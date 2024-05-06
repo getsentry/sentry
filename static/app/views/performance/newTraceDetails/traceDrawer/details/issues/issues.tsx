@@ -15,7 +15,11 @@ import {IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
-import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
+import type {
+  TraceError,
+  TraceErrorOrIssue,
+  TracePerformanceIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {
   TraceTree,
@@ -118,64 +122,110 @@ type IssueListProps = {
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
+  const uniqueErrorIssues = useMemo(() => {
+    const unique: TraceError[] = [];
+
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of node.errors) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }, [node]);
+
+  const uniquePerformanceIssues = useMemo(() => {
+    const unique: TracePerformanceIssue[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of node.performance_issues) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }, [node]);
+
+  const uniqueIssues = useMemo(() => {
+    return [...uniqueErrorIssues, ...uniquePerformanceIssues];
+  }, [uniqueErrorIssues, uniquePerformanceIssues]);
+
   if (!issues.length) {
     return null;
   }
 
   return (
     <StyledPanel>
-      <IssueListHeader node={node} />
-      {issues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
+      <IssueListHeader
+        node={node}
+        errorIssues={uniqueErrorIssues}
+        performanceIssues={uniquePerformanceIssues}
+      />
+      {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
         <Issue key={index} issue={issue} organization={organization} />
       ))}
     </StyledPanel>
   );
 }
 
-function IssueListHeader({node}: {node: TraceTreeNode<TraceTree.NodeValue>}) {
-  const {errors, performance_issues} = node;
+function IssueListHeader({
+  node,
+  errorIssues,
+  performanceIssues,
+}: {
+  errorIssues: TraceError[];
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  performanceIssues: TracePerformanceIssue[];
+}) {
   const [singular, plural] = useMemo((): [string, string] => {
     const label = [t('Issue'), t('Issues')] as [string, string];
-    for (const event of errors) {
+    for (const event of errorIssues) {
       if (event.level === 'error' || event.level === 'fatal') {
         return [t('Error'), t('Errors')];
       }
     }
     return label;
-  }, [errors]);
+  }, [errorIssues]);
 
   return (
     <StyledPanelHeader disablePadding>
       <IssueHeading>
-        {errors.size + performance_issues.size > MAX_DISPLAYED_ISSUES_COUNT
+        {errorIssues.length + performanceIssues.length > MAX_DISPLAYED_ISSUES_COUNT
           ? tct(`[count]+  issues, [link]`, {
               count: MAX_DISPLAYED_ISSUES_COUNT,
               link: <StyledIssuesLink node={node}>{t('View All')}</StyledIssuesLink>,
             })
-          : errors.size > 0 && performance_issues.size === 0
+          : errorIssues.length > 0 && performanceIssues.length === 0
             ? tct('[count] [text]', {
-                count: errors.size,
-                text: errors.size > 1 ? plural : singular,
+                count: errorIssues.length,
+                text: errorIssues.length > 1 ? plural : singular,
               })
-            : performance_issues.size > 0 && errors.size === 0
+            : performanceIssues.length > 0 && performanceIssues.length === 0
               ? tct('[count] [text]', {
-                  count: performance_issues.size,
+                  count: performanceIssues.length,
                   text: tn(
                     'Performance issue',
                     'Performance Issues',
-                    performance_issues.size
+                    performanceIssues.length
                   ),
                 })
               : tct(
                   '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
                   {
-                    errors: errors.size,
-                    performance_issues: performance_issues.size,
-                    errorsText: errors.size > 1 ? plural : singular,
+                    errors: errorIssues.length,
+                    performance_issues: performanceIssues.length,
+                    errorsText: errorIssues.length > 1 ? plural : singular,
                     performanceIssuesText: tn(
                       'performance issue',
                       'performance issues',
-                      performance_issues.size
+                      performanceIssues.length
                     ),
                   }
                 )}

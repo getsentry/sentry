@@ -429,6 +429,14 @@ export default class ReplayReader {
     ].sort(sortFrames)
   );
 
+  getMobileNavigationFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'navigation'].includes(frame.category)
+      ),
+    ].sort(sortFrames)
+  );
+
   getNetworkFrames = memoize(() =>
     this._sortedSpanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
@@ -467,6 +475,9 @@ export default class ReplayReader {
             'replay.init',
             'replay.mutations',
             'feedback',
+            'device.battery',
+            'device.connectivity',
+            'device.orientation',
           ].includes(frame.category)
         ),
         ...this._errors,
@@ -480,7 +491,7 @@ export default class ReplayReader {
     const crumbs = removeDuplicateClicks(
       this._sortedBreadcrumbFrames.filter(
         frame =>
-          ['navigation', 'ui.click'].includes(frame.category) ||
+          ['navigation', 'ui.click', 'ui.tap'].includes(frame.category) ||
           (frame.category === 'ui.slowClickDetected' &&
             (isDeadClick(frame as SlowClickFrame) ||
               isDeadRageClick(frame as SlowClickFrame)))

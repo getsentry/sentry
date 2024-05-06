@@ -18,24 +18,23 @@ import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {AverageComparisonChart} from 'sentry/views/performance/mobile/appStarts/screens/averageComparisonChart';
 import {CountChart} from 'sentry/views/performance/mobile/appStarts/screens/countChart';
-import {ScreensTable} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
+import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {
   getFreeTextFromQuery,
-  TOP_SCREENS,
   YAxis,
   YAXIS_COLUMNS,
 } from 'sentry/views/performance/mobile/screenload/screens';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
-export const MAX_CHART_RELEASE_CHARS = 12;
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
 const Y_AXIS_COLS = [YAXIS_COLUMNS[YAxis.COLD_START], YAXIS_COLUMNS[YAxis.WARM_START]];
 
@@ -57,6 +56,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     secondaryRelease,
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
+  const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
 
   const router = useRouter();
 
@@ -173,15 +173,6 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     topTransactions,
   });
 
-  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_CHART_RELEASE_CHARS
-  );
-  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_CHART_RELEASE_CHARS
-  );
-
   const countTopScreens = Math.min(TOP_SCREENS, topTransactions.length);
   const [singularTopScreenTitle, pluralTopScreenTitle] =
     appStartType === COLD_START_TYPE
@@ -204,8 +195,8 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
               subtitle: primaryRelease
                 ? t(
                     '%s v. %s',
-                    truncatedPrimaryChart,
-                    secondaryRelease ? truncatedSecondaryChart : ''
+                    truncatedPrimaryRelease,
+                    secondaryRelease ? truncatedSecondaryRelease : ''
                   )
                 : '',
             },
@@ -237,7 +228,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
           )
         }
       />
-      <ScreensTable
+      <AppStartScreens
         eventView={tableEventView}
         data={topTransactionsData}
         isLoading={topTransactionsLoading}

@@ -1,5 +1,8 @@
+import {Fragment} from 'react';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -16,7 +19,9 @@ import {
   PipelineDurationChart,
   TotalTokensUsedChart,
 } from 'sentry/views/aiMonitoring/aiMonitoringCharts';
+import {AIMonitoringOnboarding} from 'sentry/views/aiMonitoring/onboarding';
 import {PipelinesTable} from 'sentry/views/aiMonitoring/PipelinesTable';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 
 function NoAccessComponent() {
@@ -29,6 +34,8 @@ function NoAccessComponent() {
 
 export default function AiMonitoringPage() {
   const organization = useOrganization();
+  const onboardingProject = useOnboardingProject();
+  const isOnboarding = !!onboardingProject;
 
   return (
     <PageFiltersContainer>
@@ -42,6 +49,16 @@ export default function AiMonitoringPage() {
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        label: t('Dashboard'),
+                      },
+                      {
+                        label: t('AI Monitoring'),
+                      },
+                    ]}
+                  />
                   <Layout.Title>
                     {t('AI Monitoring')}
                     <PageHeadingQuestionTooltip
@@ -61,18 +78,26 @@ export default function AiMonitoringPage() {
                         <DatePageFilter />
                       </PageFilterBar>
                     </ModuleLayout.Full>
-                    <ModuleLayout.Third>
-                      <TotalTokensUsedChart />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
-                      <NumberOfPipelinesChart />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Third>
-                      <PipelineDurationChart />
-                    </ModuleLayout.Third>
-                    <ModuleLayout.Full>
-                      <PipelinesTable />
-                    </ModuleLayout.Full>
+                    {isOnboarding ? (
+                      <ModuleLayout.Full>
+                        <AIMonitoringOnboarding />
+                      </ModuleLayout.Full>
+                    ) : (
+                      <Fragment>
+                        <ModuleLayout.Third>
+                          <TotalTokensUsedChart />
+                        </ModuleLayout.Third>
+                        <ModuleLayout.Third>
+                          <NumberOfPipelinesChart />
+                        </ModuleLayout.Third>
+                        <ModuleLayout.Third>
+                          <PipelineDurationChart />
+                        </ModuleLayout.Third>
+                        <ModuleLayout.Full>
+                          <PipelinesTable />
+                        </ModuleLayout.Full>
+                      </Fragment>
+                    )}
                   </ModuleLayout.Layout>
                 </Layout.Main>
               </Layout.Body>

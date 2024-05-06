@@ -2,9 +2,16 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.testutils.helpers import override_options
 
 START_TIME = 1562873192.624
 END_TIME = 1562873194.624
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"relay.enable-orjson": 0.0}):
+        yield
 
 
 @pytest.fixture

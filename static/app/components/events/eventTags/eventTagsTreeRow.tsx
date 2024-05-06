@@ -14,7 +14,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {generateQueryWithTag, isUrl} from 'sentry/utils';
+import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -48,14 +48,15 @@ export default function EventTagsTreeRow({
   const tagMeta = content.meta?.value?.[''];
   const tagErrors = tagMeta?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
+  const hasStem = !isLast && objectIsEmpty(content.subtree);
 
   if (!originalTag) {
     return (
-      <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors}>
+      <TreeRow hasErrors={hasTagErrors} {...props}>
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
-              <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+              <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
               <TreeBranchIcon hasErrors={hasTagErrors} />
             </Fragment>
           )}
@@ -89,11 +90,11 @@ export default function EventTagsTreeRow({
   );
 
   return (
-    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors} {...props}>
+    <TreeRow hasErrors={hasTagErrors} {...props}>
       <TreeKeyTrunk spacerCount={spacerCount}>
         {spacerCount > 0 && (
           <Fragment>
-            <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+            <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
             <TreeBranchIcon hasErrors={hasTagErrors} />
           </Fragment>
         )}
@@ -245,10 +246,10 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
     ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
 `;
 
-const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
+const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (!p.isLast ? p.theme.border : 'transparent')};
+  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
   margin-right: -1px;
   height: 100%;
 `;

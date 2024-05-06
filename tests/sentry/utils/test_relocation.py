@@ -94,6 +94,25 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
+    def test_bad_task_attempts_exhausted(self, fake_message_builder: Mock):
+        self.mock_message_builder(fake_message_builder)
+
+        self.relocation.latest_task = OrderedTask.IMPORTING.name
+        self.relocation.latest_task_attempts = 3
+        self.relocation.save()
+
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.IMPORTING, 3)
+
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
+        fake_message_builder.return_value.send_async.assert_called_once_with(
+            to=[self.owner.email, self.superuser.email]
+        )
+
+        assert rel is None
+        assert not attempts_left
+        assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
+
     def test_good_first_task(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)
 

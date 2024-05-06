@@ -25,7 +25,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -48,7 +48,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
@@ -177,7 +177,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         return release_version or None
 
 
-@region_silo_only_model
+@region_silo_model
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a
@@ -346,7 +346,8 @@ class Release(Model):
             return False
 
         try:
-            version_info = parse_release(version)
+            json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
+            version_info = parse_release(version, json_loads=json_loads)
             version_parsed = version_info.get("version_parsed")
             return version_parsed is not None and all(
                 validate_bigint(version_parsed[field])
@@ -488,7 +489,8 @@ class Release(Model):
     @cached_property
     def version_info(self):
         try:
-            return parse_release(self.version)
+            json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
+            return parse_release(self.version, json_loads=json_loads)
         except RelayError:
             # This can happen on invalid legacy releases
             return None

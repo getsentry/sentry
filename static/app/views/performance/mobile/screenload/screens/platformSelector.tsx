@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/profiling/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';

@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment';
@@ -7,6 +6,7 @@ import moment from 'moment';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -179,12 +180,14 @@ export default function PageOverview() {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <FeedbackWidgetButton />
-            {transactionSummaryTarget && (
-              <LinkButton to={transactionSummaryTarget} size="sm">
-                {t('View Transaction Summary')}
-              </LinkButton>
-            )}
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+              {transactionSummaryTarget && (
+                <LinkButton to={transactionSummaryTarget} size="sm">
+                  {t('View Transaction Summary')}
+                </LinkButton>
+              )}
+            </ButtonBar>
           </Layout.HeaderActions>
           <TabList hideBorder>
             {LANDING_DISPLAYS.map(({label, field}) => (

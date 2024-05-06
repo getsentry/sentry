@@ -8,4 +8,5 @@ export enum QueryParameterNames {
   ENDPOINTS_CURSOR = 'endpointsCursor',
   ENDPOINTS_SORT = 'endpointsSort',
   PAGES_CURSOR = 'pagesCursor',
+  DESTINATIONS_CURSOR = 'destinationsCursor',
 }

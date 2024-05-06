@@ -67,7 +67,7 @@ function AddWidget({onAddWidget}: Props) {
         <InnerWrapper>
           <AddWidgetButton
             onAddWidget={onAddWidget}
-            aria-label="Add Widget"
+            aria-label={t('Add Widget')}
             data-test-id="widget-add"
           />
         </InnerWrapper>

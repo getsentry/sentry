@@ -1,4 +1,6 @@
 ---
+created: '2024-05-02T21:08:26.482609+00:00'
+creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -19,7 +21,6 @@ config:
     scrubDefaults: true
     sensitiveFields: []
   features:
-  - organizations:session-replay-video
   - organizations:transaction-name-mark-scrubbed-as-sanitized
   - organizations:transaction-name-normalize
   filterSettings:
@@ -292,6 +293,8 @@ config:
         - '@ip'
         - '@mac'
         type: multiple
+  sessionMetrics:
+    version: 1
   trustedRelays: []
 disabled: false
 slug: bar

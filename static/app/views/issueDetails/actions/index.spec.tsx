@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -18,6 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
 const project = ProjectFixture({

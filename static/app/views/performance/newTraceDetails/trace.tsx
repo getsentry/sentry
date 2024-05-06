@@ -213,12 +213,12 @@ export function Trace({
       trace.root.space[1] !== manager.trace_space.width)
   ) {
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    const maybeQueue = decodeScrollQueue(qs.parse(location.search).node);
-    const maybeEventId = qs.parse(location.search)?.eventId;
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
 
-    if (maybeQueue || maybeEventId) {
+    if (maybeQueue || queryParams.eventId) {
       scrollQueueRef.current = {
-        eventId: maybeEventId as string,
+        eventId: queryParams.eventId as string,
         path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
       };
     }
@@ -1000,7 +1000,9 @@ function RenderRow(props: {
               {ERROR_LEVEL_LABELS[props.node.value.level ?? 'error']}
             </span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.node.value.title}</span>
+            <span className="TraceDescription">
+              {props.node.value.message ?? props.node.value.title}
+            </span>
           </div>
         </div>
         <div
@@ -1744,7 +1746,7 @@ const TraceStylingWrapper = styled('div')`
     height: 100%;
     background-color: transparent;
     top: 0;
-    cursor: col-resize;
+    cursor: ew-resize;
     z-index: 10;
 
     &:before {
