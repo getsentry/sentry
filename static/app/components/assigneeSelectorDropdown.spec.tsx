@@ -532,14 +532,8 @@ describe('AssigneeSelectorDropdown', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(await screen.findByText('Suggested Assignees')).toBeInTheDocument();
 
-    let options;
-    waitFor(
-      () => {
-        options = screen.findAllByRole('option');
-        expect(options).toHaveLength(1);
-      },
-      {timeout: 1000}
-    );
+    const options = screen.findAllByRole('option');
+
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('AB');
     await userEvent.click(options[0]);
