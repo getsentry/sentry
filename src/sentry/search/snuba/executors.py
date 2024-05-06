@@ -57,6 +57,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.events.builder.discover import UnresolvedQuery
+from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.dataset import Dataset
@@ -1147,14 +1148,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         Returns the basic lookup for a search filter.
         """
-
-        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
-
-        query_builder = UnresolvedQuery(
-            dataset=dataset,
-            entity=joined_entity,
-            params={},
-        )
+        query_builder = self.def_get_query_builder(joined_entity)
         return query_builder.default_filter_converter(search_filter)
 
     def get_assigned(
@@ -1386,6 +1380,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             conditions=top_level_conditions,
         )
 
+    def def_get_query_builder(self, joined_entity: Entity) -> Condition:
+        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
+
+        return UnresolvedQuery(
+            dataset=dataset,
+            entity=joined_entity,
+            params={},
+        )
+
+    def get_message_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        query_builder = self.def_get_query_builder(joined_entity)
+
+        # leverage discover logic internally here
+        dataset_config = DiscoverDatasetConfig(query_builder)
+        return dataset_config._message_filter_converter(search_filter)
+
     def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
         return Function(
             "ifNull",
@@ -1418,6 +1430,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "substatus": get_basic_group_snuba_condition,
         "assigned_or_suggested": get_assigned_or_suggested,
         "assigned_to": get_assigned,
+        "message": get_message_condition,
     }
 
     first_seen = Column("group_first_seen", entities["attrs"])
