@@ -9,14 +9,13 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Union
 
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.actor import Actor
     from sentry.models.team import Team
     from sentry.models.user import User
+    from sentry.services.hybrid_cloud.organization import RpcTeam
 
 
 class ActorType(str, Enum):
@@ -54,6 +53,7 @@ class RpcActor(RpcModel):
         RpcActor.resolve() individually will.
         """
         from sentry.models.team import Team
+        from sentry.services.hybrid_cloud.user.service import user_service
 
         if not actors:
             return []
@@ -82,6 +82,7 @@ class RpcActor(RpcModel):
         """
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.organization import RpcTeam
 
         result: list["RpcActor"] = []
         grouped_by_type: MutableMapping[str, list[int]] = defaultdict(list)
@@ -120,6 +121,7 @@ class RpcActor(RpcModel):
         """
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.organization import RpcTeam
 
         if isinstance(obj, cls):
             return obj
@@ -152,7 +154,7 @@ class RpcActor(RpcModel):
         return cls(id=team.id, actor_type=ActorType.TEAM, slug=team.slug)
 
     @classmethod
-    def from_rpc_team(cls, team: RpcTeam) -> "RpcActor":
+    def from_rpc_team(cls, team: "RpcTeam") -> "RpcActor":
         return cls(id=team.id, actor_type=ActorType.TEAM, slug=team.slug)
 
     @classmethod
@@ -168,6 +170,8 @@ class RpcActor(RpcModel):
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
         """
+        from sentry.services.hybrid_cloud.user.service import user_service
+
         if not id:
             return None
         # If we have an integer, fall back to assuming it's a User
@@ -210,6 +214,7 @@ class RpcActor(RpcModel):
 
     def resolve(self) -> Union["Team", "RpcUser"] | None:
         from sentry.models.team import Team
+        from sentry.services.hybrid_cloud.user.service import user_service
 
         if self.actor_type == ActorType.TEAM:
             return Team.objects.filter(id=self.id).first()
