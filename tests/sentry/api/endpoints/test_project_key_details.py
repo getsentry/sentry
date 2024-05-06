@@ -114,7 +114,7 @@ class UpdateProjectKeyTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-key-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "key_id": key.public_key,
             },
