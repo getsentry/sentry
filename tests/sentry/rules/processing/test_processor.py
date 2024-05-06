@@ -113,7 +113,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             assert getattr(rule_fire_history, "notification_uuid", None) is not None
 
     @with_feature("organizations:process-slow-alerts")
-    def test_delayed_rule_match_any_slow_conditions(self):
+    def test_delayed_rule_match_any_slow_conditionss(self):
         """
         Test that a rule with only 'slow' conditions and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
         """
@@ -124,6 +124,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
+        self.rule.save()
         rp = RuleProcessor(
             self.group_event,
             is_new=True,
