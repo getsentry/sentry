@@ -462,16 +462,13 @@ describe('AssigneeSelectorDropdown', () => {
     await userEvent.type(screen.getByRole('textbox'), 'Cert');
 
     // 1 total item
-    waitFor(
-      () => {
-        expect(screen.findAllByRole('option')).toHaveLength(1);
-      },
-      {timeout: 1000}
-    );
+    waitFor(async () => {
+      expect(await screen.findAllByRole('option')).toHaveLength(1);
+    });
 
-    expect(screen.getByText(`${USER_2.name}`)).toBeInTheDocument();
+    expect(await screen.findByText(`${USER_2.name}`)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText(`${USER_2.name}`));
+    await userEvent.click(await screen.findByText(`${USER_2.name}`));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
@@ -522,7 +519,7 @@ describe('AssigneeSelectorDropdown', () => {
       />
     );
 
-    expect(await screen.findByTestId('suggested-avatar-stack')).toBeInTheDocument();
+    expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
     // Hover over avatar
     await userEvent.hover(await screen.findByTestId('letter_avatar-avatar'));
     expect(await screen.findByText('Suggestion: Apple Bees')).toBeInTheDocument();
@@ -532,7 +529,7 @@ describe('AssigneeSelectorDropdown', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(await screen.findByText('Suggested Assignees')).toBeInTheDocument();
 
-    const options = screen.findAllByRole('option');
+    const options = await screen.findAllByRole('option');
 
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('AB');
@@ -556,8 +553,7 @@ describe('AssigneeSelectorDropdown', () => {
       />
     );
 
-    // Suggested assignees shouldn't show anymore because we assigned to the suggested actor
-    expect(await screen.findByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
+    // Suggested assignees shouldn't show anymore because we assigned to the suggested actor    expect(screen.getByTestId('suggested-avatar-stack')).not.toBeInTheDocument();
 
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_2, {
       assignee: USER_1,
