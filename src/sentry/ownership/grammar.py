@@ -531,7 +531,7 @@ def create_schema_from_issue_owners(
             elif owner.type == "team":
                 bad_actors.append(f"#{owner.identifier}")
         elif add_owner_ids:
-            owners_id[owner.identifier] = actor[0]
+            owners_id[owner.identifier] = actor.id
 
     if bad_actors and remove_deleted_owners:
         remove_deleted_owners_from_schema(schema["rules"], owners_id)

@@ -33,8 +33,6 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -297,9 +295,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         owner = result.get("owner")
         owner_user_id = None
         owner_team_id = None
-        if owner and owner.type == User:
+        if owner and owner.actor_type == ActorType.USER:
             owner_user_id = owner.id
-        elif owner and owner.type == Team:
+        elif owner and owner.actor_type == ActorType.TEAM:
             owner_team_id = owner.id
 
         try:

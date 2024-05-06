@@ -224,6 +224,12 @@ class RpcActor(RpcModel):
             and self.actor_type == other.actor_type
         )
 
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "actor_type": self.actor_type,
+        }
+
     def resolve(self) -> "Team | RpcUser":
         """
         Resolve an Actor into the Team or RpcUser it represents.
