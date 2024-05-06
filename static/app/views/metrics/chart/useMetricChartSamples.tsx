@@ -40,12 +40,19 @@ function getValueRectFromSeries(series: Series[]) {
     s.data.map(entry => entry.value)
   );
 
-  return {
+  const rect = {
     xMin: Math.min(...xValues),
     xMax: Math.max(...xValues),
     yMin: Math.min(0, ...yValues) / scalingFactor,
     yMax: Math.max(0, ...yValues) / scalingFactor,
   };
+
+  // happens when refenceSeries has all 0 values, commonlt seen when using min() aggregation
+  if (rect.yMin === rect.yMax) {
+    return {xMin: rect.xMin, xMax: rect.xMax, yMin: -Infinity, yMax: Infinity};
+  }
+
+  return rect;
 }
 
 // TODO: remove this once we have a stabilized type for this
