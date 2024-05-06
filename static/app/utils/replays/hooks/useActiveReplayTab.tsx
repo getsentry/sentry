@@ -30,7 +30,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
 }
 
 function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
-  const defaultTab = isVideoReplay ? TabKey.TAGS : TabKey.BREADCRUMBS;
+  const defaultTab = TabKey.BREADCRUMBS;
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
   const paramValue = getParamValue()?.toLowerCase() ?? '';
