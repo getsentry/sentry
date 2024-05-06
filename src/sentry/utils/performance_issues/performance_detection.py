@@ -342,7 +342,10 @@ def _detect_performance_problems(
     ]
 
     for detector in detectors:
-        run_detector_on_data(detector, data)
+        with sentry_sdk.start_span(
+            op="function", description=f"run_detector_on_data.{detector.type.value}"
+        ):
+            run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(

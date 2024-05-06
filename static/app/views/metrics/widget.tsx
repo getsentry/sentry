@@ -29,6 +29,7 @@ import {
   getMetricsSeriesId,
   getMetricsSeriesName,
   isCumulativeOp,
+  isNotQueryOnly,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
@@ -94,10 +95,6 @@ export type Sample = {
   transactionId: string;
   transactionSpanId: string;
 };
-
-function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
-  return !('isQueryOnly' in query) || !query.isQueryOnly;
-}
 
 export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   const filteredQueries = queries.filter(isNotQueryOnly);

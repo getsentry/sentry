@@ -24,7 +24,6 @@ from sentry.signals import (
     issue_unresolved,
 )
 from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
-from sentry.types.group import SUBSTATUS_TO_STR, GroupSubStatus
 
 
 @issue_assigned.connect(weak=False)
@@ -68,32 +67,26 @@ def send_issue_unresolved_webhook(
     group: Group,
     project: Project,
     user: User | RpcUser | None = None,
-    new_substatus: GroupSubStatus | None = None,
     **kwargs,
 ) -> None:
-    send_issue_unresolved_webhook_helper(
-        group=group, project=project, user=user, new_substatus=new_substatus, **kwargs
-    )
+    send_issue_unresolved_webhook_helper(group=group, project=project, user=user, **kwargs)
 
 
 @issue_escalating.connect(weak=False)
 def send_issue_escalating_webhook(
     group: Group,
     project: Project,
-    new_substatus: GroupSubStatus | None = None,
     **kwargs,
 ) -> None:
     # Escalating is a form of unresolved so we send the same webhook
-    send_issue_unresolved_webhook_helper(
-        group=group, project=project, new_substatus=new_substatus, **kwargs
-    )
+    send_issue_unresolved_webhook_helper(group=group, project=project, **kwargs)
 
 
 def send_issue_unresolved_webhook_helper(
     group: Group,
     project: Project,
     user: User | RpcUser | None = None,
-    new_substatus: GroupSubStatus | None = None,
+    data: Mapping[str, Any] | None = None,
     **kwargs,
 ) -> None:
     organization = project.organization
@@ -103,9 +96,7 @@ def send_issue_unresolved_webhook_helper(
             issue=group,
             user=user,
             event="issue.unresolved",
-            data={
-                "substatus": SUBSTATUS_TO_STR[new_substatus if new_substatus else group.substatus]
-            },
+            data=data,
         )
 
 

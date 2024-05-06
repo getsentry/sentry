@@ -175,7 +175,6 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
             props.baggage.organization,
             props.dataRow[key] ?? '',
             dataSelection,
-            {},
             timestamp
           )}
         >

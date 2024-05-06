@@ -173,7 +173,8 @@ def format_release_tag(value: str, event: GroupEvent | Group):
     """Format the release tag using the short version and make it a link"""
     path = f"/releases/{value}/"
     url = event.project.organization.absolute_url(path)
-    release_description = parse_release(value).get("description")
+    json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
+    release_description = parse_release(value, json_loads=json_loads).get("description")
     return f"<{url}|{release_description}>"
 
 
@@ -522,7 +523,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         else:
             title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
-        title_text = (title_emoji + " " or "") + f"<{title_link}|*{escape_slack_text(title)}*>"
+        title_emoji = title_emoji + " " if title_emoji else ""
+        title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
 
         return self.get_markdown_block(title_text)
 
