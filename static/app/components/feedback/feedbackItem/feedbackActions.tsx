@@ -101,15 +101,8 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 }
 
 function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {
-    isResolved,
-    onResolveClick,
-    hasSpamFeature,
-    isSpam,
-    onSpamClick,
-    hasSeen,
-    onMarkAsReadClick,
-  } = useFeedbackActions({feedbackItem});
+  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
+    useFeedbackActions({feedbackItem});
 
   return (
     <DropdownMenu
@@ -126,13 +119,11 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           label: isResolved ? t('Unresolve') : t('Resolve'),
           onAction: onResolveClick,
         },
-        hasSpamFeature
-          ? {
-              key: 'spam',
-              label: isSpam ? t('Move to Inbox') : t('Mark as Spam'),
-              onAction: onSpamClick,
-            }
-          : null,
+        {
+          key: 'spam',
+          label: isSpam ? t('Move to Inbox') : t('Mark as Spam'),
+          onAction: onSpamClick,
+        },
         {
           key: 'read',
           label: hasSeen ? t('Mark Unread') : t('Mark Read'),
