@@ -118,23 +118,22 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     ]
   );
 
-  useEffect(
-    function () {
-      // Skip if we have a selected org, or if there aren't any orgs loaded yet.
-      if (organization || organizations.length < 1) {
-        return;
-      }
+  useEffect(function () {
+    // Skip if we have a selected org, or if there aren't any orgs loaded yet.
+    if (organization || organizations.length < 1) {
+      return;
+    }
+    if (organizations.length === 1) {
       // auto select the org if there is only one
       onSelectOrg(organizations[0].slug);
+    }
 
-      // now check the subomdain and use that org slug if it exists
-      const customerDomain = ConfigStore.get('customerDomain');
-      if (customerDomain?.subdomain) {
-        onSelectOrg(customerDomain.subdomain);
-      }
-    },
-    [organizations, organization, onSelectOrg]
-  );
+    // now check the subomdain and use that org slug if it exists
+    const customerDomain = ConfigStore.get('customerDomain');
+    if (customerDomain?.subdomain) {
+      onSelectOrg(customerDomain.subdomain);
+    }
+  });
 
   const onClose = useCallback(() => {
     // if we came from somewhere, go back there. Otherwise, back to the integrations page
