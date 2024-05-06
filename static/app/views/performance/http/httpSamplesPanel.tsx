@@ -142,7 +142,6 @@ export function HTTPSamplesPanel() {
     search: MutableSearch.fromQueryObject(ribbonFilters),
     fields: [
       `${SpanFunction.SPM}()`,
-      'transaction',
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
       'http_response_rate(3)',
