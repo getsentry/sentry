@@ -77,7 +77,6 @@ def _validate_rules(project):
         "sampling": {
             "version": 2,
             "rules": rules,
-            "mode": "total",
         },
     }
     assert normalize_project_config(project_config) == project_config
