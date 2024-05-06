@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.http.response import HttpResponseBase
-from django.urls import resolve
 
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -43,14 +42,14 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         if not self.is_json_request():
             return None
         try:
-            _view, _args, kwargs = resolve(self.request.path)
-            # Non-webhook endpoints
-            if "integration_id" in kwargs and "organization_slug" in kwargs:
-                self._integration = Integration.objects.filter(
-                    id=kwargs["integration_id"],
-                    organization_slug=kwargs["organization_slug"],
-                ).first()
-                return self._integration
+            # _view, _args, kwargs = resolve(self.request.path)
+            # # Non-webhook endpoints
+            # if "integration_id" in kwargs and "organization_slug" in kwargs:
+            #     self._integration = Integration.objects.filter(
+            #         id=kwargs["integration_id"],
+            #         organization_slug=kwargs["organization_slug"],
+            #     ).first()
+            #     return self._integration
 
             # Webhook endpoints
             result = self._resolve_external_id()
