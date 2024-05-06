@@ -10,7 +10,6 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
-from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import (
     MarkMissing,
@@ -18,10 +17,11 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import (
     MonitorsClockTasks,
 )
 
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_tasks.check_missed import mark_environment_missing
 from sentry.monitors.clock_tasks.check_timeout import mark_checkin_timeout
 
-MONITORS_CLOCK_TASKS_CODEC: Codec[MonitorsClockTasks] = get_codec("monitors-clock-tasks")
+MONITORS_CLOCK_TASKS_CODEC: Codec[MonitorsClockTasks] = get_topic_codec(Topic.MONITORS_CLOCK_TASKS)
 
 logger = logging.getLogger(__name__)
 

@@ -6,18 +6,17 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.core.cache import cache
-from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry import quotas
-from sentry.conf.types.kafka_definition import Topic
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
-INGEST_CODEC: Codec[IngestMetric] = get_codec("ingest-metrics")
+INGEST_CODEC: Codec[IngestMetric] = get_topic_codec(Topic.INGEST_METRICS)
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: str | None) -> str:
