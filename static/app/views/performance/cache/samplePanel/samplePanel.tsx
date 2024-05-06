@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -181,7 +181,7 @@ export function CacheSamplePanel() {
                     `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`
                   ]
                 }
-                unit={RateUnit.PER_MINUTE}
+                unit={SizeUnit.BYTE}
                 isLoading={areCacheTransactionMetricsFetching}
               />
               <MetricReadout
