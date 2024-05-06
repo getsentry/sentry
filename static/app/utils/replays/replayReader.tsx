@@ -429,6 +429,14 @@ export default class ReplayReader {
     ].sort(sortFrames)
   );
 
+  getMobileNavigationFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'navigation'].includes(frame.category)
+      ),
+    ].sort(sortFrames)
+  );
+
   getNetworkFrames = memoize(() =>
     this._sortedSpanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
@@ -470,6 +478,8 @@ export default class ReplayReader {
             'device.battery',
             'device.connectivity',
             'device.orientation',
+            'app.foreground',
+            'app.background',
           ].includes(frame.category)
         ),
         ...this._errors,

@@ -49,6 +49,9 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         )
         # Checkin will timeout in 30 minutes
         checkin = MonitorCheckIn.objects.create(
+            # XXX(epurkhiser): Arbitrarily large id to make sure we can
+            # correctly use the monitor_environment.id as the partition key
+            id=62702371781194950,
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=project.id,
@@ -76,7 +79,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             "checkin_id": checkin.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -178,7 +181,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             "checkin_id": checkin1.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -262,7 +265,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             "checkin_id": checkin.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -330,7 +333,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             "checkin_id": checkin.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -419,7 +422,7 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             "checkin_id": checkin1.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
