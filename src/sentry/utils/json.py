@@ -164,12 +164,22 @@ def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = F
         return loads(data, skip_trace)
 
 
+def _isinstance_namedtuple(obj: object) -> bool:
+    return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
+
+
+def orjson_dumps_default(data: JSONData) -> JSONData:
+    if _isinstance_namedtuple(data):
+        return list(data)
+    raise TypeError
+
+
 def dumps_orjson(data: JSONData) -> str:
     return dumpsb_orjson(data).decode()
 
 
 def dumpsb_orjson(data: JSONData) -> bytes:
-    return orjson.dumps(data)
+    return orjson.dumps(data, default=orjson_dumps_default)
 
 
 # dumps JSON with `orjson` or the default function depending on `option_name`
@@ -232,9 +242,12 @@ __all__ = (
     "JSONEncoder",
     "dump",
     "dumps",
+    "dumps_orjson",
+    "dumpsb_orjson",
     "dumps_htmlsafe",
     "load",
     "loads",
+    "loads_orjson",
     "prune_empty_keys",
     "methods_for_experiment",
     "loads_experimental",
