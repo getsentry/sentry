@@ -1,9 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAutofixCodebaseIndexing';
 import {
+  type AutofixSetupRepoDefinition,
   type AutofixSetupResponse,
   useAutofixSetup,
 } from 'sentry/components/events/autofix/useAutofixSetup';
@@ -12,12 +14,13 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconCheckmark} from 'sentry/icons';
+import {IconCheckmark, IconGithub} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface AutofixSetupModalProps extends ModalRenderProps {
   groupId: string;
+  projectId: string;
 }
 
 const ConsentStep = HookOrDefault({
@@ -114,7 +117,144 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
   );
 }
 
-function AutofixSetupSteps({autofixSetup}: {autofixSetup: AutofixSetupResponse}) {
+function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
+  if (repo.provider === 'github' || repo.provider.split(':')[1] === 'github') {
+    return (
+      <RepoLinkItem>
+        <GithubLink>
+          <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
+            <IconGithub color="linkColor" size="sm" />
+            <span>
+              {repo.owner}/{repo.name}
+            </span>
+          </ExternalLink>
+        </GithubLink>
+        {repo.ok ? <IconCheckmark color="success" isCircled /> : null}
+      </RepoLinkItem>
+    );
+  }
+
+  return (
+    <li>
+      {repo.owner}/{repo.name}
+    </li>
+  );
+}
+
+function AutofixGithubIntegrationStep({
+  autofixSetup,
+}: {
+  autofixSetup: AutofixSetupResponse;
+}) {
+  const sortedRepos = useMemo(
+    () =>
+      autofixSetup.githubWriteIntegration.repos.toSorted((a, b) => {
+        if (a.ok === b.ok) {
+          return `${a.owner}/${a.name}`.localeCompare(`${b.owner}/${b.name}`);
+        }
+        return a.ok ? -1 : 1;
+      }),
+    [autofixSetup.githubWriteIntegration.repos]
+  );
+
+  if (autofixSetup.githubWriteIntegration.ok) {
+    return (
+      <Fragment>
+        <p>
+          {tct(
+            'The [link:Sentry Autofix Github App] has been installed on all required repositories:',
+            {
+              link: (
+                <ExternalLink href="https://github.com/apps/sentry-autofix-experimental" />
+              ),
+            }
+          )}
+        </p>
+        <RepoLinkUl>
+          {sortedRepos.map(repo => (
+            <GitRepoLink key={`${repo.owner}/${repo.name}`} repo={repo} />
+          ))}
+        </RepoLinkUl>
+        <GuidedSteps.StepButtons />
+      </Fragment>
+    );
+  }
+
+  return (
+    <Fragment>
+      <p>
+        {tct(
+          'Install the [link:Sentry Autofix Github App] on your Github organization or each individual repository with write permissions to enable Autofix.',
+          {
+            link: (
+              <ExternalLink href="https://github.com/apps/sentry-autofix-experimental" />
+            ),
+          }
+        )}
+      </p>
+      <p>{t(`To run Autofix on this issue, you will need to install the app on:`)}</p>
+      <RepoLinkUl>
+        {sortedRepos.map(repo => (
+          <GitRepoLink key={`${repo.owner}/${repo.name}`} repo={repo} />
+        ))}
+      </RepoLinkUl>
+      <GuidedSteps.StepButtons />
+    </Fragment>
+  );
+}
+
+function AutofixCodebaseIndexingStep({
+  autofixSetup,
+  projectId,
+  groupId,
+  closeModal,
+}: {
+  autofixSetup: AutofixSetupResponse;
+  closeModal: () => void;
+  groupId: string;
+  projectId: string;
+}) {
+  const {startIndexing} = useAutofixCodebaseIndexing({projectId, groupId});
+
+  const canIndex =
+    // autofixSetup.genAIConsent.ok &&
+    autofixSetup.integration.ok && autofixSetup.githubWriteIntegration.ok;
+
+  return (
+    <Fragment>
+      <p>
+        {t(
+          'Sentry will index your repositories to enable Autofix. This process may take a few minutes.'
+        )}
+      </p>
+      <GuidedSteps.StepButtons>
+        <Button
+          priority="primary"
+          size="sm"
+          disabled={!canIndex}
+          onClick={() => {
+            startIndexing();
+            closeModal();
+          }}
+        >
+          {t('Index Repositories & Enable Autofix')}
+        </Button>
+      </GuidedSteps.StepButtons>
+    </Fragment>
+  );
+}
+
+function AutofixSetupSteps({
+  projectId,
+  groupId,
+  autofixSetup,
+  closeModal,
+}: {
+  autofixSetup: AutofixSetupResponse;
+  closeModal: () => void;
+  groupId: string;
+  projectId: string;
+}) {
   return (
     <GuidedSteps>
       <ConsentStep hasConsented={autofixSetup.genAIConsent.ok} />
@@ -125,18 +265,39 @@ function AutofixSetupSteps({autofixSetup}: {autofixSetup: AutofixSetupResponse})
       >
         <AutofixIntegrationStep autofixSetup={autofixSetup} />
       </GuidedSteps.Step>
+      <GuidedSteps.Step
+        stepKey="repoWriteAccess"
+        title={t('Install the Sentry Autofix App on Github')}
+        isCompleted={autofixSetup.githubWriteIntegration.ok}
+      >
+        <AutofixGithubIntegrationStep autofixSetup={autofixSetup} />
+      </GuidedSteps.Step>
+      <GuidedSteps.Step
+        stepKey="codebaseIndexing"
+        title={t('Enable Autofix')}
+        isCompleted={autofixSetup.codebaseIndexing.ok}
+      >
+        <AutofixCodebaseIndexingStep
+          groupId={groupId}
+          projectId={projectId}
+          autofixSetup={autofixSetup}
+          closeModal={closeModal}
+        />
+      </GuidedSteps.Step>
     </GuidedSteps>
   );
 }
 
 function AutofixSetupContent({
+  projectId,
   groupId,
   closeModal,
 }: {
   closeModal: () => void;
   groupId: string;
+  projectId: string;
 }) {
-  const {data, isLoading, isError} = useAutofixSetup(
+  const {data, hasSuccessfulSetup, isLoading, isError} = useAutofixSetup(
     {groupId},
     // Want to check setup status whenever the user comes back to the tab
     {refetchOnWindowFocus: true}
@@ -150,10 +311,10 @@ function AutofixSetupContent({
     return <LoadingError message={t('Failed to fetch Autofix setup progress.')} />;
   }
 
-  if (data.genAIConsent.ok && data.integration.ok) {
+  if (hasSuccessfulSetup) {
     return (
       <AutofixSetupDone>
-        <DoneIcon size="xxl" isCircled />
+        <DoneIcon color="success" size="xxl" isCircled />
         <p>{t("You've successfully configured Autofix!")}</p>
         <Button onClick={closeModal} priority="primary">
           {t("Let's go")}
@@ -162,13 +323,21 @@ function AutofixSetupContent({
     );
   }
 
-  return <AutofixSetupSteps autofixSetup={data} />;
+  return (
+    <AutofixSetupSteps
+      groupId={groupId}
+      projectId={projectId}
+      autofixSetup={data}
+      closeModal={closeModal}
+    />
+  );
 }
 
 export function AutofixSetupModal({
   Header,
   Body,
   groupId,
+  projectId,
   closeModal,
 }: AutofixSetupModalProps) {
   return (
@@ -177,7 +346,11 @@ export function AutofixSetupModal({
         <h3>{t('Configure Autofix')}</h3>
       </Header>
       <Body>
-        <AutofixSetupContent groupId={groupId} closeModal={closeModal} />
+        <AutofixSetupContent
+          projectId={projectId}
+          groupId={groupId}
+          closeModal={closeModal}
+        />
       </Body>
     </Fragment>
   );
@@ -194,6 +367,31 @@ const AutofixSetupDone = styled('div')`
 `;
 
 const DoneIcon = styled(IconCheckmark)`
-  color: ${p => p.theme.success};
   margin-bottom: ${space(4)};
+`;
+
+const RepoLinkUl = styled('ul')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const RepoLinkItem = styled('li')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const GithubLink = styled('div')`
+  display: flex;
+  align-items: center;
+
+  a {
+    display: flex;
+    align-items: center;
+  }
+
+  svg {
+    margin-right: ${space(0.5)};
+  }
 `;

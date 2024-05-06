@@ -105,6 +105,8 @@ from sentry.models.rule import RuleSource
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.notifications.notifications.base import alert_page_needs_org_id
+from sentry.notifications.types import FineTuningAPIKey
 from sentry.plugins.base import plugins
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
@@ -1484,6 +1486,7 @@ class BaseSpansTestCase(SnubaTestCase):
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
+        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1513,10 +1516,15 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
+        if store_metrics_summary:
+            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
 
         self.store_span(payload)
+
+        if "_metrics_summary" in payload:
+            self.store_metrics_summary(payload)
 
     def store_indexed_span(
         self,
@@ -1536,6 +1544,7 @@ class BaseSpansTestCase(SnubaTestCase):
         store_only_summary: bool = False,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
+        category: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1573,6 +1582,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
+        if category is not None:
+            payload["sentry_tags"]["category"] = category
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -2874,15 +2885,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_performance_issue_blocks(
         self,
         blocks,
-        org_slug,
-        project_slug,
+        org: Organization,
+        project_slug: str,
         group,
         referrer,
-        alert_type="workflow",
+        alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
         issue_link_extra_params=None,
     ):
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
         assert (
@@ -2896,9 +2907,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             blocks[3]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
         )
+        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[4]["elements"][0]["text"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 
     def assert_generic_issue_attachments(
@@ -2915,15 +2927,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_generic_issue_blocks(
         self,
         blocks,
-        org_slug,
-        project_slug,
+        org: Organization,
+        project_slug: str,
         group,
         referrer,
         alert_type="workflow",
         issue_link_extra_params=None,
     ):
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
         assert (
@@ -2935,9 +2947,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == "```" + TEST_ISSUE_OCCURRENCE.evidence_display[0].value + "```"
         )
 
+        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[-2]["elements"][0]["text"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 
 

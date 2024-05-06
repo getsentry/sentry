@@ -125,7 +125,7 @@ export function TransactionNodeDetails({
 
       <IssueList node={node} organization={organization} issues={issues} />
 
-      <div>
+      <TraceDrawerComponents.SectionCardGroup>
         <GeneralInfo
           node={node}
           onParentClick={onParentClick}
@@ -136,7 +136,7 @@ export function TransactionNodeDetails({
         <AdditionalData event={event} />
         <Measurements event={event} location={location} organization={organization} />
         <Sdk event={event} />
-      </div>
+      </TraceDrawerComponents.SectionCardGroup>
 
       <Request event={event} />
 

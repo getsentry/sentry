@@ -100,7 +100,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
@@ -376,6 +375,8 @@ class EventManager:
 
         from sentry_relay.processing import StoreNormalizer
 
+        json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
+
         rust_normalizer = StoreNormalizer(
             project_id=self._project.id if self._project else project_id,
             client_ip=self._client_ip,
@@ -387,11 +388,14 @@ class EventManager:
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
+            json_dumps=json_dumps,
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        self._data = CanonicalKeyDict(
+            rust_normalizer.normalize_event(dict(self._data), json_loads=json_loads)
+        )
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -542,14 +546,7 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded as err:
-            logger.info(
-                "event_manager.save.discard",
-                extra={
-                    "reason": err.reason,
-                    "tombstone_id": err.tombstone_id,
-                },
-            )
+        except HashDiscarded:
             discard_event(job, attachments)
             raise
 
@@ -575,10 +572,6 @@ class EventManager:
         _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs)
         _tsdb_record_all_metrics(jobs)
-
-        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-            group_id=group_info.group.id, environment_id=job["environment"].id
-        )
 
         if attachments:
             attachments = filter_attachments_for_group(attachments, job)

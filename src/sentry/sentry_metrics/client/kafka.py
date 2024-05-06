@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
-import sentry_kafka_schemas
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.core.cache import cache
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic
@@ -16,9 +17,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
-ingest_codec: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
-    "ingest-metrics"
-)
+INGEST_CODEC: Codec[IngestMetric] = get_codec("ingest-metrics")
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: str | None) -> str:
@@ -76,7 +75,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
-        counter_metric = {
+        counter_metric: IngestMetric = {
             "org_id": org_id,
             "project_id": project_id,
             "name": build_mri(metric_name, "c", use_case_id, unit),
@@ -89,8 +88,8 @@ class KafkaMetricsBackend(GenericMetricsBackend):
 
         self.__produce(counter_metric, use_case_id)
 
-    def __produce(self, metric: dict[str, Any], use_case_id: UseCaseID):
-        ingest_codec.validate(metric)
+    def __produce(self, metric: IngestMetric, use_case_id: UseCaseID):
+        INGEST_CODEC.validate(metric)
         payload = KafkaPayload(
             None,
             json.dumps(metric).encode("utf-8"),

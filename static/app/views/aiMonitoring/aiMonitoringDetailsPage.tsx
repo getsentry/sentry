@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -9,13 +10,13 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
@@ -30,7 +31,6 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 function NoAccessComponent() {
   return (
@@ -93,15 +93,23 @@ export default function AiMonitoringPage({params}: Props) {
             <NoProjectMessage organization={organization}>
               <Layout.Header>
                 <Layout.HeaderContent>
-                  <Layout.Title>
-                    {`${t('AI Monitoring')} - ${spanMetrics['span.description'] ?? t('(no name)')}`}
-                    <PageHeadingQuestionTooltip
-                      title={t(
-                        'If this name is too generic, read the docs to learn how to change it.'
-                      )}
-                      docsUrl="https://docs.sentry.io/product/ai-monitoring/"
-                    />
-                  </Layout.Title>
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        label: t('Dashboard'),
+                      },
+                      {
+                        label: t('AI Monitoring'),
+                      },
+                      {
+                        label: spanMetrics['span.description'] ?? t('(no name)'),
+                        to: normalizeUrl(
+                          `/organizations/${organization.slug}/ai-monitoring`
+                        ),
+                      },
+                    ]}
+                  />
+                  <Layout.Title>{t('AI Monitoring')}</Layout.Title>
                 </Layout.HeaderContent>
               </Layout.Header>
               <Layout.Body>
@@ -116,13 +124,6 @@ export default function AiMonitoringPage({params}: Props) {
                         </PageFilterBar>
                         <MetricsRibbon>
                           <MetricReadout
-                            title={t('Total Runs')}
-                            value={spanMetrics['count()']}
-                            unit={'count'}
-                            isLoading={areSpanMetricsLoading}
-                          />
-
-                          <MetricReadout
                             title={t('Total Tokens Used')}
                             value={tokenUsedMetric['ai_total_tokens_used()']}
                             unit={'count'}
@@ -130,18 +131,18 @@ export default function AiMonitoringPage({params}: Props) {
                           />
 
                           <MetricReadout
-                            title={t('Runs Per Minute')}
-                            value={spanMetrics?.[`${SpanFunction.SPM}()`]}
-                            unit={RateUnit.PER_MINUTE}
-                            isLoading={areSpanMetricsLoading}
-                          />
-
-                          <MetricReadout
-                            title={DataTitles.avg}
+                            title={t('Pipeline Duration')}
                             value={
                               spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]
                             }
                             unit={DurationUnit.MILLISECOND}
+                            isLoading={areSpanMetricsLoading}
+                          />
+
+                          <MetricReadout
+                            title={t('Pipeline Runs Per Minute')}
+                            value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                            unit={RateUnit.PER_MINUTE}
                             isLoading={areSpanMetricsLoading}
                           />
                         </MetricsRibbon>
