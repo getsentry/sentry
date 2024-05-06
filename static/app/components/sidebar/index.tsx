@@ -440,7 +440,6 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<IconMegaphone />}
         label={t('User Feedback')}
-        isBeta
         variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
