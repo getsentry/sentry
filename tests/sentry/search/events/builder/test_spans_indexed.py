@@ -93,6 +93,26 @@ def test_field_alias(params, field, expected):
         pytest.param(
             "span.duration:<=1s", Condition(span_duration, Op.LTE, 1000), id="span.duration:<=1s"
         ),
+        pytest.param(
+            "span.op:db",
+            Condition(Column("op"), Op.EQ, "db"),
+            id="span.op:db",
+        ),
+        pytest.param(
+            "span.op:[db,http.client]",
+            Condition(Column("op"), Op.IN, ["db", "http.client"]),
+            id="span.op:[db,http.client]",
+        ),
+        pytest.param(
+            "span.status:ok",
+            Condition(Column("span_status"), Op.EQ, 0),
+            id="span.status:ok",
+        ),
+        pytest.param(
+            "span.status:[invalid_argument,not_found]",
+            Condition(Column("span_status"), Op.IN, [3, 5]),
+            id="span.status:[invalid_argument,not_found]",
+        ),
     ],
 )
 @django_db_all
