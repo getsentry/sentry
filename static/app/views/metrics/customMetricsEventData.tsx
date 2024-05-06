@@ -319,14 +319,6 @@ function DeviationRenderer({
   const parsedMRI = parseMRI(mri);
   const type = parsedMRI?.type ?? 'c';
 
-  if (!totalAvg) {
-    return (
-      <ValueCell>
-        <LoadingPanel height="20px" />
-      </ValueCell>
-    );
-  }
-
   if (
     !defined(totalAvg) ||
     !defined(itemAvg) ||
