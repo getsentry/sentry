@@ -145,14 +145,7 @@ def bulk_get_groups_from_fingerprints(
         (project_id, fingerprint[0]) for project_id, fingerprint in project_fingerprint_pairs
     }
     for project_id, fingerprint in fingerprints_set - found_fingerprints:
-        metrics.incr(
-            "occurrence_ingest.grouphash.not_found",
-            sample_rate=1.0,
-            tags={
-                "project_id": project_id,
-                "fingerprint": fingerprint,
-            },
-        )
+        metrics.incr("occurrence_ingest.grouphash.not_found")
 
     return result
 

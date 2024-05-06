@@ -357,14 +357,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             status_change=bad_status_change_resolve,
         )
         group.refresh_from_db()
-        mock_metrics_incr.assert_any_call(
-            "occurrence_ingest.grouphash.not_found",
-            sample_rate=1.0,
-            tags={
-                "project_id": group.project_id,
-                "fingerprint": wrong_fingerprint["fingerprint"][0],
-            },
-        )
+        mock_metrics_incr.assert_any_call("occurrence_ingest.grouphash.not_found")
         assert group.status == initial_status
         assert group.substatus == initial_substatus
 
