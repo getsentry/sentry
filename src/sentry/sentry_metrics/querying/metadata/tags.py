@@ -1,9 +1,19 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics_layer.query import fetch_metric_tag_keys, fetch_metric_tag_values
+
+
+@dataclass
+class TagValue:
+    key: str
+    value: str
+
+    def __hash__(self):
+        return hash((self.key, self.value))
 
 
 def get_tag_keys(
@@ -35,15 +45,15 @@ def get_tag_values(
     use_case_ids: Sequence[UseCaseID],
     mri: str,
     tag_key: str,
-) -> list[str]:
+) -> list[TagValue]:
     """
-    Get all available tag values for a given MRI and tag key from metrics.
+    Get all available tag values for an MRI and tag key from metrics.
     """
-    all_tag_values = []
+    tag_values: set[TagValue] = set()
     for project in projects:
         for use_case_id in use_case_ids:
-            all_tag_values.extend(
+            tag_values = tag_values.union(
                 fetch_metric_tag_values(organization.id, project.id, use_case_id, mri, tag_key)
             )
 
-    return all_tag_values
+    return list(tag_values)
