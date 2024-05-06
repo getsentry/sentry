@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
 from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
 from sentry.models.environment import Environment
 from sentry.models.project import Project
@@ -67,7 +67,7 @@ def create_alert(
         threshold_period=1,
         organization=project.organization,
     )
-    alert_rule.projects.set(project)
+    AlertRuleProjects.objects.create(alert_rule=alert_rule, project=project)
 
     return alert_rule
 
