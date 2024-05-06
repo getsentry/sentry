@@ -11,7 +11,7 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
 )
 from sentry.api.serializers.base import serialize
 from sentry.models.group import Group
-from sentry.seer.utils import SimilarIssuesEmbeddingsData, SimilarIssuesEmbeddingsResponse
+from sentry.seer.utils import RawSeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -652,13 +652,13 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     def test_get_formatted_results(self):
         new_group = self.create_group(project=self.project)
-        response_1: SimilarIssuesEmbeddingsData = {
+        response_1: RawSeerSimilarIssueData = {
             "message_distance": 0.05,
             "parent_group_id": self.similar_group.id,
             "should_group": True,
             "stacktrace_distance": 0.01,
         }
-        response_2: SimilarIssuesEmbeddingsData = {
+        response_2: RawSeerSimilarIssueData = {
             "message_distance": 0.49,
             "parent_group_id": new_group.id,
             "should_group": False,
