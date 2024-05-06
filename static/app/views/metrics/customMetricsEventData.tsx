@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import type {
   MetricsSummary,
