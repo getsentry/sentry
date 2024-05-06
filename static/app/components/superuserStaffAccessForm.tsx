@@ -81,13 +81,12 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   handleSubmit = async data => {
     const {api} = this.props;
     const {superuserAccessCategory, superuserReason} = this.state;
-    const authenticators = this.authenticators;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
     const suReason = superuserReason || data.superuserReason;
 
-    if (!authenticators.length && !disableU2FForSUForm) {
+    if (!this.authenticators.length && !disableU2FForSUForm) {
       this.handleError(ErrorCodes.NO_AUTHENTICATOR);
       return;
     }
@@ -195,7 +194,6 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
 
   render() {
     const {error, errorType, showAccessForms, isLoading} = this.state;
-    const authenticators = this.authenticators;
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
       this.handleLogout();
       return null;
@@ -214,7 +212,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
                 </StyledAlert>
               )}
               <U2fContainer
-                authenticators={authenticators}
+                authenticators={this.authenticators}
                 displayMode="sudo"
                 onTap={this.handleU2fTap}
               />
@@ -242,7 +240,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
             {showAccessForms && <Hook name="component:superuser-access-category" />}
             {!showAccessForms && (
               <U2fContainer
-                authenticators={authenticators}
+                authenticators={this.authenticators}
                 displayMode="sudo"
                 onTap={this.handleU2fTap}
               />
