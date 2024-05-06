@@ -10,8 +10,8 @@ import pytest
 from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 
-from sentry.api.endpoints.event_grouping_info import get_grouping_info
 from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
+from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -51,7 +51,7 @@ EXCEPTION = {
     ]
 }
 EXCEPTION_STACKTRACE_STRING = (
-    'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero'
+    'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero'
 )
 
 
@@ -225,7 +225,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", line function_{i}'
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(10)
         ]
         assert bulk_event_ids == expected_event_ids
@@ -303,7 +303,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", line function_{i}'
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
         assert bulk_event_ids == {event.event_id for event in events}
@@ -340,7 +340,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", line function_{i}'
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
         assert bulk_event_ids == {event.event_id for event in events}
@@ -376,7 +376,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", line function_{i}'
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
         assert bulk_event_ids == {event.event_id for event in events}
@@ -403,7 +403,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", line function_{i}'
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(10)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
@@ -421,9 +421,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         events_missing_two = self.bulk_events[:-2]
         group_data, stacktrace_strings = [], []
         for event in events_missing_two:
-            grouping_info = get_grouping_info(
-                None, project=self.project, event_id=event.event_id, event=event
-            )
+            grouping_info = get_grouping_info(None, project=self.project, event=event)
             stacktrace_string = get_stacktrace_string(grouping_info)
             group_data.append(
                 CreateGroupingRecordData(
@@ -452,7 +450,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", line function_{i}'
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(10)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
@@ -471,9 +469,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         events_missing = self.bulk_events[:-1]
         group_data, stacktrace_strings = [], []
         for event in events_missing:
-            grouping_info = get_grouping_info(
-                None, project=self.project, event_id=event.event_id, event=event
-            )
+            grouping_info = get_grouping_info(None, project=self.project, event=event)
             stacktrace_string = get_stacktrace_string(grouping_info)
             group_data.append(
                 CreateGroupingRecordData(
@@ -506,7 +502,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", line function_{i}'
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(9)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
@@ -548,7 +544,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", line function_{i}'
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(9)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data

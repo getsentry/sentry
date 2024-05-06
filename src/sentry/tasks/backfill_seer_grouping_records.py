@@ -247,9 +247,7 @@ def lookup_group_data_stacktrace_bulk(
                 event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
                 event.data = data
                 if event and event.data and event.data.get("exception") and hashes.get(group_id):
-                    grouping_info = get_grouping_info(
-                        None, project=project, event_id=event.event_id, event=event
-                    )
+                    grouping_info = get_grouping_info(None, project=project, event=event)
                     stacktrace_string = get_stacktrace_string(grouping_info)
                     if stacktrace_string == "":
                         invalid_event_ids.add(event_id)
@@ -309,9 +307,7 @@ def lookup_group_data_stacktrace_single(
 
     if event and event.data and event.data.get("exception"):
         with sentry_sdk.start_transaction(op="embeddings_grouping.get_latest_event"):
-            grouping_info = get_grouping_info(
-                None, project=project, event_id=event.event_id, event=event
-            )
+            grouping_info = get_grouping_info(None, project=project, event=event)
         stacktrace_string = get_stacktrace_string(grouping_info)
         group_data = (
             CreateGroupingRecordData(hash=hash, project_id=project_id, message=message)
