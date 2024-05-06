@@ -1,4 +1,5 @@
 import React from 'react';
+import keyBy from 'lodash/keyBy';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -10,6 +11,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -31,7 +33,7 @@ import {
 } from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useMetrics';
+import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
 import {SpanFunction} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -90,6 +92,28 @@ export function CacheLandingPage() {
     referrer: Referrer.LANDING_CACHE_TRANSACTION_LIST,
   });
 
+  const {
+    data: transactionDurationData,
+    error: transactionDurationError,
+    meta: transactionDurationMeta,
+    isLoading: isTransactionDurationLoading,
+  } = useMetrics({
+    search: new MutableSearch(
+      `transaction:[${transactionsList.map(({transaction}) => transaction).join(',')}]`
+    ),
+    fields: [`avg(transaction.duration)`],
+    enabled: !isTransactionsListLoading && transactionsList.length > 0,
+  });
+
+  const transactionDurationsMap = keyBy(transactionDurationData, 'transaction');
+
+  const transactionsListWithDuration =
+    transactionsList?.map(transaction => ({
+      ...transaction,
+      'transaction.duration':
+        transactionDurationsMap[transaction.transaction]?.['transaction.duration'],
+    })) || [];
+
   return (
     <React.Fragment>
       <Layout.Header>
@@ -145,11 +169,11 @@ export function CacheLandingPage() {
             </ModuleLayout.Half>
             <ModuleLayout.Full>
               <TransactionsTable
-                data={transactionsList}
-                isLoading={isTransactionsListLoading}
+                data={transactionsListWithDuration}
+                isLoading={isTransactionsListLoading || isTransactionDurationLoading}
                 sort={sort}
-                error={transactionsListError}
-                meta={transactionsListMeta}
+                error={transactionsListError || transactionDurationError}
+                meta={combineMeta(transactionsListMeta, transactionDurationMeta)}
                 pageLinks={transactionsListPageLinks}
               />
             </ModuleLayout.Full>
@@ -172,6 +196,25 @@ export function LandingPageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+const combineMeta = (
+  meta1?: EventsMetaType,
+  meta2?: EventsMetaType
+): EventsMetaType | undefined => {
+  if (!meta1 && !meta2) {
+    return undefined;
+  }
+  if (!meta1) {
+    return meta2;
+  }
+  if (!meta2) {
+    return meta1;
+  }
+  return {
+    fields: {...meta1.fields, ...meta2.fields},
+    units: {...meta1.units, ...meta2.units},
+  };
+};
 
 const DEFAULT_SORT = {
   field: 'time_spent_percentage()' as const,
