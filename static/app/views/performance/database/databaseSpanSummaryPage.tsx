@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -45,9 +44,7 @@ type Query = {
   aggregate?: string;
 };
 
-type Props = {
-  location: Location<Query>;
-} & RouteComponentProps<Query, {groupId: string}>;
+type Props = RouteComponentProps<Query, {groupId: string}>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
   const organization = useOrganization();
