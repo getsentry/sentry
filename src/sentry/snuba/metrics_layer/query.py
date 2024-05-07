@@ -652,8 +652,8 @@ def fetch_metric_tag_values(
     entity_key = {
         "c": EntityKey.GenericMetricCountersMetaTagValues,
         "d": EntityKey.GenericMetricsDistributionsMetaTagValues,
-        "g": EntityKey.GenericMetricsSetsMetaTagValues,
-        "s": EntityKey.GenericMetricsGaugesMetaTagValues,
+        "g": EntityKey.GenericMetricsGaugesMetaTagValues,
+        "s": EntityKey.GenericMetricsSetsMetaTagValues,
     }[parsed_mri.entity]
 
     resolved = resolve_many_weak(use_case_id, org_id, [mri, tag_key])
