@@ -662,12 +662,14 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         similar_issue_data_1 = SeerSimilarIssueData(
             message_distance=0.05,
             parent_group_id=NonNone(self.similar_event.group_id),
+            parent_group_hash=NonNone(self.similar_event.get_primary_hash()),
             should_group=True,
             stacktrace_distance=0.01,
         )
         similar_issue_data_2 = SeerSimilarIssueData(
             message_distance=0.49,
             parent_group_id=NonNone(event_from_second_similar_group.group_id),
+            parent_group_hash=NonNone(event_from_second_similar_group.get_primary_hash()),
             should_group=False,
             stacktrace_distance=0.23,
         )
@@ -718,6 +720,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         expected_seer_request_params = {
             "group_id": self.group.id,
+            "group_hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
@@ -764,6 +767,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         expected_seer_request_params = {
             "group_id": self.group.id,
+            "group_hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
@@ -812,6 +816,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         expected_seer_request_params = {
             "group_id": self.group.id,
+            "group_hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
@@ -843,18 +848,21 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 {
                     "message_distance": 0.05,
                     "parent_group_id": NonNone(self.similar_event.group_id),
+                    "parent_group_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
                     "message_distance": 0.05,
                     "parent_group_id": NonNone(over_threshold_group_event.group_id),
+                    "parent_group_hash": NonNone(over_threshold_group_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
                     "message_distance": 0.05,
                     "parent_group_id": NonNone(under_threshold_group_event.group_id),
+                    "parent_group_hash": NonNone(under_threshold_group_event.get_primary_hash()),
                     "should_group": False,
                     "stacktrace_distance": 0.05,  # Under threshold
                 },
@@ -883,6 +891,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             organization_id=self.org.id,
             project_id=self.project.id,
             group_id=self.group.id,
+            group_hash=NonNone(self.event.get_primary_hash()),
             count_over_threshold=2,
             user_id=self.user.id,
         )
@@ -898,6 +907,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 {
                     "message_distance": 0.05,
                     "parent_group_id": NonNone(self.similar_event.group_id),
+                    "parent_group_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -917,6 +927,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             extra={
                 "request_params": {
                     "group_id": NonNone(self.event.group_id),
+                    "group_hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
@@ -947,12 +958,14 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 {
                     "message_distance": 0.05,
                     "parent_group_id": NonNone(self.similar_event.group_id),
+                    "parent_group_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
                 {
                     "message_distance": 0.05,
                     "parent_group_id": 1121201212312012,  # too high to be real
+                    "parent_group_hash": "not a real hash",
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -966,6 +979,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             extra={
                 "request_params": {
                     "group_id": NonNone(self.event.group_id),
+                    "group_hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
@@ -973,6 +987,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "raw_similar_issue_data": {
                     "message_distance": 0.05,
                     "parent_group_id": 1121201212312012,
+                    "parent_group_hash": "not a real hash",
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -995,6 +1010,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             organization_id=self.org.id,
             project_id=self.project.id,
             group_id=self.group.id,
+            group_hash=NonNone(self.event.get_primary_hash()),
             count_over_threshold=0,
             user_id=self.user.id,
         )
@@ -1063,6 +1079,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 {
                     "message_distance": 0.05,
                     "parent_group_id": NonNone(self.similar_event.group_id),
+                    "parent_group_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 }
@@ -1083,6 +1100,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "group_hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
@@ -1106,6 +1124,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "group_hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
@@ -1130,6 +1149,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "group_hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,

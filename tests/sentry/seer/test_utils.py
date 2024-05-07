@@ -80,6 +80,7 @@ def test_simple_similar_issues_embeddings_only_group_id_returned(
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": NonNone(event.group_id),
+        "group_hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -106,6 +107,7 @@ def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, 
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": NonNone(event.group_id),
+        "group_hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -142,6 +144,7 @@ def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, defau
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": NonNone(event.group_id),
+        "group_hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -160,6 +163,7 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": NonNone(event.group_id),
+        "group_hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
