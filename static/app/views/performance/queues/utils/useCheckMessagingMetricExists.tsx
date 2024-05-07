@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 export function useCheckMessagingMetricExists() {
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
