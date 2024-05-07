@@ -463,36 +463,34 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           </Wrapper>
         )}
       </SearchBarContainer>
-      <GridContainer>
-        {datatype === Datatype.PAGELOADS && (
-          <GridEditable
-            isLoading={isLoading}
-            columnOrder={PAGELOADS_COLUMN_ORDER}
-            columnSortBy={[]}
-            data={tableData}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-            minimumColWidth={70}
-          />
-        )}
-        {datatype === Datatype.INTERACTIONS && (
-          <GridEditable
-            isLoading={isInteractionsLoading}
-            columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
-            columnSortBy={[]}
-            data={interactionsTableData}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-            minimumColWidth={70}
-          />
-        )}
-      </GridContainer>
+      {datatype === Datatype.PAGELOADS && (
+        <GridEditable
+          isLoading={isLoading}
+          columnOrder={PAGELOADS_COLUMN_ORDER}
+          columnSortBy={[]}
+          data={tableData}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
+          location={location}
+          minimumColWidth={70}
+        />
+      )}
+      {datatype === Datatype.INTERACTIONS && (
+        <GridEditable
+          isLoading={isInteractionsLoading}
+          columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
+          columnSortBy={[]}
+          data={interactionsTableData}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
+          location={location}
+          minimumColWidth={70}
+        />
+      )}
     </span>
   );
 }
@@ -520,28 +518,6 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
   top: ${space(0.25)};
   position: relative;
   padding-right: ${space(1)};
-`;
-
-// Not pretty but we need to override gridEditable styles since the original
-// styles have too much padding for small spaces
-const GridContainer = styled('div')`
-  margin-bottom: ${space(1)};
-  th {
-    padding: 0 ${space(1)};
-  }
-  th:first-child {
-    padding-left: ${space(2)};
-  }
-  th:last-child {
-    padding-right: ${space(2)};
-  }
-  td {
-    padding: ${space(1)};
-  }
-  td:first-child {
-    padding-right: ${space(1)};
-    padding-left: ${space(2)};
-  }
 `;
 
 const NoValue = styled('span')`

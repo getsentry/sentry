@@ -14,21 +14,21 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
-  MetricsResponse,
-  | 'avg_if(span.self_time,span.op,queue.task.celery)'
-  | 'count_op(queue.submit.celery)'
-  | 'count_op(queue.task.celery)'
+  SpanMetricsResponse,
+  | 'avg_if(span.self_time,span.op,queue.process)'
+  | 'count_op(queue.publish)'
+  | 'count_op(queue.process)'
   | 'sum(span.self_time)'
   | 'transaction'
 >;
@@ -42,17 +42,17 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'span.op',
     name: t('Type'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'avg(messaging.message.receive.latency)',
     name: t('Avg Time in Queue'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.self_time,span.op,queue.task.celery)',
+    key: 'avg_if(span.self_time,span.op,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -62,12 +62,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.submit.celery)',
+    key: 'count_op(queue.publish)',
     name: t('Published'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.task.celery)',
+    key: 'count_op(queue.process)',
     name: t('Processed'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -142,6 +142,11 @@ function renderBodyCell(
 
   if (!meta?.fields) {
     return row[column.key];
+  }
+
+  if (key.startsWith('avg')) {
+    const renderer = FIELD_FORMATTERS.duration.renderFunc;
+    return renderer(key, row);
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);

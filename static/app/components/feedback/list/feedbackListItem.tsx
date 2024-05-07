@@ -13,7 +13,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChat, IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
+import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -55,6 +55,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
     const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
+    const hasAttachments = feedbackItem.hasAttachments;
     const hasComments = feedbackItem.numComments > 0;
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
@@ -146,6 +147,12 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                 {hasReplayId && (
                   <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
                     <IconPlay size="xs" />
+                  </Tooltip>
+                )}
+
+                {hasAttachments && (
+                  <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
+                    <IconImage size="xs" />
                   </Tooltip>
                 )}
 

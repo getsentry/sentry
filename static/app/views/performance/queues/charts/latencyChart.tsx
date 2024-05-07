@@ -34,7 +34,7 @@ export function LatencyChart({error}: Props) {
           [
             {
               seriesName: t('Average Processing Latency'),
-              data: data['avg_if(span.self_time,span.op,queue.task.celery)'].data,
+              data: data['avg_if(span.self_time,span.op,queue.process)'].data,
             },
           ] ?? []
         }

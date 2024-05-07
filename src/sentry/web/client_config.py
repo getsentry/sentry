@@ -43,7 +43,12 @@ from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import is_self_hosted, should_show_beacon_consent_prompt
-from sentry.utils.support import get_support_mail
+
+
+def _get_support_mail() -> str | None:
+    """Returns the most appropriate support email address"""
+
+    return options.get("system.support-email") or options.get("system.admin-email") or None
 
 
 def _get_version_info():
@@ -397,7 +402,7 @@ class _ClientConfig:
             "initialTrace": self.tracing_data,
             "customerDomain": self.customer_domain,
             "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
-            "supportEmail": get_support_mail(),
+            "supportEmail": _get_support_mail(),
             "urlPrefix": options.get("system.url-prefix"),
             "version": _get_version_info(),
             "features": list(self.enabled_features),

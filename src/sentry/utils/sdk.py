@@ -226,12 +226,22 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     ):
         return None
 
+    # This code is added only for debugging purposes, as such, it should be removed once the investigation is done.
+    if event.get("transaction") in {
+        "sentry.dynamic_sampling.boost_low_volume_projects_of_org",
+        "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    }:
+        logger.info("transaction_logged", extra=event)
+
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
-    event["measurements"]["num_of_spans"] = {"value": num_of_spans}
+    event["measurements"]["num_of_spans"] = {
+        "value": num_of_spans,
+        "unit": None,
+    }
     return event
 
 

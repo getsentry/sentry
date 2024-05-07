@@ -72,6 +72,9 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanIndexedField.CACHE_ITEM_SIZE]: {
     outputType: 'size',
   },
+  [SpanMetricsField.CACHE_ITEM_SIZE]: {
+    outputType: 'size',
+  },
 };
 
 export enum ChartType {
