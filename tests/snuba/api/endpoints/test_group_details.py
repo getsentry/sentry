@@ -318,3 +318,70 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert int(response.data["id"]) == event.group.id
         assert response.data["issueType"] == "error"
         assert response.data["issueCategory"] == "error"
+
+    def test_resolve_in_next_release(self):
+        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release.add_project(self.project)
+
+        group_issue = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        group_project = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+
+        url_issue = f"/api/0/issues/{group_issue.id}/"
+        url_issue_2 = f"/api/0/issues/{group_project.id}/"
+        url_project = f"/api/0/projects/{group_project.organization.slug}/{group_project.project.slug}/issues/?id={group_project.id}"
+
+        assert group_issue.id != group_project.id
+
+        issue_get_response = self.client.get(url_issue, format="json")
+        assert issue_get_response.status_code == 200
+        assert issue_get_response.data["status"] == "unresolved"
+        assert issue_get_response.data["statusDetails"] == {}
+
+        project_get_response = self.client.get(url_issue_2, format="json")
+        assert project_get_response.status_code == 200
+        assert project_get_response.data["status"] == "unresolved"
+        assert project_get_response.data["statusDetails"] == {}
+
+        issue_response = self.client.put(
+            url_issue,
+            data={
+                "status": "resolved",
+                "statusDetails": {"inNextRelease": True},
+                "substatus": None,
+            },
+            format="json",
+        )
+
+        project_response = self.client.put(
+            url_project,
+            data={
+                "status": "resolved",
+                "statusDetails": {"inNextRelease": True},
+                "substatus": None,
+            },
+            format="json",
+        )
+
+        assert issue_response.status_code == 200
+        assert issue_response.data["status"] == "resolved"
+        assert "inNextRelease" in issue_response.data["statusDetails"]
+        assert issue_response.data["statusDetails"]["inNextRelease"] is True
+        assert issue_response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        assert project_response.status_code == 200
+        assert project_response.data["status"] == "resolved"
+        assert "inNextRelease" in project_response.data["statusDetails"]
+        assert project_response.data["statusDetails"]["inNextRelease"] is True
+        assert project_response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        issue_get_response = self.client.get(url_issue, format="json")
+        assert issue_get_response.status_code == 200
+        assert issue_get_response.data["status"] == "resolved"
+        assert issue_get_response.data["statusDetails"]["inNextRelease"] is True
+
+        project_get_response = self.client.get(url_issue_2, format="json")
+        assert project_get_response.status_code == 200
+        assert project_get_response.data["status"] == "resolved"
+        assert project_get_response.data["statusDetails"]["inNextRelease"] is True
