@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+import math
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, Union, cast
@@ -34,7 +35,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
     string_to_use_case_id,
 )
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
@@ -539,7 +540,7 @@ def fetch_metric_mris(
     Fetches all the metric MRIs for a set of projects and use case. This will reverse
     resolve all the metric IDs into MRIs.
     """
-    return _query_meta_table(org_id, project_ids, use_case_id, app_id=app_id)
+    return _query_meta_table(org_id, project_ids, [use_case_id], app_id)[use_case_id]
 
 
 def fetch_metric_tag_keys(
@@ -549,24 +550,26 @@ def fetch_metric_tag_keys(
     Fetches the tag keys for a given metric MRI. This will reverse
     resolve all the tag keys into strings.
     """
-    return _query_meta_table(org_id, project_ids, use_case_id, mri, app_id)
+    return _query_meta_table(org_id, project_ids, [use_case_id], mri, app_id)[use_case_id]
 
 
 def _query_meta_table(
     org_id: int,
     project_ids: list[int],
-    use_case_id: UseCaseID,
+    use_case_ids: Sequence[UseCaseID],
     mri: str | None = None,
     app_id: str = "",
-) -> dict[int, list[str]]:
+) -> dict[UseCaseID, dict[int, list[str]]]:
     """
     Helper function for querying the meta table. This will query across all four metric types, and resolve all the resulting
     values. If an MRI is provided, it is assumed that this function should find unique tag keys for that MRI.
     """
+    if len(use_case_ids) == 0:
+        raise InvalidParams("You must supply at least one use case id")
 
     if mri:
         column_name = "tag_key"
-        metric_id = resolve_weak(use_case_id, org_id, mri)
+        metric_id = resolve_weak(use_case_ids[0], org_id, mri)
         if metric_id == -1:
             raise InvalidParams(f"Unknown metric: {mri}")
         extra_condition = Condition(Column("metric_id"), Op.EQ, metric_id)
@@ -577,15 +580,14 @@ def _query_meta_table(
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("project_id"), Op.IN, project_ids),
-        Condition(Column("use_case_id"), Op.EQ, use_case_id.value),
         Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
         Condition(Column("timestamp"), Op.LT, datetime.now(UTC) + timedelta(days=1)),
     ]
     if extra_condition:
         conditions.append(extra_condition)
 
-    counters_query = (
-        Query(Entity("generic_metrics_counters_meta"))
+    base_query = (
+        Query(Entity("phantom_entity"))
         .set_select([Column("project_id"), Column(column_name)])
         .set_groupby([Column("project_id"), Column(column_name)])
         .set_where(conditions)
@@ -598,7 +600,7 @@ def _query_meta_table(
         .set_limit(1000)
     )
 
-    def build_request(query: Query) -> Request:
+    def build_request(query: Query, use_case_id: UseCaseID) -> Request:
         return Request(
             dataset="generic_metrics",
             app_id=use_case_id.value if app_id == "" else app_id,
@@ -610,24 +612,47 @@ def _query_meta_table(
             },
         )
 
-    requests = [build_request(counters_query)]
-    for mtype in ["sets", "gauges", "distributions"]:
-        new_query = counters_query.set_match(Entity(f"generic_metrics_{mtype}_meta"))
-        new_request = build_request(new_query)
-        requests.append(new_request)
+    entity_keys = (
+        EntityKey.GenericMetricsCountersMeta,
+        EntityKey.GenericMetricsSetsMeta,
+        EntityKey.GenericMetricsDistributionsMeta,
+        EntityKey.GenericMetricsGaugesMeta,
+    )
+
+    requests = []
+    for use_case_id in use_case_ids:
+        for entity_key in entity_keys:
+            new_query = base_query.set_match(Entity(entity_key.value)).set_where(
+                cast(list, base_query.where)
+                + [Condition(Column("use_case_id"), Op.EQ, use_case_id.value)]
+            )
+            new_query = new_query
+            new_request = build_request(new_query, use_case_id)
+            requests.append(new_request)
 
     results = bulk_snuba_queries(requests, f"generic_metrics_meta_{column_name}")
-    indexed_ids = []
-    for result in results:
-        indexed_ids.extend([row[column_name] for row in result["data"]])
 
-    resolved_ids = bulk_reverse_resolve(use_case_id, org_id, indexed_ids)
-    # Group by project ID
-    grouped_results: dict[int, list[str]] = {}
-    for result in results:
+    ids_to_index = {}
+    for index, result in enumerate(results):
+        use_case_id = use_case_ids[math.floor(index / len(entity_keys))]
+        ids_to_index.setdefault(use_case_id, []).extend(
+            [row[column_name] for row in result["data"]]
+        )
+
+    # We assume that the ids are unique across all use case ids.
+    resolved_ids = {}
+    for use_case_id, ids in ids_to_index.items():
+        resolved_ids.update(bulk_reverse_resolve(use_case_id, org_id, ids))
+
+    # We group by project ID since this is a handy format from an API usage perspective.
+    grouped_results: dict[UseCaseID, dict[int, list[str]]] = {}
+    for index, result in enumerate(results):
+        use_case_id = use_case_ids[math.floor(index / len(entity_keys))]
         for row in result["data"]:
             mri = resolved_ids[row[column_name]]
-            grouped_results.setdefault(row["project_id"], list()).append(mri)
+            grouped_results.setdefault(use_case_id, {}).setdefault(row["project_id"], []).append(
+                mri
+            )
 
     return grouped_results
 

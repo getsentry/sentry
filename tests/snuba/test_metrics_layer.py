@@ -929,11 +929,11 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
         metric_mris = fetch_metric_mris(self.org_id, [self.project.id], UseCaseID.TRANSACTIONS)
         assert len(metric_mris) == 1
         assert len(metric_mris[self.project.id]) == 4
-        assert metric_mris[self.project.id] == [
+        assert sorted(metric_mris[self.project.id]) == [
             "c:transactions/count_per_root_project@none",
-            "s:transactions/user@none",
-            "g:transactions/test_gauge@none",
             "d:transactions/duration@millisecond",
+            "g:transactions/test_gauge@none",
+            "s:transactions/user@none",
         ]
 
     def test_fetch_metric_tag_keys(self) -> None:
