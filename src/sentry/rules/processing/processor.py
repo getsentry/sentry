@@ -345,9 +345,11 @@ class RuleProcessor:
             )
             return
 
-        if fast_conditions or slow_conditions:
+        if slow_conditions or fast_conditions:
             predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
-            result = predicate_func(predicate_iter)
+            result = False
+            if predicate_func:
+                result = predicate_func(predicate_iter)
 
             if condition_match == "any":
                 if not result and slow_conditions and process_slow_conditions_later:
