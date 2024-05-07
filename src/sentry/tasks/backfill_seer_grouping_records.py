@@ -59,107 +59,114 @@ class GroupStacktraceData(TypedDict):
     silo_mode=SiloMode.REGION,
 )
 @metrics.wraps(f"{BACKFILL_NAME}.task")
-def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) -> int:
-    num_groups_records_created = 0
+def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) -> None:
     if not features.has("projects:similarity-embeddings-grouping", project):
-        return num_groups_records_created
+        return
 
-    project_id = project.id
-    time_now = datetime.now()
-    events_entity = Entity("events", alias="events")
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+
     for group_id_message_data_batch in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
-                project_id=project_id, id__gt=last_processed_id, type=ErrorGroupType.type_id
+                project_id=project.id, id__gt=last_processed_id, type=ErrorGroupType.type_id
             ).values_list("id", "message", "data"),
             result_value_getter=lambda item: item[0],
         ),
         ITERATOR_CHUNK,
     ):
-        group_id_message_batch = {
-            group_id: message
-            for (group_id, message, data) in group_id_message_data_batch
-            if not get_path(data, "metadata", "embeddings_info", "nn_model_version")
-        }
-        group_id_batch = list(group_id_message_batch.keys())
-
-        query = Query(
-            match=events_entity,
-            select=[
-                Column("group_id"),
-                Function("max", [Column("event_id")], "event_id"),
-            ],
-            groupby=[Column("group_id")],
-            where=[
-                Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("group_id"), Op.IN, group_id_batch),
-                Condition(
-                    Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
-                ),
-                Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
-            ],
-            orderby=[OrderBy(Column("group_id"), Direction.ASC)],
+        backfill_chunked_seer_grouping_records.apply_async(
+            args=[group_id_message_data_batch, project.id],
+            countdown=ITERATOR_CHUNK * SEER_BACKFILL_DELAY_PER_RECORD,
         )
 
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            query=query,
-            tenant_ids={
-                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                "cross_org_query": 1,
-            },
+
+@instrumented_task(
+    name="sentry.tasks.backfill_chunked_seer_grouping_records",
+    queue="default",
+    max_retries=0,
+    silo_mode=SiloMode.REGION,
+)
+def backfill_chunked_seer_grouping_records(group_id_message_data_batch, project_id: int) -> int:
+    num_groups_records_created = 0
+    group_id_message_batch = {
+        group_id: message
+        for (group_id, message, data) in group_id_message_data_batch
+        if not get_path(data, "metadata", "embeddings_info", "nn_model_version")
+    }
+    project = Project.objects.get(id=project_id)
+    group_id_batch = list(group_id_message_batch.keys())
+    time_now = datetime.now()
+    events_entity = Entity("events", alias="events")
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    query = Query(
+        match=events_entity,
+        select=[
+            Column("group_id"),
+            Function("max", [Column("event_id")], "event_id"),
+        ],
+        groupby=[Column("group_id")],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("group_id"), Op.IN, group_id_batch),
+            Condition(
+                Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
+            ),
+            Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
+        ],
+        orderby=[OrderBy(Column("group_id"), Direction.ASC)],
+    )
+
+    request = Request(
+        dataset=Dataset.Events.value,
+        app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+            "cross_org_query": 1,
+        },
+    )
+
+    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+        result = bulk_snuba_queries(
+            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
 
-        with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-            result = bulk_snuba_queries(
-                [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
-            )
+    if result and result[0].get("data"):
+        rows: list[GroupEventRow] = result[0]["data"]
+        group_hashes = GroupHash.objects.filter(
+            project_id=project.id, group_id__in=group_id_batch
+        ).distinct("group_id")
+        group_hashes_dict = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
+        data = lookup_group_data_stacktrace_bulk_with_fallback(
+            project, rows, group_id_message_batch, group_hashes_dict
+        )
 
-        if result and result[0].get("data"):
-            rows: list[GroupEventRow] = result[0]["data"]
-            group_hashes = GroupHash.objects.filter(
-                project_id=project_id, group_id__in=group_id_batch
-            ).distinct("group_id")
-            group_hashes_dict = {
-                group_hash.group_id: group_hash.hash for group_hash in group_hashes
-            }
-            data = lookup_group_data_stacktrace_bulk_with_fallback(
-                project, rows, group_id_message_batch, group_hashes_dict
+        response = post_bulk_grouping_records(
+            CreateGroupingRecordsRequest(
+                group_id_list=group_id_batch,
+                data=data["data"],
+                stacktrace_list=data["stacktrace_list"],
             )
-            remove_grouping_record_table_init = features.has(
-                "projects:similarity-embeddings-remove-seer-grouping-record-table-init", project
-            )
-            response = post_bulk_grouping_records(
-                CreateGroupingRecordsRequest(
-                    group_id_list=group_id_batch,
-                    data=data["data"],
-                    stacktrace_list=data["stacktrace_list"],
-                    remove_grouping_record_table_init=remove_grouping_record_table_init,
-                )
-            )
-            if response["success"]:
-                redis_client.set(
-                    f"{LAST_PROCESSED_REDIS_KEY}", group_id_batch[-1], ex=60 * 60 * 24 * 7
-                )
-                groups = Group.objects.filter(project_id=project_id, id__in=group_id_batch)
-                for group in groups:
-                    if group.data.get("metadata"):
-                        group.data["metadata"]["embeddings_info"] = {
+        )
+        if response["success"]:
+            redis_client.set(f"{LAST_PROCESSED_REDIS_KEY}", group_id_batch[-1], ex=60 * 60 * 24 * 7)
+            groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch)
+            for group in groups:
+                if group.data.get("metadata"):
+                    group.data["metadata"]["embeddings_info"] = {
+                        "nn_model_version": 1,
+                        "group_hash": json.dumps([group_hashes_dict[group.id]]),
+                    }
+                else:
+                    group.data["metadata"] = {
+                        "embeddings_info": {
                             "nn_model_version": 1,
                             "group_hash": json.dumps([group_hashes_dict[group.id]]),
                         }
-                    else:
-                        group.data["metadata"] = {
-                            "embeddings_info": {
-                                "nn_model_version": 1,
-                                "group_hash": json.dumps([group_hashes_dict[group.id]]),
-                            }
-                        }
-                num_groups_records_created += Group.objects.bulk_update(groups, ["data"])
-            time.sleep(ITERATOR_CHUNK * SEER_BACKFILL_DELAY_PER_RECORD)
+                    }
+            num_groups_records_created += Group.objects.bulk_update(groups, ["data"])
 
     return num_groups_records_created
 

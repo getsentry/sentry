@@ -25,7 +25,6 @@ CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
         {"hash": "hash-2", "project_id": 1, "message": "message 2"},
     ],
     "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
-    "remove_grouping_record_table_init": False,
 }
 
 

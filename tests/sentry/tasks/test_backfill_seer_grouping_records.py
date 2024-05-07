@@ -12,6 +12,7 @@ from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 
 from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.grouping.grouping_info import get_grouping_info
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -19,6 +20,7 @@ from sentry.seer.utils import CreateGroupingRecordData
 from sentry.tasks.backfill_seer_grouping_records import (
     LAST_PROCESSED_REDIS_KEY,
     GroupStacktraceData,
+    backfill_chunked_seer_grouping_records,
     backfill_seer_grouping_records,
     lookup_event,
     lookup_group_data_stacktrace_bulk,
@@ -29,6 +31,8 @@ from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
 
 EXCEPTION = {
     "values": [
@@ -560,43 +564,58 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         )
 
     @with_feature("projects:similarity-embeddings-grouping")
-    @patch("time.sleep")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_success(
-        self, mock_post_bulk_grouping_records, mock_sleep
-    ):
+    def test_backfill_chunked_seer_grouping_records_success(self, mock_post_bulk_grouping_records):
         """
         Test that the redis key updates after a successfull call to seer create record endpoint
         and that the number of records created is equal to the number of groups
         """
         mock_post_bulk_grouping_records.return_value = {"success": True}
-        mock_sleep.return_value = None  # Do not sleep when running tests
-        num_groups_records_created = backfill_seer_grouping_records(self.project)
-        for group in Group.objects.filter(project_id=self.project.id):
-            assert group.data["metadata"].get("embeddings_info") == {
-                "nn_model_version": 1,
-                "group_hash": json.dumps([self.group_hashes[group.id]]),
-            }
-        assert num_groups_records_created == len(Group.objects.filter(project_id=self.project.id))
-        assert (
-            mock_post_bulk_grouping_records.call_args.args[0]["remove_grouping_record_table_init"]
-            is False
-        )
+        for group_id_message_data_batch in chunked(
+            RangeQuerySetWrapper(
+                Group.objects.filter(
+                    project_id=self.project.id, id__gt=0, type=ErrorGroupType.type_id
+                ).values_list("id", "message", "data"),
+                result_value_getter=lambda item: item[0],
+            ),
+            len(Group.objects.filter(project_id=self.project.id)),
+        ):
+            num_groups_records_created = backfill_chunked_seer_grouping_records(
+                group_id_message_data_batch, self.project.id
+            )
+            for group in Group.objects.filter(project_id=self.project.id):
+                assert group.data["metadata"].get("embeddings_info") == {
+                    "nn_model_version": 1,
+                    "group_hash": json.dumps([self.group_hashes[group.id]]),
+                }
+            assert num_groups_records_created == len(
+                Group.objects.filter(project_id=self.project.id)
+            )
 
-    @with_feature("projects:similarity-embeddings-grouping")
-    @patch("time.sleep")
-    def test_backfill_seer_grouping_records_failure(self, mock_sleep):
+    def test_backfill_chunked_seer_grouping_records_failure(self):
         """
         Test that the redis key does not update after a failed call to seer create record endpoint,
         and that the group metadata isn't updated on a failure.
         Test that the next call to the backfill_seer_grouping_records updates the redis key.
         """
-        mock_sleep.return_value = None  # Do not sleep when running tests
         with patch(
             "sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records"
         ) as mock_post_bulk_grouping_records:
             mock_post_bulk_grouping_records.return_value = {"success": False}
-            num_groups_records_created = backfill_seer_grouping_records(self.project)
+
+            for group_id_message_data_batch in chunked(
+                RangeQuerySetWrapper(
+                    Group.objects.filter(
+                        project_id=self.project.id, id__gt=0, type=ErrorGroupType.type_id
+                    ).values_list("id", "message", "data"),
+                    result_value_getter=lambda item: item[0],
+                ),
+                len(Group.objects.filter(project_id=self.project.id)),
+            ):
+                num_groups_records_created = backfill_chunked_seer_grouping_records(
+                    group_id_message_data_batch, self.project.id
+                )
+
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
 
@@ -609,7 +628,19 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             "sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records"
         ) as mock_post_bulk_grouping_records:
             mock_post_bulk_grouping_records.return_value = {"success": True}
-            num_groups_records_created = backfill_seer_grouping_records(self.project)
+
+            for group_id_message_data_batch in chunked(
+                RangeQuerySetWrapper(
+                    Group.objects.filter(
+                        project_id=self.project.id, id__gt=0, type=ErrorGroupType.type_id
+                    ).values_list("id", "message", "data"),
+                    result_value_getter=lambda item: item[0],
+                ),
+                len(Group.objects.filter(project_id=self.project.id)),
+            ):
+                num_groups_records_created = backfill_chunked_seer_grouping_records(
+                    group_id_message_data_batch, self.project.id
+                )
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
 
@@ -621,26 +652,13 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             }
         assert num_groups_records_created == len(Group.objects.filter(project_id=self.project.id))
 
-    def test_backfill_seer_grouping_records_no_feature(self):
-        """
-        Test that the function does not create records when there is no feature flag
-        """
-        project = self.create_project(organization=self.organization)
-        num_groups_records_created = backfill_seer_grouping_records(project)
-        assert num_groups_records_created == 0
-        for group in Group.objects.filter(project_id=self.project.id):
-            assert not group.data["metadata"].get("embeddings_info")
-
-    @with_feature("projects:similarity-embeddings-grouping")
-    @patch("time.sleep")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_filter_metadata(
-        self, mock_post_bulk_grouping_records, mock_sleep
+    def test_backfill_chunked_seer_grouping_records_filter_metadata(
+        self, mock_post_bulk_grouping_records
     ):
         """
         Test that the number of records created does not include the group that already has a record
         """
-        mock_sleep.return_value = None  # Do not sleep when running tests
         events = copy.deepcopy(self.bulk_events)
         events[-1].group.data["metadata"]["embeddings_info"] = {
             "nn_model_version": 1,
@@ -648,7 +666,19 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         }
         events[-1].group.save()
         mock_post_bulk_grouping_records.return_value = {"success": True}
-        num_groups_records_created = backfill_seer_grouping_records(self.project)
+
+        for group_id_message_data_batch in chunked(
+            RangeQuerySetWrapper(
+                Group.objects.filter(
+                    project_id=self.project.id, id__gt=0, type=ErrorGroupType.type_id
+                ).values_list("id", "message", "data"),
+                result_value_getter=lambda item: item[0],
+            ),
+            len(Group.objects.filter(project_id=self.project.id)),
+        ):
+            num_groups_records_created = backfill_chunked_seer_grouping_records(
+                group_id_message_data_batch, self.project.id
+            )
 
         for group in Group.objects.filter(project_id=self.project.id):
             assert group.data["metadata"].get("embeddings_info") == {
@@ -659,27 +689,24 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             num_groups_records_created == len(Group.objects.filter(project_id=self.project.id)) - 1
         )
 
-    @with_feature("projects:similarity-embeddings-grouping")
-    @with_feature("projects:similarity-embeddings-remove-seer-grouping-record-table-init")
-    @patch("time.sleep")
-    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_success_with_remove_table_feature(
-        self, mock_post_bulk_grouping_records, mock_sleep
-    ):
+    def test_backfill_seer_grouping_records_no_feature(self):
         """
-        Test that the redis key updates after a successfull call to seer create record endpoint
-        and that the number of records created is equal to the number of groups
+        Test that the function does not create records when there is no feature flag
         """
-        mock_post_bulk_grouping_records.return_value = {"success": True}
-        mock_sleep.return_value = None  # Do not sleep when running tests
-        num_groups_records_created = backfill_seer_grouping_records(self.project)
+        project = self.create_project(organization=self.organization)
+        backfill_seer_grouping_records(project)
+
         for group in Group.objects.filter(project_id=self.project.id):
-            assert group.data["metadata"].get("embeddings_info") == {
-                "nn_model_version": 1,
-                "group_hash": json.dumps([self.group_hashes[group.id]]),
-            }
-        assert num_groups_records_created == len(Group.objects.filter(project_id=self.project.id))
-        assert (
-            mock_post_bulk_grouping_records.call_args.args[0]["remove_grouping_record_table_init"]
-            is True
-        )
+            assert not group.data["metadata"].get("embeddings_info")
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    @patch(
+        "sentry.tasks.backfill_seer_grouping_records.backfill_chunked_seer_grouping_records.apply_async"
+    )
+    def test_backfill_seer_grouping_records(self, backfill_chunked_seer_grouping_records):
+        backfill_seer_grouping_records(self.project)
+        groups = Group.objects.filter(project_id=self.project.id)
+        assert backfill_chunked_seer_grouping_records.call_args[1]["args"][0] == [
+            (group.id, group.message, group.data) for group in groups
+        ]
+        assert backfill_chunked_seer_grouping_records.call_args[1]["args"][1] == self.project.id

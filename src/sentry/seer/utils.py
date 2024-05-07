@@ -115,7 +115,6 @@ class CreateGroupingRecordsRequest(TypedDict):
     group_id_list: list[int]
     data: list[CreateGroupingRecordData]
     stacktrace_list: list[str]
-    remove_grouping_record_table_init: bool
 
 
 class BulkCreateGroupingRecordsResponse(TypedDict):
