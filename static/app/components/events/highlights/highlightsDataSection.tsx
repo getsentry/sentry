@@ -69,7 +69,7 @@ export default function HighlightsDataSection({
   const viewAllButton = viewAllRef ? (
     <Button
       onClick={() => {
-        trackAnalytics('highlights_section.view_all_clicked', {organization});
+        trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
         viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
       }}
       size="xs"
@@ -131,7 +131,7 @@ export default function HighlightsDataSection({
   });
 
   function openEditHighlightsModal() {
-    trackAnalytics('highlights_section.edit_clicked', {organization});
+    trackAnalytics('highlights.issue_details.edit_clicked', {organization});
     openModal(
       deps => (
         <EditHighlightsModal

@@ -66,10 +66,10 @@ function EditPreviewHighlightSection({
     highlightContext,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, {alias, data}, i) => {
+    (rowList, {alias, data}) => {
       const meta = getContextMeta(event, alias);
-      const newRows = data.map((item, j) => (
-        <Fragment key={`edit-highlight-ctx-${i}-${j}`}>
+      const newRows = data.map(item => (
+        <Fragment key={`edit-highlight-ctx-${alias}-${item.key}`}>
           <EditButton
             aria-label={`Remove from highlights`}
             icon={<IconSubtract />}
@@ -92,8 +92,8 @@ function EditPreviewHighlightSection({
   );
 
   const highlightTagItems = getHighlightTagData({event, highlightTags});
-  const highlightTagRows = highlightTagItems.map((content, i) => (
-    <Fragment key={`edit-highlight-tag-${i}`}>
+  const highlightTagRows = highlightTagItems.map(content => (
+    <Fragment key={`edit-highlight-tag-${content.originalTag.key}`}>
       <EditButton
         aria-label={`Remove from highlights`}
         icon={<IconSubtract />}
@@ -154,7 +154,7 @@ function EditTagHighlightSection({
 }: EditTagHighlightSectionProps) {
   const [tagFilter, setTagFilter] = useState('');
   const tagData = event.tags
-    .filter(tag => tag?.key.includes(tagFilter))
+    .filter(tag => tag.key?.includes(tagFilter))
     .map(tag => tag.key);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
@@ -377,12 +377,12 @@ export default function EditHighlightsModal({
           highlightTags={highlightTags}
           highlightContext={highlightContext}
           onRemoveTag={tagKey => {
-            trackAnalytics('edit_highlights.remove_tag_key', {organization});
+            trackAnalytics('highlights.edit_modal.remove_tag', {organization});
             setHighlightTags(highlightTags.filter(tag => tag !== tagKey));
           }}
-          onRemoveContextKey={(contextType, contextKey) =>
+          onRemoveContextKey={(contextType, contextKey) => {
+            trackAnalytics('highlights.edit_modal.remove_context_key', {organization});
             setHighlightContext(() => {
-              trackAnalytics('edit_highlights.remove_context_key', {organization});
               const {[contextType]: highlightContextKeys, ...newHighlightContext} =
                 highlightContext;
               const newHighlightContextKeys = (highlightContextKeys ?? []).filter(
@@ -394,8 +394,8 @@ export default function EditHighlightsModal({
                     ...newHighlightContext,
                     [contextType]: newHighlightContextKeys,
                   };
-            })
-          }
+            });
+          }}
           project={project}
           data-test-id="highlights-preview-section"
         />
@@ -404,7 +404,7 @@ export default function EditHighlightsModal({
           columnCount={columnCount}
           highlightTags={highlightTags}
           onAddTag={tagKey => {
-            trackAnalytics('edit_highlights.add_tag_key', {organization});
+            trackAnalytics('highlights.edit_modal.add_tag', {organization});
             setHighlightTags([...highlightTags, tagKey]);
           }}
           data-test-id="highlights-tag-section"
@@ -414,7 +414,7 @@ export default function EditHighlightsModal({
           columnCount={columnCount}
           highlightContext={highlightContext}
           onAddContextKey={(contextType, contextKey) => {
-            trackAnalytics('edit_highlights.add_context_key', {organization});
+            trackAnalytics('highlights.edit_modal.add_context_key', {organization});
             setHighlightContext({
               ...highlightContext,
               [contextType]: [...(highlightContext[contextType] ?? []), contextKey],
@@ -431,7 +431,7 @@ export default function EditHighlightsModal({
         <ButtonBar gap={1}>
           <Button
             onClick={() => {
-              trackAnalytics('edit_highlights.cancel_clicked', {organization});
+              trackAnalytics('highlights.edit_modal.cancel_clicked', {organization});
               closeModal();
             }}
             size="sm"
@@ -441,7 +441,9 @@ export default function EditHighlightsModal({
           {highlightPreset && (
             <Button
               onClick={() => {
-                trackAnalytics('edit_highlights.use_default_clicked', {organization});
+                trackAnalytics('highlights.edit_modal.use_default_clicked', {
+                  organization,
+                });
                 setHighlightContext(highlightPreset.context);
                 setHighlightTags(highlightPreset.tags);
               }}
@@ -453,7 +455,7 @@ export default function EditHighlightsModal({
           <Button
             disabled={isLoading}
             onClick={() => {
-              trackAnalytics('edit_highlights.save_clicked', {organization});
+              trackAnalytics('highlights.edit_modal.save_clicked', {organization});
               saveHighlights({highlightContext, highlightTags});
             }}
             priority="primary"
