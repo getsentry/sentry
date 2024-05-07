@@ -29,7 +29,7 @@ from sentry.db.models import (
     Model,
     OptionManager,
     Value,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
@@ -39,6 +39,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
+from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -214,7 +215,7 @@ class ProjectManager(BaseManager["Project"]):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-@region_silo_only_model
+@region_silo_model
 class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
@@ -470,7 +471,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             rules_by_environment_id[environment_id].add(rule_id)
 
         environment_names = dict(
-            Environment.objects.filter(id__in=rules_by_environment_id).values_list("id", "name")
+            Environment.objects.filter(organization_id=old_org_id).values_list("id", "name")
         )
 
         for environment_id, rule_ids in rules_by_environment_id.items():
@@ -487,6 +488,14 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             if monitor.slug in new_monitors:
                 RegionScheduledDeletion.schedule(monitor, days=0)
             else:
+                for monitor_env_id, env_id in MonitorEnvironment.objects.filter(
+                    monitor_id=monitor.id, status=MonitorStatus.ACTIVE
+                ).values_list("id", "environment_id"):
+                    MonitorEnvironment.objects.filter(id=monitor_env_id).update(
+                        environment_id=Environment.get_or_create(
+                            self, name=environment_names.get(env_id, None)
+                        ).id
+                    )
                 monitor.update(organization_id=organization.id)
 
         # Remove alert owners not in new org
@@ -502,7 +511,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
                     organization_id=organization.id, id=rule.team_id
                 ).exists()
             if not is_member:
-                rule.update(team_id=None, user_id=None, owner=None)
+                rule.update(team_id=None, user_id=None)
         rules = Rule.objects.filter(
             Q(owner_team_id__isnull=False) | Q(owner_user_id__isnull=False), project=self
         )
@@ -515,7 +524,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
                     organization_id=organization.id, id=rule.owner_team_id
                 ).exists()
             if not is_member:
-                rule.update(owner=None, owner_user_id=None, owner_team_id=None)
+                rule.update(owner_user_id=None, owner_team_id=None)
 
         # [Rule, AlertRule(SnubaQuery->Environment)]
         # id -> name
@@ -577,12 +586,8 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         from sentry.models.rule import Rule
 
         ProjectTeam.objects.filter(project=self, team=team).delete()
-        AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(
-            owner=None, team_id=None
-        )
-        Rule.objects.filter(owner_team_id=team.id, project=self).update(
-            owner=None, owner_team_id=None
-        )
+        AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(team_id=None)
+        Rule.objects.filter(owner_team_id=team.id, project=self).update(owner_team_id=None)
 
     def get_security_token(self):
         lock = locks.get(self.get_lock_key(), duration=5, name="project_security_token")

@@ -6,13 +6,14 @@ import Input, {inputStyles} from 'sentry/components/input';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
-import {FormulaFormatter} from 'sentry/views/metrics/formulaParser/formatter';
+import {EquationFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {joinTokens, parseFormula} from 'sentry/views/metrics/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/metrics/formulaParser/types';
 
-interface Props extends Omit<React.ComponentProps<typeof Input>, 'onChange' | 'value'> {
+interface EquationInputProps
+  extends Omit<React.ComponentProps<typeof Input>, 'onChange' | 'value'> {
   availableVariables: Set<string>;
-  onChange: (formula: string) => void;
+  onChange: (equation: string) => void;
   value: string;
 }
 
@@ -28,8 +29,8 @@ function escapeVariables(tokens: TokenList): TokenList {
   });
 }
 
-function equalizeWhitespace(formula: TokenList): TokenList {
-  return formula.map(token => {
+function equalizeWhitespace(equation: TokenList): TokenList {
+  return equation.map(token => {
     // Ensure equal spacing
     if (token.type === TokenType.WHITESPACE) {
       return {...token, content: ' '};
@@ -37,12 +38,12 @@ function equalizeWhitespace(formula: TokenList): TokenList {
     return token;
   });
 }
-export function FormulaInput({
+export function EquationInput({
   availableVariables,
   value: valueProp,
   onChange,
   ...props
-}: Props) {
+}: EquationInputProps) {
   const [errors, setErrors] = useState<any>([]);
   const [showErrors, setIsValidationEnabled] = useState(false);
   const [value, setValue] = useState<string>(() => unescapeMetricsFormula(valueProp));
@@ -112,7 +113,7 @@ export function FormulaInput({
     };
   }, [value]);
 
-  // Parse and validate formula everytime the validation criteria changes
+  // Parse and validate equation everytime the validation criteria changes
   useEffect(() => {
     parseAndValidateFormula(value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,7 +149,7 @@ export function FormulaInput({
         }}
       />
       <RendererOverlay monospace>
-        <FormulaFormatter formula={value} errors={showErrors ? errors : []} />
+        <EquationFormatter equation={value} errors={showErrors ? errors : []} />
       </RendererOverlay>
     </Wrapper>
   );

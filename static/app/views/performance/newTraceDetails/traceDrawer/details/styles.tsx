@@ -1,22 +1,36 @@
-import {Fragment, type PropsWithChildren, useMemo} from 'react';
+import {
+  Children,
+  Fragment,
+  type PropsWithChildren,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
+import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {StructuredData} from 'sentry/components/structuredEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {KeyValueListDataItem} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
-import {formatBytesBase10} from 'sentry/utils';
-import {getDuration} from 'sentry/utils/formatters';
+import {defined, formatBytesBase10} from 'sentry/utils';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -126,63 +140,6 @@ const HeaderContainer = styled(Title)`
   z-index: 10;
   flex: 1 1 auto;
 `;
-
-interface EventDetailsLinkProps {
-  node: TraceTreeNode<TraceTree.NodeValue>;
-  organization: Organization;
-}
-
-function EventDetailsLink(props: EventDetailsLinkProps) {
-  const params = useMemo((): {
-    eventId: string | undefined;
-    projectSlug: string | undefined;
-  } => {
-    const eventId = props.node.metadata.event_id;
-    const projectSlug = props.node.metadata.project_slug;
-
-    if (eventId && projectSlug) {
-      return {eventId, projectSlug};
-    }
-
-    if (isSpanNode(props.node) || isAutogroupedNode(props.node)) {
-      const parent = props.node.parent_transaction;
-      if (parent?.metadata.event_id && parent?.metadata.project_slug) {
-        return {
-          eventId: parent.metadata.event_id,
-          projectSlug: parent.metadata.project_slug,
-        };
-      }
-    }
-
-    return {eventId: undefined, projectSlug: undefined};
-  }, [props.node]);
-
-  const locationDescriptor = useMemo(() => {
-    const query = {...qs.parse(location.search), legacy: 1};
-
-    return {
-      query: query,
-      pathname: `/performance/${params.projectSlug}:${params.eventId}/`,
-      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
-    };
-  }, [params.eventId, params.projectSlug, props.node]);
-
-  return (
-    <LinkButton
-      disabled={!params.eventId || !params.projectSlug}
-      title={
-        !params.eventId || !params.projectSlug
-          ? t('Event ID or Project Slug missing')
-          : undefined
-      }
-      size="xs"
-      to={locationDescriptor}
-      onClick={() => traceAnalytics.trackViewEventDetails(props.organization)}
-    >
-      {t('View Event Details')}
-    </LinkButton>
-  );
-}
 
 const DURATION_COMPARISON_STATUS_COLORS: {
   equal: {light: ColorOrAlias; normal: ColorOrAlias};
@@ -432,24 +389,11 @@ function NodeActions(props: {
       },
     };
 
-    const eventId = props.node.metadata.event_id;
-    const projectSlug = props.node.metadata.project_slug;
-    const query = {...qs.parse(location.search), legacy: 1};
-
-    const eventDetailsLink = {
-      query: query,
-      pathname: `/performance/${projectSlug}:${eventId}/`,
-      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
-    };
-
-    const viewEventDetails: MenuItemProps = {
-      key: 'view-event-details',
-      label: t('View Event Details'),
-      to: eventDetailsLink,
-      onAction: () => {
-        traceAnalytics.trackViewEventDetails(props.organization);
-      },
-    };
+    const eventId =
+      props.node.metadata.event_id ?? props.node.parent_transaction?.metadata.event_id;
+    const projectSlug =
+      props.node.metadata.project_slug ??
+      props.node.parent_transaction?.metadata.project_slug;
 
     const eventSize = props.eventSize;
     const jsonDetails: MenuItemProps = {
@@ -467,10 +411,10 @@ function NodeActions(props: {
     };
 
     if (isTransactionNode(props.node)) {
-      return [showInView, viewEventDetails, jsonDetails];
+      return [showInView, jsonDetails];
     }
     if (isSpanNode(props.node)) {
-      return [showInView, viewEventDetails];
+      return [showInView];
     }
     if (isMissingInstrumentationNode(props.node)) {
       return [showInView];
@@ -503,12 +447,6 @@ function NodeActions(props: {
         >
           {t('Show in view')}
         </Button>
-
-        {isTransactionNode(props.node) ||
-        isSpanNode(props.node) ||
-        isTraceErrorNode(props.node) ? (
-          <EventDetailsLink node={props.node} organization={props.organization} />
-        ) : null}
 
         {isTransactionNode(props.node) ? (
           <Button
@@ -570,6 +508,209 @@ const ActionsContainer = styled('div')`
   }
 `;
 
+interface SectionCardContentConfig {
+  disableErrors?: boolean;
+  includeAliasInSubject?: boolean;
+}
+
+type SectionCardKeyValue = Omit<KeyValueListDataItem, 'subject'> & {
+  subject: React.ReactNode;
+};
+
+export type SectionCardKeyValueList = SectionCardKeyValue[];
+
+interface SectionCardContentProps {
+  item: SectionCardKeyValue;
+  meta: Record<string, any>;
+  alias?: string;
+  config?: SectionCardContentConfig;
+}
+
+function SectionCardContent({
+  item,
+  alias,
+  meta,
+  config,
+  ...props
+}: SectionCardContentProps) {
+  const {key, subject, value, action = {}} = item;
+  if (key === 'type') {
+    return null;
+  }
+
+  const dataComponent = (
+    <StructuredData
+      value={value}
+      depth={0}
+      maxDefaultDepth={0}
+      meta={meta?.[key]}
+      withAnnotatedText
+      withOnlyFormattedText
+    />
+  );
+
+  const contextSubject = subject
+    ? config?.includeAliasInSubject && alias
+      ? `${startCase(alias)}: ${subject}`
+      : subject
+    : null;
+
+  return (
+    <ContentContainer {...props}>
+      {contextSubject ? <CardContentSubject>{contextSubject}</CardContentSubject> : null}
+      <CardContentValueWrapper hasSubject={!!contextSubject} className="ctx-row-value">
+        {defined(action?.link) ? (
+          <Link to={action.link}>{dataComponent}</Link>
+        ) : (
+          dataComponent
+        )}
+      </CardContentValueWrapper>
+    </ContentContainer>
+  );
+}
+
+function SectionCard({
+  items,
+  title,
+  disableTruncate,
+}: {
+  items: SectionCardKeyValueList;
+  title: React.ReactNode;
+  disableTruncate?: boolean;
+}) {
+  const [showingAll, setShowingAll] = useState(disableTruncate ?? false);
+  const renderText = showingAll ? t('Show less') : t('Show more') + '...';
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardContentTitle>{title}</CardContentTitle>
+      {items.slice(0, showingAll ? items.length : 5).map(item => (
+        <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
+      ))}
+      {items.length > 5 && !disableTruncate ? (
+        <TruncateActionWrapper>
+          <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
+        </TruncateActionWrapper>
+      ) : null}
+    </Card>
+  );
+}
+
+function SectionCardGroup({children}: {children: React.ReactNode}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useIssueDetailsColumnCount(containerRef);
+
+  const columns: React.ReactNode[] = [];
+  const cards = Children.toArray(children);
+
+  // Evenly distributing the cards into columns.
+  const columnSize = Math.ceil(cards.length / columnCount);
+  for (let i = 0; i < cards.length; i += columnSize) {
+    columns.push(<CardsColumn key={i}>{cards.slice(i, i + columnSize)}</CardsColumn>);
+  }
+
+  return (
+    <CardsWrapper columnCount={columnCount} ref={containerRef}>
+      {columns}
+    </CardsWrapper>
+  );
+}
+
+const CardsWrapper = styled('div')<{columnCount: number}>`
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
+  gap: 10px;
+`;
+
+const CardsColumn = styled('div')`
+  grid-column: span 1;
+`;
+
+function Description({
+  value,
+  linkTarget,
+  linkText,
+}: {
+  value: string;
+  linkTarget?: LocationDescriptor;
+  linkText?: string;
+}) {
+  return (
+    <DescriptionContainer>
+      <DescriptionText>
+        {value}
+        <StyledCopuToClipboardButton borderless size="zero" iconSize="xs" text={value} />
+      </DescriptionText>
+      {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
+    </DescriptionContainer>
+  );
+}
+
+const StyledCopuToClipboardButton = styled(CopyToClipboardButton)`
+  transform: translateY(2px);
+`;
+
+const DescriptionContainer = styled(FlexBox)`
+  justify-content: space-between;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
+const DescriptionText = styled('span')`
+  overflow-wrap: anywhere;
+`;
+
+const Card = styled(Panel)`
+  margin-bottom: 10px;
+  padding: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const CardContentTitle = styled('p')`
+  grid-column: 1 / -1;
+  padding: ${space(0.25)} ${space(0.75)};
+  margin: 0;
+  color: ${p => p.theme.headingColor};
+  font-weight: bold;
+`;
+
+const ContentContainer = styled('div')`
+  display: grid;
+  column-gap: ${space(1.5)};
+  grid-template-columns: minmax(100px, 150px) 1fr 30px;
+  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: 4px;
+  color: ${p => p.theme.subText};
+  border: 1px solid 'transparent';
+  background-color: ${p => p.theme.background};
+  &:nth-child(odd) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+`;
+
+export const CardContentSubject = styled('div')`
+  grid-column: span 1;
+  font-family: ${p => p.theme.text.familyMono};
+  word-wrap: break-word;
+`;
+
+const CardContentValueWrapper = styled(CardContentSubject)<{hasSubject: boolean}>`
+  color: ${p => p.theme.textColor};
+  grid-column: ${p => (p.hasSubject ? 'span 2' : '1 / -1')};
+`;
+
+const TruncateActionWrapper = styled('div')`
+  grid-column: 1 / -1;
+  margin: ${space(0.5)} 0;
+  display: flex;
+  justify-content: center;
+`;
+
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
@@ -582,7 +723,6 @@ const TraceDrawerComponents = {
   Table,
   IconTitleWrapper,
   IconBorder,
-  EventDetailsLink,
   TitleText,
   Duration,
   TableRow,
@@ -590,6 +730,9 @@ const TraceDrawerComponents = {
   TableRowButtonContainer,
   TableValueRow,
   IssuesLink,
+  SectionCard,
+  Description,
+  SectionCardGroup,
 };
 
 export {TraceDrawerComponents};

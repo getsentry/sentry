@@ -77,9 +77,9 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.actor import get_actor_for_user
 from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.silo.base import SiloMode
@@ -92,7 +92,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.utils import json
-from sentry.utils.actor import ActorTuple
 
 pytestmark = [pytest.mark.sentry_metrics]
 
@@ -493,7 +492,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 **kwargs,
             )
             assert alert_rule.name == name
-            assert alert_rule.owner is None
             assert alert_rule.user_id is None
             assert alert_rule.team_id is None
             assert alert_rule.status == AlertRuleStatus.PENDING.value
@@ -563,7 +561,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
-        assert alert_rule.owner is None
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
@@ -602,7 +599,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
-        assert alert_rule.owner is None
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
@@ -675,9 +671,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             AlertRuleThresholdType.ABOVE,
             1,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=RpcActor.from_identifier(self.user.id),
         )
-        assert alert_rule_1.owner.id == get_actor_for_user(self.user).id
         assert alert_rule_1.user_id == self.user.id
         assert alert_rule_1.team_id is None
         alert_rule_2 = create_alert_rule(
@@ -689,9 +684,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             AlertRuleThresholdType.ABOVE,
             1,
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=RpcActor.from_identifier(f"team:{self.team.id}"),
         )
-        assert alert_rule_2.owner.id == self.team.actor.id
         assert alert_rule_2.user_id is None
         assert alert_rule_2.team_id == self.team.id
 
@@ -869,9 +863,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_snapshot_alert_rule_with_only_owner(self):
         # Force the alert rule into an invalid state
-        AlertRule.objects.filter(id=self.alert_rule.id).update(
-            user_id=None, team_id=None, owner=get_actor_for_user(self.user)
-        )
+        AlertRule.objects.filter(id=self.alert_rule.id).update(user_id=None, team_id=None)
         self.alert_rule.refresh_from_db()
         snapshot_alert_rule(self.alert_rule, self.user)
 
@@ -1050,33 +1042,29 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             AlertRuleThresholdType.ABOVE,
             1,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=RpcActor.from_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=RpcActor.from_identifier(f"team:{self.team.id}"),
         )
-        assert alert_rule.owner.id == self.team.actor.id
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
+            owner=RpcActor.from_identifier(f"user:{self.user.id}"),
         )
-        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=RpcActor.from_identifier(self.user.id),
         )
-        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
@@ -1084,7 +1072,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             name="not updating owner",
         )
-        assert alert_rule.owner.id == get_actor_for_user(self.user).id
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
@@ -1092,7 +1079,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=None,
         )
-        assert alert_rule.owner is None
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
 

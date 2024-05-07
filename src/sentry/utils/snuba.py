@@ -116,6 +116,7 @@ SPAN_COLUMN_MAP = {
     "parent_span": "parent_span_id",
     "platform": "platform",
     "project": "project_id",
+    "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
     "span.domain": "domain",
@@ -155,6 +156,10 @@ SPAN_COLUMN_MAP = {
     "origin.transaction": "sentry_tags[transaction]",
     "is_transaction": "is_segment",
     "sdk.name": "sentry_tags[sdk.name]",
+    "trace.status": "sentry_tags[trace.status]",
+    "messaging.destination.name": "sentry_tags[messaging.destination.name]",
+    "messaging.message.id": "sentry_tags[messaging.message.id]",
+    "tags.key": "tags.key",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {

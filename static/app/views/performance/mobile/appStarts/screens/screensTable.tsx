@@ -1,18 +1,10 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import {isFieldSortable} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,7 +12,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import Breakdown from 'sentry/views/performance/mobile/appStarts/screens/breakdown';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
-import {TOP_SCREENS} from 'sentry/views/performance/mobile/screenload/screens';
+import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colors';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -36,7 +29,7 @@ type Props = {
   pageLinks: string | undefined;
 };
 
-export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
+export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -72,8 +65,8 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   };
 
   function renderBodyCell(column, row): React.ReactNode {
-    if (!data?.meta || !data?.meta.fields) {
-      return row[column.key];
+    if (!data) {
+      return null;
     }
 
     const index = data.data.indexOf(row);
@@ -107,6 +100,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
     if (field === 'app_start_breakdown') {
       return (
         <Breakdown
+          data-test-id="app-start-breakdown"
           row={row}
           breakdownGroups={[
             {
@@ -124,87 +118,31 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
       );
     }
 
-    const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
-    return renderer(row, {
-      location,
-      organization,
-      unit: data?.meta.units?.[column.key],
-    });
-  }
-
-  function renderHeadCell(
-    column: GridColumnHeader,
-    tableMeta?: MetaType
-  ): React.ReactNode {
-    const fieldType = tableMeta?.fields?.[column.key];
-    const alignment = fieldAlignment(column.key as string, fieldType);
-    const field = {
-      field: column.key as string,
-      width: column.width,
-    };
-
-    function generateSortLink() {
-      if (!tableMeta) {
-        return undefined;
-      }
-
-      const nextEventView = eventView.sortOnField(field, tableMeta);
-      const queryStringObject = nextEventView.generateQueryStringObject();
-
-      return {
-        ...location,
-        query: {...location.query, sort: queryStringObject.sort},
-      };
-    }
-
-    const currentSort = eventView.sortForField(field, tableMeta);
-    const currentSortKind = currentSort ? currentSort.kind : undefined;
-    const canSort = isFieldSortable(field, tableMeta);
-
-    const sortLink = (
-      <SortLink
-        align={alignment}
-        title={column.name}
-        direction={currentSortKind}
-        canSort={canSort}
-        generateSortLink={generateSortLink}
-      />
-    );
-    return sortLink;
+    return null;
   }
 
   return (
-    <Fragment>
-      <GridEditable
-        isLoading={isLoading}
-        data={data?.data as TableDataRow[]}
-        columnOrder={[
-          'transaction',
-          `avg_if(measurements.app_start_${startType},release,${primaryRelease})`,
-          `avg_if(measurements.app_start_${startType},release,${secondaryRelease})`,
-          `avg_compare(measurements.app_start_${startType},release,${primaryRelease},${secondaryRelease})`,
-          'app_start_breakdown',
-          `count_starts(measurements.app_start_${startType})`,
-        ].map(columnKey => {
-          return {
-            key: columnKey,
-            name: columnNameMap[columnKey],
-            width: COL_WIDTH_UNDEFINED,
-          };
-        })}
-        columnSortBy={[
-          {
-            key: `count_starts_measurements_app_start_${startType}`,
-            order: 'desc',
-          },
-        ]}
-        location={location}
-        grid={{
-          renderHeadCell: column => renderHeadCell(column, data?.meta),
-          renderBodyCell,
-        }}
-      />
-      <Pagination pageLinks={pageLinks} />
-    </Fragment>
+    <ScreensTable
+      columnNameMap={columnNameMap}
+      data={data}
+      eventView={eventView}
+      isLoading={isLoading}
+      pageLinks={pageLinks}
+      columnOrder={[
+        'transaction',
+        `avg_if(measurements.app_start_${startType},release,${primaryRelease})`,
+        `avg_if(measurements.app_start_${startType},release,${secondaryRelease})`,
+        `avg_compare(measurements.app_start_${startType},release,${primaryRelease},${secondaryRelease})`,
+        'app_start_breakdown',
+        `count_starts(measurements.app_start_${startType})`,
+      ]}
+      defaultSort={[
+        {
+          key: `count_starts_measurements_app_start_${startType}`,
+          order: 'desc',
+        },
+      ]}
+      customBodyCellRenderer={renderBodyCell}
+    />
   );
 }

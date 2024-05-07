@@ -3,6 +3,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor, MonitorType
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -29,11 +30,11 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
     def test_alert_blanking(self):
         team = self.create_team(name="test")
         project = self.create_project(teams=[team], name="test1")
-        rule = Rule.objects.create(
-            label="test rule", project=project, owner=team.actor, owner_team_id=team.id
-        )
+        rule = Rule.objects.create(label="test rule", project=project, owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
-            name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
+            name="test alert rule",
+            owner=RpcActor.from_id(user_id=None, team_id=team.id),
+            projects=[project],
         )
         self.ScheduledDeletion.schedule(team, days=0)
 
@@ -45,9 +46,8 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
 
         alert_rule.refresh_from_db()
         rule.refresh_from_db()
-        assert rule.owner_id is None, "Should be blank when team is deleted."
         assert rule.owner_team_id is None, "Should be blank when team is deleted."
-        assert alert_rule.owner_id is None, "Should be blank when team is deleted."
+        assert alert_rule.user_id is None, "Should be blank when team is deleted."
         assert alert_rule.team_id is None, "Should be blank when team is deleted."
 
     def test_monitor_blanking(self):

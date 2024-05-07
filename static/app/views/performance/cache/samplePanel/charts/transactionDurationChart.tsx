@@ -1,11 +1,13 @@
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
-import {useTransactionDurationSeries} from 'sentry/views/performance/cache/samplePanel/charts/useTransactionDurationSeries';
 import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {useMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import type {MetricsQueryFilters} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 export function TransactionDurationChart() {
@@ -16,8 +18,13 @@ export function TransactionDurationChart() {
     },
   });
 
-  const {data, isLoading} = useTransactionDurationSeries({
-    transactionName: transaction,
+  const search: MetricsQueryFilters = {
+    transaction,
+  };
+
+  const {data, isLoading} = useMetricsSeries({
+    yAxis: ['avg(transaction.duration)'],
+    search: MutableSearch.fromQueryObject(search),
     referrer: Referrer.SAMPLES_CACHE_TRANSACTION_DURATION,
   });
 

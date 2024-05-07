@@ -8,7 +8,7 @@ import {useResourceModuleFilters} from 'sentry/views/performance/browser/resourc
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {
   DataTitles,

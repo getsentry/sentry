@@ -123,6 +123,8 @@ class SetupWizardView(BaseView):
                 enriched_project = {
                     "slug": project.slug,
                     "id": project.id,
+                    "name": project.name,
+                    "platform": project.platform,
                     "status": STATUS_LABELS.get(project.status, "unknown"),
                 }
                 # The wizard only reads the a few fields so serializing the mapping should work fine

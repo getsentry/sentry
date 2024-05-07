@@ -6,21 +6,18 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.helpers import ImportFlags
-from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.models.actor import Actor
 from sentry.utils.cache import cache
 
 
@@ -36,7 +33,7 @@ class RuleSource(IntEnum):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class Rule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -60,9 +57,6 @@ class Rule(Model):
         default=RuleSource.ISSUE,
         choices=RuleSource.as_choices(),
     )
-    # Deprecated. Use owner_user_id or owner_team instead.
-    owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
-
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
@@ -73,7 +67,10 @@ class Rule(Model):
     class Meta:
         db_table = "sentry_rule"
         app_label = "sentry"
-        indexes = (models.Index(fields=("project", "status", "owner")),)
+        indexes = (
+            models.Index(fields=("project", "status", "owner_team")),
+            models.Index(fields=("project", "status", "owner_user_id")),
+        )
         constraints = (
             models.CheckConstraint(
                 check=(
@@ -110,20 +107,17 @@ class Rule(Model):
 
     def delete(self, *args, **kwargs):
         rv = super().delete(*args, **kwargs)
-        cache_key = f"project:{self.project_id}:rules"
-        cache.delete(cache_key)
+        self._clear_project_rule_cache()
         return rv
 
     def save(self, *args, **kwargs):
-        self._validate_owner()
         rv = super().save(*args, **kwargs)
-        cache_key = f"project:{self.project_id}:rules"
-        cache.delete(cache_key)
+        self._clear_project_rule_cache()
         return rv
 
-    def _validate_owner(self):
-        if self.owner_id is not None and self.owner_team_id is None and self.owner_user_id is None:
-            raise ValueError("Rule with owner requires either owner_team or owner_user_id")
+    def _clear_project_rule_cache(self) -> None:
+        cache_key = f"project:{self.project_id}:rules"
+        cache.delete(cache_key)
 
     def get_audit_log_data(self):
         return {
@@ -149,31 +143,6 @@ class Rule(Model):
 
         return None
 
-    def normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> int | None:
-        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
-        # TODO(hybrid-cloud): actor refactor. Remove this check once we're sure we've migrated all
-        # remaining `owner_id`'s to also have `team_id` or `user_id`, which seems to not be the case
-        # today.
-        if self.owner_id is not None and self.owner_team_id is None and self.owner_user_id is None:
-            actor = Actor.objects.filter(id=self.owner_id).first()
-            if actor is None or (actor.team_id is None and actor.user_id is None):
-                # The `owner_id` references a non-existent `Actor`, or else one that has no
-                # `owner_team_id` or `owner_user_id` of its own, making it functionally a null
-                # `Actor`. This means the `owner_id` is invalid, so we simply delete it.
-                self.owner_id = None
-            else:
-                # Looks like an existing `Actor` points to a valid team or user - make sure that
-                # information is duplicated into this `Rule` model as well.
-                self.owner_team_id = actor.team_id
-                self.owner_user_id = actor.user_id
-
-        return old_pk
-
 
 class RuleActivityType(Enum):
     CREATED = 1
@@ -183,7 +152,7 @@ class RuleActivityType(Enum):
     DISABLED = 5
 
 
-@region_silo_only_model
+@region_silo_model
 class RuleActivity(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -197,7 +166,7 @@ class RuleActivity(Model):
         db_table = "sentry_ruleactivity"
 
 
-@region_silo_only_model
+@region_silo_model
 class NeglectedRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 

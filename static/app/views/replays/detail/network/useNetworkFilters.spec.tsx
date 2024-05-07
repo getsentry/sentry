@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {
   ReplayNavigationFrameFixture,
@@ -10,6 +9,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {useLocation} from 'sentry/utils/useLocation';
 

@@ -76,7 +76,9 @@ class ContextBuilder(BaseModel):
         self.context_transformers.append(context_transformer)
         return self
 
-    def add_exception_handler(self, exception_handler: Callable[[Exception], None]):
+    def add_exception_handler(
+        self, exception_handler: Callable[[Exception], None]
+    ) -> ContextBuilder:
         """
         Add a custom exception handler to the context builder if you need custom handling
         if any of the transformer functions raise an exception. This is useful for swallowing
@@ -88,6 +90,7 @@ class ContextBuilder(BaseModel):
             raise Exception("Exception handler is already defined")
 
         self.exception_handler = exception_handler
+        return self
 
     def build(self, data: dict[str, Any] | None = None) -> EvaluationContext:
         builder_data: dict[str, Any] = data or dict()

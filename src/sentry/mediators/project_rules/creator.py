@@ -10,7 +10,6 @@ from sentry.models.rule import Rule
 class Creator(Mediator):
     name = Param(str)
     environment = Param(int, required=False)
-    owner = Param(int, required=False)
     owner_team_id = Param(int, required=False)
     owner_user_id = Param(int, required=False)
     project = Param(Project)
@@ -41,7 +40,6 @@ class Creator(Mediator):
         }
         _kwargs = {
             "label": self.name,
-            "owner_id": self.owner,
             "owner_team_id": self.owner_team_id,
             "owner_user_id": self.owner_user_id,
             "environment_id": self.environment or None,

@@ -12,7 +12,7 @@ PROMPT = """Classify the text into one of the following two classes: [Junk, Not 
 def is_spam(message):
     is_spam = False
     response = complete_prompt(usecase=LLMUseCase.SPAM_DETECTION, prompt=PROMPT, message=message)
-    if response and response.lower() == "junk":
+    if response and response.strip().lower() in ("junk", "[junk]"):
         is_spam = True
 
     logger.info(

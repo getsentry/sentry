@@ -44,13 +44,13 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
@@ -503,7 +503,7 @@ def create_alert_rule(
     time_window,
     threshold_type,
     threshold_period,
-    owner=None,
+    owner: RpcActor | None = None,
     resolve_threshold=None,
     environment=None,
     include_all_projects=False,
@@ -525,7 +525,7 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
-    :param owner: ActorTuple (sentry.models.actor.ActorTuple) or None
+    :param owner: RpcActor (sentry.services.hybrid_cloud.actor.RpcActor) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
@@ -557,12 +557,15 @@ def create_alert_rule(
         resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
-    # TODO(mark) type is documented as ActorTuple but these runtime checks are for other types.
-    actor = None
-    if owner and not isinstance(owner, Actor):
-        actor = owner.resolve_to_actor()
-    elif owner and isinstance(owner, Actor):
-        actor = owner
+    owner_user_id = None
+    owner_team_id = None
+    if owner and isinstance(owner, RpcActor):
+        if owner.actor_type == ActorType.USER:
+            owner_user_id = owner.id
+        elif owner.actor_type == ActorType.TEAM:
+            owner_team_id = owner.id
+    elif owner:
+        assert False, "Cannot create, invalid input type for owner"
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
         # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
@@ -585,11 +588,9 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
-            # TODO(mark) remove owner in the future
-            owner=actor,
             comparison_delta=comparison_delta,
-            user_id=actor.user_id if actor else None,
-            team_id=actor.team_id if actor else None,
+            user_id=owner_user_id,
+            team_id=owner_team_id,
             monitor_type=monitor_type.value,
         )
 
@@ -654,9 +655,9 @@ def snapshot_alert_rule(alert_rule, user=None):
         alert_rule_snapshot.id = None
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
-        if alert_rule.owner:
-            alert_rule_snapshot.user_id = alert_rule.owner.user_id
-            alert_rule_snapshot.team_id = alert_rule.owner.team_id
+        if alert_rule.user_id or alert_rule.team_id:
+            alert_rule_snapshot.user_id = alert_rule.user_id
+            alert_rule_snapshot.team_id = alert_rule.team_id
         alert_rule_snapshot.save()
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
@@ -689,7 +690,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
-    owner=NOT_SET,
+    owner: RpcActor | None | object = NOT_SET,
     query=None,
     aggregate=None,
     time_window=None,
@@ -713,7 +714,7 @@ def update_alert_rule(
     `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
-    :param owner: ActorTuple (sentry.models.actor.ActorTuple) or None
+    :param owner: RpcActor (sentry.services.hybrid_cloud.actor.RpcActor) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
@@ -761,11 +762,17 @@ def update_alert_rule(
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
-        if owner is not None and not isinstance(owner, Actor):
-            owner = owner.resolve_to_actor()
-        updated_fields["owner"] = owner
-        updated_fields["team_id"] = owner.team_id if owner else None
-        updated_fields["user_id"] = owner.user_id if owner else None
+        team_id = None
+        user_id = None
+        if owner and isinstance(owner, RpcActor):
+            if owner.actor_type == ActorType.USER:
+                user_id = owner.id
+            elif owner.actor_type == ActorType.TEAM:
+                team_id = owner.id
+        elif owner:
+            assert False, "Cannot update, invalid input type for owner"
+        updated_fields["team_id"] = team_id
+        updated_fields["user_id"] = user_id
     if comparison_delta is not NOT_SET:
         if comparison_delta is not None:
             # Since comparison alerts make twice as many queries, run the queries less frequently.

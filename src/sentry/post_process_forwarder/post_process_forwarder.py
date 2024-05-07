@@ -11,7 +11,7 @@ from arroyo.processing.strategies import (
 )
 from arroyo.types import Commit, Message, Partition
 
-from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
             )
         elif self.mode == "multiprocess":
             logger.info("Starting multiprocess post process forwarder")
-            return RunTaskWithMultiprocessing(
+            return run_task_with_multiprocessing(
                 function=self._dispatch_function,
                 next_step=CommitOffsets(commit),
                 max_batch_size=self.max_batch_size,

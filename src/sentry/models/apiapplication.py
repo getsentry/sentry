@@ -7,17 +7,20 @@ from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
+from sentry.utils.json import JSONData
 
 
 def generate_name():
@@ -37,7 +40,7 @@ class ApiApplicationStatus:
     deletion_in_progress = 3
 
 
-@control_silo_only_model
+@control_silo_model
 class ApiApplication(Model):
     __relocation_scope__ = RelocationScope.Global
 
@@ -128,3 +131,16 @@ class ApiApplication(Model):
             "allowed_origins": self.allowed_origins,
             "status": self.status,
         }
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "allowed_origins"), lambda _: "")
+        sanitizer.set_string(
+            json, SanitizableField(model_name, "client_id"), lambda _: generate_token()
+        )
+        sanitizer.set_string(json, SanitizableField(model_name, "redirect_uris"), lambda _: "")

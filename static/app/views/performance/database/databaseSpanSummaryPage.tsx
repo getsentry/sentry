@@ -1,6 +1,6 @@
+import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -25,8 +25,8 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -44,11 +44,9 @@ type Query = {
   aggregate?: string;
 };
 
-type Props = {
-  location: Location<Query>;
-} & RouteComponentProps<Query, {groupId: string}>;
+type Props = RouteComponentProps<Query, {groupId: string}>;
 
-function SpanSummaryPage({params}: Props) {
+export function DatabaseSpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
@@ -127,11 +125,7 @@ function SpanSummaryPage({params}: Props) {
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
-      baseURL="/performance/database"
-      features="spans-first-ui"
-    >
+    <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -247,7 +241,7 @@ function SpanSummaryPage({params}: Props) {
           />
         </Layout.Main>
       </Layout.Body>
-    </ModulePageProviders>
+    </Fragment>
   );
 }
 
@@ -283,4 +277,16 @@ const MetricsRibbon = styled('div')`
   gap: ${space(4)};
 `;
 
-export default SpanSummaryPage;
+function PageWithProviders(props) {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
+      baseURL="/performance/database"
+      features="spans-first-ui"
+    >
+      <DatabaseSpanSummaryPage {...props} />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;
