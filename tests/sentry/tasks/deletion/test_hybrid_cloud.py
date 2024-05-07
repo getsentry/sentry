@@ -328,9 +328,7 @@ def setup_cross_db_deletion_data(
     )
 
 
-# TODO(Gabe): Enable this test when the multi-db test changes land
 @region_silo_test
-@pytest.mark.skip
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
     def assert_monitors_unchanged(self, unaffected_data: list[dict]):
         for u_data in unaffected_data:
