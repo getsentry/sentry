@@ -186,8 +186,8 @@ export enum SpanIndexedField {
   CACHE_HIT = 'cache.hit',
   CACHE_ITEM_SIZE = 'measurements.cache.item_size',
   TRACE_STATUS = 'trace.status',
-  MESSAGE_ID = 'messaging.message.id',
-  MESSAGE_SIZE = 'measurements.messaging.message.body.size',
+  MESSAGING_MESSAGE_ID = 'messaging.message.id',
+  MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
 }
 
@@ -226,8 +226,8 @@ export type IndexedResponse = {
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
   [SpanIndexedField.CACHE_ITEM_SIZE]: number;
   [SpanIndexedField.TRACE_STATUS]: string;
-  [SpanIndexedField.MESSAGE_ID]: string;
-  [SpanIndexedField.MESSAGE_SIZE]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_ID]: string;
+  [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
 };
 
