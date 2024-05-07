@@ -105,7 +105,7 @@ function SpanSummaryCharts() {
   });
 
   const transactionSeries: Series = {
-    seriesName: 'Throughput',
+    seriesName: 'tpm()',
     data:
       txnThroughputData?.data.map(datum => ({
         value: datum[1][0].count,
