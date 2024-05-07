@@ -1487,6 +1487,7 @@ class BaseSpansTestCase(SnubaTestCase):
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+        sdk_name: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1520,6 +1521,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
+        if sdk_name is not None:
+            payload["sentry_tags"]["sdk.name"] = sdk_name
 
         self.store_span(payload)
 
