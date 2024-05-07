@@ -92,4 +92,4 @@ class MetricsBackend(local):
         tags: Tags | None = None,
         stacklevel: int = 0,
     ) -> None:
-        raise NotImplementedError
+        pass
