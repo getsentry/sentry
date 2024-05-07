@@ -6,7 +6,7 @@ from django.conf import settings
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
-    MonitorCheckInFailure,
+    MonitorIncidentType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceP95EndpointRegressionGroupType,
     ReplayDeadClickType,
@@ -114,7 +114,7 @@ class BackfillGroupPriority(TestMigrations):
                 {
                     "status": GroupStatus.UNRESOLVED,
                     "substatus": GroupSubStatus.ESCALATING,
-                    "type": MonitorCheckInFailure.type_id,
+                    "type": MonitorIncidentType.type_id,
                 },
                 PriorityLevel.HIGH,
             ),
@@ -181,7 +181,7 @@ class BackfillGroupPriority(TestMigrations):
             (
                 "cron group with log level WARNING",
                 {
-                    "type": MonitorCheckInFailure.type_id,
+                    "type": MonitorIncidentType.type_id,
                     "level": logging.WARNING,
                 },
                 PriorityLevel.MEDIUM,
@@ -190,7 +190,7 @@ class BackfillGroupPriority(TestMigrations):
                 "cron group with log level ERROR",
                 {
                     "substatus": GroupSubStatus.ONGOING,
-                    "type": MonitorCheckInFailure.type_id,
+                    "type": MonitorIncidentType.type_id,
                     "level": logging.ERROR,
                 },
                 PriorityLevel.HIGH,
@@ -198,7 +198,7 @@ class BackfillGroupPriority(TestMigrations):
             (
                 "cron group with log level DEBUG",
                 {
-                    "type": MonitorCheckInFailure.type_id,
+                    "type": MonitorIncidentType.type_id,
                     "level": logging.DEBUG,
                 },
                 PriorityLevel.HIGH,
