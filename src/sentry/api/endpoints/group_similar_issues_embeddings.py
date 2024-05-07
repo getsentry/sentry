@@ -162,6 +162,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "group_id": group.id,
+            "group_hash": latest_event.get_primary_hash(),
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
             "message": group.message,
@@ -183,6 +184,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             organization_id=group.organization.id,
             project_id=group.project.id,
             group_id=group.id,
+            group_hash=latest_event.get_primary_hash(),
             count_over_threshold=len(
                 [
                     result.stacktrace_distance
