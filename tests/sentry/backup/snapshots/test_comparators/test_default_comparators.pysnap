@@ -1103,6 +1103,12 @@ source: tests/sentry/backup/test_comparators.py
     - team
   model_name: sentry.projectteam
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
   - class: ForeignKeyComparator
     fields:
     - organization
