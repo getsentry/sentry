@@ -154,7 +154,7 @@ function EditTagHighlightSection({
 }: EditTagHighlightSectionProps) {
   const [tagFilter, setTagFilter] = useState('');
   const tagData = event.tags
-    .filter(tag => tag.key.includes(tagFilter))
+    .filter(tag => tag?.key.includes(tagFilter))
     .map(tag => tag.key);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
