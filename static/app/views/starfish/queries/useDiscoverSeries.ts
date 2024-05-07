@@ -23,16 +23,16 @@ interface UseMetricsSeriesOptions<Fields> {
 export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {}
 ) => {
-  return useSeries<Fields>(options, DiscoverDatasets.SPANS_METRICS);
+  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_METRICS);
 };
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {}
 ) => {
-  return useSeries<Fields>(options, DiscoverDatasets.METRICS);
+  return useDiscoverSeries<Fields>(options, DiscoverDatasets.METRICS);
 };
 
-const useSeries = <T extends string[]>(
+const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets
 ) => {
