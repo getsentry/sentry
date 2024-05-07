@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
-import type {Organization} from 'sentry/types';
-import {intervalToMilliseconds} from 'sentry/utils/dates';
+import type {Organization} from 'sentry/types/organization';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -94,6 +94,7 @@ export default function useFeedbackListQueryKey({
                 'pluginIssues', // Gives us plugin issues available
                 'integrationIssues', // Gives us integration issues available
                 'sentryAppIssues', // Gives us Sentry app issues available
+                'hasAttachments', // Gives us whether the feedback has screenshots
               ],
           shortIdLookup: 0,
           query: `issue.category:feedback status:${mailbox} ${fixedQueryView.query}`,

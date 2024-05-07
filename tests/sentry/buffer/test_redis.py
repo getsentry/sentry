@@ -11,15 +11,11 @@ from sentry import options
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.rules.processing.delayed_processing import PROJECT_ID_BUFFER_LIST_KEY
+from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.redis import (
-    get_cluster_routing_client,
-    is_instance_rb_cluster,
-    is_instance_redis_cluster,
-)
+from sentry.utils.redis import get_cluster_routing_client
 
 
 def _hgetall_decode_keys(client, key, is_redis_cluster):
@@ -201,71 +197,12 @@ class TestRedisBuffer:
         else:
             assert pending == [key.encode("utf-8")]
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.redis.process_incr")
-    @mock.patch("sentry.buffer.redis.process_pending")
-    def test_process_pending_partitions_none(self, process_pending, process_incr):
-        self.buf.pending_partitions = 2
-        if is_instance_redis_cluster(self.buf.cluster, self.buf.is_redis_cluster):
-            self.buf.cluster.zadd("b:p:0", {"foo": 1})
-            self.buf.cluster.zadd("b:p:1", {"bar": 1})
-            self.buf.cluster.zadd("b:p", {"baz": 1})
-        elif is_instance_rb_cluster(self.buf.cluster, self.buf.is_redis_cluster):
-            with self.buf.cluster.map() as client:
-                client.zadd("b:p:0", {"foo": 1})
-                client.zadd("b:p:1", {"bar": 1})
-                client.zadd("b:p", {"baz": 1})
-        else:
-            raise RuntimeError("unreachable")
-
-        # On first pass, we are expecting to do:
-        # * process the buffer that doesn't have a partition (b:p)
-        # * queue up 2 jobs, one for each partition to process.
-        self.buf.process_pending()
-        assert len(process_incr.apply_async.mock_calls) == 1
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]})
-        assert len(process_pending.apply_async.mock_calls) == 2
-        assert process_pending.apply_async.mock_calls == [
-            mock.call(kwargs={"partition": 0}),
-            mock.call(kwargs={"partition": 1}),
-        ]
-
-        # Confirm that we've only processed the unpartitioned buffer
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
-
-        assert client.zrange("b:p", 0, -1) == []
-        assert client.zrange("b:p:0", 0, -1) != []
-        assert client.zrange("b:p:1", 0, -1) != []
-
-        # partition 0
-        self.buf.process_pending(partition=0)
-        assert len(process_incr.apply_async.mock_calls) == 2
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo"]})
-        assert client.zrange("b:p:0", 0, -1) == []
-
-        # Make sure we didn't queue up more
-        assert len(process_pending.apply_async.mock_calls) == 2
-
-        # partition 1
-        self.buf.process_pending(partition=1)
-        assert len(process_incr.apply_async.mock_calls) == 3
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["bar"]})
-        assert client.zrange("b:p:1", 0, -1) == []
-
-        # Make sure we didn't queue up more
-        assert len(process_pending.apply_async.mock_calls) == 2
-
     def group_rule_data_by_project_id(self, buffer, project_ids):
         project_ids_to_rule_data = defaultdict(list)
-        for proj_id in project_ids[0]:
-            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id})
-            for pair in rule_group_pairs:
-                for k, v in pair.items():
-                    if isinstance(k, bytes):
-                        k = k.decode("utf-8")
-                    if isinstance(v, bytes):
-                        v = v.decode("utf-8")
-                    project_ids_to_rule_data[int(proj_id)].append({k: v})
+        for proj_id in project_ids:
+            rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id[0]})
+            for k, v in rule_group_pairs.items():
+                project_ids_to_rule_data[int(proj_id[0])].append({k: v})
         return project_ids_to_rule_data
 
     def test_enqueue(self):
@@ -283,55 +220,52 @@ class TestRedisBuffer:
         event4_id = 11
 
         # store the project ids
-        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-        self.buf.push_to_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
 
         # store the rules and group per project
         self.buf.push_to_hash(
             model=Project,
             filters={"project_id": project_id},
             field=f"{rule_id}:{group_id}",
-            value=event_id,
+            value=json.dumps({"event_id": event_id, "occurrence_id": None}),
         )
         self.buf.push_to_hash(
             model=Project,
             filters={"project_id": project_id},
             field=f"{rule_id}:{group2_id}",
-            value=event2_id,
+            value=json.dumps({"event_id": event2_id, "occurrence_id": None}),
         )
         self.buf.push_to_hash(
             model=Project,
             filters={"project_id": project_id2},
             field=f"{rule2_id}:{group3_id}",
-            value=event3_id,
+            value=json.dumps({"event_id": event3_id, "occurrence_id": None}),
         )
 
         project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert project_ids
-
         project_ids_to_rule_data = self.group_rule_data_by_project_id(self.buf, project_ids)
-        assert project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}") == str(event_id)
-        assert project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}") == str(
-            event2_id
-        )
-        assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
-            event3_id
-        )
+        result = json.loads(project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}"))
+        assert result.get("event_id") == event_id
+        result = json.loads(project_ids_to_rule_data[project_id][1].get(f"{rule_id}:{group2_id}"))
+        assert result.get("event_id") == event2_id
+        result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
+        assert result.get("event_id") == event3_id
 
         # overwrite the value to event4_id
         self.buf.push_to_hash(
             model=Project,
             filters={"project_id": project_id2},
             field=f"{rule2_id}:{group3_id}",
-            value=event4_id,
+            value=json.dumps({"event_id": event4_id, "occurrence_id": None}),
         )
 
         project_ids_to_rule_data = project_ids_to_rule_data = self.group_rule_data_by_project_id(
             self.buf, project_ids
         )
-        assert project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}") == str(
-            event4_id
-        )
+        result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
+        assert result.get("event_id") == event4_id
 
     def test_buffer_hook_registry(self):
         """Test that we can add an event to the registry and that the callback is invoked"""
@@ -349,6 +283,62 @@ class TestRedisBuffer:
         self.buf.process_batch()
         assert mock.call_count == 1
         assert mock.call_args[0][0] == self.buf
+
+    def test_delete_batch(self):
+        """Test that after we add things to redis we can clean it up"""
+        project_id = 1
+        rule_id = 2
+        group_id = 3
+        event_id = 4
+
+        project2_id = 5
+        rule2_id = 6
+        group2_id = 7
+        event2_id = 8
+
+        now = datetime.datetime(2024, 4, 15, 3, 30, 00, tzinfo=datetime.UTC)
+        one_minute_from_now = (now).replace(minute=31)
+
+        # add a set and a hash to the buffer
+        with freeze_time(now):
+            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
+            self.buf.push_to_hash(
+                model=Project,
+                filters={"project_id": project_id},
+                field=f"{rule_id}:{group_id}",
+                value=json.dumps({"event_id": event_id, "occurrence_id": None}),
+            )
+        with freeze_time(one_minute_from_now):
+            self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project2_id)
+            self.buf.push_to_hash(
+                model=Project,
+                filters={"project_id": project2_id},
+                field=f"{rule2_id}:{group2_id}",
+                value=json.dumps({"event_id": event2_id, "occurrence_id": None}),
+            )
+
+        # retrieve them
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        assert len(project_ids) == 2
+        rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
+        assert len(rule_group_pairs)
+
+        # delete only the first project ID by time
+        self.buf.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=now.timestamp())
+
+        # retrieve again to make sure only project_id was removed
+        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        assert project_ids == [(project2_id, one_minute_from_now.timestamp())]
+
+        # delete the project_id hash
+        self.buf.delete_hash(
+            model=Project,
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group_id}",
+        )
+
+        rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
+        assert rule_group_pairs == {}
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")

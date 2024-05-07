@@ -1,5 +1,4 @@
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
@@ -21,6 +20,7 @@ import type {Event, Group} from 'sentry/types';
 import {EntryType, IssueCategory, IssueType} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 import type {GroupEventDetailsProps} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
@@ -164,6 +164,7 @@ const mockedTrace = (project: Project) => {
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
         title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
+        message: 'ANR for at least 5000 ms.',
         level: 'error',
         issue: '',
       },
@@ -178,6 +179,7 @@ const mockedTrace = (project: Project) => {
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
         title: 'File IO on Main Thread',
+        message: 'File IO on Main Thread',
         level: 'info',
         culprit: 'MainActivity.add_attachment',
         type: 1008,
@@ -497,11 +499,18 @@ describe('groupEventDetails', () => {
   describe('changes to event tags ui', () => {
     async function assertNewTagsView() {
       expect(await screen.findByText('Event ID:')).toBeInTheDocument();
-      const contextSummary = screen.getByTestId('highlighted-event-data');
-      const contextSummaryContainer = within(contextSummary);
-      // 3 contexts in makeDefaultMockData.event.contexts, trace is ignored
-      expect(contextSummaryContainer.queryAllByTestId('context-item')).toHaveLength(3);
+      expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
       expect(screen.getByTestId('event-tags')).toBeInTheDocument();
+      const highlights = screen.getByTestId('event-highlights');
+      expect(
+        within(highlights).getByRole('button', {name: 'View All'})
+      ).toBeInTheDocument();
+      expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+      // No highlights setup
+      expect(
+        within(highlights).getByRole('button', {name: 'Add Highlights'})
+      ).toBeInTheDocument();
+      expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
     }
 
     it('works with the feature flag', async function () {

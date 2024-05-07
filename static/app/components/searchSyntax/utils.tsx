@@ -241,3 +241,61 @@ export function isWithinToken(
 export function isOperator(value: string) {
   return allOperators.some(op => op === value);
 }
+
+function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
+  let stringifiedToken = '';
+
+  if (token.negated) {
+    stringifiedToken += '!';
+  }
+
+  stringifiedToken += stringifyToken(token.key);
+  stringifiedToken += ':';
+  stringifiedToken += token.operator;
+  stringifiedToken += stringifyToken(token.value);
+
+  return stringifiedToken;
+}
+
+export function stringifyToken(token: TokenResult<Token>) {
+  switch (token.type) {
+    case Token.FREE_TEXT:
+    case Token.SPACES:
+      return token.value;
+    case Token.FILTER:
+      return stringifyTokenFilter(token);
+    case Token.LOGIC_GROUP:
+      return `(${token.inner.map(innerToken => stringifyToken(innerToken)).join(' ')})`;
+    case Token.LOGIC_BOOLEAN:
+      return token.value;
+    case Token.VALUE_TEXT_LIST:
+      return token.items.map(v => v.value).join(',');
+    case Token.VALUE_NUMBER_LIST:
+      return token.items
+        .map(item => (item.value ? item.value.value + item.value.unit : ''))
+        .filter(str => str.length > 0)
+        .join(', ');
+    case Token.KEY_SIMPLE:
+      return token.value;
+    case Token.KEY_AGGREGATE:
+      return token.text;
+    case Token.KEY_AGGREGATE_ARGS:
+      return token.text;
+    case Token.KEY_AGGREGATE_PARAMS:
+      return token.text;
+    case Token.KEY_EXPLICIT_TAG:
+      return `${token.prefix}[${token.key.value}]`;
+    case Token.VALUE_TEXT:
+      return token.quoted ? `"${token.value}"` : token.value;
+    case Token.VALUE_BOOLEAN:
+    case Token.VALUE_DURATION:
+    case Token.VALUE_ISO_8601_DATE:
+    case Token.VALUE_PERCENTAGE:
+    case Token.VALUE_RELATIVE_DATE:
+    case Token.VALUE_SIZE:
+    case Token.VALUE_NUMBER:
+      return token.value;
+    default:
+      return '';
+  }
+}

@@ -1,4 +1,4 @@
-import type {TagValue} from 'sentry/types';
+import type {TagValue} from 'sentry/types/group';
 
 export function TagValuesFixture(params = []): TagValue[] {
   return [

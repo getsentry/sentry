@@ -37,3 +37,10 @@ class UserServiceTest(TransactionTestCase):
         assert len(rpc_user.useremails) == 3
         expected = {self.user.email, email.email, unverified_email.email}
         assert expected == {e.email for e in rpc_user.useremails}
+
+    def test_get_many_profiles(self):
+        users = [self.create_user() for _ in range(2)]
+        target_ids = [users[0].id]
+        profiles = user_service.get_many_profiles(filter=dict(user_ids=target_ids))
+        assert len(profiles) == 1
+        assert profiles[0].id == users[0].id

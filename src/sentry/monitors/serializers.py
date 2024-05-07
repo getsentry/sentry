@@ -7,13 +7,9 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.models.actor import Actor, ActorTuple
+from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.monitors.utils import fetch_associated_groups
-from sentry.monitors.validators import IntervalNames
-
-from ..models import Environment
-from .models import (
+from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvBrokenDetection,
@@ -21,6 +17,9 @@ from .models import (
     MonitorIncident,
     MonitorStatus,
 )
+from sentry.monitors.utils import fetch_associated_groups
+from sentry.monitors.validators import IntervalNames
+from sentry.services.hybrid_cloud.actor import RpcActor
 
 
 class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
@@ -181,14 +180,14 @@ class MonitorSerializer(Serializer):
             for project, serialized_project in zip(projects, serialize(list(projects), user))
         }
 
-        actors = Actor.objects.filter(id__in=[i.owner_actor_id for i in item_list])
-        actor_tuples = [a.get_actor_tuple() for a in actors]
-
-        actors_serialized = serialize(
-            ActorTuple.resolve_many(actor_tuples), user, ActorSerializer()
+        actors = [RpcActor.from_id(user_id=m.owner_user_id) for m in item_list if m.owner_user_id]
+        actors.extend(
+            [RpcActor.from_id(team_id=m.owner_team_id) for m in item_list if m.owner_team_id]
         )
+
+        actors_serialized = serialize(RpcActor.resolve_many(actors), user, ActorSerializer())
         actor_data = {
-            actor.id: serialized_actor for actor, serialized_actor in zip(actors, actors_serialized)
+            actor: serialized_actor for actor, serialized_actor in zip(actors, actors_serialized)
         }
 
         monitor_environments = (
@@ -218,7 +217,7 @@ class MonitorSerializer(Serializer):
             item: {
                 "project": projects_data[item.project_id] if item.project_id else None,
                 "environments": environment_data[item.id],
-                "owner": actor_data.get(item.owner_actor_id),
+                "owner": actor_data.get(item.owner_actor),
             }
             for item in item_list
         }

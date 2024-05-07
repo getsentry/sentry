@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -7,6 +6,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, PriorityLevel} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 

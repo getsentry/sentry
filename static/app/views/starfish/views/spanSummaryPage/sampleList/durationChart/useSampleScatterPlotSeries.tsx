@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/performance/http/settings';
+import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
 import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 
@@ -35,7 +36,7 @@ export function useSampleScatterPlotSeries(
       symbol,
       color,
       symbolSize: span?.span_id === highlightedSpanId ? 19 : 14,
-      seriesName: span?.['transaction.id']?.substring(0, 8) ?? t('Sample'),
+      seriesName: span?.span_id?.substring(0, SPAN_ID_DISPLAY_LENGTH) ?? t('Sample'),
     };
 
     return series;

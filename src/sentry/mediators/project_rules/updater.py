@@ -3,7 +3,6 @@ from rest_framework.request import Request
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models.actor import Actor
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 
@@ -11,7 +10,8 @@ from sentry.models.rule import Rule
 class Updater(Mediator):
     rule = Param(Rule)
     name = Param(str, required=False)
-    owner = Param(int, required=False)
+    owner_team_id = Param(int, required=False)
+    owner_user_id = Param(int, required=False)
     environment = Param(int, required=False)
     project = Param(Project)
     action_match = Param(str, required=False)
@@ -40,7 +40,8 @@ class Updater(Mediator):
             self.rule.label = self.name
 
     def _update_owner(self) -> None:
-        self.rule.owner = Actor.objects.get(id=self.owner) if self.owner else None
+        self.rule.owner_user_id = self.owner_user_id
+        self.rule.owner_team_id = self.owner_team_id
 
     def _update_environment(self):
         self.rule.environment_id = self.environment

@@ -2,17 +2,18 @@ import base64
 import hashlib
 import hmac
 import time
+from collections.abc import Callable
 from datetime import datetime
 from urllib.parse import quote
 
 from django.utils.crypto import constant_time_compare, get_random_string
 
 
-def generate_secret_key(length=32):
+def generate_secret_key(length: int = 32) -> str:
     return get_random_string(length, "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
 
 
-def _pack_int(i):
+def _pack_int(i: int) -> bytes:
     result = bytearray()
     while i != 0:
         result.append(i & 0xFF)
@@ -20,7 +21,7 @@ def _pack_int(i):
     return bytes(bytearray(reversed(result)).rjust(8, b"\0"))
 
 
-def _get_ts(ts):
+def _get_ts(ts: float | datetime | None) -> int:
     if ts is None:
         return int(time.time())
     if isinstance(ts, datetime):
@@ -29,7 +30,13 @@ def _get_ts(ts):
 
 
 class TOTP:
-    def __init__(self, secret=None, digits=6, interval=30, default_window=2):
+    def __init__(
+        self,
+        secret: str | None = None,
+        digits: int = 6,
+        interval: int = 30,
+        default_window: int = 2,
+    ) -> None:
         if secret is None:
             secret = generate_secret_key()
         if len(secret) % 8 != 0:
@@ -39,7 +46,9 @@ class TOTP:
         self.interval = interval
         self.default_window = default_window
 
-    def generate_otp(self, ts=None, offset=0, counter=None):
+    def generate_otp(
+        self, ts: float | datetime | None = None, offset: int = 0, counter: int | None = None
+    ) -> str:
         if counter is None:
             ts = _get_ts(ts)
             counter = int(ts) // self.interval + offset
@@ -60,7 +69,14 @@ class TOTP:
         str_code = str(code % 10**self.digits)
         return ("0" * (self.digits - len(str_code))) + str_code
 
-    def verify(self, otp, ts=None, window=None, return_counter=False, check_counter_func=None):
+    def verify(
+        self,
+        otp: str,
+        ts: float | datetime | None = None,
+        window: int | None = None,
+        return_counter: bool = False,
+        check_counter_func: Callable[[int], bool] | None = None,
+    ) -> bool | int | None:
         ts = _get_ts(ts)
         if window is None:
             window = self.default_window
@@ -78,7 +94,7 @@ class TOTP:
             return None
         return False
 
-    def get_provision_url(self, user, issuer=None):
+    def get_provision_url(self, user: str, issuer: str | None = None) -> str:
         if issuer is None:
             issuer = "Sentry"
         rv = "otpauth://totp/{}?issuer={}&secret={}".format(

@@ -1,21 +1,18 @@
 import {useMemo} from 'react';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 
 interface Props {
   organization: Organization;
 }
 
 // The keys here are the different search terms that we're using:
-type ApiReturnType = {
-  'issue.category:feedback is:unassigned is:ignored': number;
-  'issue.category:feedback is:unassigned is:resolved': number;
-  'issue.category:feedback is:unassigned is:unresolved': number;
-};
+type ApiReturnType = Record<string, number>;
 
 // This is what the hook consumer gets:
 type HookReturnType = {
@@ -24,23 +21,28 @@ type HookReturnType = {
   unresolved: number;
 };
 
-// This is the type to describe the mapping from ApiResponse to hook result:
-const MAILBOX: Record<keyof HookReturnType, keyof ApiReturnType> = {
-  unresolved: 'issue.category:feedback is:unassigned is:unresolved',
-  resolved: 'issue.category:feedback is:unassigned is:resolved',
-  ignored: 'issue.category:feedback is:unassigned is:ignored',
-};
-
 export default function useMailboxCounts({
   organization,
 }: Props): UseApiQueryResult<HookReturnType, RequestError> {
+  const location = useLocation();
+  const locationQuery = decodeScalar(location.query.query, '');
+
+  // We should fetch the counts while taking the query into account
+  const MAILBOX: Record<keyof HookReturnType, keyof ApiReturnType> = {
+    unresolved: 'issue.category:feedback is:unassigned is:unresolved ' + locationQuery,
+    resolved: 'issue.category:feedback is:unassigned is:resolved ' + locationQuery,
+    ignored: 'issue.category:feedback is:unassigned is:ignored ' + locationQuery,
+  };
+
+  const mailboxQuery = Object.values(MAILBOX);
+
   const queryView = useLocationQuery({
     fields: {
       end: decodeScalar,
       environment: decodeList,
       field: decodeList,
       project: decodeList,
-      query: Object.values(MAILBOX),
+      query: mailboxQuery,
       queryReferrer: 'feedback_list_page',
       start: decodeScalar,
       statsPeriod: decodeScalar,
@@ -68,6 +70,6 @@ export default function useMailboxCounts({
             }
           : undefined,
       }) as UseApiQueryResult<HookReturnType, RequestError>,
-    [result]
+    [result, MAILBOX.ignored, MAILBOX.resolved, MAILBOX.unresolved]
   );
 }

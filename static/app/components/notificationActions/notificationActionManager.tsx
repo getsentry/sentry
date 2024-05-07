@@ -7,12 +7,12 @@ import NotificationActionItem from 'sentry/components/notificationActions/notifi
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
 import type {
   AvailableNotificationAction,
   NotificationAction,
 } from 'sentry/types/notificationActions';
 import {NotificationActionService} from 'sentry/types/notificationActions';
+import type {Project} from 'sentry/types/project';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 type NotificationActionManagerProps = {

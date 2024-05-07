@@ -44,7 +44,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -52,27 +52,29 @@ from sentry.utils.options import sample_modulo
 
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
-#: These features will be listed in the project config
+#: These features will be listed in the project config.
+#
+# NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
-    "projects:extract-transaction-from-segment-span",
-    "projects:profiling-ingest-unsampled-profiles",
-    "projects:span-metrics-extraction",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-resource",
+    "organizations:continuous-profiling",
+    "organizations:custom-metrics",
+    "organizations:device-class-synthesis",
+    "organizations:profiling",
+    "organizations:session-replay-combined-envelope-items",
+    "organizations:session-replay-recording-scrubbing",
+    "organizations:session-replay",
+    "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
-    "organizations:profiling",
-    "organizations:session-replay",
-    "organizations:session-replay-combined-envelope-items",
     "organizations:user-feedback-ingest",
-    "organizations:session-replay-recording-scrubbing",
-    "organizations:device-class-synthesis",
-    "organizations:custom-metrics",
-    "organizations:metric-meta",
-    "organizations:standalone-span-ingestion",
     "projects:discard-transaction",
-    "organizations:continuous-profiling",
+    "projects:extract-transaction-from-segment-span",
+    "projects:profiling-ingest-unsampled-profiles",
+    "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-ga-modules",
+    "projects:span-metrics-extraction-resource",
+    "projects:span-metrics-extraction",
+    "projects:span-metrics-double-write-distributions-as-gauges",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -166,7 +168,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
         error_messages += [
             "ChunkLoadError: Loading chunk *",
-            "Uncaught *: ChunkLoadError: Loading chunk *",
+            "*Uncaught *: ChunkLoadError: Loading chunk *",
         ]
 
     if error_messages:
@@ -263,10 +265,13 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             str(project.organization.id), []
         )
 
+        existing_ids: set[str] = set()
         cardinality_limits: list[CardinalityLimit] = []
-        for namespace, option_name in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items():
+        for namespace in CARDINALITY_LIMIT_USE_CASES:
             timeout.check()
-            option = options.get(option_name)
+            option = options.get(
+                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
+            )
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
                 continue
@@ -287,15 +292,30 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             if id in passive_limits:
                 limit["passive"] = True
             cardinality_limits.append(limit)
+            existing_ids.add(id)
 
-        clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
-        for clo in clos:
+        project_limit_options: list[CardinalityLimitOption] = project.get_option(
+            "relay.cardinality-limiter.limits", []
+        )
+        organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
+            "relay.cardinality-limiter.limits", []
+        )
+        option_limit_options: list[CardinalityLimitOption] = options.get(
+            "relay.cardinality-limiter.limits", []
+        )
+
+        for clo in project_limit_options + organization_limit_options + option_limit_options:
             rollout_rate = clo.get("rollout_rate", 1.0)
             if (project.organization.id % 100000) / 100000 >= rollout_rate:
                 continue
 
             try:
-                cardinality_limits.append(clo["limit"])
+                limit = clo["limit"]
+                if clo["limit"]["id"] in existing_ids:
+                    # skip if a limit with the same id already exists
+                    continue
+                cardinality_limits.append(limit)
+                existing_ids.add(clo["limit"]["id"])
             except KeyError:
                 pass
 
@@ -337,8 +357,6 @@ def get_project_config(
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
-        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
-        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
         return {"version": 2, "rules": generate_rules(project)}
 
     return None
@@ -410,13 +428,6 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 
 
 def _get_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
-    if not features.has("organizations:performance-calculate-score-relay", organization):
-        return []
-
-    shouldIncludeFid = not features.has(
-        "organizations:deprecate-fid-from-performance-score", organization
-    )
-
     return [
         {
             "name": "Chrome",
@@ -434,13 +445,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "p10": 1200.0,
                     "p50": 2400.0,
                     "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
                 },
                 {
                     "measurement": "cls",
@@ -478,13 +482,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
                     "optional": True,
                 },
                 {
@@ -526,13 +523,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "optional": False,
                 },
                 {
-                    "measurement": "fid",
-                    "weight": 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {
                     "measurement": "cls",
                     "weight": 0.0,
                     "p10": 0.1,
@@ -571,13 +561,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "optional": False,
                 },
                 {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
@@ -614,13 +597,6 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
                     "p10": 1200.0,
                     "p50": 2400.0,
                     "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.30 if shouldIncludeFid else 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
                 },
                 {
                     "measurement": "cls",
@@ -840,14 +816,13 @@ def _get_project_config(
 
         add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
 
-    if features.has("organizations:metrics-extraction", project.organization):
-        config["sessionMetrics"] = {
-            "version": (
-                EXTRACT_ABNORMAL_MECHANISM_VERSION
-                if _should_extract_abnormal_mechanism(project)
-                else EXTRACT_METRICS_VERSION
-            ),
-        }
+    config["sessionMetrics"] = {
+        "version": (
+            EXTRACT_ABNORMAL_MECHANISM_VERSION
+            if _should_extract_abnormal_mechanism(project)
+            else EXTRACT_METRICS_VERSION
+        ),
+    }
 
     performance_score_profiles = [
         *_get_browser_performance_profiles(project.organization),
@@ -1038,7 +1013,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 3
+TRANSACTION_METRICS_EXTRACTION_VERSION = 5
 
 
 class CustomMeasurementSettings(TypedDict):

@@ -1,5 +1,5 @@
 ---
-created: '2024-02-07T10:46:28.389774Z'
+created: '2024-05-02T21:08:26.482609+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -84,7 +84,7 @@ config:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
       - 'ChunkLoadError: Loading chunk *'
-      - 'Uncaught *: ChunkLoadError: Loading chunk *'
+      - '*Uncaught *: ChunkLoadError: Loading chunk *'
     ignoreTransactions:
       isEnabled: true
       patterns:
@@ -93,6 +93,8 @@ config:
       - '*/health'
       - '*/healthy'
       - '*/healthz'
+      - '*/_health'
+      - '*/\[_health\]'
       - '*/live'
       - '*/livez'
       - '*/ready'
@@ -101,6 +103,176 @@ config:
   groupingConfig:
     enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11
+  performanceScore:
+    profiles:
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Chrome
+      name: Chrome
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: false
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Firefox
+      name: Firefox
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.0
+      - measurement: ttfb
+        optional: false
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Safari
+      name: Safari
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.0
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.0
+      - measurement: ttfb
+        optional: false
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Edge
+      name: Edge
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: false
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Opera
+      name: Opera
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: false
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Chrome
+        - name: event.contexts.browser.name
+          op: eq
+          value: Google Chrome
+        op: or
+      name: Chrome INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Edge
+      name: Edge INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Opera
+      name: Opera INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
   piiConfig:
     applications:
       $string:
@@ -121,6 +293,8 @@ config:
         - '@ip'
         - '@mac'
         type: multiple
+  sessionMetrics:
+    version: 1
   trustedRelays: []
 disabled: false
 slug: bar

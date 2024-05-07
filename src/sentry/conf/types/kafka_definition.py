@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Required, TypedDict
 
 import click
+from sentry_kafka_schemas import get_codec
 
 
 class Topic(Enum):
@@ -42,12 +43,15 @@ class Topic(Enum):
     INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
     INGEST_OCCURRENCES = "ingest-occurrences"
     INGEST_MONITORS = "ingest-monitors"
+    MONITORS_CLOCK_TICK = "monitors-clock-tick"
+    MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
     GROUP_ATTRIBUTES = "group-attributes"
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_SPANS = "snuba-spans"
     BUFFERED_SEGMENTS = "buffered-segments"
+    BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
 
 
 class ConsumerDefinition(TypedDict, total=False):
@@ -84,3 +88,10 @@ def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> Non
         raise ValueError(
             "Invalid consumer definition, dlq_max_invalid_ratio/dlq_max_consecutive_count is configured, but dlq_topic is not"
         )
+
+
+def get_topic_codec(topic: Topic):
+    """
+    Like sentry_kafka_schemas.get_codec, but only accepts a Topic enum
+    """
+    return get_codec(topic.value)

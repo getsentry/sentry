@@ -12,10 +12,10 @@ import {formatTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
+import toArray from 'sentry/utils/array/toArray';
 import {getFormattedDate} from 'sentry/utils/dates';
 import domId from 'sentry/utils/domId';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
-import toArray from 'sentry/utils/toArray';
 
 interface Props
   extends Pick<

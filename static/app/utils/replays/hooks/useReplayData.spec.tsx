@@ -10,7 +10,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -89,7 +89,7 @@ describe('useReplayData', () => {
       body: {data: mockReplayResponse},
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
+    const {result} = renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -162,7 +162,7 @@ describe('useReplayData', () => {
       match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
+    const {result} = renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -183,6 +183,76 @@ describe('useReplayData', () => {
     );
   });
 
+  it('should always fetch DISCOVER & ISSUE_PLATFORM errors', async () => {
+    const startedAt = new Date('12:00:00 01-01-2023');
+    const finishedAt = new Date('12:00:10 01-01-2023');
+
+    const {mockReplayResponse, expectedReplay} = getMockReplayRecord({
+      started_at: startedAt,
+      finished_at: finishedAt,
+      duration: duration(10, 'seconds'),
+      count_errors: 0,
+      count_segments: 0,
+      error_ids: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
+      body: {data: mockReplayResponse},
+    });
+    const mockedErrorEventsMetaCall = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {},
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:1:0"',
+        ].join(','),
+      },
+      match: [
+        (_url, options) => options.query?.dataset === DiscoverDatasets.DISCOVER,
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:0:0',
+      ],
+    });
+
+    const mockedIssuePlatformEventsMetaCall = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {},
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:1:0"',
+        ].join(','),
+      },
+      match: [
+        (_url, options) => options.query?.dataset === DiscoverDatasets.ISSUE_PLATFORM,
+        (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
+        (_url, options) => options.query?.cursor === '0:0:0',
+      ],
+    });
+
+    const {result} = renderHook(useReplayData, {
+      wrapper,
+      initialProps: {
+        replayId: mockReplayResponse.id,
+        orgSlug: organization.slug,
+        errorsPerPage: 1,
+      },
+    });
+
+    await waitFor(() => expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(1));
+    expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1);
+
+    expect(result.current).toStrictEqual(
+      expect.objectContaining({
+        attachments: [],
+        errors: [],
+        replayRecord: expectedReplay,
+      })
+    );
+  });
+
   it('should concat N error responses and pass them through to Replay Reader', async () => {
     const ERROR_IDS = [
       '5c83aaccfffb4a708ae893bad9be3a1c',
@@ -195,7 +265,7 @@ describe('useReplayData', () => {
       started_at: startedAt,
       finished_at: finishedAt,
       duration: duration(10, 'seconds'),
-      count_errors: 2,
+      count_errors: ERROR_IDS.length,
       count_segments: 0,
       error_ids: ERROR_IDS,
     });
@@ -294,7 +364,7 @@ describe('useReplayData', () => {
       ],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
+    const {result} = renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -323,7 +393,7 @@ describe('useReplayData', () => {
   });
 
   it('should incrementally load attachments and errors', async () => {
-    const ERROR_ID = '5c83aaccfffb4a708ae893bad9be3a1c';
+    const ERROR_IDS = ['5c83aaccfffb4a708ae893bad9be3a1c'];
     const startedAt = new Date('12:00:00 01-01-2023');
     const finishedAt = new Date('12:00:10 01-01-2023');
 
@@ -331,16 +401,16 @@ describe('useReplayData', () => {
       started_at: startedAt,
       finished_at: finishedAt,
       duration: duration(10, 'seconds'),
-      count_errors: 1,
+      count_errors: ERROR_IDS.length,
       count_segments: 1,
-      error_ids: [ERROR_ID],
+      error_ids: ERROR_IDS,
     });
     const mockSegmentResponse = RRWebInitFrameEventsFixture({
       timestamp: startedAt,
     });
     const mockErrorResponse = [
       ReplayErrorFixture({
-        id: ERROR_ID,
+        id: ERROR_IDS[0],
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),
       }),
@@ -371,7 +441,7 @@ describe('useReplayData', () => {
       body: {data: mockErrorResponse},
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
+    const {result} = renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,

@@ -5,7 +5,7 @@ import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AllTeamsRow from './allTeamsRow';

@@ -11,7 +11,7 @@ from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -74,7 +74,7 @@ class GitHubAppsProviderTest(TestCase):
             "url": "https://github.com/getsentry/example-repo",
         }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_compare_commits_no_start(self, get_jwt):
         responses.add(
@@ -101,7 +101,7 @@ class GitHubAppsProviderTest(TestCase):
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, None, "abcdef")
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_compare_commits(self, get_jwt):
         responses.add(
@@ -118,7 +118,7 @@ class GitHubAppsProviderTest(TestCase):
         for commit in result:
             assert_commit_shape(commit)
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_compare_commits_patchset_handling(self, get_jwt):
         responses.add(
@@ -140,7 +140,7 @@ class GitHubAppsProviderTest(TestCase):
         assert patchset[3] == {"path": "old_name.txt", "type": "D"}
         assert patchset[4] == {"path": "renamed.txt", "type": "A"}
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_patchset_caching(self, get_jwt):
         responses.add(

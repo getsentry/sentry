@@ -31,7 +31,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayl
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -167,16 +167,9 @@ class IndexerBatch:
         msg: Message[KafkaPayload],
     ) -> ParsedMessage:
         assert isinstance(msg.value, BrokerValue)
-        decoded_str = msg.payload.value.decode()
-
         try:
-            if in_random_rollout("sentry-metrics.indexer.enable-orjson"):
-                # Always create a span because json.loads passes skip_trace=False
-                with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-                    parsed_payload: ParsedMessage = orjson.loads(decoded_str)
-            else:
-                parsed_payload = json.loads(decoded_str, use_rapid_json=True)
-        except (orjson.JSONDecodeError, rapidjson.JSONDecodeError):
+            parsed_payload: ParsedMessage = orjson.loads(msg.payload.value)
+        except orjson.JSONDecodeError:
             logger.exception(
                 "process_messages.invalid_json",
                 extra={"payload_value": str(msg.payload.value)},
@@ -506,9 +499,14 @@ class IndexerBatch:
                 with metrics.timer(
                     "metrics_consumer.reconstruct_messages.build_new_payload.json_step"
                 ):
+                    if in_random_rollout("sentry-metrics.indexer.reconstruct.enable-orjson"):
+                        serialized_msg = orjson.dumps(new_payload_value)
+                    else:
+                        serialized_msg = rapidjson.dumps(new_payload_value).encode()
+
                     kafka_payload = KafkaPayload(
                         key=message.payload.key,
-                        value=rapidjson.dumps(new_payload_value).encode(),
+                        value=serialized_msg,
                         headers=[
                             *message.payload.headers,
                             ("mapping_sources", mapping_header_content),

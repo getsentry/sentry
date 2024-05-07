@@ -70,9 +70,14 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
                 style="primary",
                 action_id="approve_request",
                 value="approve_member",
+                label="Approve",
             ),
             MessageAction(
-                name="Reject", style="danger", action_id="approve_request", value="reject_member"
+                name="Reject",
+                style="danger",
+                action_id="approve_request",
+                value="reject_member",
+                label="Reject",
             ),
             MessageAction(
                 name="See Members & Requests",

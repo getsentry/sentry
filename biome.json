@@ -21,17 +21,24 @@
         "noUnreachable": "error",
         "useHookAtTopLevel": "error",
         "useIsNan": "error",
-        "noUnusedPrivateClassMembers": "error"
+        "noUnusedPrivateClassMembers": "error",
+        "noInvalidUseBeforeDeclaration": "error"
       },
       "complexity": {
         "useFlatMap": "error",
         "useOptionalChain": "error",
         "noEmptyTypeParameters": "error",
-        "noUselessLoneBlockStatements": "error"
+        "noUselessLoneBlockStatements": "error",
+        "noUselessEmptyExport": "error",
+        "noUselessConstructor": "error",
+        "noUselessTypeConstraint": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
         "noNodejsModules": "error"
+      },
+      "performance": {
+        "noBarrelFile": "error"
       },
       "security": {
         "noDangerouslySetInnerHtmlWithChildren": "error"
@@ -50,7 +57,9 @@
         "noUnsafeNegation": "error",
         "useIsArray": "error",
         "noApproximativeNumericConstant": "error",
-        "noMisrefactoredShorthandAssign": "error"
+        "noMisrefactoredShorthandAssign": "error",
+        "useAwait": "error",
+        "useNamespaceKeyword": "error"
       },
       "style": {
         "noCommaOperator": "error",
@@ -61,7 +70,10 @@
         "useShorthandFunctionType": "error",
         "useExportType": "error",
         "useImportType": "error",
-        "useNodejsImportProtocol": "error"
+        "useNodejsImportProtocol": "error",
+        "useLiteralEnumMembers": "error",
+        "useEnumInitializers": "error",
+        "useAsConstAssertion": "error"
       }
     }
   },
@@ -72,7 +84,8 @@
       "static/app/data/world.json",
       "**/*.sourcemap.js",
       "**/*.min.js",
-      "fixtures"
+      "fixtures",
+      ".devenv"
     ]
   },
   "formatter": {
@@ -104,12 +117,7 @@
   },
   "overrides": [
     {
-      "include": [
-        "biome.json",
-        "config/tsconfig.*",
-        "tsconfig.json",
-        ".vscode/*"
-      ],
+      "include": ["biome.json", "config/tsconfig.*", "tsconfig.json", ".vscode/*"],
       "json": {
         "parser": {
           "allowComments": true,
@@ -143,6 +151,26 @@
         "rules": {
           "style": {
             "noVar": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": [
+        "static/app/utils/replays/types.tsx",
+        "static/app/utils/queryClient.tsx",
+        "static/app/views/performance/traceDetails/styles.tsx",
+        "static/app/icons/index.tsx",
+        "static/app/components/tabs/index.tsx",
+        "static/app/components/sparklines/line.tsx",
+        "static/app/types/index.tsx",
+        "tests/js/sentry-test/reactTestingLibrary.tsx",
+        "tests/js/sentry-test/index.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
           }
         }
       }

@@ -5,6 +5,7 @@ import colorFn from 'color';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconFilter, IconLightning, IconReleases} from 'sentry/icons';
@@ -14,7 +15,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
+import {
+  type FocusedMetricsSeries,
+  MetricSeriesFilterUpdateType,
+  type SortState,
+} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Series} from 'sentry/views/metrics/chart/types';
@@ -33,7 +38,11 @@ export const SummaryTable = memo(function SummaryTable({
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
-  onRowFilter?: (index: number, series: FocusedMetricsSeries) => void;
+  onRowFilter?: (
+    index: number,
+    series: FocusedMetricsSeries,
+    updateType: MetricSeriesFilterUpdateType
+  ) => void;
   onRowHover?: (seriesName: string) => void;
   sort?: SortState;
 }) {
@@ -82,14 +91,18 @@ export const SummaryTable = memo(function SummaryTable({
   );
 
   const handleRowFilter = useCallback(
-    (index: number | undefined, row: FocusedMetricsSeries) => {
+    (
+      index: number | undefined,
+      row: FocusedMetricsSeries,
+      updateType: MetricSeriesFilterUpdateType
+    ) => {
       if (index === undefined) {
         return;
       }
       trackAnalytics('ddm.widget.add_row_filter', {
         organization,
       });
-      onRowFilter?.(index, row);
+      onRowFilter?.(index, row, updateType);
     },
     [onRowFilter, organization]
   );
@@ -251,7 +264,6 @@ export const SummaryTable = memo(function SummaryTable({
                       <TextOverflow>{seriesName}</TextOverflow>
                     </Tooltip>
                   </TextOverflowCell>
-                  {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
                   <NumberCell>{formatMetricUsingUnit(avg, unit)}</NumberCell>
                   <NumberCell>{formatMetricUsingUnit(min, unit)}</NumberCell>
                   <NumberCell>{formatMetricUsingUnit(max, unit)}</NumberCell>
@@ -285,23 +297,58 @@ export const SummaryTable = memo(function SummaryTable({
                           </div>
                         )}
 
-                        <Tooltip title={t('Add to Filter')} disabled={isEquationSeries}>
-                          <Button
-                            disabled={isEquationSeries}
-                            onClick={event => {
-                              event.stopPropagation();
-
-                              handleRowFilter(queryIndex, {
-                                id,
-                                groupBy,
-                              });
-                            }}
-                            size="zero"
-                            borderless
-                          >
-                            <IconFilter size="sm" />
-                          </Button>
-                        </Tooltip>
+                        {/* do not show add/exclude filter if there's no groupby or if this is an equation */}
+                        {Object.keys(groupBy ?? {}).length > 0 && !isEquationSeries && (
+                          <DropdownMenu
+                            items={[
+                              {
+                                key: 'add-to-filter',
+                                label: t('Add to filter'),
+                                size: 'sm',
+                                onAction: () => {
+                                  handleRowFilter(
+                                    queryIndex,
+                                    {
+                                      id,
+                                      groupBy,
+                                    },
+                                    MetricSeriesFilterUpdateType.ADD
+                                  );
+                                },
+                              },
+                              {
+                                key: 'exclude-from-filter',
+                                label: t('Exclude from filter'),
+                                size: 'sm',
+                                onAction: () => {
+                                  handleRowFilter(
+                                    queryIndex,
+                                    {
+                                      id,
+                                      groupBy,
+                                    },
+                                    MetricSeriesFilterUpdateType.EXCLUDE
+                                  );
+                                },
+                              },
+                            ]}
+                            trigger={triggerProps => (
+                              <Button
+                                {...triggerProps}
+                                aria-label={t('Quick Context Action Menu')}
+                                data-test-id="quick-context-action-trigger"
+                                borderless
+                                size="zero"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  triggerProps.onClick?.(e);
+                                }}
+                                icon={<IconFilter size="sm" />}
+                              />
+                            )}
+                          />
+                        )}
                       </ButtonBar>
                     </CenterCell>
                   )}

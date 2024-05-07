@@ -11,7 +11,7 @@ from sentry.testutils.cases import APITestCase
 class RuleSnoozeTest(APITestCase):
     def setUp(self):
         self.issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=self.team.actor
+            label="test rule", project=self.project, owner_team=self.team
         )
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]
@@ -44,7 +44,9 @@ class RuleSnoozeTest(APITestCase):
         assert RuleSnooze.objects.filter(id=issue_alert_rule_snooze_user_until.id).exists()
 
         issue_alert_rule2 = Rule.objects.create(
-            label="test rule", project=self.project, owner=self.team.actor
+            label="test rule",
+            project=self.project,
+            owner_team=self.team,
         )
         issue_alert_rule_snooze_user_forever = self.snooze_rule(
             user_id=self.user.id, owner_id=self.user.id, rule=issue_alert_rule2

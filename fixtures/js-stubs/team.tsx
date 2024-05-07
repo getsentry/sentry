@@ -1,6 +1,6 @@
 import {uuid4} from '@sentry/utils';
 
-import type {DetailedTeam} from 'sentry/types';
+import type {DetailedTeam} from 'sentry/types/organization';
 
 export function TeamFixture(params: Partial<DetailedTeam> = {}): DetailedTeam {
   return {
