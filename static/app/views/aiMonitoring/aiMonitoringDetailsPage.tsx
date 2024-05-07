@@ -25,7 +25,7 @@ import {
 import {PipelineSpansTable} from 'sentry/views/aiMonitoring/pipelineSpansTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   SpanFunction,
   SpanMetricsField,

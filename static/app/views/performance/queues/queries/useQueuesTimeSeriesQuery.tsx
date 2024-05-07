@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useCheckMessagingMetricExists} from 'sentry/views/performance/queues/utils/useCheckMessagingMetricExists';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 type Props = {

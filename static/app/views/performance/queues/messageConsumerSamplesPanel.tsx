@@ -25,7 +25,7 @@ import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/messageSp
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 

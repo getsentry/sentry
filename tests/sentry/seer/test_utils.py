@@ -58,14 +58,17 @@ def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, s
     assert mock_capture_exception.called
 
 
+# TODO: Remove once switch is complete
 @django_db_all
 @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-def test_simple_similar_issues_embeddings(mock_seer_request, default_project):
+def test_simple_similar_issues_embeddings_only_group_id_returned(
+    mock_seer_request, default_project
+):
     """Test that valid responses are decoded and returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
     similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
 
-    raw_similar_issue_data = {
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
         "parent_group_id": NonNone(similar_event.group_id),
         "should_group": True,
@@ -81,8 +84,70 @@ def test_simple_similar_issues_embeddings(mock_seer_request, default_project):
         "stacktrace": "string",
         "message": "message",
     }
-    response = get_similar_issues_embeddings(params)
-    assert response == [raw_similar_issue_data]
+    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
+
+
+@django_db_all
+@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, default_project):
+    """Test that valid responses are decoded and returned."""
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
+    similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
+
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    seer_return_value = {"responses": [raw_similar_issue_data]}
+    mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+    params: SimilarIssuesEmbeddingsRequest = {
+        "group_id": NonNone(event.group_id),
+        "project_id": default_project.id,
+        "stacktrace": "string",
+        "message": "message",
+    }
+
+    similar_issue_data = {
+        **raw_similar_issue_data,
+        "parent_group_id": similar_event.group_id,
+    }
+
+    assert get_similar_issues_embeddings(params) == [
+        SeerSimilarIssueData(**similar_issue_data)  # type: ignore[arg-type]
+    ]
+
+
+# TODO: Remove once switch is complete
+@django_db_all
+@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, default_project):
+    """Test that valid responses are decoded and returned."""
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
+    similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
+
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_id": NonNone(similar_event.group_id),
+        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    seer_return_value = {"responses": [raw_similar_issue_data]}
+    mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+    params: SimilarIssuesEmbeddingsRequest = {
+        "group_id": NonNone(event.group_id),
+        "project_id": default_project.id,
+        "stacktrace": "string",
+        "message": "message",
+    }
+
+    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
 
 
 @django_db_all
@@ -99,8 +164,7 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
         "stacktrace": "string",
         "message": "message",
     }
-    response = get_similar_issues_embeddings(params)
-    assert response == []
+    assert get_similar_issues_embeddings(params) == []
 
 
 # TODO: Remove once switch is complete

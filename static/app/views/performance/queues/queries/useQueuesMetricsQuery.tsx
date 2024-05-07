@@ -1,7 +1,7 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
 import {useCheckMessagingMetricExists} from 'sentry/views/performance/queues/utils/useCheckMessagingMetricExists';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 type Props = {

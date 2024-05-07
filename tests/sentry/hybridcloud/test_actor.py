@@ -1,7 +1,8 @@
 import pytest
+from rest_framework import serializers
 
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor, parse_and_validate_actor
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
@@ -157,3 +158,42 @@ def test_resolve_many():
 
     assert isinstance(resolved[3], Team)
     assert resolved[3].id == team_one.id
+
+
+@django_db_all(transaction=True)
+def test_parse_and_validate_actor():
+    user = Factories.create_user()
+    other_user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+    other_org = Factories.create_organization(owner=other_user)
+
+    team = Factories.create_team(organization=org)
+    other_team = Factories.create_team(organization=other_org)
+
+    actor = parse_and_validate_actor("", org.id)
+    assert actor is None
+    actor = parse_and_validate_actor(None, org.id)
+    assert actor is None
+
+    with pytest.raises(serializers.ValidationError):
+        parse_and_validate_actor("lol:nope", org.id)
+
+    # Users that don't exist = errors
+    with pytest.raises(serializers.ValidationError):
+        parse_and_validate_actor("user:9326798", org.id)
+
+    # Users require membership in the org
+    with pytest.raises(serializers.ValidationError):
+        parse_and_validate_actor(f"user:{other_user.id}", org.id)
+    actor = parse_and_validate_actor(f"user:{user.id}", org.id)
+    assert actor
+    assert actor.id == user.id
+    assert actor.actor_type == ActorType.USER
+
+    # Teams require membership in the org
+    with pytest.raises(serializers.ValidationError):
+        parse_and_validate_actor(f"team:{other_team.id}", org.id)
+    actor = parse_and_validate_actor(f"team:{team.id}", org.id)
+    assert actor
+    assert actor.id == team.id
+    assert actor.actor_type == ActorType.TEAM
