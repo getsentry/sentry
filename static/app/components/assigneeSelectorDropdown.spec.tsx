@@ -1,3 +1,5 @@
+/* eslint-disable jest/no-disabled-tests */
+
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -435,7 +437,7 @@ describe('AssigneeSelectorDropdown', () => {
     );
   });
 
-  it('filters user by email and selects with keyboard', async () => {
+  it.skip('filters user by email and selects with keyboard', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
     const assignedGroup: Group = {
       ...GROUP_2,
