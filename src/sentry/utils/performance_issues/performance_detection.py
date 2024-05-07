@@ -72,7 +72,7 @@ class EventPerformanceProblem:
         return f"p-i-e:{identifier}"
 
     @property
-    def evidence_hashes(self):
+    def evidence_hashes(self) -> dict[str, list[str]]:
         evidence_ids = self.problem.to_dict()
         evidence_hashes = {}
 
@@ -90,7 +90,7 @@ class EventPerformanceProblem:
 
         return evidence_hashes
 
-    def save(self):
+    def save(self) -> None:
         nodestore.backend.set(self.identifier, self.problem.to_dict())
 
     @classmethod
@@ -398,7 +398,7 @@ def _detect_performance_problems(
     return list(unique_problems)
 
 
-def run_detector_on_data(detector, data):
+def run_detector_on_data(detector: PerformanceDetector, data: dict[str, Any]) -> None:
     if not detector.is_event_eligible(data):
         return
 
@@ -417,7 +417,7 @@ def report_metrics_for_detectors(
     sdk_span: Any,
     organization: Organization,
     is_standalone_spans: bool = False,
-):
+) -> None:
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
     sdk_name = get_sdk_name(event)
