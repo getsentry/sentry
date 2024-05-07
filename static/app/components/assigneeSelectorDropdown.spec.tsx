@@ -1,5 +1,3 @@
-/* eslint-disable jest/no-disabled-tests */
-
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -437,7 +435,7 @@ describe('AssigneeSelectorDropdown', () => {
     );
   });
 
-  it.skip('filters user by email and selects with keyboard', async () => {
+  it('filters user by email and selects with keyboard', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
     const assignedGroup: Group = {
       ...GROUP_2,
@@ -461,11 +459,11 @@ describe('AssigneeSelectorDropdown', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox'), 'Cert');
+    await userEvent.type(screen.getByText('Search users or teams...'), 'Cert');
 
     // 1 total item
-    waitFor(async () => {
-      expect(await screen.findAllByRole('option')).toHaveLength(1);
+    await waitFor(() => {
+      expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
     expect(await screen.findByText(`${USER_2.name}`)).toBeInTheDocument();
@@ -529,7 +527,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(await screen.findByText('Suggested Assignees')).toBeInTheDocument();
+    expect(await screen.findByText('Suggested')).toBeInTheDocument();
 
     const options = await screen.findAllByRole('option');
 
