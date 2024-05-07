@@ -38,9 +38,9 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
   ModuleName,
