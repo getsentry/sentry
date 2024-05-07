@@ -38,7 +38,6 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   constructor(props) {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
-    this.authenticators = [];
     this.state = {
       error: false,
       errorType: '',
@@ -69,7 +68,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
   }
 
   authUrl: string;
-  authenticators: Authenticator[];
+  authenticators: Authenticator[] = [];
 
   handleSubmitCOPS = () => {
     this.setState({
