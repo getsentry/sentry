@@ -63,7 +63,7 @@ function SpanSummaryCharts() {
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
-      yAxis: ['count()'],
+      yAxis: ['tpm()'],
       name: 'Transaction Throughput',
       query: MutableSearch.fromQueryObject({
         transaction: transaction as string,

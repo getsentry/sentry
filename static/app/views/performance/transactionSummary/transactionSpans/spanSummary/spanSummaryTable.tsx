@@ -159,6 +159,7 @@ export default function SpanSummaryTable(props: Props) {
     limit: LIMIT,
     options: {
       refetchOnWindowFocus: false,
+      enabled: Boolean(rowData),
     },
     referrer: 'api.performance.span-summary-table',
   });
