@@ -94,6 +94,7 @@ describe('transactionsTable', () => {
     expect(screen.getByRole('cell', {name: '2'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '6.00ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '20.00ms'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Consumer'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
   });
 });

@@ -127,8 +127,20 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
+  const op = row['span.op'];
+  const isProducer = op === 'queue.publish';
+  const isConsumer = op === 'queue.process';
   const key = column.key;
-  if (row[key] === undefined) {
+  if (
+    row[key] === undefined ||
+    (isConsumer && ['count_op(queue.publish)'].includes(key)) ||
+    (isProducer &&
+      [
+        'count_op(queue.process)',
+        'avg(messaging.message.receive.latency)',
+        'avg_if(span.self_time,span.op,queue.process)',
+      ].includes(key))
+  ) {
     return (
       <AlignRight>
         <NoValue>{' \u2014 '}</NoValue>
@@ -147,6 +159,17 @@ function renderBodyCell(
   if (key.startsWith('avg')) {
     const renderer = FIELD_FORMATTERS.duration.renderFunc;
     return renderer(key, row);
+  }
+
+  if (key === 'span.op') {
+    switch (row[key]) {
+      case 'queue.publish':
+        return t('Producer');
+      case 'queue.process':
+        return t('Consumer');
+      default:
+        return row[key];
+    }
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
