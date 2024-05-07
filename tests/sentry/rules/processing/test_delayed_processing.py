@@ -13,8 +13,8 @@ from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     process_delayed_alert_conditions,
 )
-from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json

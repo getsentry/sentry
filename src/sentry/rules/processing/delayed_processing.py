@@ -21,9 +21,9 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyConditionData,
 )
 from sentry.rules.processing.processor import (
+    PROJECT_ID_BUFFER_LIST_KEY,
     activate_downstream_actions,
     bulk_get_rule_status,
-    PROJECT_ID_BUFFER_LIST_KEY,
     is_condition_slow,
     split_conditions_and_filters,
 )
