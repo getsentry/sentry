@@ -891,7 +891,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_api(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -918,7 +918,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @patch("sentry_sdk.capture_exception")
     @responses.activate
     def test_gh_comment_api_error(
@@ -945,7 +945,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert mock_capture_exception.called
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_commit_not_in_default_branch(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -970,7 +970,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_query(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -992,7 +992,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         """No comment on pr that's older than PR_COMMENT_WINDOW"""
@@ -1014,7 +1014,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_pr_info_level_issue(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -1039,7 +1039,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_repeat_issue(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         """No comment on a pr that has a comment with the issue in the same pr list"""
@@ -1061,7 +1061,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_create_queued(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -1087,7 +1087,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert len(pr_commits) == 1
             assert pr_commits[0].commit == self.commit
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_create_queued_existing_pr_commit(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -1116,7 +1116,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert len(pr_commits) == 1
             assert pr_commits[0] == pr_commit
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_update_queue(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         """Task queued if new issue for prior comment"""
@@ -1155,7 +1155,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_debounces(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         mock_get_commit_context.return_value = [self.blame]
@@ -1188,7 +1188,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert mock_comment_workflow.call_count == 1
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_multiple_comments(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context

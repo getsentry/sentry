@@ -94,7 +94,7 @@ class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
 
         return self.token
 
-    def get_jwt(self):
+    def get_jwt(self) -> str:
         exp_dt = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
         exp = calendar.timegm(exp_dt.timetuple())
         # Generate the JWT
