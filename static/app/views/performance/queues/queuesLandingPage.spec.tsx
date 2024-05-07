@@ -71,6 +71,10 @@ describe('queuesLandingPage', () => {
     });
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders', async () => {
     render(<QueuesLandingPage />);
     await screen.findByRole('table', {name: 'Queues'});
@@ -80,5 +84,46 @@ describe('queuesLandingPage', () => {
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();
+  });
+
+  it('does not query for avg(messaging.message.receive.latency) when not available', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {error: {message: 'Invalid query'}},
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.queues',
+        }),
+      ],
+      statusCode: 400,
+    });
+    render(<QueuesLandingPage />);
+    await screen.findByRole('table', {name: 'Queues'});
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    expect(eventsStatsMock).toHaveBeenCalled();
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: expect.objectContaining({
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'messaging.destination.name',
+            'count()',
+            'count_op(queue.publish)',
+            'count_op(queue.process)',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'avg_if(span.self_time,span.op,queue.publish)',
+            'avg_if(span.self_time,span.op,queue.process)',
+          ],
+          query: 'span.op:[queue.process,queue.publish]',
+          statsPeriod: '10d',
+        }),
+      })
+    );
   });
 });

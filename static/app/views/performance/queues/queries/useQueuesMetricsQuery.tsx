@@ -1,6 +1,8 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
+import {useCheckMessagingMetricExists} from 'sentry/views/performance/queues/utils/useCheckMessagingMetricExists';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 type Props = {
   destination?: string;
@@ -8,7 +10,19 @@ type Props = {
   transaction?: string;
 };
 
+const fields: SpanMetricsProperty[] = [
+  'count()',
+  'count_op(queue.publish)',
+  'count_op(queue.process)',
+  'sum(span.self_time)',
+  'avg(span.self_time)',
+  'avg_if(span.self_time,span.op,queue.publish)',
+  'avg_if(span.self_time,span.op,queue.process)',
+  'avg(messaging.message.receive.latency)',
+];
+
 export function useQueuesMetricsQuery({destination, transaction, enabled}: Props) {
+  const {isLoading, receiveLatencyExists} = useCheckMessagingMetricExists();
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
   if (destination) {
     mutableSearch.addFilterValue('messaging.destination.name', destination);
@@ -18,17 +32,11 @@ export function useQueuesMetricsQuery({destination, transaction, enabled}: Props
   }
   const response = useSpanMetrics({
     search: mutableSearch,
-    fields: [
-      'count()',
-      'count_op(queue.publish)',
-      'count_op(queue.process)',
-      'sum(span.self_time)',
-      'avg(span.self_time)',
-      'avg_if(span.self_time,span.op,queue.publish)',
-      'avg_if(span.self_time,span.op,queue.process)',
-      'avg(messaging.message.receive.latency)',
-    ],
-    enabled,
+    fields: fields.filter(
+      aggregate =>
+        aggregate !== 'avg(messaging.message.receive.latency)' || receiveLatencyExists
+    ),
+    enabled: enabled && !isLoading,
     sorts: [],
     limit: 10,
     referrer: 'api.performance.queues.destination-summary',

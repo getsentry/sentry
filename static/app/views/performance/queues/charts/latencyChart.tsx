@@ -32,10 +32,14 @@ export function LatencyChart({error}: Props) {
         }}
         data={
           [
-            {
-              seriesName: t('Average Time in Queue'),
-              data: data['avg(messaging.message.receive.latency)'].data,
-            },
+            ...(data['avg(messaging.message.receive.latency)']?.data
+              ? [
+                  {
+                    seriesName: t('Average Time in Queue'),
+                    data: data['avg(messaging.message.receive.latency)']?.data,
+                  },
+                ]
+              : []),
             {
               seriesName: t('Average Processing Time'),
               data: data['avg_if(span.self_time,span.op,queue.process)'].data,

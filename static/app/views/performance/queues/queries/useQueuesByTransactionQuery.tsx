@@ -2,7 +2,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
+import {useCheckMessagingMetricExists} from 'sentry/views/performance/queues/utils/useCheckMessagingMetricExists';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Props = {
@@ -10,7 +12,21 @@ type Props = {
   enabled?: boolean;
 };
 
+const fields: SpanMetricsProperty[] = [
+  'transaction',
+  'span.op',
+  'count()',
+  'count_op(queue.publish)',
+  'count_op(queue.process)',
+  'sum(span.self_time)',
+  'avg(span.self_time)',
+  'avg_if(span.self_time,span.op,queue.publish)',
+  'avg_if(span.self_time,span.op,queue.process)',
+  'avg(messaging.message.receive.latency)',
+];
+
 export function useQueuesByTransactionQuery({destination, enabled}: Props) {
+  const {isLoading, receiveLatencyExists} = useCheckMessagingMetricExists();
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
@@ -20,19 +36,11 @@ export function useQueuesByTransactionQuery({destination, enabled}: Props) {
   }
   const response = useSpanMetrics({
     search: mutableSearch,
-    fields: [
-      'transaction',
-      'span.op',
-      'count()',
-      'count_op(queue.publish)',
-      'count_op(queue.process)',
-      'sum(span.self_time)',
-      'avg(span.self_time)',
-      'avg_if(span.self_time,span.op,queue.publish)',
-      'avg_if(span.self_time,span.op,queue.process)',
-      'avg(messaging.message.receive.latency)',
-    ],
-    enabled,
+    fields: fields.filter(
+      aggregate =>
+        aggregate !== 'avg(messaging.message.receive.latency)' || receiveLatencyExists
+    ),
+    enabled: enabled && !isLoading,
     sorts: [],
     limit: 10,
     cursor,

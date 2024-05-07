@@ -1,4 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useCheckMessagingMetricExists} from 'sentry/views/performance/queues/utils/useCheckMessagingMetricExists';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
@@ -16,14 +17,18 @@ const yAxis: SpanMetricsProperty[] = [
 ];
 
 export function useQueuesTimeSeriesQuery({enabled, destination}: Props) {
+  const {isLoading, receiveLatencyExists} = useCheckMessagingMetricExists();
   return useSpanMetricsSeries({
-    yAxis,
+    yAxis: yAxis.filter(
+      aggregate =>
+        aggregate !== 'avg(messaging.message.receive.latency)' || receiveLatencyExists
+    ),
     search: destination
       ? MutableSearch.fromQueryObject({
           'messaging.destination.name': destination,
         })
       : undefined,
     referrer: 'api.performance.queues.module-chart',
-    enabled,
+    enabled: enabled && !isLoading,
   });
 }
