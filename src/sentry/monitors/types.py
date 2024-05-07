@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict, Union
@@ -25,6 +27,17 @@ class CheckinPayload(TypedDict):
     duration: NotRequired[int]
     monitor_config: NotRequired[dict]
     contexts: NotRequired[CheckinContexts]
+
+
+class CheckinItemData(TypedDict):
+    """
+    See `CheckinItem` for definition
+    """
+
+    ts: str
+    partition: int
+    message: CheckIn
+    payload: CheckinPayload
 
 
 @dataclass
@@ -69,6 +82,23 @@ class CheckinItem:
         project_id = self.message["project_id"]
         env = self.payload.get("environment")
         return f"{project_id}:{self.valid_monitor_slug}:{env}"
+
+    def to_dict(self) -> CheckinItemData:
+        return {
+            "ts": self.ts.isoformat(),
+            "partition": self.partition,
+            "message": self.message,
+            "payload": self.payload,
+        }
+
+    @classmethod
+    def from_dict(cls, data: CheckinItemData) -> CheckinItem:
+        return cls(
+            datetime.fromisoformat(data["ts"]),
+            data["partition"],
+            data["message"],
+            data["payload"],
+        )
 
 
 IntervalUnit = Literal["year", "month", "week", "day", "hour", "minute"]
