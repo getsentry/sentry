@@ -413,8 +413,9 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
         affected_monitors = [monitor]
 
+        user_id = user.id
         with assume_test_silo_mode_of(User), outbox_runner():
-            User.objects.get(id=user.id).delete()
+            User.objects.get(id=user_id).delete()
 
         assert Monitor.objects.filter(id=monitor.id).exists()
         assert monitor.owner_user_id == user.id
@@ -433,8 +434,8 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
                     organization_id=organization.id,
                     project_id=project.id,
                     slug=f"test-monitor-{i}",
-                    name="Test Monitor",
-                    owner_user_id=user.id,
+                    name=f"Row After Tombstone {i}",
+                    owner_user_id=user_id,
                 )
                 for i in range(4)
             ]
