@@ -127,6 +127,10 @@ export type PercentageUnit = 'percentage';
 
 export type PercentChangeUnit = 'percent_change';
 
+export enum CurrencyUnit {
+  USD = 'usd',
+}
+
 export enum DurationUnit {
   NANOSECOND = 'nanosecond',
   MICROSECOND = 'microsecond',
