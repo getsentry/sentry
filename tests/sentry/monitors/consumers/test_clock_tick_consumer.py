@@ -26,7 +26,6 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 
 partition = Partition(Topic("test"), 0)
 
@@ -61,7 +60,6 @@ def test_simple(mock_dispatch_check_timeout, mock_dispatch_check_missing):
 
 class MonitorsClockTickEndToEndTest(TestCase):
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    @override_options({"crons.use_clock_pulse_consumer": True})
     def test_end_to_end(self):
         ts = timezone.now().replace(second=0, microsecond=0)
 
