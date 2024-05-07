@@ -103,7 +103,9 @@ class AccountConfirmLink:
             "provider": self.provider.provider,
         }
         cluster.setex(
-            self.verification_key, int(_TTL.total_seconds()), json.dumps(verification_value)
+            self.verification_key,
+            int(_TTL.total_seconds()),
+            json.dumps_experimental("auth.enable-orjson", verification_value),
         )
 
 
@@ -115,7 +117,9 @@ def get_verification_value_from_key(key: str) -> dict[str, Any] | None:
         metrics.incr("idpmigration.confirmation_failure", sample_rate=1.0)
         return None
 
-    verification_value: dict[str, Any] = json.loads(verification_str)
+    verification_value: dict[str, Any] = json.loads_experimental(
+        "auth.enable-orjson", verification_str
+    )
     metrics.incr(
         "idpmigration.confirmation_success",
         tags={"provider": verification_value.get("provider")},

@@ -21,11 +21,10 @@ import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaSelection} from 'sentry/views/metrics/chart/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
+import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 import {useStructuralSharing} from 'sentry/views/metrics/utils/useStructuralSharing';
 
 export type FocusAreaProps = {
@@ -100,11 +99,12 @@ export function useMetricWidgets() {
   const setWidgets = useCallback(
     (newWidgets: React.SetStateAction<MetricsWidget[]>) => {
       const currentWidgets = currentWidgetsRef.current;
-      updateQuery({
-        widgets: JSON.stringify(
-          typeof newWidgets === 'function' ? newWidgets(currentWidgets) : newWidgets
-        ),
-      });
+      const newData =
+        typeof newWidgets === 'function' ? newWidgets(currentWidgets) : newWidgets;
+
+      updateQuery({widgets: JSON.stringify(newData)});
+      // We need to update the ref so that the next call to setWidgets in the same render cycle will have the updated value
+      currentWidgetsRef.current = newData;
     },
     [updateQuery, currentWidgetsRef]
   );
@@ -206,22 +206,7 @@ const useDefaultQuery = () => {
   );
 };
 
-function useSelectedProjects() {
-  const {selection} = usePageFilters();
-  const {projects} = useProjects();
-
-  return useMemo(() => {
-    if (selection.projects.length === 0) {
-      return projects.filter(project => project.isMember);
-    }
-    if (selection.projects.includes(-1)) {
-      return projects;
-    }
-    return projects.filter(project => selection.projects.includes(Number(project.id)));
-  }, [selection.projects, projects]);
-}
-
-export function DDMContextProvider({children}: {children: React.ReactNode}) {
+export function MetricsContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
@@ -230,7 +215,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
-  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
+  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
     useMetricWidgets();
 
   const [metricsSamples, setMetricsSamples] = useState<
@@ -338,9 +323,15 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
         const firstVisibleWidgetIndex = widgets.findIndex(w => !w.isHidden);
         setSelectedWidgetIndex(firstVisibleWidgetIndex);
       }
+      if (!isMultiChartMode) {
+        // Reset the focused series when hiding a widget
+        setWidgets(currentWidgets => {
+          return currentWidgets.map(w => ({...w, focusedSeries: undefined}));
+        });
+      }
       updateWidget(index, {isHidden: !widgets[index].isHidden});
     },
-    [selectedWidgetIndex, updateWidget, widgets]
+    [isMultiChartMode, selectedWidgetIndex, setWidgets, updateWidget, widgets]
   );
 
   const selectedWidget = widgets[selectedWidgetIndex];

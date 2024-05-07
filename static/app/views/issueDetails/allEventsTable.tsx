@@ -10,11 +10,12 @@ import {
 import {t} from 'sentry/locale';
 import type {EventTransaction, Group, Organization, PlatformKey} from 'sentry/types';
 import {IssueCategory, IssueType} from 'sentry/types';
-import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
@@ -63,7 +64,9 @@ function AllEventsTable(props: Props) {
   }
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
 
-  eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
+  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
+    fields.includes(sort.field)
+  );
 
   useEffect(() => {
     setError('');

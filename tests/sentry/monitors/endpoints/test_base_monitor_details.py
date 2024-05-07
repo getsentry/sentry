@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models.actor import get_actor_for_team, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -24,6 +24,7 @@ from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.outcomes import Outcome
 
 
@@ -39,6 +40,21 @@ class BaseMonitorDetailsTest(MonitorTestCase):
 
         resp = self.get_success_response(self.organization.slug, monitor.slug)
         assert resp.data["slug"] == monitor.slug
+
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_simple_with_id(self):
+        monitor = self._create_monitor()
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["slug"] == monitor.slug
+
+        resp = self.get_success_response(self.organization.slug, monitor.guid)
+        assert resp.data["slug"] == monitor.slug
+
+        self.get_error_response(self.organization.slug, "asdf", status_code=404)
+
+        uuid = UUID("00000000-0000-0000-0000-000000000000")
+        self.get_error_response(self.organization.slug, uuid, status_code=404)
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
@@ -171,8 +187,10 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         }
 
     def test_owner_team(self):
-        team_actor = get_actor_for_team(self.team)
-        monitor = self._create_monitor(owner_actor_id=team_actor.id)
+        monitor = self._create_monitor(
+            owner_user_id=None,
+            owner_team_id=self.team.id,
+        )
         resp = self.get_success_response(self.organization.slug, monitor.slug)
 
         assert resp.data["owner"] == {
@@ -220,7 +238,8 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
     def test_owner(self):
         monitor = self._create_monitor()
-        assert monitor.owner_actor_id == get_actor_for_user(self.user).id
+        assert monitor.owner_user_id == self.user.id
+        assert monitor.owner_team_id is None
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"owner": f"team:{self.team.id}"}
@@ -229,7 +248,8 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert resp.data["owner"]["name"] == self.team.name
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.owner_actor_id == get_actor_for_team(self.team).id
+        assert monitor.owner_team_id == self.team.id
+        assert monitor.owner_user_id is None
 
         # Clear owner
         resp = self.get_success_response(
@@ -238,7 +258,8 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert resp.data["owner"] is None
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.owner_actor_id is None
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id is None
 
         # Validate error cases
         resp = self.get_error_response(
@@ -853,7 +874,8 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         self.login_as(user=self.user)
         super().setUp()
 
-    def test_simple(self):
+    @patch("sentry.quotas.backend.update_monitor_slug")
+    def test_simple(self, update_monitor_slug):
         monitor = self._create_monitor()
         old_slug = monitor.slug
 
@@ -868,6 +890,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor.id, model_name="Monitor"
         ).exists()
+        update_monitor_slug.assert_called_once()
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()

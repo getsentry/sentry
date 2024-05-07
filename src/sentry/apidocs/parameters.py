@@ -25,16 +25,16 @@ class GlobalParams:
         type=str,
         location="path",
     )
-    PROJECT_SLUG = OpenApiParameter(
-        name="project_slug",
-        description="The slug of the project the resource belongs to.",
+    PROJECT_ID_OR_SLUG = OpenApiParameter(
+        name="project_id_or_slug",
+        description="The id or slug of the project the resource belongs to.",
         required=True,
         type=str,
         location="path",
     )
-    TEAM_SLUG = OpenApiParameter(
-        name="team_slug",
-        description="The slug of the team the resource belongs to.",
+    TEAM_ID_OR_SLUG = OpenApiParameter(
+        name="team_id_or_slug",
+        description="The id or slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",
@@ -88,8 +88,8 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
 
 
 class OrganizationParams:
-    PROJECT_SLUG = OpenApiParameter(
-        name="project_slug",
+    PROJECT_ID_OR_SLUG = OpenApiParameter(
+        name="project_id_or_slug",
         location="query",
         required=False,
         many=True,
@@ -196,12 +196,12 @@ class CursorQueryParam(serializers.Serializer):
 
 
 class MonitorParams:
-    MONITOR_SLUG = OpenApiParameter(
-        name="monitor_slug",
+    MONITOR_ID_OR_SLUG = OpenApiParameter(
+        name="monitor_id_or_slug",
         location="path",
         required=True,
         type=str,
-        description="The slug of the monitor.",
+        description="The id or slug of the monitor.",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",
@@ -216,6 +216,13 @@ class MonitorParams:
         required=False,
         type=str,
         description="The name of environment for the monitor environment.",
+    )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=str,
+        description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
     )
 
 

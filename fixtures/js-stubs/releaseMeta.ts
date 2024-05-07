@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import type {ReleaseMeta} from 'sentry/types';
+import type {ReleaseMeta} from 'sentry/types/release';
 
 export function ReleaseMetaFixture(params: Partial<ReleaseMeta> = {}): ReleaseMeta {
   const project = ProjectFixture();

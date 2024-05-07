@@ -1,6 +1,5 @@
 import type {CSSProperties} from 'react';
 import {forwardRef} from 'react';
-import {browserHistory} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,13 +13,14 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChat, IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
+import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
@@ -55,6 +55,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
     const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
+    const hasAttachments = feedbackItem.hasAttachments;
     const hasComments = feedbackItem.numComments > 0;
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
@@ -146,6 +147,12 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                 {hasReplayId && (
                   <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
                     <IconPlay size="xs" />
+                  </Tooltip>
+                )}
+
+                {hasAttachments && (
+                  <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
+                    <IconImage size="xs" />
                   </Tooltip>
                 )}
 

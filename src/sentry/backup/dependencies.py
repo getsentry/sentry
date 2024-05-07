@@ -12,7 +12,7 @@ from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.utils import json
 
 
@@ -22,8 +22,6 @@ class NormalizedModelName:
     "normalized" model name is one that is identical to the name as it appears in an exported JSON
     backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
     """
-
-    __model_name: str
 
     def __init__(self, model_name: str):
         if "." not in model_name:
@@ -375,8 +373,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     from sentry.db.models.fields.foreignkey import FlexibleForeignKey
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.db.models.fields.onetoone import OneToOneCascadeDeletes
-    from sentry.models.actor import Actor
-    from sentry.models.team import Team
 
     # Process the list of models, and get the list of dependencies.
     model_dependencies_dict: dict[NormalizedModelName, ModelRelations] = {}
@@ -415,11 +411,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
-                    # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
-                    # team.actor_id, which avoids circular imports
-                    if model == Team and rel_model == Actor:
-                        continue
-
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,

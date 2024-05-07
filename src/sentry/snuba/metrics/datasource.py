@@ -89,7 +89,7 @@ from sentry.snuba.metrics.utils import (
     get_intervals,
     to_intervals,
 )
-from sentry.utils.snuba import bulk_snql_query, raw_snql_query
+from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 logger = logging.getLogger(__name__)
 
@@ -409,7 +409,7 @@ def get_stored_metrics_of_projects(
             use_case_id_to_index[use_case_id].append(len(requests) - 1)
 
     # We run the queries all in parallel.
-    results = bulk_snql_query(
+    results = bulk_snuba_queries(
         requests=requests,
         referrer="snuba.metrics.datasource.get_stored_metrics_of_projects",
         use_cache=True,
@@ -764,6 +764,15 @@ def get_all_tags(
             start=start,
             end=end,
         )
+        # Manually add the project key to enable grouping by project in the Metrics UI.
+        # There is a need to group metrics by project, cf. this PR:
+        # https://github.com/getsentry/sentry/commit/778000463605258a122be5de907513a8cc73f584
+        # The retrieval logic for tags will soon be changed, therefore this quick insertion should
+        # not live for long.
+        extended_tags = list(copy(tags))
+        extended_tags.append(Tag(key="project"))
+        tags = extended_tags
+
     except InvalidParams as e:
         sentry_sdk.capture_exception(e)
         return []
@@ -1219,11 +1228,13 @@ def get_series(
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(
-            meta=meta,
-            alias_to_metric_field=converter._alias_to_metric_field,
-            alias_to_metric_group_by_field=groupby_aliases,
-        )
-        if include_meta
-        else [],
+        "meta": (
+            translate_meta_results(
+                meta=meta,
+                alias_to_metric_field=converter._alias_to_metric_field,
+                alias_to_metric_group_by_field=groupby_aliases,
+            )
+            if include_meta
+            else []
+        ),
     }

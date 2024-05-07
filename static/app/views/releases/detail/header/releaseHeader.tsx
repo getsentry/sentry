@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import IdBadge from 'sentry/components/idBadge';

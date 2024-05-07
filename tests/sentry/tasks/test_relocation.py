@@ -686,12 +686,13 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         # Do a snapshot test of the cloudbuild config.
         cb_conf["steps"][0]["args"][2] = "gs://<BUCKET>/runs/<UUID>/in"
         cb_conf["artifacts"]["objects"]["location"] = "gs://<BUCKET>/runs/<UUID>/findings/"
-        cb_conf["steps"][12]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
+        cb_conf["steps"][11]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
         self.insta_snapshot(cb_conf)
 
         (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
-        assert len(files) == 2
+        assert len(files) == 3
         assert "kms-config.json" in files
+        assert "filter-usernames.txt" in files
         assert "raw-relocation-data.tar" in files
 
         kms_file = self.relocation_storage.open(f"runs/{self.uuid}/in/kms-config.json")
@@ -978,6 +979,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
 
         self.relocation_storage.save(f"runs/{self.uuid}/conf/cloudbuild.yaml", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/conf/cloudbuild.zip", BytesIO())
+        self.relocation_storage.save(f"runs/{self.uuid}/in/filter-usernames.txt", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/kms-config.json", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/raw-relocation-data.tar", BytesIO())
         self.relocation_storage.save(f"runs/{self.uuid}/in/baseline-config.tar", BytesIO())
@@ -1052,6 +1054,26 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
     ):
         self.relocation_storage.delete(f"runs/{self.uuid}/conf/cloudbuild.zip")
+        self.mock_message_builder(fake_message_builder)
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            preprocessing_complete(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert validating_start_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
+        assert not relocation.failure_reason
+
+    def test_fail_missing_filter_usernames_file(
+        self,
+        validating_start_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation_storage.delete(f"runs/{self.uuid}/in/filter-usernames.txt")
         self.mock_message_builder(fake_message_builder)
 
         # An exception being raised will trigger a retry in celery.

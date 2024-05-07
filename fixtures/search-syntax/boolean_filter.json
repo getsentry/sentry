@@ -9,7 +9,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
-        "value": {"type": "valueBoolean", "value": true}
+        "value": {"type": "valueBoolean", "value": "true", "parsed": {"value": true}}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -24,7 +24,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
-        "value": {"type": "valueBoolean", "value": true}
+        "value": {"type": "valueBoolean", "value": "TRUE", "parsed": {"value": true}}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -39,7 +39,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
-        "value": {"type": "valueBoolean", "value": true}
+        "value": {"type": "valueBoolean", "value": "1", "parsed": {"value": true}}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -54,7 +54,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
-        "value": {"type": "valueBoolean", "value": false}
+        "value": {"type": "valueBoolean", "value": "false", "parsed": {"value": false}}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -69,7 +69,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
-        "value": {"type": "valueBoolean", "value": false}
+        "value": {"type": "valueBoolean", "value": "FALSE", "parsed": {"value": false}}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -84,7 +84,7 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
-        "value": {"type": "valueBoolean", "value": false}
+        "value": {"type": "valueBoolean", "value": "0", "parsed": {"value": false}}
       },
       {"type": "spaces", "value": ""}
     ]
@@ -99,7 +99,7 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "stack.in_app", "quoted": false},
         "operator": "",
-        "value": {"type": "valueBoolean", "value": false}
+        "value": {"type": "valueBoolean", "value": "false", "parsed": {"value": false}}
       },
       {"type": "spaces", "value": ""}
     ]

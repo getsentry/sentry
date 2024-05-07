@@ -3,8 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
-from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.notifications.notifications.base import BaseNotification
@@ -25,7 +24,7 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
         self.context = context
         self.recipient = recipient
 
-    def build(self) -> SlackAttachment | SlackBlock:
+    def build(self) -> SlackBlock:
         callback_id_raw = self.notification.get_callback_data()
         title = self.notification.build_attachment_title(self.recipient)
         title_link = self.notification.get_title_link(self.recipient, ExternalProviders.SLACK)
@@ -34,16 +33,11 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
             self.recipient, ExternalProviders.SLACK
         )
         actions = self.notification.get_message_actions(self.recipient, ExternalProviders.SLACK)
-        callback_id = json.dumps(callback_id_raw) if callback_id_raw else None
-        if not features.has("organizations:slack-block-kit", self.notification.organization):
-            return self._build(
-                title=title,
-                title_link=title_link,
-                text=text,
-                footer=footer,
-                actions=actions,
-                callback_id=callback_id,
-            )
+        callback_id = (
+            json.dumps_experimental("integrations.slack.enable-orjson", callback_id_raw)
+            if callback_id_raw
+            else None
+        )
 
         first_block_text = ""
         if title_link:
@@ -65,8 +59,7 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
 
         actions_block = []
         for action in actions:
-            if action.label == "Turn on personal notifications" or action.url:
-                actions_block.append(self.get_button_action(action))
+            actions_block.append(self.get_button_action(action))
 
         if actions_block:
             blocks.append({"type": "actions", "elements": [action for action in actions_block]})

@@ -1,11 +1,15 @@
 import {t} from 'sentry/locale';
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import type {
   MetricsEquationWidget,
   MetricsQueryWidget,
   SortState,
 } from 'sentry/utils/metrics/types';
-import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
+import {
+  MetricChartOverlayType,
+  MetricDisplayType,
+  MetricExpressionType,
+} from 'sentry/utils/metrics/types';
 
 export const METRICS_DOCS_URL = 'https://docs.sentry.io/product/metrics/';
 
@@ -41,6 +45,7 @@ export const emptyMetricsQueryWidget: MetricsQueryWidget = {
   sort: DEFAULT_SORT_STATE,
   displayType: MetricDisplayType.LINE,
   isHidden: false,
+  overlays: [MetricChartOverlayType.SAMPLES],
 };
 
 export const emptyMetricsFormulaWidget: MetricsEquationWidget = {
@@ -50,4 +55,5 @@ export const emptyMetricsFormulaWidget: MetricsEquationWidget = {
   sort: DEFAULT_SORT_STATE,
   displayType: MetricDisplayType.LINE,
   isHidden: false,
+  overlays: [MetricChartOverlayType.SAMPLES],
 };

@@ -3,35 +3,42 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
-  organization,
   isVideoReplay,
+  organization,
 }: {
   isVideoReplay: boolean;
   organization: Organization;
 }): Record<TabKey, ReactNode> {
-  // The new trace table inside Breadcrumb items:
-  const hasTraceTable = organization.features.includes('session-replay-trace-table');
+  // For video replays, we hide the console, a11y, trace, and memory tabs
+  // The console tab isn't useful for video replays (for now); most of the
+  // useful logging context will come from breadcrumbs
+  // A11y, trace, and memory aren't applicable for mobile
+
+  // Show the console tab if 1) it's a video replay and we have the FF enabled
+  // or 2) it's not a video replay
+  const showConsoleTab = isVideoReplay
+    ? organization.features.includes('session-replay-mobile-network-tab')
+    : true;
 
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
-    [TabKey.CONSOLE]: t('Console'),
+    [TabKey.CONSOLE]: showConsoleTab ? t('Console') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: hasTraceTable || isVideoReplay ? null : t('Trace'),
-    [TabKey.PERF]: null,
+    [TabKey.TRACE]: isVideoReplay ? null : t('Trace'),
     [TabKey.A11Y]: isVideoReplay ? null : (
       <Fragment>
         <Tooltip
@@ -70,10 +77,13 @@ function FocusTabs({className, isVideoReplay}: Props) {
   const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
-  const supportedVideoTabs = [TabKey.TAGS, TabKey.ERRORS, TabKey.BREADCRUMBS];
 
-  const unsupportedVideoTab = tab => {
-    return isVideoReplay && !supportedVideoTabs.includes(tab);
+  const isTabDisabled = (tab: string) => {
+    return (
+      tab === TabKey.NETWORK &&
+      isVideoReplay &&
+      !organization.features.includes('session-replay-mobile-network-tab')
+    );
   };
 
   return (
@@ -81,10 +91,10 @@ function FocusTabs({className, isVideoReplay}: Props) {
       {Object.entries(getReplayTabs({organization, isVideoReplay})).map(([tab, label]) =>
         label ? (
           <ListLink
-            disabled={unsupportedVideoTab(tab)}
+            disabled={isTabDisabled(tab)}
             data-test-id={`replay-details-${tab}-btn`}
             key={tab}
-            isActive={() => (unsupportedVideoTab(tab) ? false : tab === activeTab)}
+            isActive={() => tab === activeTab}
             to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
             onClick={e => {
               e.preventDefault();
@@ -96,9 +106,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
               });
             }}
           >
-            <Tooltip
-              title={unsupportedVideoTab(tab) ? t('This feature is coming soon') : null}
-            >
+            <Tooltip title={isTabDisabled(tab) ? t('This feature is coming soon') : null}>
               {label}
             </Tooltip>
           </ListLink>

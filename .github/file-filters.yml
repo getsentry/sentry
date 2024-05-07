@@ -21,7 +21,7 @@ lintable_css_in_js_rules_changed: &lintable_css_in_js_rules_changed
 # Provides list of changed files to lint against (eslint)
 lintable_modified: &lintable_modified
   - added|modified: '**/*.[tj]{s,sx}'
-  - added|modified: '**/*.{html,less,json,yml,md}'
+  - added|modified: '**/*.{less,json,yml}'
 
 # Trigger for when we must run full lint (eslint)
 lintable_rules_changed: &lintable_rules_changed
@@ -62,6 +62,7 @@ frontend_all: &frontend_all
   - *testable_rules_changed
   - *typecheckable_rules_changed
   - added|modified: '{.volta,vercel}.json'
+  - added|modified: '**/*.md'
   - *sentry_specific_workflow
   - *sentry_specific_test_files
 

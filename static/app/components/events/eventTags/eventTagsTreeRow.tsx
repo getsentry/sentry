@@ -6,6 +6,7 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
+import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -13,15 +14,21 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {generateQueryWithTag, isUrl} from 'sentry/utils';
+import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+
+interface EventTagTreeRowConfig {
+  disableActions?: boolean;
+  disableRichValue?: boolean;
+}
 
 export interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
   projectSlug: string;
   tagKey: string;
+  config?: EventTagTreeRowConfig;
   isLast?: boolean;
   spacerCount?: number;
 }
@@ -33,19 +40,23 @@ export default function EventTagsTreeRow({
   projectSlug,
   spacerCount = 0,
   isLast = false,
+  config = {},
+  ...props
 }: EventTagsTreeRowProps) {
   const organization = useOrganization();
   const originalTag = content.originalTag;
-  const tagErrors = content.meta?.value?.['']?.err ?? [];
-  const hasTagErrors = tagErrors.length > 0;
+  const tagMeta = content.meta?.value?.[''];
+  const tagErrors = tagMeta?.err ?? [];
+  const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
+  const hasStem = !isLast && objectIsEmpty(content.subtree);
 
   if (!originalTag) {
     return (
-      <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors}>
+      <TreeRow hasErrors={hasTagErrors} {...props}>
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
-              <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+              <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
               <TreeBranchIcon hasErrors={hasTagErrors} />
             </Fragment>
           )}
@@ -55,12 +66,35 @@ export default function EventTagsTreeRow({
       </TreeRow>
     );
   }
+  const tagValue =
+    originalTag.key === 'release' && !config?.disableRichValue ? (
+      <VersionHoverCard
+        organization={organization}
+        projectSlug={projectSlug}
+        releaseVersion={content.value}
+        showUnderline
+        underlineColor="linkUnderline"
+      >
+        <Version version={content.value} truncate />
+      </VersionHoverCard>
+    ) : (
+      <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
+    );
+
+  const tagActions = hasTagErrors ? (
+    <TreeValueErrors data-test-id="tag-tree-row-errors">
+      <AnnotatedTextErrors errors={tagErrors} />
+    </TreeValueErrors>
+  ) : (
+    <EventTagsTreeRowDropdown content={content} event={event} />
+  );
+
   return (
-    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors}>
+    <TreeRow hasErrors={hasTagErrors} {...props}>
       <TreeKeyTrunk spacerCount={spacerCount}>
         {spacerCount > 0 && (
           <Fragment>
-            <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+            <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
             <TreeBranchIcon hasErrors={hasTagErrors} />
           </Fragment>
         )}
@@ -70,28 +104,8 @@ export default function EventTagsTreeRow({
         </TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
-        <TreeValue>
-          {originalTag.key === 'release' ? (
-            <VersionHoverCard
-              organization={organization}
-              projectSlug={projectSlug}
-              releaseVersion={content.value}
-              showUnderline
-              underlineColor="linkUnderline"
-            >
-              <Version version={content.value} truncate />
-            </VersionHoverCard>
-          ) : (
-            content.value
-          )}
-        </TreeValue>
-        {hasTagErrors ? (
-          <TreeValueErrors data-test-id="tag-tree-row-errors">
-            <AnnotatedTextErrors errors={tagErrors} />
-          </TreeValueErrors>
-        ) : (
-          <EventTagsTreeRowDropdown content={content} event={event} />
-        )}
+        <TreeValue hasErrors={hasTagErrors}>{tagValue}</TreeValue>
+        {!config?.disableActions && tagActions}
       </TreeValueTrunk>
     </TreeRow>
   );
@@ -210,6 +224,7 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   display: grid;
   align-items: center;
   grid-column: span 2;
+  column-gap: ${space(1.5)};
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
@@ -231,10 +246,10 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
     ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
 `;
 
-const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
+const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (!p.isLast ? p.theme.border : 'transparent')};
+  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
   margin-right: -1px;
   height: 100%;
 `;
@@ -268,17 +283,18 @@ const TreeValueTrunk = styled('div')`
   grid-column-gap: ${space(0.5)};
 `;
 
-const TreeValue = styled('div')`
+const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
   grid-column: span 1;
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
 `;
 
-const TreeKey = styled(TreeValue)<{hasErrors: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.gray300)};
+const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
 `;
 
 /**

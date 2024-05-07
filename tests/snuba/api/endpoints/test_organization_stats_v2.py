@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from sentry.constants import DataCategory
-from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, OutcomesSnubaTest
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.outcomes import Outcome
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
@@ -864,3 +870,176 @@ def result_sorted(result):
 
 
 # TEST invalid parameter
+
+
+class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
+    endpoint = "sentry-api-0-organization-stats-v2"
+
+    @property
+    def now(self):
+        return datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc)
+
+    def ts(self, dt: datetime) -> int:
+        return int(dt.timestamp())
+
+    def do_request(self, query, user=None, org=None, status_code=200):
+        self.login_as(user=user or self.user)
+        org_slug = (org or self.organization).slug
+        if status_code >= 400:
+            return self.get_error_response(org_slug, **query, status_code=status_code)
+        return self.get_success_response(org_slug, **query, status_code=status_code)
+
+    def setUp(self):
+        super().setUp()
+
+        self.login_as(user=self.user)
+
+        self.org = self.organization
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        self.org2 = self.create_organization()
+        self.org3 = self.create_organization()
+
+        self.project = self.create_project(
+            name="bar", teams=[self.create_team(organization=self.org, members=[self.user])]
+        )
+        self.project2 = self.create_project(
+            name="foo", teams=[self.create_team(organization=self.org, members=[self.user])]
+        )
+        self.project3 = self.create_project(organization=self.org2)
+
+        self.user2 = self.create_user(is_superuser=False)
+        self.create_member(user=self.user2, organization=self.organization, role="member", teams=[])
+        self.create_member(user=self.user2, organization=self.org3, role="member", teams=[])
+        self.project4 = self.create_project(
+            name="users2sproj",
+            teams=[self.create_team(organization=self.org, members=[self.user2])],
+        )
+
+        self.store_metric(
+            org_id=self.org.id,
+            project_id=self.project.id,
+            type="counter",
+            name="c:metric_stats/volume@none",
+            timestamp=self.ts(self.now - timedelta(hours=1)),
+            use_case_id=UseCaseID.METRIC_STATS,
+            tags={"mri": "mri.foo", "outcome.id": str(Outcome.ACCEPTED)},
+            value=1,
+        )
+
+        self.store_metric(
+            org_id=self.org.id,
+            project_id=self.project2.id,
+            type="counter",
+            name="c:metric_stats/volume@none",
+            timestamp=self.ts(self.now - timedelta(hours=1)),
+            use_case_id=UseCaseID.METRIC_STATS,
+            tags={"mri": "mri.foo", "outcome.id": str(Outcome.ACCEPTED)},
+            value=1,
+        )
+
+        self.store_metric(
+            org_id=self.org.id,
+            project_id=self.project2.id,
+            type="counter",
+            name="c:metric_stats/volume@none",
+            timestamp=self.ts(self.now - timedelta(hours=1)),
+            use_case_id=UseCaseID.METRIC_STATS,
+            tags={"mri": "mri.bar", "outcome.id": str(Outcome.FILTERED)},
+            value=1,
+        )
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    @with_feature("organizations:metrics-stats")
+    def test_metrics_category(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "category": ["metrics"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+            },
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "groups": [
+                {"by": {}, "series": {"sum(quantity)": [0, 3]}, "totals": {"sum(quantity)": 3}}
+            ],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    @with_feature("organizations:metrics-stats")
+    def test_metrics_group_by_project(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "category": ["metrics"],
+                "groupBy": ["project"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+            },
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "groups": [
+                {
+                    "by": {"project": self.project.id},
+                    "series": {"sum(quantity)": [0, 1]},
+                    "totals": {"sum(quantity)": 1},
+                },
+                {
+                    "by": {"project": self.project2.id},
+                    "series": {"sum(quantity)": [0, 2]},
+                    "totals": {"sum(quantity)": 2},
+                },
+            ],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    @with_feature("organizations:metrics-stats")
+    def test_metrics_multiple_group_by(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "category": ["metrics"],
+                "groupBy": ["project", "outcome"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+            },
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            "end": "2021-03-15T00:00:00Z",
+            "groups": [
+                {
+                    "by": {"outcome": "accepted", "project": self.project.id},
+                    "series": {"sum(quantity)": [0, 1]},
+                    "totals": {"sum(quantity)": 1},
+                },
+                {
+                    "by": {"outcome": "accepted", "project": self.project2.id},
+                    "series": {"sum(quantity)": [0, 1]},
+                    "totals": {"sum(quantity)": 1},
+                },
+                {
+                    "by": {"outcome": "filtered", "project": self.project2.id},
+                    "series": {"sum(quantity)": [0, 1]},
+                    "totals": {"sum(quantity)": 1},
+                },
+            ],
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+        }

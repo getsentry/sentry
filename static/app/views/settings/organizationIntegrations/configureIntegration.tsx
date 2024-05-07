@@ -252,7 +252,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     if (provider.key === 'discord') {
       return (
         <LinkButton
-          aria-label="Open this server in the Discord app"
+          aria-label={t('Open this server in the Discord app')}
           size="sm"
           // @ts-ignore - the type of integration here is weird.
           href={`discord://discord.com/channels/${integration.externalId}`}

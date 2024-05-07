@@ -3,8 +3,8 @@ import {uuid4} from '@sentry/utils';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types';
-import {EventOrGroupType} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 
 // Empty transaction to use as a default value with duration of 1 second
 const EmptyEventTransaction: EventTransaction = {

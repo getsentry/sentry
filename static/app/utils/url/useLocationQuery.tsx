@@ -1,11 +1,15 @@
 import {useMemo} from 'react';
 
-import type {decodeList} from 'sentry/utils/queryString';
+import type {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Scalar = string | boolean | number | undefined;
-type Decoder = typeof decodeList | typeof decodeScalar | typeof decodeInteger;
+type Decoder =
+  | typeof decodeInteger
+  | typeof decodeList
+  | typeof decodeScalar
+  | typeof decodeSorts;
 
 /**
  * Select and memoize query params from location.

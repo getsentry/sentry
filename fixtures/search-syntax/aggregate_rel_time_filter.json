@@ -15,7 +15,15 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "",
-        "value": {"type": "valueRelativeDate", "value": 7, "sign": "+", "unit": "d"}
+        "value": {
+          "type": "valueRelativeDate",
+          "value": "7",
+          "sign": "+",
+          "unit": "d",
+          "parsed": {
+            "value": "2017-10-24T02:41:20.000Z"
+          }
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -36,7 +44,15 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": "",
-        "value": {"type": "valueRelativeDate", "value": 2, "sign": "-", "unit": "w"}
+        "value": {
+          "type": "valueRelativeDate",
+          "value": "2",
+          "sign": "-",
+          "unit": "w",
+          "parsed": {
+            "value": "2017-10-03T02:41:20.000Z"
+          }
+        }
       },
       {"type": "spaces", "value": ""}
     ]

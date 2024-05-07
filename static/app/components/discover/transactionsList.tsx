@@ -1,7 +1,6 @@
 import {Component, Fragment, useContext, useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -12,7 +11,8 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -100,7 +100,7 @@ type Props = {
     (
       organization: Organization,
       tableRow: TableDataRow,
-      query: Query
+      location: Location
     ) => LocationDescriptor
   >;
   generatePerformanceTransactionEventsView?: () => EventView;

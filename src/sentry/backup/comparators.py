@@ -783,9 +783,6 @@ ComparatorMap = dict[str, ComparatorList]
 def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
     """Helper function executed at startup time which builds the static default comparators map."""
 
-    from sentry.models.actor import Actor
-    from sentry.models.organization import Organization
-
     # Some comparators (like `DateAddedComparator`) we can automatically assign by inspecting the
     # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must
     # assign manually, since there is no clever way to derive them automatically.
@@ -793,20 +790,17 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator(
-                    "refresh_token", "token", "hashed_token", "hashed_refresh_token"
-                ),
-                IgnoredComparator("token_last_characters"),
+                HashObfuscatingComparator("refresh_token", "token"),
+                # TODO: when we get rid of token/refresh_token for their hashed versions, and are
+                # sure that none of the originals are left, we can compare these above. Until then,
+                # just ignore them.
+                IgnoredComparator("hashed_token", "hashed_refresh_token", "token_last_characters"),
                 UnorderedListComparator("scope_list"),
             ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
             "sentry.alertrule": [
                 DateUpdatedComparator("date_modified"),
-                # TODO(hybrid-cloud): actor refactor. Remove this check once we're sure we've
-                # migrated all remaining `owner_id`'s to also have `team_id` or `user_id`, which
-                # seems to not be the case today.
-                EqualOrRemovedComparator("owner", "team", "user_id"),
             ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
@@ -818,6 +812,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
             "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
+            "sentry.email": [DateUpdatedComparator("date_added")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [
@@ -842,9 +837,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
-            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
             "sentry.team": [
-                ForeignKeyComparator({"actor": Actor, "organization": Organization}),
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
                 IgnoredComparator("org_role"),
             ],

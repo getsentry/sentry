@@ -11,6 +11,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils import json
+from sentry.utils.actor import ActorTuple
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -69,14 +70,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6),
-            owner=self.team.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=self.team.id),
         )
         self.other_alert_rule = self.create_alert_rule(
             name="other alert rule",
             organization=self.org,
             projects=[self.project2],
             date_added=before_now(minutes=5),
-            owner=self.team.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=self.team.id),
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -93,7 +94,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=3),
-            owner=self.team2.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=self.team2.id),
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
@@ -169,14 +170,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6),
-            owner=self.team.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=self.team.id),
         )
         alert_rule1 = self.create_alert_rule(
             name="!1?zz",
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6),
-            owner=self.team.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=self.team.id),
         )
 
         # Test Limit as 1, no cursor:
@@ -512,7 +513,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "actions": [],
                 "actionMatch": "all",
                 "date_added": before_now(minutes=4),
-                "owner": self.team.actor,
+                "owner": f"team:{self.team.id}",
             }
         )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -542,7 +543,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=another_org,
             projects=[another_project],
             date_added=before_now(minutes=6),
-            owner=another_org_team.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=another_org_team.id),
         )
 
         self.create_issue_alert_rule(
@@ -553,7 +554,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "actions": [],
                 "actionMatch": "all",
                 "date_added": before_now(minutes=4),
-                "owner": another_org_team.actor,
+                "owner": f"team:{another_org_team.id}",
             }
         )
 
@@ -823,7 +824,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=1),
-            owner=team.actor.get_actor_tuple(),
+            owner=ActorTuple.from_id(user_id=None, team_id=team.id),
         )
         self.create_issue_alert_rule(
             data={
@@ -833,7 +834,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "actions": [],
                 "actionMatch": "all",
                 "date_added": before_now(minutes=2),
-                "owner": team.actor,
+                "owner": f"team:{team.id}",
             }
         )
         team.delete()

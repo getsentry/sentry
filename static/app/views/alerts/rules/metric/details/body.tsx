@@ -15,8 +15,9 @@ import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
@@ -194,6 +195,7 @@ export default function MetricDetailsBody({
 
           <ErrorMigrationWarning project={project} rule={rule} />
 
+          {/* TODO: add activation start/stop into chart */}
           <MetricChart
             api={api}
             rule={rule}
@@ -209,7 +211,7 @@ export default function MetricDetailsBody({
           />
           <DetailWrapper>
             <ActivityWrapper>
-              <MetricHistory incidents={incidents} />
+              <MetricHistory incidents={incidents} activations={rule.activations} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
                   organization={organization}

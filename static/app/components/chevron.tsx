@@ -63,6 +63,7 @@ function Chevron({
       <motion.path
         animate={{d: getPath(direction)}}
         transition={{ease: 'easeOut', duration: 0.25}}
+        initial={false}
       />
     </VariableWeightIcon>
   );
