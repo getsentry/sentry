@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 AppConnectCredentials = namedtuple("AppConnectCredentials", ["key_id", "key", "issuer_id"])
 
-REQUEST_TIMEOUT = 30.0
+REQUEST_TIMEOUT = 60.0
 
 
 class RequestError(Exception):
