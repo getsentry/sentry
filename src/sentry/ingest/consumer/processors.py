@@ -304,8 +304,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message: IngestMessage, project: Project) -> bool:
     start_time = to_datetime(message["start_time"])
-    with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-        feedback = orjson.loads(message["payload"])
+    feedback = orjson.loads(message["payload"])
 
     try:
         save_userreport(
