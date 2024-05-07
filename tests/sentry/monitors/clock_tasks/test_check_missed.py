@@ -490,14 +490,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
     def test_missing_checkin_but_deletion_in_progress(self):
         self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
 
-    # Temporary test until we can move out of celery or reduce load
-    def test_missing_checkin_but_muted(self):
-        self.assert_state_does_not_change_for_status(ObjectStatus.ACTIVE, is_muted=True)
-
-    # Temporary test until we can move out of celery or reduce load
-    def test_missing_checkin_but_environment_muted(self):
-        self.assert_state_does_not_change_for_status(ObjectStatus.ACTIVE, environment_is_muted=True)
-
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
     def test_not_missing_checkin(self, mock_produce_task):
         """
