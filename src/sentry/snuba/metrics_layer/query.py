@@ -34,7 +34,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
     string_to_use_case_id,
 )
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
@@ -649,11 +649,11 @@ def fetch_metric_tag_values(
     if parsed_mri is None:
         raise InvalidParams(f"'{mri}' is not a valid MRI")
 
-    entity = {
-        "c": "counters",
-        "d": "distributions",
-        "g": "gauges",
-        "s": "sets",
+    entity_key = {
+        "c": EntityKey.GenericMetricCountersMetaTagValues,
+        "d": EntityKey.GenericMetricsDistributionsMetaTagValues,
+        "g": EntityKey.GenericMetricsSetsMetaTagValues,
+        "s": EntityKey.GenericMetricsGaugesMetaTagValues,
     }[parsed_mri.entity]
 
     resolved = resolve_many_weak(use_case_id, org_id, [mri, tag_key])
@@ -673,7 +673,7 @@ def fetch_metric_tag_values(
         conditions.append(Condition(Column("tag_value"), Op.LIKE, f"{tag_value_prefix}%"))
 
     tag_values_query = (
-        Query(Entity(f"generic_metrics_{entity}_meta_tag_values"))
+        Query(Entity(entity_key.value))
         .set_select([Column("tag_value")])
         .set_groupby([Column("tag_value")])
         .set_where(conditions)
