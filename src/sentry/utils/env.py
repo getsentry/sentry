@@ -128,9 +128,9 @@ def log_gcp_credentials_details(logger: logging.Logger) -> None:
 
 
 def is_split_db() -> bool:
-    if len(settings.DATABASES) != 1:  # type: ignore[misc]
+    if len(settings.DATABASES) != 1:
         return True
-    for db in settings.DATABASES.values():  # type: ignore[misc]
+    for db in settings.DATABASES.values():
         if db["NAME"] in {"region", "control"}:
             return True
     return False
