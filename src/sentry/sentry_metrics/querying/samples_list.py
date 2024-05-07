@@ -946,9 +946,16 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             limitby=("trace", 1),
         )
 
+        trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
         additional_conditions = self.get_additional_conditions(builder)
         min_max_conditions = self.get_min_max_conditions(builder)
-        builder.add_conditions([*additional_conditions, *min_max_conditions])
+        builder.add_conditions(
+            [
+                trace_id_condition,
+                *additional_conditions,
+                *min_max_conditions,
+            ]
+        )
 
         query_results = builder.run_query(self.referrer.value)
         results = builder.process_results(query_results)
