@@ -330,6 +330,10 @@ def setup_cross_db_deletion_data(
 
 @region_silo_test
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        reset_watermarks()
+
     def assert_monitors_unchanged(self, unaffected_data: list[dict]):
         for u_data in unaffected_data:
             u_user, u_monitor = itemgetter("user", "monitor")(u_data)
