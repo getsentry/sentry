@@ -731,8 +731,6 @@ CELERY_IMPORTS = (
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
-    "sentry.monitors.tasks.check_missed",
-    "sentry.monitors.tasks.check_timeout",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -1532,8 +1530,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
-    # Enables automatically deriving of code mappings for Go Projects
-    "organizations:derive-code-mappings-go": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest

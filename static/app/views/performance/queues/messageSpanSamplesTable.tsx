@@ -24,13 +24,17 @@ type DataRowKeys =
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.ID
   | SpanIndexedField.SPAN_DESCRIPTION
-  | SpanIndexedField.RESPONSE_CODE;
+  | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
+  | SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY
+  | SpanIndexedField.MESSAGING_MESSAGE_ID
+  | SpanIndexedField.TRACE_STATUS
+  | SpanIndexedField.SPAN_SELF_TIME;
 
 type ColumnKeys =
   | SpanIndexedField.ID
-  | SpanIndexedField.MESSAGE_ID
-  | SpanIndexedField.MESSAGE_SIZE
-  | SpanIndexedField.MESSAGE_STATUS
+  | SpanIndexedField.MESSAGING_MESSAGE_ID
+  | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
+  | SpanIndexedField.TRACE_STATUS
   | SpanIndexedField.SPAN_SELF_TIME;
 
 type DataRow = Pick<IndexedResponse, DataRowKeys>;
@@ -41,10 +45,10 @@ const COLUMN_ORDER: Column[] = [
   {
     key: SpanIndexedField.ID,
     name: t('Span ID'),
-    width: COL_WIDTH_UNDEFINED,
+    width: 150,
   },
   {
-    key: SpanIndexedField.MESSAGE_ID,
+    key: SpanIndexedField.MESSAGING_MESSAGE_ID,
     name: t('Message ID'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -54,12 +58,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.MESSAGE_SIZE,
+    key: SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
     name: t('Message Size'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.MESSAGE_STATUS,
+    key: SpanIndexedField.TRACE_STATUS,
     name: t('Status'),
     width: COL_WIDTH_UNDEFINED,
   },
