@@ -582,7 +582,6 @@ module = [
     "sentry.issues.issue_occurrence",
     "sentry.issues.json_schemas",
     "sentry.issues.merge",
-    "sentry.issues.occurrence_consumer",
     "sentry.issues.ongoing",
     "sentry.issues.priority",
     "sentry.issues.producer",
