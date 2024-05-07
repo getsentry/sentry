@@ -40,7 +40,7 @@ class SiloMode(Enum):
     def get_current_mode(cls) -> SiloMode:
         from django.conf import settings
 
-        configured_mode: str | SiloMode | None = settings.SILO_MODE  # type: ignore[misc]
+        configured_mode = settings.SILO_MODE
         process_level_silo_mode = cls.resolve(configured_mode)
         return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
 
