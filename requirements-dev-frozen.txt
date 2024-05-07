@@ -179,7 +179,7 @@ sentry-arroyo==2.16.5
 sentry-cli==2.16.0
 sentry-devenv==1.6.2
 sentry-forked-django-stubs==5.0.0.post3
-sentry-forked-djangorestframework-stubs==3.14.5.post1
+sentry-forked-djangorestframework-stubs==3.15.0.post1
 sentry-kafka-schemas==0.1.79
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
