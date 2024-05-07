@@ -168,7 +168,10 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         with self.handle_query_errors():
 
             if features.has("organizations:metrics-stats", organization):
-                if request.GET.get("category") == "metrics":
+                if (
+                    request.GET.get("category") == "metrics"
+                    or request.GET.get("category") == "metricSecond"
+                ):
                     # TODO(metrics): align project resolution
                     result = run_metrics_outcomes_query(
                         request.GET,
