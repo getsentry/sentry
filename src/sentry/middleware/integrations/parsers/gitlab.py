@@ -66,7 +66,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         except Exception as e:
             metrics.incr(
                 self._METRIC_CONTROL_PATH_FAILURE_KEY,
-                tags={"integration": self.provider, "error": e},
+                tags={"integration": self.provider, "error": str(e)},
             )
             logger.exception("Failed to get integration from request")
 
