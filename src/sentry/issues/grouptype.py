@@ -183,11 +183,9 @@ class GroupType:
         return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
-    def should_detect_escalation(cls, organization: Organization) -> bool:
+    def should_detect_escalation(cls) -> bool:
         """
-        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
-
-        When the feature flag is removed, we can remove the organization parameter from this method.
+        If enable_escalation_detection=True, then escalation detection is enabled.
         """
         return cls.enable_escalation_detection
 
@@ -245,10 +243,6 @@ class ErrorGroupType(GroupType):
 # used as an additional superclass for Performance GroupType defaults
 class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()
-
-
-class CronGroupTypeDefaults:
-    notification_config = NotificationConfig(context=[])
 
 
 class ReplayGroupTypeDefaults:
@@ -518,36 +512,27 @@ class ProfileFunctionRegressionType(GroupType):
 
 
 @dataclass(frozen=True)
-class MonitorCheckInFailure(CronGroupTypeDefaults, GroupType):
+class MonitorIncidentType(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
-    description = "Monitor Check In Failed"
+    description = "Crons Monitor Failed"
     category = GroupCategory.CRON.value
     released = True
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
+    notification_config = NotificationConfig(context=[])
 
 
 @dataclass(frozen=True)
-class MonitorCheckInTimeout(CronGroupTypeDefaults, GroupType):
+class MonitorCheckInTimeoutDeprecated(MonitorIncidentType, GroupType):
+    # This is deprecated, only kept around for it's type_id
     type_id = 4002
-    slug = "monitor_check_in_timeout"
-    description = "Monitor Check In Timeout"
-    category = GroupCategory.CRON.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
-class MonitorCheckInMissed(CronGroupTypeDefaults, GroupType):
+class MonitorCheckInMissedDeprecated(MonitorIncidentType, GroupType):
+    # This is deprecated, only kept around for it's type_id
     type_id = 4003
-    slug = "monitor_check_in_missed"
-    description = "Monitor Check In Missed"
-    category = GroupCategory.CRON.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
