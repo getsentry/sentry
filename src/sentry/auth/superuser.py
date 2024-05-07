@@ -30,7 +30,7 @@ from sentry.api.exceptions import SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
 from sentry.services.hybrid_cloud.auth.model import RpcAuthState
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
 
@@ -437,7 +437,7 @@ class Superuser(ElevatedMode):
         else:
             try:
                 # need to use json loads as the data is no longer in request.data
-                su_access_json = json.loads_orjson(request.body)
+                su_access_json = orjson.loads(request.body)
             except orjson.JSONDecodeError:
                 metrics.incr(
                     "superuser.failure",

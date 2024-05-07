@@ -1,10 +1,10 @@
 import logging
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.auth.view import AuthView, ConfigureView
-from sentry.utils import json
 from sentry.utils.signing import urlsafe_b64decode
 
 from .constants import DOMAIN_BLOCKLIST, ERR_INVALID_DOMAIN, ERR_INVALID_RESPONSE
@@ -34,7 +34,7 @@ class FetchUser(AuthView):
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
-            payload = json.loads_orjson(payload)
+            payload = orjson.loads(payload)
         except Exception as exc:
             logger.exception("Unable to decode id_token payload: %s", exc)
             return helper.error(ERR_INVALID_RESPONSE)

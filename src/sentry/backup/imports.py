@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import IO
 from uuid import uuid4
 
+import orjson
 from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
@@ -173,7 +174,7 @@ def _import(
         # Parse the content JSON and remove and fields that we have marked for deletion in the
         # function.
         shimmed_models = set(DELETED_FIELDS.keys())
-        content_as_json = json.loads_orjson(content)  # type: ignore[arg-type]
+        content_as_json = orjson.loads(content)  # type: ignore[arg-type]
         for json_model in content_as_json:
             if json_model["model"] in shimmed_models:
                 fields_to_remove = DELETED_FIELDS[json_model["model"]]
@@ -181,7 +182,7 @@ def _import(
                     json_model["fields"].pop(field, None)
 
         # Return the content to byte form, as that is what the Django deserializer expects.
-        content = json.dumps_orjson(content_as_json)
+        content = orjson.dumps(content_as_json).decode()
 
     filters = []
     if filter_by is not None:
@@ -263,7 +264,7 @@ def _import(
     # NOT including the current instance.
     def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
-        models = json.loads_orjson(content)
+        models = orjson.loads(content)
         last_seen_model_name: NormalizedModelName | None = None
         batch: list[type[Model]] = []
         num_current_model_instances_yielded = 0
@@ -273,7 +274,7 @@ def _import(
                 if last_seen_model_name is not None and len(batch) > 0:
                     yield (
                         last_seen_model_name,
-                        json.dumps_orjson(batch),
+                        orjson.dumps(batch).decode(),
                         num_current_model_instances_yielded,
                     )
 
@@ -290,7 +291,7 @@ def _import(
         if last_seen_model_name is not None and batch:
             yield (
                 last_seen_model_name,
-                json.dumps_orjson(batch),
+                orjson.dumps(batch).decode(),
                 num_current_model_instances_yielded,
             )
 

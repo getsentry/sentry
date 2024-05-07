@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+import orjson
 from sentry_relay.processing import parse_release
 
 from sentry import features
@@ -192,7 +193,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
         text = subject
         callback_id_raw = self.notification.get_callback_data()
-        callback_id = json.dumps_orjson(callback_id_raw) if callback_id_raw else None
+        callback_id = orjson.dumps(callback_id_raw).decode() if callback_id_raw else None
 
         footer = self.notification.build_notification_footer(
             self.recipient, ExternalProviders.SLACK

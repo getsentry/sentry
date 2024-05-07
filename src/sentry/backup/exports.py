@@ -7,6 +7,8 @@ import io
 import json as builtin_json  # noqa: S003
 from typing import IO
 
+import orjson
+
 from sentry.backup.crypto import Encryptor, create_encrypted_export_tarball
 from sentry.backup.dependencies import (
     PrimaryKeyMap,
@@ -27,7 +29,6 @@ from sentry.services.hybrid_cloud.import_export.service import (
     import_export_service,
 )
 from sentry.silo.base import SiloMode
-from sentry.utils import json as sentry_json
 
 __all__ = (
     "ExportingError",
@@ -134,7 +135,7 @@ def _export(
         # TODO(getsentry/team-ospo#190): Since the structure of this data is very predictable (an
         # array of serialized model objects), we could probably avoid re-ingesting the JSON string
         # as a future optimization.
-        for json_model in sentry_json.loads_orjson(result.json_data):
+        for json_model in orjson.loads(result.json_data):
             json_export.append(json_model)
 
     # If no `encryptor` argument was passed in, this is an unencrypted export, so we can just dump

@@ -4,6 +4,8 @@ from collections.abc import Generator, Sequence
 from logging import Logger, getLogger
 from typing import Any
 
+import orjson
+
 from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.eventstore.models import GroupEvent
@@ -29,7 +31,7 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response import BaseApiResponse, MappingApiResponse
 from sentry.types.rules import RuleFuture
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 _default_logger: Logger = getLogger(__name__)
 
@@ -100,7 +102,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "unfurl_media": False,
             }
             if payload_blocks := blocks.get("blocks"):
-                payload["blocks"] = json.dumps_orjson(payload_blocks)
+                payload["blocks"] = orjson.dumps(payload_blocks).decode()
 
             rule = rules[0] if rules else None
             rule_to_use = self.rule if self.rule else rule
@@ -177,7 +179,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "channel_name": self.get_option("channel"),
                 }
                 # temporarily log the payload so we can debug message failures
-                log_params["payload"] = json.dumps_orjson(payload)
+                log_params["payload"] = orjson.dumps(payload).decode()
 
                 self.logger.info(
                     "rule.fail.slack_post",
@@ -247,7 +249,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps_orjson(blocks.get("blocks")),
+            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,

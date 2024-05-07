@@ -3,6 +3,7 @@ from functools import cached_property
 from time import time
 from urllib.parse import urlparse
 
+import orjson
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.http.request import HttpRequest
 from django.urls import reverse
@@ -17,7 +18,6 @@ from u2flib_server.model import DeviceRegistration
 
 from sentry import options
 from sentry.auth.authenticators.base import EnrollmentStatus
-from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
@@ -188,7 +188,7 @@ class U2fInterface(AuthenticatorInterface):
         return rv
 
     def try_enroll(self, enrollment_data, response_data, device_name=None, state=None):
-        data = json.loads_orjson(response_data)
+        data = orjson.loads(response_data)
         client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
         att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
         binding = self.webauthn_registration_server.register_complete(state, client_data, att_obj)

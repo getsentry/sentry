@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -2438,11 +2439,11 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
-                    body=json.dumps_orjson(payload),
+                    body=orjson.dumps(payload).decode(),
                     headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
-                severity = json.loads_orjson(response.data).get("severity")
+                severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError as e:
             logger.warning(
@@ -2788,9 +2789,7 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event"].data["_metrics"] = event_metrics
 
         # Capture the actual size that goes into node store.
-        event_metrics["bytes.stored.event"] = len(
-            json.dumps_orjson(dict(job["event"].data.items()))
-        )
+        event_metrics["bytes.stored.event"] = len(orjson.dumps(dict(job["event"].data.items())))
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):

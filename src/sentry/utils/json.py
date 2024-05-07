@@ -146,20 +146,13 @@ def loads(
             return _default_decoder.decode(value)
 
 
-def loads_orjson(data: str | bytes, skip_trace: bool = False) -> JSONData:
-    with contextlib.ExitStack() as ctx:
-        if not skip_trace:
-            ctx.enter_context(sentry_sdk.start_span(op="sentry.utils.json.loads"))
-        return orjson.loads(data)
-
-
 # loads JSON with `orjson` or the default function depending on `option_name`
 # TODO: remove this once we're confident that orjson is working as expected
 def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = False) -> JSONData:
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        return loads_orjson(data, skip_trace)
+        return orjson.loads(data, skip_trace)
     else:
         return loads(data, skip_trace)
 
@@ -174,21 +167,13 @@ def orjson_dumps_default(data: JSONData) -> JSONData:
     raise TypeError
 
 
-def dumps_orjson(data: JSONData) -> str:
-    return dumpsb_orjson(data).decode()
-
-
-def dumpsb_orjson(data: JSONData) -> bytes:
-    return orjson.dumps(data, default=orjson_dumps_default)
-
-
 # dumps JSON with `orjson` or the default function depending on `option_name`
 # TODO: remove this when orjson experiment is successful
 def dumps_experimental(option_name: str, data: JSONData) -> str:
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        return dumps_orjson(data)
+        return orjson.dumps(data)
     else:
         return dumps(data)
 
@@ -242,12 +227,9 @@ __all__ = (
     "JSONEncoder",
     "dump",
     "dumps",
-    "dumps_orjson",
-    "dumpsb_orjson",
     "dumps_htmlsafe",
     "load",
     "loads",
-    "loads_orjson",
     "prune_empty_keys",
     "methods_for_experiment",
     "loads_experimental",

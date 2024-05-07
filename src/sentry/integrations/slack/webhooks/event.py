@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,7 +22,6 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
 from sentry.utils.urls import parse_link
 
 from ..utils import logger
@@ -156,7 +156,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return True
 
             # Don't unfurl the same thing multiple times
-            seen_marker = hash(json.dumps_orjson((link_type, list(args))))
+            seen_marker = hash(orjson.dumps((link_type, list(args))).decode())
             if seen_marker in links_seen:
                 continue
 
@@ -192,7 +192,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
-            "unfurls": json.dumps_orjson(results),
+            "unfurls": orjson.dumps(results).decode(),
         }
 
         client = SlackClient(integration_id=slack_request.integration.id)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from logging import Logger, getLogger
 
+import orjson
+
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
@@ -25,7 +27,6 @@ from sentry.notifications.notifications.activity.unassigned import UnassignedAct
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviderEnum
-from sentry.utils import json
 
 _default_logger = getLogger(__name__)
 
@@ -201,7 +202,7 @@ class SlackService:
         )
         payload.update(slack_payload)
         # TODO (Yash): Users should not have to remember to do this, interface should handle serializing the field
-        payload["blocks"] = json.dumps_orjson(payload.get("blocks"))
+        payload["blocks"] = orjson.dumps(payload.get("blocks")).decode()
         try:
             client.post("/chat.postMessage", data=payload, timeout=5)
         except Exception as err:

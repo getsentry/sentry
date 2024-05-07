@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
+import orjson
 from sentry_relay.processing import parse_release
 
 from sentry import features, tagstore
@@ -694,6 +695,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            block_id=json.dumps_orjson(block_id),
+            block_id=orjson.dumps(block_id).decode(),
             skip_fallback=self.skip_fallback,
         )
