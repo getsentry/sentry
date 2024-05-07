@@ -65,7 +65,7 @@ def test_simple_similar_issues_embeddings(mock_seer_request, default_project):
     event = save_new_event({"message": "Dogs are great!"}, default_project)
     similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
 
-    raw_similar_issue_data = {
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
         "parent_group_id": NonNone(similar_event.group_id),
         "should_group": True,
@@ -81,8 +81,7 @@ def test_simple_similar_issues_embeddings(mock_seer_request, default_project):
         "stacktrace": "string",
         "message": "message",
     }
-    response = get_similar_issues_embeddings(params)
-    assert response == [raw_similar_issue_data]
+    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
 
 
 @django_db_all
@@ -99,8 +98,7 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
         "stacktrace": "string",
         "message": "message",
     }
-    response = get_similar_issues_embeddings(params)
-    assert response == []
+    assert get_similar_issues_embeddings(params) == []
 
 
 # TODO: Remove once switch is complete
