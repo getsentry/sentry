@@ -123,7 +123,6 @@ class DatadogMetricsBackend(MetricsBackend):
         priority: str | None = None,
         instance: str | None = None,
         tags: Tags | None = None,
-        sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
         tags = dict(tags or ())
@@ -143,6 +142,5 @@ class DatadogMetricsBackend(MetricsBackend):
             date_happened=date_happened,
             priority=priority,
             tags=tags_list,
-            host_name=self.host,
-            sample_rate=sample_rate,
+            hostname=self.host,
         )

@@ -90,7 +90,6 @@ class MetricsBackend(local):
         priority: str | None = None,
         instance: str | None = None,
         tags: Tags | None = None,
-        sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
         raise NotImplementedError
