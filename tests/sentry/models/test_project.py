@@ -17,7 +17,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -66,6 +66,11 @@ class ProjectTest(APITestCase, TestCase):
             label="Golden Rule",
             data={},
         )
+        environment_from_new = self.create_environment(organization=from_org)
+        environment_from_existing = self.create_environment(organization=from_org)
+        environment_to_existing = self.create_environment(
+            organization=to_org, name=environment_from_existing.name
+        )
 
         monitor = Monitor.objects.create(
             name="test-monitor",
@@ -83,6 +88,12 @@ class ProjectTest(APITestCase, TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+        monitor_env_new = MonitorEnvironment.objects.create(
+            monitor=monitor_also, environment_id=environment_from_new.id
+        )
+        monitor_env_existing = MonitorEnvironment.objects.create(
+            monitor=monitor_also, environment_id=environment_from_existing.id
         )
 
         monitor_other = Monitor.objects.create(
@@ -124,6 +135,12 @@ class ProjectTest(APITestCase, TestCase):
         assert updated_monitor.id == monitor_also.id
         assert updated_monitor.organization_id == to_org.id
         assert updated_monitor.project_id == project.id
+        monitor_env_new.refresh_from_db()
+        environment_to_new = Environment.objects.get(id=monitor_env_new.environment_id)
+        assert environment_to_new.organization_id == to_org.id
+        assert environment_to_new.name == environment_from_new.name
+        monitor_env_existing.refresh_from_db()
+        assert monitor_env_existing.environment_id == environment_to_existing.id
 
         unmoved_monitor = Monitor.objects.get(slug="test-monitor-other")
         assert unmoved_monitor.id == monitor_other.id
