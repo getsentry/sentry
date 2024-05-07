@@ -3076,6 +3076,45 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert any(int(issue["id"]) == event.group.id for issue in issues)
         assert any(int(issue["id"]) == event2.group.id for issue in issues)
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_first_seen_and_last_seen_filters(self):
+        self.login_as(user=self.user)
+        project = self.project
+        # Create 4 issues at different times
+        times = [
+            before_now(hours=1),
+            before_now(hours=6),
+            before_now(hours=11),
+            before_now(hours=23),
+        ]
+        for i, time in enumerate(times):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(time),
+                    "message": f"Error {i}",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=project.id,
+            )
+
+        # Test firstSeen filter
+        twenty_four_hours_ago = iso_format(before_now(hours=24))
+        response = self.get_success_response(
+            query=f"firstSeen:<{twenty_four_hours_ago}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0, "No issues should be first seen over 24 hours ago"
+        response = self.get_success_response(query="firstSeen:-24h", useGroupSnubaDataset=1)
+        assert len(response.data) == 4, "All issues should be seen in the last 24 hours"
+
+        # Test lastSeen filter
+        response = self.get_success_response(query="lastSeen:-6h", useGroupSnubaDataset=1)
+        assert (
+            len(response.data) == 1
+        ), "Only the most recent issue should be seen in the last 6 hours"
+
+        response = self.get_success_response(query="lastSeen:-12h", useGroupSnubaDataset=1)
+        assert len(response.data) == 3, "Three issues should be seen in the last 12 hours"
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
