@@ -238,7 +238,10 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
-    event["measurements"]["num_of_spans"] = {"value": num_of_spans}
+    event["measurements"]["num_of_spans"] = {
+        "value": num_of_spans,
+        "unit": None,
+    }
     return event
 
 
