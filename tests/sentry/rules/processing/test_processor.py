@@ -223,6 +223,31 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         }
 
     @with_feature("organizations:process-slow-alerts")
+    def test_delayed_rule_match_error_slow_fast_conditions(self):
+        """
+        Test that a rule with a 'slow' condition, a 'fast' condition, and action match of 'garbage' errors and does not fire or get added to the Redis queue
+        """
+        first_seen_condition = {
+            "id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"
+        }
+        self.rule.update(
+            data={
+                "conditions": [first_seen_condition, self.event_frequency_condition],
+                "action_match": "garbage",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+
+    @with_feature("organizations:process-slow-alerts")
     def test_rule_match_any_slow_fast_conditions_fast_passes(self):
         """
         Test that a rule with both 'slow' and 'fast' conditions and action match of 'any' where a fast condition passes fires and doesn't get enqueued
