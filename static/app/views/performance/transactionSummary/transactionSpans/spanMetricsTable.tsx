@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
+import {Link, browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -17,6 +17,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
 import {useParams} from 'sentry/utils/useParams';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
@@ -31,15 +32,18 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {TableColumn} from 'sentry/views/discover/table/types';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 type DataRowKeys =
   | SpanMetricsField.SPAN_OP
   | SpanMetricsField.SPAN_DESCRIPTION
+  | SpanMetricsField.SPAN_GROUP
   | 'spm()'
   | `avg(${SpanMetricsField.SPAN_SELF_TIME})`
   | `sum(${SpanMetricsField.SPAN_SELF_TIME})`;
 
-type ColumnKeys = DataRowKeys;
+type ColumnKeys = Exclude<DataRowKeys, SpanMetricsField.SPAN_GROUP>;
 
 type DataRow = Pick<MetricsResponse, DataRowKeys>;
 
@@ -92,6 +96,7 @@ type Props = {
 
 export default function SpanMetricsTable(props: Props) {
   const {project, transactionName} = props;
+  const organization = useOrganization();
 
   const location = useLocation();
   const spansCursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
@@ -114,6 +119,7 @@ export default function SpanMetricsTable(props: Props) {
     fields: [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
+      SpanMetricsField.SPAN_GROUP,
       `spm()`,
       `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -149,12 +155,12 @@ export default function SpanMetricsTable(props: Props) {
                 location,
                 sort,
               }),
-            // renderBodyCell: renderBodyCell(
-            //   location,
-            //   organization,
-            //   spanOp,
-            //   isTxnDurationDataLoading || isTxnDurationError
-            // ),
+            renderBodyCell: renderBodyCell(
+              location,
+              organization,
+              transactionName,
+              project
+            ),
           }}
           location={location}
         />
@@ -167,53 +173,29 @@ export default function SpanMetricsTable(props: Props) {
 function renderBodyCell(
   location: Location,
   organization: Organization,
-  spanOp: string = '',
-  isTxnDurationDataLoading: boolean
+  transactionName: string,
+  project?: Project
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
-    const {timestamp, span_id, trace, project} = dataRow;
-    const spanDuration = dataRow[SpanIndexedField.SPAN_DURATION];
-    const transactionId = dataRow[SpanIndexedField.TRANSACTION_ID];
-    const transactionDuration = dataRow['transaction.duration'];
-
-    if (column.key === SpanIndexedField.SPAN_DURATION) {
-      if (isTxnDurationDataLoading) {
-        return <SpanDurationBarLoading />;
-      }
-
+    if (column.key === SpanMetricsField.SPAN_DESCRIPTION) {
+      const target = spanDetailsRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        query: location.query,
+        spanSlug: {op: dataRow['span.op'], group: dataRow['span.group']},
+        projectID: project?.id,
+      });
       return (
-        <SpanDurationBar
-          spanOp={spanOp}
-          spanDuration={spanDuration}
-          transactionDuration={transactionDuration}
-        />
-      );
-    }
-
-    if (column.key === SpanIndexedField.ID) {
-      return (
-        <SpanIdCell
-          projectSlug={project}
-          spanId={span_id}
-          timestamp={timestamp}
-          traceId={trace}
-          transactionId={transactionId}
-        />
+        <TableCellContainer>
+          <Link to={target}>{dataRow[column.key] ?? t('(unnamed span)')}</Link>
+        </TableCellContainer>
       );
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
     const rendered = fieldRenderer(dataRow, {location, organization});
+    console.dir(rendered);
 
     return rendered;
   };
 }
-
-const SpanDurationBarLoading = styled('div')`
-  height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
-  width: 100%;
-  position: relative;
-  display: flex;
-  top: ${space(0.5)};
-  background-color: ${p => p.theme.gray100};
-`;
