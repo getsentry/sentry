@@ -340,6 +340,10 @@ export function isSpanSelfTime({mri}: {mri: MRI}) {
   );
 }
 
+export function isGaugeMetric({mri}: {mri: MRI}) {
+  return parseMRI(mri)?.type === 'g';
+}
+
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
     return MRIToField(metricsQuery.mri, metricsQuery.op);
