@@ -142,11 +142,11 @@ from sentry.monitors.endpoints.project_monitor_checkin_attachment import (
 from sentry.monitors.endpoints.project_monitor_checkin_index import (
     ProjectMonitorCheckInIndexEndpoint,
 )
+from sentry.monitors.endpoints.project_monitor_details import ProjectMonitorDetailsEndpoint
 from sentry.monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
 from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
-from sentry.monitors.endpoints.project_monitors_details import ProjectMonitorDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
