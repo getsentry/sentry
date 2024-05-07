@@ -32,35 +32,18 @@ MONITOR_LIMIT = 10_000
 
 # re-use the monitor exclusion query node across dispatch_check_missing and
 # mark_environment_missing.
-IGNORE_MONITORS = (
-    ~Q(
-        status__in=[
-            MonitorStatus.DISABLED,
-            MonitorStatus.PENDING_DELETION,
-            MonitorStatus.DELETION_IN_PROGRESS,
-        ]
-    )
-    & ~Q(
-        monitor__status__in=[
-            ObjectStatus.DISABLED,
-            ObjectStatus.PENDING_DELETION,
-            ObjectStatus.DELETION_IN_PROGRESS,
-        ]
-    )
-    & ~Q(
-        # TODO(epurkhiser): This is a hold-over from when we were producing
-        # these tasks into celery. Removing this conditional will create many
-        # more monitors for us to mark as missed. We should be able to remove
-        # now that we're using a kafka consumer to process these
-        monitor__is_muted=True,
-    )
-    & ~Q(
-        # TODO(epurkhiser): This is a hold-over from when we were producing
-        # these tasks into celery. Removing this conditional will create many
-        # more monitors for us to mark as missed. We should be able to remove
-        # now that we're using a kafka consumer to process these
-        is_muted=True,
-    )
+IGNORE_MONITORS = ~Q(
+    status__in=[
+        MonitorStatus.DISABLED,
+        MonitorStatus.PENDING_DELETION,
+        MonitorStatus.DELETION_IN_PROGRESS,
+    ]
+) & ~Q(
+    monitor__status__in=[
+        ObjectStatus.DISABLED,
+        ObjectStatus.PENDING_DELETION,
+        ObjectStatus.DELETION_IN_PROGRESS,
+    ]
 )
 
 

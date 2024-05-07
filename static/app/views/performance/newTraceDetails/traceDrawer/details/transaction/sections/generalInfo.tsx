@@ -3,11 +3,14 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import DateTime from 'sentry/components/dateTime';
+import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
 import type {
   TraceTree,
@@ -51,6 +54,9 @@ function GeneralInfo({
   const endTimestamp = Math.max(node.value.start_timestamp, node.value.timestamp);
   const durationInSeconds = endTimestamp - startTimestamp;
 
+  const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
+    getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
+
   const parentTransaction = node.parent_transaction;
 
   const items: SectionCardKeyValueList = [
@@ -66,6 +72,34 @@ function GeneralInfo({
       ),
     },
   ];
+
+  items.push({
+    key: 'date_range',
+    subject: t('Date Range'),
+    value: (
+      <Fragment>
+        {getDynamicText({
+          fixed: 'Mar 19, 2021 11:06:27 AM UTC',
+          value: (
+            <Fragment>
+              <DateTime date={startTimestamp * node.multiplier} />
+              {` (${startTimeWithLeadingZero})`}
+            </Fragment>
+          ),
+        })}
+        <br />
+        {getDynamicText({
+          fixed: 'Mar 19, 2021 11:06:28 AM UTC',
+          value: (
+            <Fragment>
+              <DateTime date={endTimestamp * node.multiplier} />
+              {` (${endTimeWithLeadingZero})`}
+            </Fragment>
+          ),
+        })}
+      </Fragment>
+    ),
+  });
 
   if (parentTransaction) {
     items.push({
@@ -130,7 +164,13 @@ function GeneralInfo({
     });
   }
 
-  return <TraceDrawerComponents.SectionCard items={items} title={t('General')} />;
+  return (
+    <TraceDrawerComponents.SectionCard
+      items={items}
+      title={t('General')}
+      disableTruncate
+    />
+  );
 }
 
 export default GeneralInfo;

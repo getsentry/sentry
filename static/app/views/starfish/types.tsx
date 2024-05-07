@@ -39,7 +39,7 @@ export enum SpanMetricsField {
   APP_START_TYPE = 'app_start_type',
   DEVICE_CLASS = 'device.class',
   CACHE_HIT = 'cache.hit',
-  CACHE_ITEM_SIZE = 'cahce.item_size',
+  CACHE_ITEM_SIZE = 'cache.item_size',
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'messaging.message.receive.latency',
 }
 
@@ -49,7 +49,8 @@ export type SpanNumberFields =
   | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE
-  | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY;
+  | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY
+  | SpanMetricsField.CACHE_ITEM_SIZE;
 
 export type SpanStringFields =
   | 'span.op'
@@ -130,6 +131,8 @@ export type SpanMetricsResponse = {
   'http_response_rate(3)': number;
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
+} & {
+  'ai_total_tokens_used(c:spans/ai.total_cost@none)': number;
 } & {
   ['project']: string;
   ['project.id']: number;
