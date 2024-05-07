@@ -38,7 +38,7 @@
     "@react-aria/radio": "^3.10.0",
     "@react-aria/separator": "^3.3.9",
     "@react-aria/slider": "^3.7.4",
-    "@react-aria/tabs": "^3.8.3",
+    "@react-aria/tabs": "^3.9.0",
     "@react-aria/utils": "^3.23.0",
     "@react-aria/visually-hidden": "^3.8.8",
     "@react-stately/collections": "^3.10.4",
