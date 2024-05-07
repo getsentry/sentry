@@ -465,7 +465,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, R
     if teams:
         actors.update(
             {
-                ("team", slug): RpcActor(id=t_id, actor_type=ActorType.TEAM)
+                ("team", slug): RpcActor(id=t_id, actor_type=ActorType.TEAM, slug=slug)
                 for t_id, slug in Team.objects.filter(
                     slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
                 ).values_list("id", "slug")
