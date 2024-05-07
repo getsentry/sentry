@@ -176,7 +176,11 @@ function EditTagHighlightSection({
                 title={isDisabled && t('Already highlighted')}
                 tooltipProps={{delay: 500}}
               />
-              <HighlightKey disabled={isDisabled} aria-disabled={isDisabled}>
+              <HighlightKey
+                disabled={isDisabled}
+                aria-disabled={isDisabled}
+                data-test-id="highlight-tag-option"
+              >
                 {tagKey}
               </HighlightKey>
             </EditTagContainer>
@@ -193,6 +197,7 @@ function EditTagHighlightSection({
           placeholder={t('Search Tags')}
           value={tagFilter}
           onChange={e => setTagFilter(e.target.value)}
+          data-test-id="highlights-tag-search"
         />
       </Subtitle>
       <EditHighlightSectionContent columnCount={columnCount}>
@@ -266,7 +271,11 @@ function EditContextHighlightSection({
                         title={isDisabled && t('Already highlighted')}
                         tooltipProps={{delay: 500}}
                       />
-                      <HighlightKey disabled={isDisabled} aria-disabled={isDisabled}>
+                      <HighlightKey
+                        disabled={isDisabled}
+                        aria-disabled={isDisabled}
+                        data-test-id="highlight-context-option"
+                      >
                         {contextKey}
                       </HighlightKey>
                     </Fragment>
@@ -287,6 +296,7 @@ function EditContextHighlightSection({
           placeholder={t('Search Context')}
           value={ctxFilter}
           onChange={e => setCtxFilter(e.target.value)}
+          data-test-id="highlights-context-search"
         />
       </Subtitle>
       <EditHighlightSectionContent columnCount={columnCount}>

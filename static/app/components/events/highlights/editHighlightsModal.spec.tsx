@@ -266,7 +266,7 @@ describe('EditHighlightsModal', function () {
     );
     await Promise.all(ctxTestPromises);
 
-    // These come from the event, and existing highlights
+    // Combine existing highlight context titles, with new ones that were selected above
     const allHighlightCtxTitles = highlightContextTitles.concat([
       'Keyboard: switches',
       'Client Os: Version',
@@ -299,5 +299,26 @@ describe('EditHighlightsModal', function () {
       })
     );
     expect(closeModal).toHaveBeenCalled();
+  });
+
+  it('should update sections from search input', async function () {
+    renderModal();
+    const tagCount = TEST_EVENT_TAGS.length;
+    expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(tagCount);
+    const tagInput = screen.getByTestId('highlights-tag-search');
+    await userEvent.type(tagInput, 'le');
+    expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(3); // handled, level, release
+    await userEvent.clear(tagInput);
+    expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(tagCount);
+
+    const ctxCount = Object.values(TEST_EVENT_CONTEXTS)
+      .flatMap(Object.keys)
+      .filter(k => k !== 'type').length;
+    expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(ctxCount);
+    const contextInput = screen.getByTestId('highlights-context-search');
+    await userEvent.type(contextInput, 'name'); // client_os.name, runtime.name
+    expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(2);
+    await userEvent.clear(contextInput);
+    expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(ctxCount);
   });
 });
