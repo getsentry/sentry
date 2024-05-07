@@ -215,6 +215,47 @@ describe('CompactSelect', function () {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('can search with sections', async function () {
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {
+              key: 'section-1',
+              label: 'Section 1',
+              showToggleAllButton: true,
+              options: [
+                {value: 'opt_one', label: 'Option One'},
+                {value: 'opt_two', label: 'Option Two'},
+              ],
+            },
+            {
+              key: 'section-2',
+              label: 'Section 2',
+              showToggleAllButton: true,
+              options: [
+                {value: 'opt_three', label: 'Option Three'},
+                {value: 'opt_four', label: 'Option Four'},
+              ],
+            },
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // type 'Two' into the search box
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
+
+      // only Option Two should be available
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+    });
+
     it('can limit the number of options', async function () {
       render(
         <CompactSelect
