@@ -61,48 +61,51 @@ export class WrapperReplayer {
 
     root?.classList.add('video-replayer');
 
-    const metaEventIdx = events.findIndex(e => e.type === 4);
-
-    // Create a mock full snapshot event, in order to render rrweb gestures properly
-    // The hardcoded data.node.id here should match the ID of the data being sent
-    // in the `positions` arrays
-    const fullSnapshotEvent = {
-      type: 2,
-      data: {
-        node: {
-          type: 0,
-          childNodes: [
-            {
-              type: 1,
-              name: 'html',
-              publicId: '',
-              systemId: '',
+    const modifiedEvents: eventWithTime[] = [];
+    events.forEach((e, idx) => {
+      modifiedEvents.push(e);
+      if (e.type === 4) {
+        // Create a mock full snapshot event, in order to render rrweb gestures properly
+        // Need to add one for every meta event we see
+        // The hardcoded data.node.id here should match the ID of the data being sent
+        // in the `positions` arrays
+        const fullSnapshotEvent = {
+          type: 2,
+          data: {
+            node: {
+              type: 0,
+              childNodes: [
+                {
+                  type: 1,
+                  name: 'html',
+                  publicId: '',
+                  systemId: '',
+                  id: 0,
+                },
+                {
+                  type: 2,
+                  tagName: 'html',
+                  attributes: {
+                    lang: 'en',
+                  },
+                  childNodes: [],
+                  id: 0,
+                },
+              ],
               id: 0,
             },
-            {
-              type: 2,
-              tagName: 'html',
-              attributes: {
-                lang: 'en',
-              },
-              childNodes: [],
-              id: 0,
+            initialOffset: {
+              left: 0,
+              top: 0,
             },
-          ],
-          id: 0,
-        },
-        initialOffset: {
-          left: 0,
-          top: 0,
-        },
-      },
-      timestamp: events[metaEventIdx].timestamp,
-    };
+          },
+          timestamp: events[idx].timestamp,
+        };
+        modifiedEvents.push(fullSnapshotEvent);
+      }
+    });
 
-    // Insert after the meta event
-    events.splice(metaEventIdx + 1, 0, fullSnapshotEvent);
-
-    this.rrwebInst = new Replayer(events, {
+    this.rrwebInst = new Replayer(modifiedEvents, {
       root: root as Element,
       blockClass: 'sentry-block',
       mouseTail: {
