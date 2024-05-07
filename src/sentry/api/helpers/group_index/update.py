@@ -46,6 +46,7 @@ from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.user import User
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
@@ -54,7 +55,6 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 from sentry.utils import metrics
-from sentry.utils.actor import ActorTuple
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
@@ -106,10 +106,10 @@ def handle_discard(
 
 def self_subscribe_and_assign_issue(
     acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
-) -> ActorTuple | None:
+) -> RpcActor | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
-    # or the group is assigned already, otherwise returns ActorTuple
+    # or the group is assigned already, otherwise returns RpcActor
     # representation of current user
     if acting_user:
         GroupSubscription.objects.subscribe(
@@ -117,7 +117,7 @@ def self_subscribe_and_assign_issue(
         )
 
         if self_assign_issue == "1" and not group.assignee_set.exists():
-            return ActorTuple(type=User, id=acting_user.id)
+            return RpcActor(id=acting_user.id, actor_type=ActorType.USER)
     return None
 
 
@@ -841,7 +841,7 @@ def handle_is_public(
 
 
 def handle_assigned_to(
-    assigned_actor: ActorTuple,
+    assigned_actor: RpcActor,
     assigned_by: str | None,
     integration: str | None,
     group_list: list[Group],

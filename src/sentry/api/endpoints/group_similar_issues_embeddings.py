@@ -16,7 +16,7 @@ from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.seer.utils import (
-    SimilarIssuesEmbeddingsData,
+    SeerSimilarIssueData,
     SimilarIssuesEmbeddingsRequest,
     get_similar_issues_embeddings,
 )
@@ -108,7 +108,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
     def get_formatted_results(
         self,
-        similar_issues_data: Sequence[SimilarIssuesEmbeddingsData],
+        similar_issues_data: Sequence[SeerSimilarIssueData],
         user: User | AnonymousUser,
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
@@ -118,11 +118,11 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         group_data = {}
         for similar_issue_data in similar_issues_data:
             formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                "message": 1 - similar_issue_data["message_distance"],
-                "exception": 1 - similar_issue_data["stacktrace_distance"],
-                "shouldBeGrouped": "Yes" if similar_issue_data["should_group"] else "No",
+                "message": 1 - similar_issue_data.message_distance,
+                "exception": 1 - similar_issue_data.stacktrace_distance,
+                "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
             }
-            group_data[similar_issue_data["parent_group_id"]] = formatted_response
+            group_data[similar_issue_data.parent_group_id] = formatted_response
 
         serialized_groups = {
             int(g["id"]): g
@@ -185,16 +185,16 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             group_id=group.id,
             count_over_threshold=len(
                 [
-                    result["stacktrace_distance"]
-                    for result in (results.get("responses") or [])
-                    if result["stacktrace_distance"] <= 0.01
+                    result.stacktrace_distance
+                    for result in results
+                    if result.stacktrace_distance <= 0.01
                 ]
             ),
             user_id=request.user.id,
         )
 
-        if not results["responses"]:
+        if not results:
             return Response([])
-        formatted_results = self.get_formatted_results(results["responses"], request.user)
+        formatted_results = self.get_formatted_results(results, request.user)
 
         return Response(formatted_results)

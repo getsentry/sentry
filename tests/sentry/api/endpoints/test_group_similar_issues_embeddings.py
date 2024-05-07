@@ -11,10 +11,12 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
 )
 from sentry.api.serializers.base import serialize
 from sentry.models.group import Group
-from sentry.seer.utils import SimilarIssuesEmbeddingsData, SimilarIssuesEmbeddingsResponse
+from sentry.seer.utils import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
+from sentry.utils.types import NonNone
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
 BASE_APP_DATA: dict[str, Any] = {
@@ -389,7 +391,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.group = self.event.group
         assert self.group
         self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
-        self.similar_group = self.create_group(project=self.project)
+        self.similar_event = self.store_event(
+            data={"message": "Dogs are great!"}, project_id=self.project
+        )
 
     def create_exception(
         self, exception_type_str="Exception", exception_value="it broke", frames=None
@@ -651,25 +655,34 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert stacktrace_str == ""
 
     def test_get_formatted_results(self):
-        new_group = self.create_group(project=self.project)
-        response_1: SimilarIssuesEmbeddingsData = {
-            "message_distance": 0.05,
-            "parent_group_id": self.similar_group.id,
-            "should_group": True,
-            "stacktrace_distance": 0.01,
-        }
-        response_2: SimilarIssuesEmbeddingsData = {
-            "message_distance": 0.49,
-            "parent_group_id": new_group.id,
-            "should_group": False,
-            "stacktrace_distance": 0.23,
-        }
+        event_from_second_similar_group = save_new_event(
+            {"message": "Adopt don't shop"}, self.project
+        )
+
+        similar_issue_data_1 = SeerSimilarIssueData(
+            message_distance=0.05,
+            parent_group_id=NonNone(self.similar_event.group_id),
+            should_group=True,
+            stacktrace_distance=0.01,
+        )
+        similar_issue_data_2 = SeerSimilarIssueData(
+            message_distance=0.49,
+            parent_group_id=NonNone(event_from_second_similar_group.group_id),
+            should_group=False,
+            stacktrace_distance=0.23,
+        )
         group_similar_endpoint = GroupSimilarIssuesEmbeddingsEndpoint()
         formatted_results = group_similar_endpoint.get_formatted_results(
-            similar_issues_data=[response_1, response_2], user=self.user
+            similar_issues_data=[similar_issue_data_1, similar_issue_data_2], user=self.user
         )
         assert formatted_results == self.get_expected_response(
-            [self.similar_group.id, new_group.id], [0.95, 0.51], [0.99, 0.77], ["Yes", "No"]
+            [
+                NonNone(self.similar_event.group_id),
+                NonNone(event_from_second_similar_group.group_id),
+            ],
+            [0.95, 0.51],
+            [0.99, 0.77],
+            ["Yes", "No"],
         )
 
     def test_no_feature_flag(self):
@@ -677,15 +690,16 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.status_code == 404, response.content
 
+    # TODO: Remove once switch is complete
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
-    def test_simple(self, mock_logger, mock_seer_request):
+    def test_simple_only_group_id_returned(self, mock_logger, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": self.similar_group.id,
+                    "parent_group_id": NonNone(self.similar_event.group_id),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 }
@@ -699,7 +713,101 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         assert response.data == self.get_expected_response(
-            [self.similar_group.id], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+        )
+
+        expected_seer_request_params = {
+            "group_id": self.group.id,
+            "project_id": self.project.id,
+            "stacktrace": EXPECTED_STACKTRACE_STRING,
+            "message": self.group.message,
+            "k": 1,
+            "threshold": 0.98,
+        }
+
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(expected_seer_request_params),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+        )
+
+        expected_seer_request_params["group_message"] = expected_seer_request_params.pop("message")
+        mock_logger.info.assert_called_with(
+            "Similar issues embeddings parameters", extra=expected_seer_request_params
+        )
+
+    @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
+    def test_simple_only_hash_returned(self, mock_logger, mock_seer_request):
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            "responses": [
+                {
+                    "message_distance": 0.05,
+                    "parent_group_hash": NonNone(self.similar_event.get_primary_hash()),
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                }
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+        response = self.client.get(
+            self.path,
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == self.get_expected_response(
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+        )
+
+        expected_seer_request_params = {
+            "group_id": self.group.id,
+            "project_id": self.project.id,
+            "stacktrace": EXPECTED_STACKTRACE_STRING,
+            "message": self.group.message,
+            "k": 1,
+            "threshold": 0.98,
+        }
+
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(expected_seer_request_params),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+        )
+
+        expected_seer_request_params["group_message"] = expected_seer_request_params.pop("message")
+        mock_logger.info.assert_called_with(
+            "Similar issues embeddings parameters", extra=expected_seer_request_params
+        )
+
+    # TODO: Remove once switch is complete
+    @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
+    def test_simple_group_id_and_hash_returned(self, mock_logger, mock_seer_request):
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            "responses": [
+                {
+                    "message_distance": 0.05,
+                    "parent_group_id": NonNone(self.similar_event.group_id),
+                    "parent_group_hash": NonNone(self.similar_event.get_primary_hash()),
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                }
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+        response = self.client.get(
+            self.path,
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == self.get_expected_response(
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
         expected_seer_request_params = {
@@ -727,25 +835,26 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_multiple(self, mock_seer_request, mock_record):
-        similar_group_over_threshold = self.create_group(project=self.project)
-        similar_group_under_threshold = self.create_group(project=self.project)
+        over_threshold_group_event = save_new_event({"message": "Maisey is silly"}, self.project)
+        under_threshold_group_event = save_new_event({"message": "Charlie is goofy"}, self.project)
+
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": self.similar_group.id,
+                    "parent_group_id": NonNone(self.similar_event.group_id),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": similar_group_over_threshold.id,
+                    "parent_group_id": NonNone(over_threshold_group_event.group_id),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": similar_group_under_threshold.id,
+                    "parent_group_id": NonNone(under_threshold_group_event.group_id),
                     "should_group": False,
                     "stacktrace_distance": 0.05,  # Under threshold
                 },
@@ -760,9 +869,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == self.get_expected_response(
             [
-                self.similar_group.id,
-                similar_group_over_threshold.id,
-                similar_group_under_threshold.id,
+                NonNone(self.similar_event.group_id),
+                NonNone(over_threshold_group_event.group_id),
+                NonNone(under_threshold_group_event.group_id),
             ],
             [0.95, 0.95, 0.95],
             [0.998, 0.998, 0.95],
@@ -779,23 +888,22 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.logger")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_invalid_return(self, mock_seer_request):
-        """
-        The seer API can return groups that do not exist if they have been deleted/merged.
-        Test that these groups are not returned.
-        """
+    def test_incomplete_return_data(self, mock_seer_request, mock_logger):
+        # Two suggested groups, one with valid data, one missing both parent group id and parent group hash.
+        # We should log the second and return the first.
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": self.similar_group.id,
+                    "parent_group_id": NonNone(self.similar_event.group_id),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": 10000000,  # An arbitrarily large group ID that will not exist
+                    # missing both parent group id and parent hash
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -803,8 +911,75 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         }
         mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
         response = self.client.get(self.path)
+
+        mock_logger.exception.assert_called_with(
+            "Seer similar issues response missing both `parent_group_id` and `parent_group_hash`",
+            extra={
+                "request_params": {
+                    "group_id": NonNone(self.event.group_id),
+                    "project_id": self.project.id,
+                    "stacktrace": EXPECTED_STACKTRACE_STRING,
+                    "message": self.group.message,
+                },
+                "raw_similar_issue_data": {
+                    "message_distance": 0.05,
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+            },
+        )
         assert response.data == self.get_expected_response(
-            [self.similar_group.id], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+        )
+
+    @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.logger")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    def test_nonexistent_group(self, mock_seer_request, mock_logger):
+        """
+        The seer API can return groups that do not exist if they have been deleted/merged.
+        Test that these groups are not returned.
+        """
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            # Two suggested groups, one with valid data, one pointing to a group that doesn't exist.
+            # We should log the second and return the first.
+            "responses": [
+                {
+                    "message_distance": 0.05,
+                    "parent_group_id": NonNone(self.similar_event.group_id),
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+                {
+                    "message_distance": 0.05,
+                    "parent_group_id": 1121201212312012,  # too high to be real
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        response = self.client.get(self.path)
+
+        mock_logger.exception.assert_called_with(
+            "Similar group suggested by Seer does not exist",
+            extra={
+                "request_params": {
+                    "group_id": NonNone(self.event.group_id),
+                    "project_id": self.project.id,
+                    "stacktrace": EXPECTED_STACKTRACE_STRING,
+                    "message": self.group.message,
+                },
+                "raw_similar_issue_data": {
+                    "message_distance": 0.05,
+                    "parent_group_id": 1121201212312012,
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+            },
+        )
+        assert response.data == self.get_expected_response(
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
     @with_feature("projects:similarity-embeddings")
@@ -887,7 +1062,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": self.similar_group.id,
+                    "parent_group_id": NonNone(self.similar_event.group_id),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 }
@@ -899,7 +1074,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         # Include no optional parameters
         response = self.client.get(self.path)
         assert response.data == self.get_expected_response(
-            [self.similar_group.id], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(
@@ -922,7 +1097,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"k": 1},
         )
         assert response.data == self.get_expected_response(
-            [self.similar_group.id], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(
@@ -946,7 +1121,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"threshold": "0.98"},
         )
         assert response.data == self.get_expected_response(
-            [self.similar_group.id], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(

@@ -21,6 +21,7 @@ import {
   MetricsFields,
   type MetricsResponse,
   SpanFunction,
+  SpanMetricsField,
   type SpanMetricsResponse,
 } from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -28,6 +29,7 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 const {TRANSACTION_DURATION} = MetricsFields;
+const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
 type Row = Pick<
   SpanMetricsResponse,
@@ -38,6 +40,7 @@ type Row = Pick<
   | 'cache_miss_rate()'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
+  | 'avg(cache.item_size)'
 > &
   Pick<MetricsResponse, 'avg(transaction.duration)'>;
 
@@ -48,6 +51,7 @@ type Column = GridColumnHeader<
   | 'time_spent_percentage()'
   | 'project'
   | 'avg(transaction.duration)'
+  | 'avg(cache.item_size)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -59,6 +63,11 @@ const COLUMN_ORDER: Column[] = [
   {
     key: 'project',
     name: t('Project'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `avg(${CACHE_ITEM_SIZE})`,
+    name: DataTitles[`avg(${CACHE_ITEM_SIZE})`],
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -87,6 +96,7 @@ const SORTABLE_FIELDS = [
   `${SPM}()`,
   `${CACHE_MISS_RATE}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
+  `avg(${CACHE_ITEM_SIZE})`,
 ] as const;
 
 type ValidSort = Sort & {

@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Required, TypedDict
 
 import click
+from sentry_kafka_schemas import get_codec
 
 
 class Topic(Enum):
@@ -87,3 +88,10 @@ def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> Non
         raise ValueError(
             "Invalid consumer definition, dlq_max_invalid_ratio/dlq_max_consecutive_count is configured, but dlq_topic is not"
         )
+
+
+def get_topic_codec(topic: Topic):
+    """
+    Like sentry_kafka_schemas.get_codec, but only accepts a Topic enum
+    """
+    return get_codec(topic.value)

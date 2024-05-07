@@ -15,7 +15,7 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.27',
+        corejs: '3.37',
       },
     ],
     // TODO: Remove allowDeclareFields when we upgrade to Babel 8

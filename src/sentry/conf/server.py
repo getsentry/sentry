@@ -135,7 +135,6 @@ SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
-SENTRY_ASSEMBLE_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -732,8 +731,6 @@ CELERY_IMPORTS = (
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
-    "sentry.monitors.tasks.check_missed",
-    "sentry.monitors.tasks.check_timeout",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -1498,6 +1495,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
+    # Disables legacy cron ingest endpoints
+    "organizations:crons-write-user-feedback": False,
     # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1533,8 +1532,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
-    # Enables automatically deriving of code mappings for Go Projects
-    "organizations:derive-code-mappings-go": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
@@ -1762,6 +1759,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Enable linking to trace explorer from metrics
+    "organizations:performance-trace-explorer-with-metrics": False,
     # Experimental performance issue for streamed spans - ingestion
     "organizations:performance-streamed-spans-exp-ingest": False,
     # Experimental performance issue for streamed spans - UI
@@ -3702,6 +3701,10 @@ DEVSERVER_LOGS_ALLOWLIST: set[str] | None = None
 DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
+
+# We should not run access logging middleware on some endpoints as
+# it is very noisy, and these views are hit by internal services.
+ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/",)
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False

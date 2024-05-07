@@ -6,6 +6,7 @@ import moment from 'moment';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -179,12 +180,14 @@ export default function PageOverview() {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <FeedbackWidgetButton />
-            {transactionSummaryTarget && (
-              <LinkButton to={transactionSummaryTarget} size="sm">
-                {t('View Transaction Summary')}
-              </LinkButton>
-            )}
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+              {transactionSummaryTarget && (
+                <LinkButton to={transactionSummaryTarget} size="sm">
+                  {t('View Transaction Summary')}
+                </LinkButton>
+              )}
+            </ButtonBar>
           </Layout.HeaderActions>
           <TabList hideBorder>
             {LANDING_DISPLAYS.map(({label, field}) => (

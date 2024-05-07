@@ -33,12 +33,13 @@ import {
 } from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
-import {SpanFunction} from 'sentry/views/starfish/types';
+import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const {CACHE_MISS_RATE} = SpanFunction;
+const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
 export function CacheLandingPage() {
   const organization = useOrganization();
@@ -85,6 +86,7 @@ export function CacheLandingPage() {
       `${CACHE_MISS_RATE}()`,
       'sum(span.self_time)',
       'time_spent_percentage()',
+      `avg(${CACHE_ITEM_SIZE})`,
     ],
     sorts: [sort],
     cursor,
@@ -113,6 +115,10 @@ export function CacheLandingPage() {
       'avg(transaction.duration)':
         transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)'],
     })) || [];
+
+  const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
+
+  addCustomMeta(meta);
 
   return (
     <React.Fragment>
@@ -173,7 +179,7 @@ export function CacheLandingPage() {
                 isLoading={isTransactionsListLoading || isTransactionDurationLoading}
                 sort={sort}
                 error={transactionsListError || transactionDurationError}
-                meta={combineMeta(transactionsListMeta, transactionDurationMeta)}
+                meta={meta}
                 pageLinks={transactionsListPageLinks}
               />
             </ModuleLayout.Full>
@@ -214,6 +220,14 @@ const combineMeta = (
     fields: {...meta1.fields, ...meta2.fields},
     units: {...meta1.units, ...meta2.units},
   };
+};
+
+// TODO - this should come from the backend
+const addCustomMeta = (meta?: EventsMetaType) => {
+  if (meta) {
+    meta.fields[`avg(${CACHE_ITEM_SIZE})`] = 'size';
+    meta.units[`avg(${CACHE_ITEM_SIZE})`] = 'byte';
+  }
 };
 
 const DEFAULT_SORT = {
