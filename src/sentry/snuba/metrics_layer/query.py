@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -630,6 +629,7 @@ def _query_meta_table(
     )
 
     requests = []
+    use_case_id_for_index = {}
     for use_case_id in use_case_ids:
         for entity_key in entity_keys:
             new_query = base_query.set_match(Entity(entity_key.value)).set_where(
@@ -638,13 +638,16 @@ def _query_meta_table(
             )
             new_query = new_query
             new_request = build_request(new_query, use_case_id)
+
             requests.append(new_request)
+            # We store the use case id of the index of the request, to retrieve it later.
+            use_case_id_for_index[len(requests) - 1] = use_case_id
 
     results = bulk_snuba_queries(requests, f"generic_metrics_meta_{column_name}")
 
     ids_to_index: dict[UseCaseID, list[int]] = {}
     for index, result in enumerate(results):
-        use_case_id = use_case_ids[math.floor(index / len(entity_keys))]
+        use_case_id = use_case_id_for_index[index]
         ids_to_index.setdefault(use_case_id, []).extend(
             [row[column_name] for row in result["data"]]
         )
@@ -657,7 +660,7 @@ def _query_meta_table(
     # We group by project ID since this is a handy format from an API usage perspective.
     grouped_results: dict[UseCaseID, dict[int, list[str]]] = {}
     for index, result in enumerate(results):
-        use_case_id = use_case_ids[math.floor(index / len(entity_keys))]
+        use_case_id = use_case_id_for_index[index]
         for row in result["data"]:
             mri = resolved_ids[row[column_name]]
             grouped_results.setdefault(use_case_id, {}).setdefault(row["project_id"], []).append(
