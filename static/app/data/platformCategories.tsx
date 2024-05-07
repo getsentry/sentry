@@ -1,12 +1,12 @@
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 export enum PlatformCategory {
-  FRONTEND,
-  MOBILE,
-  BACKEND,
-  SERVERLESS,
-  DESKTOP,
-  OTHER,
+  FRONTEND = 0,
+  MOBILE = 1,
+  BACKEND = 2,
+  SERVERLESS = 3,
+  DESKTOP = 4,
+  OTHER = 5,
 }
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py

@@ -91,10 +91,10 @@ class EventPerformanceProblem:
         return evidence_hashes
 
     def save(self):
-        nodestore.set(self.identifier, self.problem.to_dict())
+        nodestore.backend.set(self.identifier, self.problem.to_dict())
 
     @classmethod
-    def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem:
+    def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem | None:
         return cls.fetch_multi([(event, problem_hash)])[0]
 
     @classmethod
@@ -102,7 +102,7 @@ class EventPerformanceProblem:
         cls, items: Sequence[tuple[Event, str]]
     ) -> Sequence[EventPerformanceProblem | None]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
-        results = nodestore.get_multi(ids)
+        results = nodestore.backend.get_multi(ids)
         return [
             cls(event, PerformanceProblem.from_dict(results[_id])) if results.get(_id) else None
             for _id, (event, _) in zip(ids, items)
@@ -342,7 +342,10 @@ def _detect_performance_problems(
     ]
 
     for detector in detectors:
-        run_detector_on_data(detector, data)
+        with sentry_sdk.start_span(
+            op="function", description=f"run_detector_on_data.{detector.type.value}"
+        ):
+            run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(
@@ -403,7 +406,7 @@ def run_detector_on_data(detector, data):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event: Event,
+    event: dict[str, Any],
     event_id: str | None,
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
@@ -457,7 +460,7 @@ def report_metrics_for_detectors(
 
     detected_tags = {
         "sdk_name": sdk_name,
-        "is_early_adopter": organization.flags.early_adopter.is_set,
+        "is_early_adopter": bool(organization.flags.early_adopter),
         "is_standalone_spans": is_standalone_spans,
     }
 

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -25,6 +24,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, Group, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   getAnalyticsDataForEvent,
@@ -33,6 +33,7 @@ import {
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -237,7 +238,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
   const organization = useOrganization();
 
-  const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+  const hasReplay = Boolean(getReplayIdFromEvent(event));
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(group.project);

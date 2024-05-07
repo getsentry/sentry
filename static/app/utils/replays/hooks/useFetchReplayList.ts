@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
   type ApiQueryKey,
@@ -76,7 +76,7 @@ export default function useFetchReplayList({
   }, [options, organization.slug, queryReferrer]);
 
   const {data, ...result} = useApiQuery<{data: any[]}>(fixedQueryKey, {
-    staleTime: Infinity,
+    staleTime: 0,
     enabled: true,
   });
 

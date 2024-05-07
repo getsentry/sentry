@@ -275,6 +275,7 @@ def create_issue_platform_occurrence(
         culprit=occurrence_data["reason"],
         detection_time=current_timestamp,
         level=occurrence_data["level"],
+        assignee=monitor_env.monitor.owner_actor,
     )
 
     if failed_checkin.trace_id:

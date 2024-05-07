@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {MetricsProperty} from 'sentry/views/starfish/types';
+import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -63,7 +63,7 @@ describe('useSpanMetrics', () => {
       {
         wrapper: Wrapper,
         initialProps: {
-          fields: ['spm()'] as MetricsProperty[],
+          fields: ['spm()'] as SpanMetricsProperty[],
           enabled: false,
         },
       }
@@ -107,7 +107,7 @@ describe('useSpanMetrics', () => {
             release: '0.0.1',
             environment: undefined,
           },
-          fields: ['spm()'] as MetricsProperty[],
+          fields: ['spm()'] as SpanMetricsProperty[],
           sorts: [{field: 'spm()', kind: 'desc' as const}],
           limit: 10,
           referrer: 'api-spec',

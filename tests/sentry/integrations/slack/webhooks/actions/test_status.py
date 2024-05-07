@@ -12,6 +12,7 @@ from sentry.integrations.slack.webhooks.action import (
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
 )
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -23,8 +24,10 @@ from sentry.models.identity import Identity
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team
-from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
+from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
@@ -32,13 +35,14 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry.utils.samples import load_data
 
 from . import BaseEventTest
 
 pytestmark = [requires_snuba]
 
 
-class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
+class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
         self.notification_text = "Identity not found."
@@ -340,6 +344,25 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
         assert "via" not in update_data["blocks"][4]["elements"][0]["text"]
+        assert ":red_circle:" in update_data["blocks"][0]["text"]["text"]
+
+    @responses.activate
+    @with_feature("organizations:slack-improvements")
+    def test_archive_issue_until_escalating_block_kit_improvements(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.archive_issue_block_kit(original_message, "ignored:archived_until_escalating")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert "via" not in update_data["blocks"][4]["elements"][0]["text"]
+        assert ":white_circle:" in update_data["blocks"][0]["text"]["text"]
 
     @responses.activate
     def test_archive_issue_until_escalating_block_kit_through_unfurl(self):
@@ -600,6 +623,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert ":red_circle:" in resp.data["blocks"][0]["text"]["text"]
 
         # Assign to team
         resp = self.assign_issue_block_kit(original_message, self.team)
@@ -607,6 +631,44 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert ":red_circle:" in resp.data["blocks"][0]["text"]["text"]
+
+        # Assert group assignment activity recorded
+        group_activity = Activity.objects.filter(group=self.group)
+        assert group_activity.first().data == {
+            "assignee": str(user2.id),
+            "assigneeEmail": user2.email,
+            "assigneeType": "user",
+            "integration": ActivityIntegration.SLACK.value,
+        }
+        assert group_activity.last().data == {
+            "assignee": str(self.team.id),
+            "assigneeEmail": None,
+            "assigneeType": "team",
+            "integration": ActivityIntegration.SLACK.value,
+        }
+
+    @with_feature("organizations:slack-improvements")
+    def test_assign_issue_block_kit_improvements(self):
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(user=user2, organization=self.organization, teams=[self.team])
+        original_message = self.get_original_message_block_kit(self.group.id)
+
+        # Assign to user
+        resp = self.assign_issue_block_kit(original_message, user2)
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
+        expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
+
+        # Assign to team
+        resp = self.assign_issue_block_kit(original_message, self.team)
+        assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
+        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
 
         # Assert group assignment activity recorded
         group_activity = Activity.objects.filter(group=self.group)
@@ -930,6 +992,59 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"] == expect_status
+        assert ":red_circle:" in update_data["blocks"][0]["text"]["text"]
+
+    @responses.activate
+    @with_feature("organizations:slack-improvements")
+    def test_resolve_issue_block_kit_improvements(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.resolve_issue_block_kit(original_message, "resolved")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
+        assert update_data["blocks"][2]["text"]["text"] == expect_status
+        assert ":white_circle:" in update_data["blocks"][0]["text"]["text"]
+
+    @responses.activate
+    @with_feature("organizations:slack-improvements")
+    def test_resolve_perf_issue_block_kit_improvements(self):
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
+
+        event_data_2 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
+        event_data_2["timestamp"] = iso_format(before_now(seconds=20))
+        event_data_2["start_timestamp"] = iso_format(before_now(seconds=21))
+        event_data_2["event_id"] = "f" * 32
+
+        perf_issue = self.create_performance_issue(
+            event_data=event_data_2, fingerprint=group_fingerprint
+        )
+        self.group = perf_issue.group
+        assert self.group
+
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.resolve_issue_block_kit(original_message, "resolved")
+
+        self.group.refresh_from_db()
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert (
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            in update_data["blocks"][1]["text"]["text"]
+        )
+        assert update_data["blocks"][2]["text"]["text"] == expect_status
+        assert (
+            ":white_circle: :chart_with_upwards_trend:" in update_data["blocks"][0]["text"]["text"]
+        )
 
     @responses.activate
     def test_resolve_issue_block_kit_through_unfurl(self):

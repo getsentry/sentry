@@ -159,7 +159,11 @@ class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any
             group_bys: list[str],
             query_groups: OrderedDict[GroupKey, GroupValue],
             add_to_group: Callable[[Mapping[str, Any], GroupValue], None],
-        ):
+        ) -> None:
+            if not rows:
+                query_groups.setdefault(tuple(), GroupValue.empty())
+                return
+
             for row in rows:
                 grouped_values = []
                 for group_by in group_bys:
@@ -168,6 +172,7 @@ class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any
 
                 group_value = query_groups.setdefault(tuple(grouped_values), GroupValue.empty())
                 add_to_group(row, group_value)
+            return
 
         for query_result in query_results:
             # All queries must have the same timerange, so under this assumption we take the first occurrence of each.

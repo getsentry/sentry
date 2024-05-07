@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
@@ -15,6 +14,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -72,9 +72,9 @@ function getRelocationOnboardingSteps(): StepDescriptor[] {
 }
 
 enum LoadingState {
-  FETCHED,
-  FETCHING,
-  ERROR,
+  FETCHED = 0,
+  FETCHING = 1,
+  ERROR = 2,
 }
 
 function RelocationOnboarding(props: Props) {
@@ -270,7 +270,7 @@ function RelocationOnboarding(props: Props) {
   const contentView = isLoading ? (
     <LoadingIndicator />
   ) : (
-    <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+    <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
       <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
         {stepObj.Component && (
           <stepObj.Component

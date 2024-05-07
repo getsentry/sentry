@@ -1,4 +1,4 @@
-import type {TagWithTopValues} from 'sentry/types';
+import type {TagWithTopValues} from 'sentry/types/group';
 
 export function TagsFixture(params: TagWithTopValues[] = []): TagWithTopValues[] {
   return [

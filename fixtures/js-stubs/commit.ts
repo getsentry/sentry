@@ -1,7 +1,7 @@
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import type {Commit} from 'sentry/types';
+import type {Commit} from 'sentry/types/integrations';
 
 export function CommitFixture(params: Partial<Commit> = {}): Commit {
   return {

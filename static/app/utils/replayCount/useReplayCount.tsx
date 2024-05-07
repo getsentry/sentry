@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import type {ApiResult} from 'sentry/api';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 

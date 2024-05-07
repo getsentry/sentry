@@ -87,10 +87,10 @@
     }
   ],
   "paths": {
-    "/api/0/teams/{organization_slug}/{team_slug}/": {
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/": {
       "$ref": "paths/teams/by-slug.json"
     },
-    "/api/0/teams/{organization_slug}/{team_slug}/stats/": {
+    "/api/0/teams/{organization_slug}/{team_id_or_slug}/stats/": {
       "$ref": "paths/teams/stats.json"
     },
     "/api/0/organizations/": {
@@ -114,34 +114,34 @@
     "/api/0/projects/": {
       "$ref": "paths/projects/index.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/files/dsyms/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/files/dsyms/": {
       "$ref": "paths/projects/dsyms.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/users/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/users/": {
       "$ref": "paths/projects/users.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/tags/{key}/values/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/tags/{key}/values/": {
       "$ref": "paths/projects/tag-values.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/stats/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/stats/": {
       "$ref": "paths/projects/stats.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/user-feedback/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/user-feedback/": {
       "$ref": "paths/projects/user-feedback.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/hooks/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/hooks/": {
       "$ref": "paths/projects/service-hooks.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/hooks/{hook_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/hooks/{hook_id}/": {
       "$ref": "paths/projects/service-hook-details.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/{event_id}/": {
       "$ref": "paths/events/project-event-details.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/events/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/events/": {
       "$ref": "paths/events/project-events.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/issues/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/issues/": {
       "$ref": "paths/events/project-issues.json"
     },
     "/api/0/organizations/{organization_slug}/issues/{issue_id}/tags/{key}/values/": {
@@ -174,19 +174,19 @@
     "/api/0/organizations/{organization_slug}/releases/{version}/files/": {
       "$ref": "paths/releases/release-files.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/files/": {
       "$ref": "paths/releases/project-release-files.json"
     },
     "/api/0/organizations/{organization_slug}/releases/{version}/files/{file_id}/": {
       "$ref": "paths/releases/release-file.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/{file_id}/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/files/{file_id}/": {
       "$ref": "paths/releases/project-release-file.json"
     },
     "/api/0/organizations/{organization_slug}/releases/{version}/commits/": {
       "$ref": "paths/releases/organization-release-commits.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/commits/": {
+    "/api/0/projects/{organization_slug}/{project_id_or_slug}/releases/{version}/commits/": {
       "$ref": "paths/releases/project-release-commits.json"
     },
     "/api/0/organizations/{organization_slug}/releases/{version}/commitfiles/": {

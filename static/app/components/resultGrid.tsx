@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import type {Client, RequestOptions} from 'sentry/api';
@@ -7,6 +6,7 @@ import DropdownLink from 'sentry/components/dropdownLink';
 import MenuItem from 'sentry/components/menuItem';
 import Pagination from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
 
 type Option = [value: string, label: string];

@@ -3,14 +3,13 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping
-from itertools import chain
 from typing import TYPE_CHECKING, ClassVar
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
-from django.db.models import QuerySet, Subquery
+from django.db.models import Q, QuerySet, Subquery
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -30,7 +29,7 @@ from sentry.db.models import (
     Model,
     OptionManager,
     Value,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
@@ -39,6 +38,7 @@ from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
 from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -214,7 +214,7 @@ class ProjectManager(BaseManager["Project"]):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-@region_silo_only_model
+@region_silo_model
 class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
@@ -424,7 +424,6 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     def transfer_to(self, organization):
         from sentry.incidents.models.alert_rule import AlertRule
-        from sentry.models.actor import ACTOR_TYPES
         from sentry.models.environment import Environment, EnvironmentProject
         from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.projectteam import ProjectTeam
@@ -491,17 +490,32 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
                 monitor.update(organization_id=organization.id)
 
         # Remove alert owners not in new org
-        alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
-        rules = Rule.objects.filter(owner_id__isnull=False, project=self).select_related("owner")
-        for rule in list(chain(alert_rules, rules)):
-            actor = rule.owner
+        alert_rules = AlertRule.objects.fetch_for_project(self).filter(
+            Q(user_id__isnull=False) | Q(team_id__isnull=False)
+        )
+        for rule in alert_rules:
             is_member = False
-            if actor.type == ACTOR_TYPES["user"]:
-                is_member = organization.member_set.filter(user_id=actor.resolve().id).exists()
-            if actor.type == ACTOR_TYPES["team"]:
-                is_member = actor.resolve().organization_id == organization.id
+            if rule.user_id:
+                is_member = organization.member_set.filter(user_id=rule.user_id).exists()
+            if rule.team_id:
+                is_member = Team.objects.filter(
+                    organization_id=organization.id, id=rule.team_id
+                ).exists()
             if not is_member:
-                rule.update(owner=None)
+                rule.update(team_id=None, user_id=None)
+        rules = Rule.objects.filter(
+            Q(owner_team_id__isnull=False) | Q(owner_user_id__isnull=False), project=self
+        )
+        for rule in rules:
+            is_member = False
+            if rule.owner_user_id:
+                is_member = organization.member_set.filter(user_id=rule.owner_user_id).exists()
+            if rule.owner_team_id:
+                is_member = Team.objects.filter(
+                    organization_id=organization.id, id=rule.owner_team_id
+                ).exists()
+            if not is_member:
+                rule.update(owner_user_id=None, owner_team_id=None)
 
         # [Rule, AlertRule(SnubaQuery->Environment)]
         # id -> name
@@ -563,8 +577,8 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         from sentry.models.rule import Rule
 
         ProjectTeam.objects.filter(project=self, team=team).delete()
-        AlertRule.objects.fetch_for_project(self).filter(owner_id=team.actor_id).update(owner=None)
-        Rule.objects.filter(owner_id=team.actor_id, project=self).update(owner=None)
+        AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(team_id=None)
+        Rule.objects.filter(owner_team_id=team.id, project=self).update(owner_team_id=None)
 
     def get_security_token(self):
         lock = locks.get(self.get_lock_key(), duration=5, name="project_security_token")

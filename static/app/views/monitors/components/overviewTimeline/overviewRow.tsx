@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,11 +8,12 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {IconEllipsis, IconTimer} from 'sentry/icons';
+import Link from 'sentry/components/links/link';
+import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import type {ObjectStatus} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {Monitor} from 'sentry/views/monitors/types';
@@ -76,8 +76,13 @@ export function OverviewRow({
         <DetailsContainer>
           <OwnershipDetails>
             <ProjectBadge project={monitor.project} avatarSize={12} disableLink />
-            {organization.features.includes('crons-ownership') && monitor.owner && (
+            {monitor.owner ? (
               <ActorBadge actor={monitor.owner} avatarSize={12} />
+            ) : (
+              <UnassignedLabel>
+                <IconUser size="xs" />
+                {t('Unassigned')}
+              </UnassignedLabel>
             )}
           </OwnershipDetails>
           <ScheduleDetails>
@@ -148,6 +153,7 @@ export function OverviewRow({
 
   return (
     <TimelineRow
+      as={singleMonitorView ? 'div' : 'li'}
       key={monitor.id}
       isDisabled={isDisabled}
       singleMonitorView={singleMonitorView}
@@ -212,24 +218,16 @@ const DetailsLink = styled(Link)`
   display: block;
   padding: ${space(3)};
   color: ${p => p.theme.textColor};
+
+  &:focus-visible {
+    outline: none;
+  }
 `;
 
 const DetailsArea = styled('div')`
   border-right: 1px solid ${p => p.theme.border};
   border-radius: 0;
   position: relative;
-`;
-
-const DetailsActions = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: none;
-  align-items: center;
-
-  /* Align to the center of the heading text */
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
-  margin: ${space(3)};
 `;
 
 const DetailsHeadline = styled('div')`
@@ -247,7 +245,15 @@ const DetailsContainer = styled('div')`
 const OwnershipDetails = styled('div')`
   display: flex;
   gap: ${space(0.75)};
+  align-items: center;
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const UnassignedLabel = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 const MonitorStatuses = styled('div')`
@@ -274,7 +280,7 @@ interface TimelineRowProps {
   singleMonitorView?: boolean;
 }
 
-const TimelineRow = styled('div')<TimelineRowProps>`
+const TimelineRow = styled('li')<TimelineRowProps>`
   grid-column: 1/-1;
 
   display: grid;
@@ -291,17 +297,10 @@ const TimelineRow = styled('div')<TimelineRowProps>`
       &:hover {
         background: ${p.theme.backgroundTertiary};
       }
+      &:has(*:focus-visible) {
+        background: ${p.theme.backgroundTertiary};
+      }
     `}
-
-  /* Show detail actions on hover */
-  &:hover ${DetailsActions} {
-    display: flex;
-  }
-
-  /* Hide trailing items on hover */
-  &:hover ${DetailsHeadline} ${Tag} {
-    visibility: hidden;
-  }
 
   /* Disabled monitors become more opaque */
   --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
@@ -309,6 +308,25 @@ const TimelineRow = styled('div')<TimelineRowProps>`
   &:last-child {
     border-bottom-left-radius: ${p => p.theme.borderRadius};
     border-bottom-right-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+const DetailsActions = styled('div')`
+  position: absolute;
+  top: 0;
+  right: 0;
+  opacity: 0;
+
+  /* Align to the center of the heading text */
+  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  margin: ${space(3)};
+
+  /* Show when timeline is hovered / focused */
+  ${TimelineRow}:hover &,
+  ${DetailsLink}:focus-visible + &,
+  &:has(a:focus-visible),
+  &:has(button:focus-visible) {
+    opacity: 1;
   }
 `;
 
@@ -321,21 +339,21 @@ const MonitorEnvContainer = styled('div')`
   text-align: right;
 `;
 
-const EnvActionButton = styled(Button)`
-  padding: ${space(0.5)} ${space(1)};
-  display: none;
-`;
-
 const EnvRow = styled('div')`
-  &:hover ${EnvActionButton} {
-    display: block;
-  }
-
   display: flex;
   gap: ${space(0.5)};
   justify-content: space-between;
   align-items: center;
   height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+`;
+
+const EnvActionButton = styled(Button)`
+  padding: ${space(0.5)} ${space(1)};
+  display: none;
+
+  ${EnvRow}:hover & {
+    display: block;
+  }
 `;
 
 const TimelineContainer = styled('div')`

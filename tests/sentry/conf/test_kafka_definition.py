@@ -20,7 +20,9 @@ def test_topic_definition() -> None:
         "ingest-transactions",
         "profiles",
         "ingest-occurrences",
-        "ingest-monitors",
+        "monitors-clock-pulse",
+        "monitors-mark-missing",
+        "monitors-mark-timeout",
     ]
 
     for topic in Topic:

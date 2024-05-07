@@ -19,6 +19,7 @@ from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
+from sentry.types.token import AuthTokenType
 
 
 class ApiTokenSerializer(serializers.Serializer):
@@ -78,8 +79,8 @@ class ApiTokensEndpoint(Endpoint):
             token = ApiToken.objects.create(
                 user_id=request.user.id,
                 name=result.get("name", None),
+                token_type=AuthTokenType.USER,
                 scope_list=result["scopes"],
-                refresh_token=None,
                 expires_at=None,
             )
 

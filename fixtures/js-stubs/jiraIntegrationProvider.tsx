@@ -1,4 +1,4 @@
-import {IntegrationProvider} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
 
 export function JiraIntegrationProviderFixture(
   params: Partial<IntegrationProvider> = {}

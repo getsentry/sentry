@@ -2,11 +2,11 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.models.apiscopes import HasApiScopes
 
 
-@control_silo_only_model
+@control_silo_model
 class ApiAuthorization(Model, HasApiScopes):
     """
     Tracks which scopes a user has authorized for a given application.

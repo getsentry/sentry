@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 from sentry import options
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.silo import SiloMode
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 
 SUPPORTED_RUNTIMES = [
@@ -109,17 +108,6 @@ def get_option_value(function, option):
     cache_options = cache.get(LAYER_INDEX_CACHE_KEY) or {}
     key = f"aws-layer:{prefix}"
     cache_value = cache_options.get(key)
-
-    if SiloMode.get_current_mode() == SiloMode.REGION:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_context(
-                "aws_lambda_cache",
-                {
-                    "cache_options": cache_options,
-                    "key": key,
-                },
-            )
-            sentry_sdk.capture_message("Fetching aws layer from cache")
 
     if cache_value is None:
         raise IntegrationError(f"Could not find cache value with key {key}")
@@ -238,9 +226,32 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
 
     if runtime.startswith("nodejs"):
         # note the env variables would be different for non-Node runtimes
-        env_variables.update(
-            {"NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto", **sentry_env_variables}
-        )
+        version = get_option_value(function, OPTION_VERSION)
+        try:
+            parsed_version = int(version)
+        except Exception:
+            sentry_sdk.capture_message("Invariant: Unable to parse AWS lambda version")
+            parsed_version = None
+
+        if (
+            # Lambda layer version 235 was the latest version using `@sentry/serverless` before we switched to `@sentry/aws-serverless`
+            parsed_version is not None
+            and parsed_version <= 235
+        ):
+            env_variables.update(
+                {
+                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
+                    **sentry_env_variables,
+                }
+            )
+        else:
+            env_variables.update(
+                {
+                    "NODE_OPTIONS": "-r @sentry/aws-serverless/cjs/awslambda-auto",
+                    **sentry_env_variables,
+                }
+            )
+
     elif runtime.startswith("python"):
         # Check if we are trying to re-enable an already enabled python, and if
         # are we should not override the env variable "SENTRY_INITIAL_HANDLER"

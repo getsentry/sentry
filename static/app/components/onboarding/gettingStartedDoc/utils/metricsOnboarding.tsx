@@ -6,6 +6,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import {t, tct} from 'sentry/locale';
 import {getInstallConfig as getNodeInstallConfig} from 'sentry/utils/gettingStartedDocs/node';
 
@@ -17,9 +18,34 @@ Sentry.init({
   ],
 });`;
 
-const getJSVerifySnippet = () => `
-// Add 4 to a counter named 'hits'
-Sentry.metrics.increment('hits', 4);`;
+const JSExampleConfig = {
+  code: [
+    {
+      label: 'Counter',
+      value: 'counter',
+      language: 'javascript',
+      code: exampleSnippets.javascript.counter,
+    },
+    {
+      label: 'Distribution',
+      value: 'distribution',
+      language: 'javascript',
+      code: exampleSnippets.javascript.distribution,
+    },
+    {
+      label: 'Set',
+      value: 'set',
+      language: 'javascript',
+      code: exampleSnippets.javascript.set,
+    },
+    {
+      label: 'Gauge',
+      value: 'gauge',
+      language: 'javascript',
+      code: exampleSnippets.javascript.gauge,
+    },
+  ],
+};
 
 export const getJSMetricsOnboarding = ({
   getInstallConfig,
@@ -83,8 +109,8 @@ const getJSMetricsOnboardingConfigure = (params: DocsParams) => [
       {
         code: [
           {
-            label: 'JavaScript',
-            value: 'javascript',
+            label: 'Counter',
+            value: 'counter',
             language: 'javascript',
             code: getJSConfigureSnippet(params),
           },
@@ -98,7 +124,7 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
   {
     type: StepType.VERIFY,
     description: tct(
-      "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. Try out this example:",
+      "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace.",
       {
         codeCounters: <code />,
         codeSets: <code />,
@@ -108,16 +134,7 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
       }
     ),
     configurations: [
-      {
-        code: [
-          {
-            label: 'JavaScript',
-            value: 'javascript',
-            language: 'javascript',
-            code: getJSVerifySnippet(),
-          },
-        ],
-      },
+      JSExampleConfig,
       {
         description: t(
           'With a bit of delay you can see the data appear in the Sentry UI.'
@@ -187,7 +204,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -197,16 +214,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
         }
       ),
       configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getJSVerifySnippet(),
-            },
-          ],
-        },
+        JSExampleConfig,
         {
           description: t(
             'With a bit of delay you can see the data appear in the Sentry UI.'
@@ -217,7 +225,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/node/metrics/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/metrics/" />
               ),
             }
           ),
@@ -271,12 +279,98 @@ const getJvmPropertiesConfigureSnippet = (_: DocsParams) => `
 sentry.enable-metrics=true`;
 
 const getJvmJavaVerifySnippet = () => `
-// Add 4 to a counter named "hits"
-Sentry.metrics().increment("hits", 4);`;
+final Map<String, String> tags = new HashMap<>();
+tags.put("app-version", "1.0.0");
+
+// Incrementing a counter by one for each button click.
+Sentry.metrics().increment(
+    "button_login_click", // key
+    1.0,                  // value
+    null,                 // unit
+    tags                  // tags
+);
+
+// Add '150' to a distribution
+// used to track the loading time of an image.
+Sentry.metrics().distribution(
+  "image_download_duration",
+  150.0,
+  MeasurementUnit.Duration.MILLISECOND,
+  tags
+);
+
+// Add '15.0' to a gauge
+// used for tracking the loading times for a page.
+Sentry.metrics().gauge(
+  "page_load",
+  15.0,
+  MeasurementUnit.Duration.MILLISECOND,
+  tags
+);
+
+// Add 'jane' to a set
+// used for tracking the number of users that viewed a page.
+Sentry.metrics().set(
+  "user_view",
+  "jane",
+  new MeasurementUnit.Custom("username"),
+  tags
+);
+
+`;
 
 const getJvmKotlinVerifySnippet = () => `
-// Add 4 to a counter named "hits"
-Sentry.metrics().increment("hits", 4)`;
+// Incrementing a counter by one for each button click.
+Sentry.metrics().increment(
+    "button_login_click", // key
+    1.0,                  // value
+    null,                 // unit
+    mapOf(                // tags
+        "provider" to "e-mail"
+    )
+)
+
+// Add '150' to a distribution
+// used to track the loading time of an image.
+Sentry.metrics().distribution(
+  "image_download_duration",
+  150.0,
+  MeasurementUnit.Duration.MILLISECOND,
+  mapOf(
+      "type" to "thumbnail"
+  )
+)
+
+// Add '15.0' to a gauge
+// used for tracking the loading times for a page.
+Sentry.metrics().gauge(
+  "page_load",
+  15.0,
+  MeasurementUnit.Duration.MILLISECOND,
+  mapOf(
+      "page" to "/home"
+  )
+)
+
+// Add 'jane' to a set
+// used for tracking the number of users that viewed a page.
+Sentry.metrics().set(
+  "user_view",
+  "jane",
+  MeasurementUnit.Custom("username"),
+  mapOf(
+      "page" to "home"
+  )
+)`;
+
+export const metricTagsExplanation = tct(
+  'You can also enrich your metrics with [codeTags:tags] (key/value pairs like [codePlatform:platform:ios], [codeRegion:region:EU]) to provide added context. Filter and group metrics in the product by these tags to refine your analysis.',
+  {
+    codeTags: <code />,
+    codePlatform: <code />,
+    codeRegion: <code />,
+  }
+);
 
 export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
   install: (params: DocsParams) => [
@@ -326,7 +420,7 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -424,7 +518,7 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -482,10 +576,6 @@ sentry_sdk.init(
   # ...
 )`;
 
-const getPythonVerifySnippet = () => `
-# Increment a metric to see how it works
-sentry_sdk.metrics.incr("drank-drinks", 1, tags={"kind": "coffee"})`;
-
 export const getPythonMetricsOnboarding = ({
   installSnippet,
 }: {
@@ -533,7 +623,7 @@ export const getPythonMetricsOnboarding = ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -544,12 +634,34 @@ export const getPythonMetricsOnboarding = ({
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
-              label: 'Python',
-              value: 'python',
+              label: 'Counter',
+              value: 'counter',
               language: 'python',
-              code: getPythonVerifySnippet(),
+              code: exampleSnippets.python.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'python',
+              code: exampleSnippets.python.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'python',
+              code: exampleSnippets.python.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'python',
+              code: exampleSnippets.python.gauge,
             },
           ],
         },
@@ -582,12 +694,6 @@ SentrySdk.Init(options =>
     EnableCodeLocations = true
   };
 });`;
-
-const getDotnetVerifySnippet = () => `
-SentrySdk.Metrics.Increment(
-  "drank-drinks",
-  tags:new Dictionary<string, string> {{"kind", "coffee"}}
-);`;
 
 export const getDotnetMetricsOnboarding = ({
   packageName,
@@ -629,7 +735,7 @@ export const getDotnetMetricsOnboarding = ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings].",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -640,8 +746,36 @@ export const getDotnetMetricsOnboarding = ({
       ),
       configurations: [
         {
-          language: 'csharp',
-          code: getDotnetVerifySnippet(),
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
+            {
+              label: 'Counter',
+              value: 'counter',
+              language: 'csharp',
+              code: exampleSnippets.dotnet.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'csharp',
+              code: exampleSnippets.dotnet.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'csharp',
+              code: exampleSnippets.dotnet.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'csharp',
+              code: exampleSnippets.dotnet.gauge,
+            },
+          ],
         },
         {
           description: t(
@@ -668,10 +802,6 @@ Sentry.init do |config|
   # ...
   config.metrics.enabled = true
 end`;
-
-const getRubyVerifySnippet = () => `
-# Increment a metric to see how it works
-Sentry::Metrics.increment("drank-drinks", 1, tags: { kind: "coffee" })`;
 
 export const getRubyMetricsOnboarding = (): OnboardingConfig => ({
   install: () => [
@@ -717,7 +847,7 @@ export const getRubyMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -728,12 +858,34 @@ export const getRubyMetricsOnboarding = (): OnboardingConfig => ({
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
-              label: 'Ruby',
-              value: 'ruby',
+              label: 'Counter',
+              value: 'counter',
               language: 'ruby',
-              code: getRubyVerifySnippet(),
+              code: exampleSnippets.ruby.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'ruby',
+              code: exampleSnippets.ruby.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'ruby',
+              code: exampleSnippets.ruby.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'ruby',
+              code: exampleSnippets.ruby.gauge,
             },
           ],
         },

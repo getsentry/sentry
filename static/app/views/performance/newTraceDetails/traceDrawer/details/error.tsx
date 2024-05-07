@@ -74,17 +74,15 @@ export function ErrorNodeDetails({
             <div>{node.value.level ?? t('error')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
-              {node.value.title}
+              {node.value.message ?? node.value.title ?? 'Error'}
             </TraceDrawerComponents.TitleOp>
           </TraceDrawerComponents.TitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-            {t('Show in view')}
-          </Button>
-          <TraceDrawerComponents.EventDetailsLink
+          <TraceDrawerComponents.NodeActions
             node={node}
             organization={organization}
+            onTabScrollToNode={onTabScrollToNode}
           />
           <Button size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}

@@ -104,7 +104,7 @@ function makeList(): VirtualizedList {
 }
 
 const EVENT_REQUEST_URL =
-  '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time';
+  '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time&averageColumn=span.duration';
 
 describe('VirtualizedViewManger', () => {
   it('initializes space', () => {
@@ -492,7 +492,7 @@ describe('VirtualizedViewManger', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:child_event_id/?averageColumn=span.self_time',
+        url: '/organizations/org-slug/events/project_slug:child_event_id/?averageColumn=span.self_time&averageColumn=span.duration',
         method: 'GET',
         body: makeEvent(undefined, [makeSpan({span_id: 'other_child_span'})]),
       });
@@ -679,6 +679,7 @@ describe('VirtualizedViewManger', () => {
               span: '',
               level: 'error',
               title: 'ded fo good',
+              message: 'ded fo good',
               timestamp: 1,
             },
           ],

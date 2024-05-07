@@ -4,7 +4,7 @@ import pytest
 from rest_framework import serializers
 
 from sentry.rules.actions.sentry_apps import NotifyEventSentryAppAction
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -50,7 +50,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
 
         assert rule.id == SENTRY_APP_ALERT_ACTION
 
-        futures = list(rule.after(event=event, state=self.get_state()))
+        futures = list(rule.after(event=event))
         assert len(futures) == 1
         assert futures[0].callback is notify_sentry_app
         assert futures[0].kwargs["sentry_app"].id == self.app.id

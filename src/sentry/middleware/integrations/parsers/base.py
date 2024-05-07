@@ -21,9 +21,9 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, get_region_for_organization
+from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -187,22 +187,14 @@ class BaseRequestParser(abc.ABC):
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
         """
-        # One integration is misbehaving in saas, and only need logs from that instance
-        extra_logging = integration.id == 122177
-
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
         ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
         use_buckets_key = f"{ratelimit_key}:use_buckets"
 
-        is_limited = False
-        ratelimit_val = None
-        reset = None
         use_buckets = cache.get(use_buckets_key)
-        if not use_buckets:
-            is_limited, ratelimit_val, reset = ratelimiter.is_limited_with_value(
-                key=ratelimit_key, window=60 * 60, limit=3000
-            )
-        if not use_buckets and is_limited:
+        if not use_buckets and ratelimiter.is_limited(
+            key=ratelimit_key, window=60 * 60, limit=3000
+        ):
             # Once we have gone over the rate limit in a day, we use smaller
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
@@ -210,19 +202,6 @@ class BaseRequestParser(abc.ABC):
             logger.info(
                 "integrations.parser.activate_buckets",
                 extra={"provider": self.provider, "integration_id": integration.id},
-            )
-
-        if extra_logging:
-            logger.info(
-                "integrations.parser.use_buckets",
-                extra={
-                    "provider": self.provider,
-                    "result": use_buckets or False,
-                    "ratelimit_key": ratelimit_key,
-                    "is_limited": is_limited,
-                    "ratelimit_val": ratelimit_val,
-                    "reset": reset,
-                },
             )
         if not use_buckets:
             return str(integration.id)
@@ -320,8 +299,8 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
-        regions = [get_region_for_organization(organization.slug) for organization in organizations]
-        return sorted(regions, key=lambda r: r.name)
+        region_names = find_regions_for_orgs([org.id for org in organizations])
+        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)

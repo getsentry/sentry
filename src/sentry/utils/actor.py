@@ -6,16 +6,16 @@ from typing import TYPE_CHECKING, overload
 
 from rest_framework import serializers
 
+from sentry.services.hybrid_cloud.user import RpcUser
+
 if TYPE_CHECKING:
-    from sentry.models.actor import Actor
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class ActorTuple(namedtuple("Actor", "id type")):
     @property
-    def identifier(self):
+    def identifier(self) -> str:
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @overload
@@ -45,8 +45,9 @@ class ActorTuple(namedtuple("Actor", "id type")):
             "team:1231" -> look up Team by id
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
-        """
 
+        Deprecated: Use RpcActor.from_identifier instead.
+        """
         if not actor_identifier:
             return None
 
@@ -73,6 +74,9 @@ class ActorTuple(namedtuple("Actor", "id type")):
 
     @classmethod
     def from_id(cls, user_id: int | None, team_id: int | None) -> ActorTuple | None:
+        """
+        Deprecated: Use RpcActor.from_id() instead.
+        """
         from sentry.models.team import Team
         from sentry.models.user import User
 
@@ -98,17 +102,6 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def resolve(self) -> Team | RpcUser:
         return fetch_actor_by_id(self.type, self.id)
 
-    def resolve_to_actor(self) -> Actor:
-        from sentry.models.actor import Actor, get_actor_for_user
-        from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
-
-        obj = self.resolve()
-        if isinstance(obj, (User, RpcUser)):
-            return get_actor_for_user(obj)
-        # Team case. Teams have actors generated as a post_save signal
-        return Actor.objects.get(id=obj.actor_id)
-
     @classmethod
     def resolve_many(cls, actors: Sequence[ActorTuple]) -> Sequence[Team | RpcUser]:
         """
@@ -116,6 +109,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
         as the input, minus any actors we couldn't resolve.
         :param actors:
         :return:
+
+        Deprecated: Replace with RpcActor.from_many_object()
         """
         from sentry.models.user import User
         from sentry.services.hybrid_cloud.user.service import user_service
@@ -164,3 +159,36 @@ def fetch_actor_by_id(cls: type[User] | type[Team], id: int) -> Team | RpcUser:
         return user
     else:
         raise ValueError(f"Cls {cls} is not a valid actor type.")
+
+
+def parse_and_validate_actor(
+    actor_identifier: str | None, organization_id: int
+) -> ActorTuple | None:
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.team import Team
+    from sentry.models.user import User
+
+    if not actor_identifier:
+        return None
+
+    try:
+        actor = ActorTuple.from_actor_identifier(actor_identifier)
+    except Exception:
+        raise serializers.ValidationError(
+            "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
+        )
+    try:
+        obj = actor.resolve()
+    except (Team.DoesNotExist, User.DoesNotExist):
+        raise serializers.ValidationError(f"{actor.type.__name__} does not exist")
+
+    if isinstance(obj, Team):
+        if obj.organization_id != organization_id:
+            raise serializers.ValidationError("Team is not a member of this organization")
+    elif isinstance(obj, RpcUser):
+        if not OrganizationMember.objects.filter(
+            organization_id=organization_id, user_id=obj.id
+        ).exists():
+            raise serializers.ValidationError("User is not a member of this organization")
+
+    return actor

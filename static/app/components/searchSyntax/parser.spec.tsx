@@ -1,6 +1,12 @@
+import {parse} from 'query-string';
+
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
-import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
+import type {
+  ParseResult,
+  SearchConfig,
+  TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {
   BooleanOperator,
   InvalidReason,
@@ -45,6 +51,11 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
       // @ts-expect-error
       delete token.config;
 
+      if (!parse) {
+        // @ts-expect-error
+        delete token.parsed;
+      }
+
       // token warnings only exist in the FE atm
       // @ts-expect-error
       delete token.warning;
@@ -54,9 +65,14 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
         delete token.invalid;
       }
 
-      if (token.type === Token.VALUE_ISO_8601_DATE) {
-        // Date values are represented as ISO strings in the test case json
-        return {...token, value: token.value.toISOString()};
+      if (
+        token.type === Token.VALUE_ISO_8601_DATE ||
+        token.type === Token.VALUE_RELATIVE_DATE
+      ) {
+        if (token.parsed?.value instanceof Date) {
+          // @ts-expect-error we cannot have dates in JSON
+          token.parsed.value = token.parsed.value.toISOString();
+        }
       }
 
       return token;
@@ -66,9 +82,15 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
 describe('searchSyntax/parser', function () {
   const testData = loadFixtures('search-syntax') as unknown as Record<string, TestCase[]>;
 
-  const registerTestCase = (testCase: TestCase) =>
+  const registerTestCase = (
+    testCase: TestCase,
+    additionalConfig: Partial<SearchConfig> = {}
+  ) =>
     it(`handles ${testCase.query}`, () => {
-      const result = parseSearch(testCase.query, testCase.additionalConfig);
+      const result = parseSearch(testCase.query, {
+        ...testCase.additionalConfig,
+        ...additionalConfig,
+      });
       // Handle errors
       if (testCase.raisesError) {
         expect(result).toBeNull();
@@ -84,7 +106,7 @@ describe('searchSyntax/parser', function () {
 
   Object.entries(testData).map(([name, cases]) =>
     describe(`${name}`, () => {
-      cases.map(registerTestCase);
+      cases.map(c => registerTestCase(c, {parse: true}));
     })
   );
 

@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayType} from 'sentry/views/dashboards/types';

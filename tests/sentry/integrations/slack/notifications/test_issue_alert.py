@@ -21,12 +21,12 @@ from sentry.models.notificationsettingprovider import NotificationSettingProvide
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, FineTuningAPIKey
 from sentry.ownership.grammar import Matcher, Owner
 from sentry.ownership.grammar import Rule as GrammarRule
 from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
@@ -96,7 +96,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             blocks[4]["elements"][0]["text"]
-            == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -128,11 +128,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_performance_issue_blocks(
             blocks,
-            event.organization.slug,
+            event.organization,
             event.project.slug,
             event.group,
             "issue_alert-slack",
-            alert_type="alerts",
+            alert_type=FineTuningAPIKey.ALERTS,
             issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
         )
 
@@ -210,7 +210,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         self.assert_generic_issue_blocks(
             blocks,
-            event.organization.slug,
+            group_event.organization,
             event.project.slug,
             event.group,
             "issue_alert-slack",
@@ -287,7 +287,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             blocks[4]["elements"][0]["text"]
-            == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -347,7 +347,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             blocks[4]["elements"][0]["text"]
-            == f"{event.project.slug} | {environment.name} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{event.project.slug} | {environment.name} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -512,7 +512,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         even when the users' issue alert notification settings are off and digests are triggered."""
 
         backend = RedisBackend()
-        digests.digest = backend.digest
+        digests.backend.digest = backend.digest
         digests.enabled.return_value = True
 
         # turn off the user's issue alert notification settings
@@ -878,7 +878,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(title_link)
         assert (
             blocks[-2]["elements"][0]["text"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
         # check that user2 got a notification as well
@@ -888,7 +888,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert "Hello world" in blocks[1]["text"]["text"]
         assert (
             blocks[-2]["elements"][0]["text"]
-            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://example.com/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -900,7 +900,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         payload when block kit is enabled.
         """
         backend = RedisBackend()
-        digests.digest = backend.digest
+        digests.backend.digest = backend.digest
         digests.enabled.return_value = True
 
         rule = Rule.objects.create(project=self.project, label="my rule")
@@ -929,5 +929,5 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             blocks[4]["elements"][0]["text"]
-            == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )

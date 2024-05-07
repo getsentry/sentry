@@ -1,5 +1,4 @@
 import {Fragment, useRef} from 'react';
-import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
@@ -17,6 +16,7 @@ import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import commonTheme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -100,7 +100,7 @@ export default function MonitorCreateForm() {
       submitLabel={t('Create')}
     >
       <FieldContainer>
-        <MultiColumnInput columns="230px 230px 1fr">
+        <ProjectOwnerNameInputs>
           <StyledSentryProjectSelectorField
             name="project"
             projects={filteredProjects}
@@ -125,7 +125,7 @@ export default function MonitorCreateForm() {
             stacked
             inline={false}
           />
-        </MultiColumnInput>
+        </ProjectOwnerNameInputs>
         <LabelText>{t('SCHEDULE')}</LabelText>
         <ScheduleOptions>
           <Observer>
@@ -146,7 +146,7 @@ export default function MonitorCreateForm() {
                   >
                     <PanelBody withPadding>
                       <ScheduleLabel>{t('Crontab Schedule')}</ScheduleLabel>
-                      <MultiColumnInput columns="1fr 1fr">
+                      <CrontabInputs>
                         <StyledTextField
                           name="config.schedule"
                           placeholder="* * * * *"
@@ -168,7 +168,7 @@ export default function MonitorCreateForm() {
                         <CronstrueText>
                           {parsedSchedule ?? t('(invalid schedule)')}
                         </CronstrueText>
-                      </MultiColumnInput>
+                      </CrontabInputs>
                     </PanelBody>
                   </SchedulePanel>
                   <SchedulePanel
@@ -177,7 +177,7 @@ export default function MonitorCreateForm() {
                   >
                     <PanelBody withPadding>
                       <ScheduleLabel>{t('Interval Schedule')}</ScheduleLabel>
-                      <MultiColumnInput columns="auto 1fr 2fr">
+                      <IntervalInputs>
                         <Label>{t('Every')}</Label>
                         <StyledNumberField
                           name="config.schedule.frequency"
@@ -200,7 +200,7 @@ export default function MonitorCreateForm() {
                           stacked
                           inline={false}
                         />
-                      </MultiColumnInput>
+                      </IntervalInputs>
                     </PanelBody>
                   </SchedulePanel>
                 </Fragment>
@@ -273,11 +273,22 @@ const ScheduleOptions = styled('div')`
   grid-template-columns: 1fr 1fr;
 `;
 
-const MultiColumnInput = styled('div')<{columns?: string}>`
+const MultiColumnInput = styled('div')`
   display: grid;
   align-items: center;
   gap: ${space(1)};
-  grid-template-columns: ${p => p.columns};
+`;
+
+const ProjectOwnerNameInputs = styled(MultiColumnInput)`
+  grid-template-columns: 230px 230px 1fr;
+`;
+
+const CrontabInputs = styled(MultiColumnInput)`
+  grid-template-columns: 1fr 1fr;
+`;
+
+const IntervalInputs = styled(MultiColumnInput)`
+  grid-template-columns: auto 1fr 2fr;
 `;
 
 const CronstrueText = styled(LabelText)`

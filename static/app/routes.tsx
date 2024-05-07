@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, lazy} from 'react';
 import {IndexRedirect, Redirect} from 'react-router';
 import memoize from 'lodash/memoize';
 
@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
@@ -27,7 +28,10 @@ import {IndexRoute, Route} from './components/route';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
-const SafeLazyLoad = errorHandler(LazyLoad);
+// LazyExoticComponent Props get crazy when wrapped in an additional layer
+const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<
+  typeof LazyLoad
+>;
 
 // NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
 // pirvate routing tree.
@@ -39,11 +43,12 @@ const SafeLazyLoad = errorHandler(LazyLoad);
 export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   resolve: () => Promise<{default: C}>
 ) {
+  const LazyComponent = lazy<C>(() => retryableImport(resolve));
   // XXX: Assign the component to a variable so it has a displayname
   function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
-    return <SafeLazyLoad {...props} component={resolve} />;
+    return <SafeLazyLoad {...props} LazyComponent={LazyComponent} />;
   }
 
   return RouteLazyLoad;
@@ -498,7 +503,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="tags/"
-        name={t('Tags')}
+        name={t('Tags & Context')}
         component={make(() => import('sentry/views/settings/projectTags'))}
       />
       <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
@@ -931,7 +936,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route path="developer-settings/" name={t('Custom Integrations')}>
         <IndexRoute
           component={make(
@@ -978,28 +982,6 @@ function buildRoutes() {
               )
           )}
         />
-        <Route path="sentry-functions/" name={t('Sentry Functions')}>
-          <Route
-            path="new/"
-            name={t('Create Sentry Function')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-                )
-            )}
-          />
-          <Route
-            path=":functionSlug/"
-            name={t('Edit Sentry Function')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-                )
-            )}
-          />
-        </Route>
       </Route>
       <Route path="auth-tokens/" name={t('Auth Tokens')}>
         <IndexRoute
@@ -1212,6 +1194,7 @@ function buildRoutes() {
   );
 
   const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    // ALERT CHILD ROUTES
     return (
       <Fragment>
         <IndexRoute
@@ -1316,6 +1299,7 @@ function buildRoutes() {
       </Fragment>
     );
   };
+  // ALERT ROUTES
   const alertRoutes = (
     <Fragment>
       {USING_CUSTOMER_DOMAIN && (
@@ -1490,9 +1474,15 @@ function buildRoutes() {
     </Route>
   );
 
-  const aiAnalyticsRoutes = (
-    <Route path="/ai-analytics/" withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/aiAnalytics/landing'))} />
+  const aiMonitoringRoutes = (
+    <Route path="/ai-monitoring/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/aiMonitoring/landing'))} />
+      <Route
+        path="pipeline-type/:groupId/"
+        component={make(
+          () => import('sentry/views/aiMonitoring/aiMonitoringDetailsPage')
+        )}
+      />
     </Route>
   );
 
@@ -1539,19 +1529,6 @@ function buildRoutes() {
         />
       </Route>
       <Route path="browser/">
-        <Route path="interactions/">
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/performance/browser/interactionsLandingPage')
-            )}
-          />
-          <Route
-            path="summary/"
-            component={make(
-              () => import('sentry/views/performance/browser/interactionSummary/index')
-            )}
-          />
-        </Route>
         <Route path="pageloads/">
           <IndexRoute
             component={make(
@@ -1583,31 +1560,48 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="queues/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/queues/queuesLandingPage')
+          )}
+        />
+        <Route
+          path="destination/"
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/queues/destinationSummary/destinationSummaryPage'
+              )
+          )}
+        />
+      </Route>
       <Route path="mobile/">
         <Route path="screens/">
           <IndexRoute
-            component={make(
-              () => import('sentry/views/starfish/modules/mobile/pageload')
-            )}
+            component={make(() => import('sentry/views/performance/mobile/screenload'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+              () => import('sentry/views/performance/mobile/screenload/screenLoadSpans')
             )}
           />
         </Route>
         <Route path="app-startup/">
           <IndexRoute
-            component={make(
-              () => import('sentry/views/starfish/modules/mobile/appStartup')
-            )}
+            component={make(() => import('sentry/views/performance/mobile/appStarts'))}
           />
           <Route
             path="spans/"
             component={make(
-              () => import('sentry/views/starfish/views/appStartup/screenSummary')
+              () => import('sentry/views/performance/mobile/appStarts/screenSummary')
             )}
+          />
+        </Route>
+        <Route path="ui/">
+          <IndexRoute
+            component={make(() => import('sentry/views/performance/mobile/ui'))}
           />
         </Route>
       </Route>
@@ -1704,46 +1698,16 @@ function buildRoutes() {
       component={make(() => import('sentry/views/starfish'))}
       withOrgPath
     >
-      <IndexRoute
-        component={make(() => import('sentry/views/starfish/views/webServiceView'))}
-      />
-      <Route path="endpoint-overview/">
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
-          )}
-        />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
-        />
-      </Route>
       <Redirect from="database/" to="/performance/database" />
       <Route path="appStartup/">
         <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/modules/mobile/appStartup')
-          )}
+          component={make(() => import('sentry/views/performance/mobile/appStarts'))}
         />
         <Route
           path="spans/"
           component={make(
-            () => import('sentry/views/starfish/views/appStartup/screenSummary')
+            () => import('sentry/views/performance/mobile/appStarts/screenSummary')
           )}
-        />
-      </Route>
-      <Route path="responsiveness/">
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/starfish/modules/mobile/responsiveness')
-          )}
-        />
-      </Route>
-      <Route path="spans/">
-        <IndexRoute component={make(() => import('sentry/views/starfish/views/spans'))} />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
         />
       </Route>
     </Route>
@@ -1826,12 +1790,6 @@ function buildRoutes() {
           path={TabPaths[Tab.SIMILAR_ISSUES]}
           component={hoc(
             make(() => import('sentry/views/issueDetails/groupSimilarIssues'))
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.RELATED_ISSUES]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupRelatedIssues'))
           )}
         />
         <Route
@@ -2164,7 +2122,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
-      {aiAnalyticsRoutes}
+      {aiMonitoringRoutes}
       {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}

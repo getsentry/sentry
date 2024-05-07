@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -33,7 +34,7 @@ from sentry.profiles.java import (
 )
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -160,8 +161,14 @@ def process_profile_task(
     if (
         profile.get("version") != "2"
         and options.get("profiling.generic_metrics.functions_ingestion.enabled")
-        and organization.id
-        in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+        and (
+            organization.id
+            in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+            or random.random()
+            < options.get("profiling.generic_metrics.functions_ingestion.rollout_rate")
+        )
+        and project.id
+        not in options.get("profiling.generic_metrics.functions_ingestion.denied_proj_ids")
     ):
         try:
             with metrics.timer("process_profile.get_metrics_dsn"):
@@ -212,7 +219,7 @@ def get_profile_platforms(profile: Profile) -> list[str]:
     return platforms
 
 
-def get_debug_images_for_platform(profile, platform):
+def get_debug_images_for_platform(profile: Profile, platform: str) -> list[dict[str, Any]]:
     if platform in SHOULD_SYMBOLICATE_JS:
         return [image for image in profile["debug_meta"]["images"] if image["type"] == "sourcemap"]
     return native_images_from_data(profile)
@@ -338,7 +345,7 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
-    profile["retention_days"] = quotas.get_event_retention(organization=organization) or 90
+    profile["retention_days"] = quotas.backend.get_event_retention(organization=organization) or 90
     platform = profile["platform"]
     version = profile.get("version")
 
@@ -381,7 +388,7 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 
 
 def _prepare_frames_from_profile(
-    profile: Profile, platform: str
+    profile: Profile, platform: str | None
 ) -> tuple[list[Any], list[Any], set[int]]:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
         modules = profile["debug_meta"]["images"]
@@ -502,7 +509,7 @@ def run_symbolicate(
 ) -> tuple[list[Any], list[Any], bool]:
     symbolication_start_time = time()
 
-    def on_symbolicator_request():
+    def on_symbolicator_request() -> None:
         duration = time() - symbolication_start_time
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
@@ -650,7 +657,7 @@ def _process_symbolicator_results_for_sample(
 
         new_frames_count = (
             len(raw_frames)
-            + sum([len(frames) for frames in symbolicated_frames_dict.values()])
+            + sum(len(frames) for frames in symbolicated_frames_dict.values())
             - len(symbolicated_frames_dict)
         )
 
@@ -773,7 +780,7 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
 def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_file_id: str) -> bool:
     symbolication_start_time = time()
 
-    def on_symbolicator_request():
+    def on_symbolicator_request() -> None:
         duration = time() - symbolication_start_time
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
@@ -952,7 +959,8 @@ def get_event_id(profile: Profile) -> str | None:
         return profile["event_id"]
     elif "chunk_id" in profile:
         return profile["chunk_id"]
-    return
+    else:
+        return None
 
 
 def get_data_category(profile: Profile) -> DataCategory:
@@ -1032,7 +1040,7 @@ def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
     return False
 
 
-def prepare_android_js_profile(profile: Profile):
+def prepare_android_js_profile(profile: Profile) -> None:
     profile["js_profile"] = {"profile": profile["js_profile"]}
     p = profile["js_profile"]
     p["platform"] = "javascript"
@@ -1043,7 +1051,7 @@ def prepare_android_js_profile(profile: Profile):
     p["dist"] = profile["dist"]
 
 
-def clean_android_js_profile(profile: Profile):
+def clean_android_js_profile(profile: Profile) -> None:
     p = profile["js_profile"]
     del p["platform"]
     del p["debug_meta"]
@@ -1055,9 +1063,12 @@ def clean_android_js_profile(profile: Profile):
 
 @lru_cache(maxsize=100)
 def get_metrics_dsn(project_id: int) -> str:
-    project_key, _ = ProjectKey.objects.get_or_create(
-        project_id=project_id, use_case=UseCase.PROFILING.value
-    )
+    kwargs = dict(project_id=project_id, use_case=UseCase.PROFILING.value)
+    try:
+        project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
+    except ProjectKey.MultipleObjectsReturned:
+        # See https://docs.djangoproject.com/en/5.0/ref/models/querysets/#get-or-create
+        project_key = ProjectKey.objects.filter(**kwargs).order_by("pk").first()
     return project_key.get_dsn(public=True)
 
 
@@ -1123,7 +1134,7 @@ def _calculate_duration_for_android_format(profile: Profile) -> int:
     return int(profile["duration_ns"] * 1e-6)
 
 
-def _set_frames_platform(profile: Profile):
+def _set_frames_platform(profile: Profile) -> None:
     platform = profile["platform"]
     frames = (
         profile["profile"]["methods"] if platform == "android" else profile["profile"]["frames"]

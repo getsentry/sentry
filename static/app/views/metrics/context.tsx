@@ -21,11 +21,10 @@ import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaSelection} from 'sentry/views/metrics/chart/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
+import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 import {useStructuralSharing} from 'sentry/views/metrics/utils/useStructuralSharing';
 
 export type FocusAreaProps = {
@@ -207,22 +206,7 @@ const useDefaultQuery = () => {
   );
 };
 
-function useSelectedProjects() {
-  const {selection} = usePageFilters();
-  const {projects} = useProjects();
-
-  return useMemo(() => {
-    if (selection.projects.length === 0) {
-      return projects.filter(project => project.isMember);
-    }
-    if (selection.projects.includes(-1)) {
-      return projects;
-    }
-    return projects.filter(project => selection.projects.includes(Number(project.id)));
-  }, [selection.projects, projects]);
-}
-
-export function DDMContextProvider({children}: {children: React.ReactNode}) {
+export function MetricsContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});

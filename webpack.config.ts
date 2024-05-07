@@ -13,7 +13,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import type {Configuration as DevServerConfig} from 'webpack-dev-server';
+import type {
+  Configuration as DevServerConfig,
+  ProxyConfigArray,
+  Static,
+} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -62,10 +66,6 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
 // features in the Sentry UI.
 const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
-
-// Enable react 18 concurrent mode
-const USE_REACT_CONCURRENT_MODE =
-  (DEV_MODE || IS_ACCEPTANCE_TEST) && !env.DISABLE_REACT_CONCURRENT_MODE;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -274,7 +274,7 @@ const appConfig: Configuration = {
         use: {
           loader: 'po-catalog-loader',
           options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
+            referenceExtensions: ['.js', '.tsx'],
             domain: 'sentry',
           },
         },
@@ -356,7 +356,6 @@ const appConfig: Configuration = {
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
         SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
         USE_REACT_QUERY_DEVTOOL: JSON.stringify(USE_REACT_QUERY_DEVTOOL),
-        USE_REACT_CONCURRENT_MODE: JSON.stringify(USE_REACT_CONCURRENT_MODE),
       },
     }),
 
@@ -456,7 +455,8 @@ const appConfig: Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      crypto: require.resolve('crypto-browserify'),
+      // Node crypto is imported in @sentry-internal/global-search but not used here
+      crypto: false,
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
@@ -464,7 +464,7 @@ const appConfig: Configuration = {
     },
 
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.js', '.json', '.ts', '.tsx', '.less'],
     symlinks: false,
   },
   output: {
@@ -575,46 +575,59 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy = {};
+    let controlSiloProxy: ProxyConfigArray = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
       // list to select control/region when making API requests in non-proxied
       // environments (like production). We'll likely need a way to consolidate this
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
-      controlSiloProxy = {
-        '/auth/**': controlSiloAddress,
-        '/account/**': controlSiloAddress,
-        '/api/0/users/**': controlSiloAddress,
-        '/api/0/api-tokens/**': controlSiloAddress,
-        '/api/0/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
-        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
-        '/api/0/organizations/*/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/config/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-app-installations/**': controlSiloAddress,
-        '/api/0/api-authorizations/**': controlSiloAddress,
-        '/api/0/api-applications/**': controlSiloAddress,
-        '/api/0/doc-integrations/**': controlSiloAddress,
-        '/api/0/assistant/**': controlSiloAddress,
-      };
+      controlSiloProxy = [
+        {
+          context: [
+            '/auth/**',
+            '/account/**',
+            '/api/0/users/**',
+            '/api/0/api-tokens/**',
+            '/api/0/sentry-apps/**',
+            '/api/0/organizations/*/audit-logs/**',
+            '/api/0/organizations/*/broadcasts/**',
+            '/api/0/organizations/*/integrations/**',
+            '/api/0/organizations/*/config/integrations/**',
+            '/api/0/organizations/*/sentry-apps/**',
+            '/api/0/organizations/*/sentry-app-installations/**',
+            '/api/0/api-authorizations/**',
+            '/api/0/api-applications/**',
+            '/api/0/doc-integrations/**',
+            '/api/0/assistant/**',
+          ],
+          target: controlSiloAddress,
+        },
+      ];
     }
 
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
-        ...(appConfig.devServer.static as object),
+        ...(appConfig.devServer.static as Static),
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
-      proxy: {
+      proxy: [
         ...controlSiloProxy,
-        '/api/store/**': relayAddress,
-        '/api/{1..9}*({0..9})/**': relayAddress,
-        '/api/0/relays/outcomes/': relayAddress,
-        '!/_static/dist/sentry/**': backendAddress,
-      },
+        {
+          context: [
+            '/api/store/**',
+            '/api/{1..9}*({0..9})/**',
+            '/api/0/relays/outcomes/**',
+          ],
+          target: relayAddress,
+        },
+        {
+          context: ['!/_static/dist/sentry/**'],
+          target: backendAddress,
+        },
+      ],
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
   }

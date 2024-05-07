@@ -6,11 +6,29 @@ import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 
+import Matrix, {type PropMatrix} from '../stories/matrix';
 import SideBySide from '../stories/sideBySide';
 
+import type {OrganizationBadgeProps} from './organizationBadge';
 import IdBadge from '.';
 
 export default storyBook(IdBadge, story => {
+  story('Props', () => {
+    const org = useOrganization();
+
+    const propMatrix: PropMatrix<OrganizationBadgeProps> = {
+      avatarSize: [12, 16, 24],
+    };
+
+    return (
+      <Matrix<OrganizationBadgeProps>
+        render={props => <IdBadge {...props} organization={org} />}
+        propMatrix={propMatrix}
+        selectedProps={['avatarSize']}
+      />
+    );
+  });
+
   story('Organization', () => {
     const org = useOrganization();
     return <IdBadge organization={org} />;

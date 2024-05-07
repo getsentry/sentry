@@ -4,6 +4,6 @@ Your relocation has failed for the following reason:
 {{ reason }}
 {% endif %}
 
-Please contact support at https://help.sentry.io for further assistance if necessary.
+Please contact support at https://sentry.zendesk.com/hc/en-us for further assistance if necessary.
 
 ID: {{ uuid }}

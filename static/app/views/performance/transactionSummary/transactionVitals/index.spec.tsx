@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location, Query} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -14,6 +13,7 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization as TOrganization, Project} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
