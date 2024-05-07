@@ -19,6 +19,8 @@ from . import is_frontend_request
 
 api_access_logger = logging.getLogger("sentry.access.api")
 
+EXCLUSION_PATHS = settings.ACCESS_LOGS_EXCLUDE_PATHS + settings.ANONYMOUS_STATIC_PREFIXES
+
 
 @dataclass
 class _AccessLogMetaData:
@@ -125,8 +127,9 @@ def access_log_middleware(
         if not settings.LOG_API_ACCESS:
             return get_response(request)
 
-        if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
+        if request.path_info.startswith(EXCLUSION_PATHS):
             return get_response(request)
+
         access_log_metadata = _AccessLogMetaData(request_start_time=time.time())
         response = get_response(request)
         _create_api_access_log(request, response, access_log_metadata)
