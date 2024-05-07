@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,6 +7,7 @@ import {Item, Section} from '@react-stately/collections';
 import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combobox';
 import omit from 'lodash/omit';
 
+import {SelectFilterContext} from 'sentry/components/compactSelect/list';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import {
   getDisabledOptions,
@@ -25,6 +26,8 @@ import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import useOverlay from 'sentry/utils/useOverlay';
 
+import {SelectContext} from '../compactSelect/control';
+
 import type {
   ComboBoxOption,
   ComboBoxOptionOrSection,
@@ -40,8 +43,6 @@ interface ComboBoxProps<Value extends string>
   className?: string;
   disabled?: boolean;
   growingInput?: boolean;
-  hasSearch?: boolean;
-  hiddenOptions?: Set<string>;
   isLoading?: boolean;
   loadingMessage?: string;
   menuSize?: FormSize;
@@ -64,8 +65,6 @@ function ComboBox<Value extends string>({
   growingInput = false,
   onOpenChange,
   menuWidth,
-  hiddenOptions,
-  hasSearch,
   ...props
 }: ComboBoxProps<Value>) {
   const theme = useTheme();
@@ -118,6 +117,8 @@ function ComboBox<Value extends string>({
     }
   }, [state.isOpen]);
 
+  const selectContext = useContext(SelectContext);
+
   const {overlayProps, triggerProps} = useOverlay({
     type: 'listbox',
     isOpen: state.isOpen,
@@ -162,50 +163,54 @@ function ComboBox<Value extends string>({
   const InputComponent = growingInput ? StyledGrowingInput : StyledInput;
 
   return (
-    <ControlWrapper className={className}>
-      {!state.isFocused && <InteractionStateLayer />}
-      <InputComponent
-        {...inputProps}
-        onClick={handleInputClick}
-        placeholder={placeholder}
-        onMouseUp={handleInputMouseUp}
-        onFocus={handleInputFocus}
-        ref={mergeRefs([inputRef, triggerProps.ref])}
-        size={size}
-      />
-      <StyledPositionWrapper
-        {...overlayProps}
-        zIndex={theme.zIndex?.tooltip}
-        visible={state.isOpen}
-      >
-        <StyledOverlay ref={popoverRef} width={menuWidth}>
-          {isLoading && (
-            <MenuHeader size={menuSize ?? size}>
-              <MenuTitle>{loadingMessage ?? t('Loading...')}</MenuTitle>
-              <MenuHeaderTrailingItems>
-                {isLoading && <StyledLoadingIndicator size={12} mini />}
-              </MenuHeaderTrailingItems>
-            </MenuHeader>
-          )}
-          {/* Listbox adds a separator if it is not the first item
+    <SelectContext.Provider
+      value={{
+        ...selectContext,
+        overlayIsOpen: state.isOpen,
+      }}
+    >
+      <ControlWrapper className={className}>
+        {!state.isFocused && <InteractionStateLayer />}
+        <InputComponent
+          {...inputProps}
+          onClick={handleInputClick}
+          placeholder={placeholder}
+          onMouseUp={handleInputMouseUp}
+          onFocus={handleInputFocus}
+          ref={mergeRefs([inputRef, triggerProps.ref])}
+          size={size}
+        />
+        <StyledPositionWrapper
+          {...overlayProps}
+          zIndex={theme.zIndex?.tooltip}
+          visible={state.isOpen}
+        >
+          <StyledOverlay ref={popoverRef} width={menuWidth}>
+            {isLoading && (
+              <MenuHeader size={menuSize ?? size}>
+                <MenuTitle>{loadingMessage ?? t('Loading...')}</MenuTitle>
+                <MenuHeaderTrailingItems>
+                  {isLoading && <StyledLoadingIndicator size={12} mini />}
+                </MenuHeaderTrailingItems>
+              </MenuHeader>
+            )}
+            {/* Listbox adds a separator if it is not the first item
             To avoid this, we wrap it into a div */}
-          <div>
-            <ListBox
-              {...listBoxProps}
-              overlayIsOpen={state.isOpen}
-              hiddenOptions={hiddenOptions}
-              hasSearch={hasSearch}
-              ref={listBoxRef}
-              listState={state}
-              keyDownHandler={() => true}
-              size={menuSize ?? size}
-              sizeLimitMessage={sizeLimitMessage}
-            />
-            <EmptyMessage>No items found</EmptyMessage>
-          </div>
-        </StyledOverlay>
-      </StyledPositionWrapper>
-    </ControlWrapper>
+            <div>
+              <ListBox
+                {...listBoxProps}
+                ref={listBoxRef}
+                listState={state}
+                keyDownHandler={() => true}
+                size={menuSize ?? size}
+                sizeLimitMessage={sizeLimitMessage}
+              />
+              <EmptyMessage>No items found</EmptyMessage>
+            </div>
+          </StyledOverlay>
+        </StyledPositionWrapper>
+      </ControlWrapper>
+    </SelectContext.Provider>
   );
 }
 
@@ -221,10 +226,7 @@ function ControlledComboBox<Value extends string>({
   value,
   onOpenChange,
   ...props
-}: Omit<
-  ComboBoxProps<Value>,
-  'items' | 'defaultItems' | 'children' | 'hasSearch' | 'hiddenOptions'
-> & {
+}: Omit<ComboBoxProps<Value>, 'items' | 'defaultItems' | 'children'> & {
   options: ComboBoxOptionOrSection<Value>[];
   defaultValue?: Value;
   onChange?: (value: ComboBoxOption<Value>) => void;
@@ -311,38 +313,50 @@ function ControlledComboBox<Value extends string>({
   );
 
   return (
-    <ComboBox
-      disabledKeys={disabledKeys}
-      inputValue={inputValue}
-      onInputChange={handleInputChange}
-      selectedKey={value && getEscapedKey(value)}
-      defaultSelectedKey={props.defaultValue && getEscapedKey(props.defaultValue)}
-      onSelectionChange={handleChange}
-      items={items}
-      onOpenChange={handleOpenChange}
-      hasSearch={isFiltering ? !!inputValue : false}
-      hiddenOptions={hiddenOptions}
-      {...props}
+    // TODO: remove usage of SelectContext in ListBox
+    <SelectContext.Provider
+      value={{
+        search: isFiltering ? inputValue : '',
+        // Will be set by the inner ComboBox
+        overlayIsOpen: false,
+        // Not used in ComboBox
+        registerListState: () => {},
+        saveSelectedOptions: () => {},
+      }}
     >
-      {items.map(item => {
-        if ('options' in item) {
-          return (
-            <Section key={item.key} title={item.label}>
-              {item.options.map(option => (
-                <Item {...option} key={option.key} textValue={option.label}>
-                  {item.label}
-                </Item>
-              ))}
-            </Section>
-          );
-        }
-        return (
-          <Item {...item} key={item.key} textValue={item.label}>
-            {item.label}
-          </Item>
-        );
-      })}
-    </ComboBox>
+      <SelectFilterContext.Provider value={hiddenOptions}>
+        <ComboBox
+          disabledKeys={disabledKeys}
+          inputValue={inputValue}
+          onInputChange={handleInputChange}
+          selectedKey={value && getEscapedKey(value)}
+          defaultSelectedKey={props.defaultValue && getEscapedKey(props.defaultValue)}
+          onSelectionChange={handleChange}
+          items={items}
+          onOpenChange={handleOpenChange}
+          {...props}
+        >
+          {items.map(item => {
+            if ('options' in item) {
+              return (
+                <Section key={item.key} title={item.label}>
+                  {item.options.map(option => (
+                    <Item {...option} key={option.key} textValue={option.label}>
+                      {item.label}
+                    </Item>
+                  ))}
+                </Section>
+              );
+            }
+            return (
+              <Item {...item} key={item.key} textValue={item.label}>
+                {item.label}
+              </Item>
+            );
+          })}
+        </ComboBox>
+      </SelectFilterContext.Provider>
+    </SelectContext.Provider>
   );
 }
 

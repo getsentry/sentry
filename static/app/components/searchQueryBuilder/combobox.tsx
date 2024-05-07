@@ -6,6 +6,8 @@ import {useComboBox} from '@react-aria/combobox';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {SelectContext} from 'sentry/components/compactSelect/control';
+import {SelectFilterContext} from 'sentry/components/compactSelect/list';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {
@@ -151,37 +153,48 @@ export function SearchQueryBuilderCombobox({
     [inputProps, state]
   );
 
+  const selectContextValue = useMemo(
+    () => ({
+      search: filterValue,
+      overlayIsOpen: isOpen,
+      registerListState: () => {},
+      saveSelectedOptions: () => {},
+    }),
+    [filterValue, isOpen]
+  );
+
   return (
-    <Wrapper>
-      <UnstyledInput
-        {...inputProps}
-        size="md"
-        ref={mergeRefs([inputRef, triggerProps.ref])}
-        type="text"
-        placeholder={placeholder}
-        onClick={handleInputClick}
-        value={inputValue}
-        onChange={onInputChange}
-      />
-      <StyledPositionWrapper
-        {...overlayProps}
-        zIndex={theme.zIndex?.tooltip}
-        visible={isOpen}
-      >
-        <Overlay ref={popoverRef}>
-          <ListBox
-            {...listBoxProps}
-            ref={listBoxRef}
-            listState={state}
-            hasSearch={!!filterValue}
-            hiddenOptions={hiddenOptions}
-            keyDownHandler={() => true}
-            overlayIsOpen={isOpen}
+    <SelectContext.Provider value={selectContextValue}>
+      <SelectFilterContext.Provider value={hiddenOptions}>
+        <Wrapper>
+          <UnstyledInput
+            {...inputProps}
             size="md"
+            ref={mergeRefs([inputRef, triggerProps.ref])}
+            type="text"
+            placeholder={placeholder}
+            onClick={handleInputClick}
+            value={inputValue}
+            onChange={onInputChange}
           />
-        </Overlay>
-      </StyledPositionWrapper>
-    </Wrapper>
+          <StyledPositionWrapper
+            {...overlayProps}
+            zIndex={theme.zIndex?.tooltip}
+            visible={isOpen}
+          >
+            <Overlay ref={popoverRef}>
+              <ListBox
+                {...listBoxProps}
+                ref={listBoxRef}
+                listState={state}
+                keyDownHandler={() => true}
+                size="md"
+              />
+            </Overlay>
+          </StyledPositionWrapper>
+        </Wrapper>
+      </SelectFilterContext.Provider>
+    </SelectContext.Provider>
   );
 }
 
