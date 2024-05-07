@@ -4,6 +4,10 @@ import pytest
 from urllib3.response import HTTPResponse
 
 from sentry.seer.utils import (
+    IncompleteSeerDataError,
+    RawSeerSimilarIssueData,
+    SeerSimilarIssueData,
+    SimilarGroupNotFoundError,
     SimilarIssuesEmbeddingsRequest,
     detect_breakpoints,
     get_similar_issues_embeddings,
@@ -97,3 +101,85 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
     }
     response = get_similar_issues_embeddings(params)
     assert response == []
+
+
+# TODO: Remove once switch is complete
+@django_db_all
+def test_from_raw_only_parent_group_id(default_project):
+    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_id": NonNone(similar_event.group_id),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    assert SeerSimilarIssueData.from_raw(
+        default_project.id, raw_similar_issue_data
+    ) == SeerSimilarIssueData(**raw_similar_issue_data)
+
+
+@django_db_all
+def test_from_raw_only_parent_hash(default_project):
+    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    similar_issue_data = {
+        **raw_similar_issue_data,
+        "parent_group_id": NonNone(similar_event.group_id),
+    }
+
+    assert SeerSimilarIssueData.from_raw(
+        default_project.id, raw_similar_issue_data
+    ) == SeerSimilarIssueData(
+        **similar_issue_data  # type:ignore[arg-type]
+    )
+
+
+# TODO: Remove once switch is complete
+@django_db_all
+def test_from_raw_parent_group_id_and_parent_hash(default_project):
+    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_id": NonNone(similar_event.group_id),
+        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    assert SeerSimilarIssueData.from_raw(
+        default_project.id, raw_similar_issue_data
+    ) == SeerSimilarIssueData(**raw_similar_issue_data)
+
+
+@django_db_all
+def test_from_raw_missing_data(default_project):
+    with pytest.raises(IncompleteSeerDataError):
+        raw_similar_issue_data: RawSeerSimilarIssueData = {
+            # missing both `parent_group_id` and `parent_group_hash`
+            "message_distance": 0.05,
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+
+        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
+
+
+@django_db_all
+def test_from_raw_nonexistent_group(default_project):
+    with pytest.raises(SimilarGroupNotFoundError):
+        raw_similar_issue_data: RawSeerSimilarIssueData = {
+            "parent_group_id": 1121201212312012,  # too high to be real
+            "parent_group_hash": "not a real hash",
+            "message_distance": 0.05,
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+
+        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
