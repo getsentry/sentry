@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import logging
 import uuid
 from collections import defaultdict
@@ -9,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Literal
+from typing import Literal
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -44,7 +43,12 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.processing_errors import ProcessingErrorType
+from sentry.monitors.processing_errors import (
+    CheckinValidationError,
+    ProcessingError,
+    ProcessingErrorType,
+    handle_processing_errors,
+)
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
@@ -244,19 +248,6 @@ def transform_checkin_uuid(
         check_in_guid = uuid.uuid4()
 
     return check_in_guid, use_latest_checkin
-
-
-@dataclasses.dataclass(frozen=True)
-class ProcessingError:
-    type: ProcessingErrorType
-    data: dict[str, Any] = dataclasses.field(default_factory=dict)
-
-
-class CheckinValidationError(Exception):
-    def __init__(self, processing_errors: list[ProcessingError], monitor: Monitor | None = None):
-        # Monitor is optional, since we don't always have the monitor related to the checkin available
-        self.processing_errors = processing_errors
-        self.monitor = monitor
 
 
 def update_existing_check_in(
@@ -907,22 +898,6 @@ def process_checkin(item: CheckinItem):
         handle_processing_errors(item, e)
     except Exception:
         logger.exception("Failed to process check-in")
-
-
-def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):
-    try:
-        # TODO: Duration converted back to seconds
-        # TODO: Get this value
-        sdk_platform = ""
-        metric_kwargs = {
-            "source": "consumer",
-            "sdk_platform": sdk_platform,
-        }
-
-        metrics.incr("monitors.checkin.handle_processing_error", tags=metric_kwargs)
-        # TODO: Do something with the errors to display to user
-    except Exception:
-        logger.exception("Failed to log processing error")
 
 
 def process_checkin_group(items: list[CheckinItem]):
