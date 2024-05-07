@@ -533,6 +533,16 @@ def convert_snuba_result(
     return snuba_result
 
 
+def fetch_metric_mris_for_use_cases(
+    org_id: int, project_ids: list[int], use_case_ids: Sequence[UseCaseID], app_id: str = ""
+) -> dict[UseCaseID, dict[int, list[str]]]:
+    """
+    Fetches all the metric MRIs for a set of projects and use cases. This will reverse
+    resolve all the metric IDs into MRIs.
+    """
+    return _query_meta_table(org_id, project_ids, use_case_ids, app_id)
+
+
 def fetch_metric_mris(
     org_id: int, project_ids: list[int], use_case_id: UseCaseID, app_id: str = ""
 ) -> dict[int, list[str]]:

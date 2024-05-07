@@ -28,6 +28,7 @@ from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, 
 from sentry.snuba.metrics_layer.query import (
     bulk_run_query,
     fetch_metric_mris,
+    fetch_metric_mris_for_use_cases,
     fetch_metric_tag_keys,
     fetch_metric_tag_values,
     run_query,
@@ -887,16 +888,22 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.generic_metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
-            TransactionMRI.DURATION.value: "distribution",
-            TransactionMRI.USER.value: "set",
-            TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
-            "g:transactions/test_gauge@none": "gauge",
+        self.generic_metrics: Mapping[
+            str, tuple[UseCaseID, Literal["counter", "set", "distribution", "gauge"]]
+        ] = {
+            TransactionMRI.DURATION.value: (UseCaseID.TRANSACTIONS, "distribution"),
+            TransactionMRI.USER.value: (UseCaseID.TRANSACTIONS, "set"),
+            TransactionMRI.COUNT_PER_ROOT_PROJECT.value: (UseCaseID.TRANSACTIONS, "counter"),
+            "g:transactions/test_gauge@none": (UseCaseID.TRANSACTIONS, "gauge"),
+            "d:custom/page_load@millisecond": (UseCaseID.CUSTOM, "distribution"),
+            "s:custom/user@none": (UseCaseID.CUSTOM, "set"),
+            "c:custom/page_open@none": (UseCaseID.CUSTOM, "counter"),
+            "g:custom/load_time@second": (UseCaseID.CUSTOM, "gauge"),
         }
         self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
         self.org_id = self.project.organization_id
-        for mri, metric_type in self.generic_metrics.items():
+        for mri, (use_case_id, metric_type) in self.generic_metrics.items():
             assert metric_type in {"counter", "distribution", "set", "gauge"}
             for i in range(2):
                 value: int | dict[str, int]
@@ -922,8 +929,27 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
                     },
                     self.ts(self.hour_ago + timedelta(minutes=1 * i)),
                     value,
-                    UseCaseID.TRANSACTIONS,
+                    use_case_id,
                 )
+
+    def test_fetch_metric_mris_for_use_cases(self) -> None:
+        use_case_ids = [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]
+        metric_mris = fetch_metric_mris_for_use_cases(self.org_id, [self.project.id], use_case_ids)
+        assert len(metric_mris) == 2
+        assert len(metric_mris[UseCaseID.TRANSACTIONS][self.project.id]) == 4
+        assert sorted(metric_mris[UseCaseID.TRANSACTIONS][self.project.id]) == [
+            "c:transactions/count_per_root_project@none",
+            "d:transactions/duration@millisecond",
+            "g:transactions/test_gauge@none",
+            "s:transactions/user@none",
+        ]
+        assert len(metric_mris[UseCaseID.CUSTOM][self.project.id]) == 4
+        assert sorted(metric_mris[UseCaseID.CUSTOM][self.project.id]) == [
+            "c:custom/page_open@none",
+            "d:custom/page_load@millisecond",
+            "g:custom/load_time@second",
+            "s:custom/user@none",
+        ]
 
     def test_fetch_metric_mris(self) -> None:
         metric_mris = fetch_metric_mris(self.org_id, [self.project.id], UseCaseID.TRANSACTIONS)
