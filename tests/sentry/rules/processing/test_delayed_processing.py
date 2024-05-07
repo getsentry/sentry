@@ -70,7 +70,7 @@ class ProcessDelayedAlertConditionsTest(
         )
 
     def assert_buffer_cleared(self, project_id):
-        # project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        # project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
         # assert project_ids[0][0] != project_id
         rule_group_data = self.redis_buffer.get_hash(Project, {"project_id": project_id})
         assert rule_group_data == {}
@@ -164,7 +164,7 @@ class ProcessDelayedAlertConditionsTest(
     def test_fetches_from_buffer_and_executes(self, mock_apply_delayed):
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
-        with patch("sentry.buffer.backend.get_set", self.redis_buffer.get_set):
+        with patch("sentry.buffer.backend.get_sorted_set", self.redis_buffer.get_sorted_set):
             process_delayed_alert_conditions(self.redis_buffer)
 
             for project, rule_group_event_mapping in (
@@ -173,7 +173,7 @@ class ProcessDelayedAlertConditionsTest(
             ):
                 assert mock_apply_delayed.delay.call_count == 2
 
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             assert project_ids == []
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
@@ -182,7 +182,7 @@ class ProcessDelayedAlertConditionsTest(
         Test that rules of various event frequency conditions, projects, environments, etc. are properly fired
         """
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, self.rule2],
@@ -243,7 +243,7 @@ class ProcessDelayedAlertConditionsTest(
             occurrence_id=event5.occurrence_id,
         )
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, rule5],
@@ -275,7 +275,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[rule5],
@@ -304,7 +304,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, rule5],
@@ -335,7 +335,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(self.project.id, diff_interval_rule.id, group5.id, event5.event_id)
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, diff_interval_rule],
@@ -366,7 +366,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(self.project.id, diff_env_rule.id, group5.id, event5.event_id)
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, diff_env_rule],
@@ -402,7 +402,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(self.project.id, no_fire_rule.id, group5.id, event5.event_id)
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, no_fire_rule],
@@ -447,7 +447,7 @@ class ProcessDelayedAlertConditionsTest(
         )
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, two_conditions_match_all_rule, condition_wont_pass_rule],

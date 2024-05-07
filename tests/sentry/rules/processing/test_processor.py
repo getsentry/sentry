@@ -135,7 +135,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 0
         buffer = RedisBuffer()
-        project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
@@ -177,7 +177,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 0
         buffer = RedisBuffer()
-        project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
@@ -212,7 +212,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 0
         buffer = RedisBuffer()
-        project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
@@ -298,7 +298,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 0
         buffer = RedisBuffer()
-        project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})

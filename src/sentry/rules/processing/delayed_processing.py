@@ -239,7 +239,7 @@ def get_group_to_groupevent(
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
-        project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
         for project_id, date_added in project_ids:
             with metrics.timer("delayed_processing.process_project.duration"):
                 apply_delayed.delay(project_id, date_added)
