@@ -36,7 +36,7 @@ export function OwnerFilter({selectedOwners, onChangeFilter}: OwnerFilterProps) 
       clearable
       searchable
       loading={fetching}
-      menuTitle={t('Filter teams')}
+      menuTitle={t('Filter owners')}
       options={[{label: t('Suggested'), options: suggestedOptions}, ...options]}
       value={selectedOwners}
       onSearch={value => {
