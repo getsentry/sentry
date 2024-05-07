@@ -13,7 +13,6 @@ from typing import TypedDict, cast
 
 from sentry import nodestore
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.utils.dates import parse_timestamp
 
 GROUP_FORECAST_TTL = 14
@@ -53,8 +52,7 @@ class EscalatingGroupForecast:
     def _should_fetch_escalating(cls, group_id: int) -> bool:
         group = Group.objects.get(id=group_id)
 
-        organization = Organization.objects.get(project__group__id=group_id)
-        return group.issue_type.should_detect_escalation(organization)
+        return group.issue_type.should_detect_escalation()
 
     @classmethod
     def fetch(cls, project_id: int, group_id: int) -> EscalatingGroupForecast | None:
