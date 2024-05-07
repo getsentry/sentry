@@ -35,6 +35,7 @@ from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
+    PLACEHOLDER_EVENT_TITLES,
     DataCategory,
 )
 from sentry.culprit import generate_culprit
@@ -146,7 +147,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
 
 HIGH_SEVERITY_THRESHOLD = 0.1
 

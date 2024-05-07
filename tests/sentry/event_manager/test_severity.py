@@ -9,8 +9,8 @@ from urllib3 import HTTPResponse
 from urllib3.exceptions import MaxRetryError
 
 from sentry import options
+from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
-    PLACEHOLDER_EVENT_TITLES,
     SEER_ERROR_COUNT_KEY,
     EventManager,
     _get_severity_score,
