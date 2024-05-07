@@ -637,6 +637,17 @@ class TestCommentWorkflow(GithubCommentTestCase):
             "github_pr_comment.error", tags={"type": "missing_integration"}
         )
 
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
+    @responses.activate
+    def test_comment_workflow_no_issues(self, mock_format_comment, mock_issues):
+        mock_issues.return_value = []
+
+        github_comment_workflow(self.pr.id, self.project.id)
+
+        assert mock_issues.called
+        assert not mock_format_comment.called
+
 
 class TestCommentReactionsTask(GithubCommentTestCase):
     base_url = "https://api.github.com"
