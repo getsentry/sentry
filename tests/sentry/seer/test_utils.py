@@ -269,6 +269,7 @@ def test_from_raw_nonexistent_group(default_project):
 
         SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
 
+
 @mock.patch("sentry.seer.utils.logger")
 @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
 def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):

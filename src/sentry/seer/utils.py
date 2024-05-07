@@ -236,6 +236,7 @@ def get_similar_issues_embeddings(
 
     return normalized
 
+
 def post_bulk_grouping_records(
     grouping_records_request: CreateGroupingRecordsRequest,
 ) -> BulkCreateGroupingRecordsResponse:
