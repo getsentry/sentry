@@ -642,7 +642,7 @@ def _query_meta_table(
 
     results = bulk_snuba_queries(requests, f"generic_metrics_meta_{column_name}")
 
-    ids_to_index = {}
+    ids_to_index: dict[UseCaseID, list[int]] = {}
     for index, result in enumerate(results):
         use_case_id = use_case_ids[math.floor(index / len(entity_keys))]
         ids_to_index.setdefault(use_case_id, []).extend(
@@ -650,7 +650,7 @@ def _query_meta_table(
         )
 
     # We assume that the ids are unique across all use case ids.
-    resolved_ids = {}
+    resolved_ids: dict[int, str] = {}
     for use_case_id, ids in ids_to_index.items():
         resolved_ids.update(bulk_reverse_resolve(use_case_id, org_id, ids))
 
