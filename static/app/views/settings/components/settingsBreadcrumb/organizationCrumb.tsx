@@ -1,5 +1,6 @@
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
 import IdBadge from 'sentry/components/idBadge';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -75,7 +76,7 @@ function OrganizationCrumb({params, routes, route, ...props}: Props) {
       onSelect={handleSelect}
       hasMenu={hasMenu}
       route={route}
-      items={organizations.map((org, index) => ({
+      items={sortBy(organizations, ['name']).map((org, index) => ({
         index,
         value: org,
         label: (

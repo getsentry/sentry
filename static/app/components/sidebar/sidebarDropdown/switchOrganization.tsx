@@ -112,7 +112,7 @@ function SwitchOrganization({canCreateOrganization}: Props) {
               {...getMenuProps({})}
             >
               <OrganizationList role="list">
-                {sortBy(organizations, ['status.id']).map(organization => {
+                {sortBy(organizations, ['status.id', 'name']).map(organization => {
                   return (
                     <OrganizationMenuItem
                       key={organization.slug}
