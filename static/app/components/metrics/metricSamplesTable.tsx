@@ -243,10 +243,6 @@ export function MetricSamplesTable({
     return null;
   }, [mri]);
 
-  const _renderPrependColumn = useMemo(() => {
-    return renderPrependColumn();
-  }, []);
-
   const _renderHeadCell = useMemo(() => {
     const generateSortLink = (key: string) => () => {
       if (!SORTABLE_COLUMNS.has(key as ResultField)) {
@@ -324,8 +320,6 @@ export function MetricSamplesTable({
         columnOrder={getColumnOrder(parsedMRI)}
         columnSortBy={[]}
         grid={{
-          prependColumnWidths,
-          renderPrependColumns: _renderPrependColumn,
           renderBodyCell: _renderBodyCell,
           renderHeadCell: _renderHeadCell,
         }}
@@ -347,6 +341,7 @@ function getColumnForMRI(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultFi
 
 function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
   const orders: (GridColumnOrder<ResultField> | undefined)[] = [
+    {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
     {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Operation'},
     getColumnForMRI(parsedMRI),
@@ -379,21 +374,6 @@ const SORTABLE_COLUMNS: Set<ResultField> = new Set([
   ...ALWAYS_SORTABLE_COLUMNS,
   ...OPTIONALLY_SORTABLE_COLUMNS,
 ]);
-
-const prependColumnWidths = ['40px'];
-
-function renderPrependColumn() {
-  return function (
-    isHeader: boolean,
-    dataRow?: MetricsSamplesResults<SelectedField>['data'][number],
-    _rowIndex?: number
-  ) {
-    if (isHeader) {
-      return [null];
-    }
-    return [dataRow ? <ProjectRenderer projectSlug={dataRow.project} /> : null];
-  };
-}
 
 function renderHeadCell(
   currentSort: {direction: 'asc' | 'desc'; key: string} | undefined,
@@ -433,6 +413,10 @@ function renderBodyCell(op?: string, unit?: string) {
       );
     }
 
+    if (col.key === 'id') {
+      return <Container>{getShortEventId(dataRow[col.key])}</Container>;
+    }
+
     if (col.key === 'span.self_time' || col.key === 'span.duration') {
       return <DurationRenderer duration={dataRow[col.key]} />;
     }
@@ -469,7 +453,7 @@ function ProjectRenderer({projectSlug}: {projectSlug: string}) {
   const organization = useOrganization();
 
   return (
-    <Container>
+    <Flex>
       <Projects orgId={organization.slug} slugs={[projectSlug]}>
         {({projects}) => {
           const project = projects.find(p => p.slug === projectSlug);
@@ -482,7 +466,7 @@ function ProjectRenderer({projectSlug}: {projectSlug: string}) {
           );
         }}
       </Projects>
-    </Container>
+    </Flex>
   );
 }
 
@@ -556,52 +540,66 @@ function SpanDescription({
 
   return (
     <Container>
-      <StyledHovercard
-        header={
-          <Flex justify="space-between" align="center">
-            {t('Span ID')}
-            <SpanIdWrapper>
-              {getShortEventId(spanId)}
-              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={spanId} />
-            </SpanIdWrapper>
-          </Flex>
-        }
-        body={
-          <Flex gap={space(0.75)} column>
-            <SectionTitle>{t('Duration')}</SectionTitle>
-            <ColorBar colorStops={colorStops} />
-            <Flex justify="space-between" align="center">
-              <Flex justify="space-between" align="center" gap={space(0.5)}>
-                <LegendDot color={selfTimeColor} />
-                {t('Self Time: ')}
-                <PerformanceDuration milliseconds={selfTime} abbreviation />
+      <Flex gap={space(0.75)} align="center">
+        <ProjectRenderer projectSlug={project} />
+        <Container>
+          <StyledHovercard
+            header={
+              <Flex justify="space-between" align="center">
+                {t('Span ID')}
+                <SpanIdWrapper>
+                  {getShortEventId(spanId)}
+                  <CopyToClipboardButton
+                    borderless
+                    iconSize="xs"
+                    size="zero"
+                    text={spanId}
+                  />
+                </SpanIdWrapper>
               </Flex>
-              <Flex justify="space-between" align="center" gap={space(0.5)}>
-                <LegendDot color={durationColor} />
-                {t('Duration: ')}
-                <PerformanceDuration milliseconds={duration} abbreviation />
+            }
+            body={
+              <Flex gap={space(0.75)} column>
+                <SectionTitle>{t('Duration')}</SectionTitle>
+                <ColorBar colorStops={colorStops} />
+                <Flex justify="space-between" align="center">
+                  <Flex justify="space-between" align="center" gap={space(0.5)}>
+                    <LegendDot color={selfTimeColor} />
+                    {t('Self Time: ')}
+                    <PerformanceDuration milliseconds={selfTime} abbreviation />
+                  </Flex>
+                  <Flex justify="space-between" align="center" gap={space(0.5)}>
+                    <LegendDot color={durationColor} />
+                    {t('Duration: ')}
+                    <PerformanceDuration milliseconds={duration} abbreviation />
+                  </Flex>
+                </Flex>
+                <SectionTitle>{t('Transaction')}</SectionTitle>
+                <Tooltip
+                  containerDisplayMode="inline"
+                  showOnlyOnOverflow
+                  title={transaction}
+                >
+                  <Link
+                    to={transactionSummaryTarget}
+                    onClick={() =>
+                      trackAnalytics('ddm.sample-table-interaction', {
+                        organization,
+                        target: 'description',
+                      })
+                    }
+                  >
+                    <TextOverflow>{transaction}</TextOverflow>
+                  </Link>
+                </Tooltip>
               </Flex>
-            </Flex>
-            <SectionTitle>{t('Transaction')}</SectionTitle>
-            <Tooltip containerDisplayMode="inline" showOnlyOnOverflow title={transaction}>
-              <Link
-                to={transactionSummaryTarget}
-                onClick={() =>
-                  trackAnalytics('ddm.sample-table-interaction', {
-                    organization,
-                    target: 'description',
-                  })
-                }
-              >
-                <TextOverflow>{transaction}</TextOverflow>
-              </Link>
-            </Tooltip>
-          </Flex>
-        }
-        showUnderline
-      >
-        {contents}
-      </StyledHovercard>
+            }
+            showUnderline
+          >
+            {contents}
+          </StyledHovercard>
+        </Container>
+      </Flex>
     </Container>
   );
 }
