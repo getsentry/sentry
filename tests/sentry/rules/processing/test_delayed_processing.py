@@ -70,8 +70,8 @@ class ProcessDelayedAlertConditionsTest(
         )
 
     def assert_buffer_cleared(self, project_id):
-        project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-        assert project_ids[0][0] != project_id
+        # project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        # assert project_ids[0][0] != project_id
         rule_group_data = self.redis_buffer.get_hash(Project, {"project_id": project_id})
         assert rule_group_data == {}
 
@@ -173,6 +173,9 @@ class ProcessDelayedAlertConditionsTest(
             ):
                 assert mock_apply_delayed.delay.call_count == 2
 
+            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+            assert project_ids == []
+
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_apply_delayed_rules_to_fire(self):
         """
@@ -194,8 +197,7 @@ class ProcessDelayedAlertConditionsTest(
             assert (self.rule2.id, self.group2.id) in rule_fire_histories
             self.assert_buffer_cleared(project_id=self.project.id)
 
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-            apply_delayed(project_ids[0][0], project_ids[0][1])
+            apply_delayed(project_ids[1][0], project_ids[1][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule3, self.rule4],
                 group__in=[self.group3, self.group4],
@@ -208,8 +210,6 @@ class ProcessDelayedAlertConditionsTest(
             assert (self.rule3.id, self.group3.id) in rule_fire_histories
             assert (self.rule4.id, self.group4.id) in rule_fire_histories
 
-            project_ids = self.redis_buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-            assert project_ids == []
             rule_group_data = self.redis_buffer.get_hash(
                 Project, {"project_id": self.project_two.id}
             )

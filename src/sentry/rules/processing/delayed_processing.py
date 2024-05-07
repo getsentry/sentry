@@ -2,7 +2,7 @@ import logging
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import DefaultDict, NamedTuple
+from typing import Any, DefaultDict, NamedTuple
 
 from sentry import eventstore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
@@ -238,10 +238,13 @@ def get_group_to_groupevent(
 @redis_buffer_registry.add_handler(BufferHookEvent.FLUSH)
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
+        fetch_time = datetime.now(tz=timezone.utc)
         project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
         for project_id, date_added in project_ids:
             with metrics.timer("delayed_processing.process_project.duration"):
                 apply_delayed.delay(project_id, date_added)
+
+        buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
 
 @instrumented_task(
@@ -253,11 +256,10 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int, date_added: float) -> None:
+def apply_delayed(project_id: int, date_added: float, *args: Any, **kwargs: Any) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
-    time_fetched = datetime.now(tz=timezone.utc)
     # STEP 1: Fetch the rulegroup_to_event_data mapping for the project from redis
     project = Project.objects.get_from_cache(id=project_id)
     buffer = RedisBuffer()
@@ -328,8 +330,3 @@ def apply_delayed(project_id: int, date_added: float) -> None:
                 filters={"project_id": project_id},
                 field=f"{rule}:{group}",
             )
-
-    # if the date the project was added to the buffer is earlier than the date we fetched it, remove it
-    date_added_converted = datetime.fromtimestamp(date_added).replace(tzinfo=timezone.utc)
-    if date_added_converted < time_fetched:
-        buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=date_added, max=date_added)
