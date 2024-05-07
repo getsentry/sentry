@@ -81,11 +81,16 @@ def _create_api_access_log(
         except AttributeError:
             view = "Unknown"
 
+        request_auth = _get_request_auth(request)
+        token_type = str(_get_token_name(request_auth))
+        if token_type == "system":
+            # if its an internal request, no need to log
+            return
+
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-        request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
         status_code = getattr(response, "status_code", 500)
         log_metrics = dict(
@@ -94,7 +99,7 @@ def _create_api_access_log(
             response=status_code,
             user_id=str(user_id),
             is_app=str(is_app),
-            token_type=str(_get_token_name(request_auth)),
+            token_type=token_type,
             is_frontend_request=str(is_frontend_request(request)),
             organization_id=str(org_id),
             auth_id=str(auth_id),
