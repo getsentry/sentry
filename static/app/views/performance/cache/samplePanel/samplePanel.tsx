@@ -30,6 +30,7 @@ import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
   MetricsFields,
+  type MetricsQueryFilters,
   SpanFunction,
   SpanIndexedField,
   type SpanIndexedQueryFilters,
@@ -81,7 +82,9 @@ export function CacheSamplePanel() {
 
   const {data: transactionDurationData, isLoading: isTransactionDurationLoading} =
     useMetrics({
-      search: MutableSearch.fromQueryObject({transaction: query.transaction}),
+      search: MutableSearch.fromQueryObject({
+        transaction: query.transaction,
+      } satisfies MetricsQueryFilters),
       fields: [`avg(${TRANSACTION_DURATION})`],
       enabled: isPanelOpen && Boolean(query.transaction),
     });
