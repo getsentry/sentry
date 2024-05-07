@@ -320,6 +320,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "api.remove-non-webhook-control-path-gitlab-parser",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls the rate of using the hashed value of User API tokens for lookups when logging in
 # and also updates tokens which are not hashed
 register(
@@ -643,7 +650,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("snuba.snql.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("integrations.slack.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("auth.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("backup.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1783,6 +1789,10 @@ register(
 )
 register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Flagpole Rollout
+register("features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.flagpole_rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)

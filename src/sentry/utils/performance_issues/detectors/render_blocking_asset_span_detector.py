@@ -60,13 +60,13 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
-    def visit_span(self, span: Span):
+    def visit_span(self, span: Span) -> None:
         if not self.fcp:
             return
 
         op = span.get("op", None)
         if op not in ["resource.link", "resource.script"]:
-            return False
+            return
 
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)

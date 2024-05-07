@@ -731,8 +731,6 @@ CELERY_IMPORTS = (
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
-    "sentry.monitors.tasks.check_missed",
-    "sentry.monitors.tasks.check_timeout",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -1497,6 +1495,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
+    # Disables legacy cron ingest endpoints
+    "organizations:crons-write-user-feedback": False,
     # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1532,8 +1532,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
-    # Enables automatically deriving of code mappings for Go Projects
-    "organizations:derive-code-mappings-go": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
@@ -1761,6 +1759,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Enable linking to trace explorer from metrics
+    "organizations:performance-trace-explorer-with-metrics": False,
     # Experimental performance issue for streamed spans - ingestion
     "organizations:performance-streamed-spans-exp-ingest": False,
     # Experimental performance issue for streamed spans - UI
