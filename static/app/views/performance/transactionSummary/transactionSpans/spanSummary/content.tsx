@@ -32,7 +32,7 @@ type Props = {
   transactionName: string;
 };
 
-export default function SpanSummaryContentWrapper(props: Props) {
+export default function SpanSummary(props: Props) {
   const {location, organization, eventView, project, transactionName, spanSlug} = props;
 
   // customize the route analytics event we send
