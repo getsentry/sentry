@@ -1,11 +1,13 @@
 import logging
 from dataclasses import dataclass
-from typing import NotRequired, TypedDict
+from typing import NotRequired, Self, TypedDict
 
 import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
@@ -14,6 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 class SeerException(Exception):
+    pass
+
+
+class IncompleteSeerDataError(Exception):
+    pass
+
+
+class SimilarGroupNotFoundError(Exception):
     pass
 
 
@@ -117,10 +127,54 @@ class SeerSimilarIssueData:
     # TODO: See if we end up needing the hash here
     parent_group_hash: str | None = None
 
+    @classmethod
+    def from_raw(cls, project_id: int, raw_similar_issue_data: RawSeerSimilarIssueData) -> Self:
+        """
+        Create an instance of `SeerSimilarIssueData` from the raw data that comes back from Seer,
+        using the parent hash to look up the parent group id. Needs to be run individually on each
+        similar issue in the Seer response.
+
+        Throws an `IncompleteSeerDataError` if given data with both parent group id and parent hash
+        missing, and a `SimilarGroupNotFoundError` if the data points to a group which no longer
+        exists. Thus if this successfully returns, the parent group id it contains is guaranteed to
+        point to an existing group.
+
+        """
+        similar_issue_data = raw_similar_issue_data
+        parent_group_hash = raw_similar_issue_data.get("parent_group_hash")
+        parent_group_id = raw_similar_issue_data.get("parent_group_id")
+
+        if not parent_group_id and not parent_group_hash:
+            raise IncompleteSeerDataError(
+                "Seer similar issues response missing both `parent_group_id` and `parent_group_hash`"
+            )
+
+        if parent_group_id:
+            if not Group.objects.filter(id=parent_group_id).first():
+                raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
+
+        else:
+            parent_grouphash = (
+                GroupHash.objects.filter(project_id=project_id, hash=parent_group_hash)
+                .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+                .first()
+            )
+
+            if not parent_grouphash:
+                # TODO: Report back to seer that the hash has been deleted.
+                raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
+
+            similar_issue_data = {
+                **raw_similar_issue_data,
+                "parent_group_id": parent_grouphash.group_id,
+            }
+
+        return cls(**similar_issue_data)
+
 
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
-) -> SimilarIssuesEmbeddingsResponse:
+) -> list[RawSeerSimilarIssueData]:
     """Call /v0/issues/similar-issues endpoint from seer."""
     response = seer_staging_connection_pool.urlopen(
         "POST",
@@ -130,7 +184,7 @@ def get_similar_issues_embeddings(
     )
 
     try:
-        return json.loads(response.data.decode("utf-8"))
+        response_data = json.loads(response.data.decode("utf-8"))
     except (
         AttributeError,  # caused by a response with no data and therefore no `.decode` method
         UnicodeError,
@@ -143,4 +197,6 @@ def get_similar_issues_embeddings(
                 "response_data": response.data,
             },
         )
-        return {"responses": []}
+        return []
+
+    return response_data.get("responses") or []

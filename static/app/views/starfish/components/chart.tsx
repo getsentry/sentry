@@ -75,6 +75,9 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsField.CACHE_ITEM_SIZE]: {
     outputType: 'size',
   },
+  [SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {
+    outputType: 'duration',
+  },
 };
 
 export enum ChartType {

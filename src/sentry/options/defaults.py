@@ -320,6 +320,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "api.remove-non-webhook-control-path-gitlab-parser",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls the rate of using the hashed value of User API tokens for lookups when logging in
 # and also updates tokens which are not hashed
 register(
@@ -2297,10 +2304,6 @@ register(
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-
-# Switch to read assemble status from Redis instead of memcache
-register("assemble.read_from_redis", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Sampling rates for testing Rust-based grouping enhancers
 
