@@ -1133,7 +1133,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     def get_last_seen_filter(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
         # get the max timestamp of the error/search_issue event
         return Condition(
-            Column("timestamp", joined_entity),
+            Function("max", [Column("timestamp", joined_entity)]),
             Op(search_filter.operator),
             search_filter.value.raw_value,
         )
@@ -1450,7 +1450,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "assigned_to": get_assigned,
         "message": get_message_condition,
         "first_seen": get_first_seen_filter,
-        "last_seen": get_last_seen_filter,
+        # "last_seen": get_last_seen_filter,
     }
 
     first_seen = Column("group_first_seen", entities["attrs"])
@@ -1558,11 +1558,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 Condition(Column("timestamp", joined_entity), Op.GTE, start),
                 Condition(Column("timestamp", joined_entity), Op.LT, end),
             ]
+            having = []
             for search_filter in search_filters or ():
                 # use the stored function if it exists in our mapping, otherwise use the basic lookup
                 fn = self.group_conditions_lookup.get(search_filter.key.name)
                 if fn:
                     where_conditions.append(fn(self, search_filter, joined_entity))
+                elif search_filter.key.name == "last_seen":
+                    # last seen modifies the having clause because its an aggregation
+                    having.append(self.get_last_seen_filter(search_filter, joined_entity))
                 elif search_filter.key.name in ["issue.category", "issue.type"]:
                     # handle this separately since it's a special case that combines both issue.type and issue.category to determine the type
                     pass
@@ -1598,7 +1602,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         Column("environment", joined_entity), Op.IN, [e.name for e in environments]
                     )
                 )
-            having = []
             if cursor is not None:
                 op = Op.GTE if cursor.is_prev else Op.LTE
                 having.append(Condition(sort_func, op, cursor.value))

@@ -3082,16 +3082,24 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         project = self.project
         # Create 4 issues at different times
         times = [
-            before_now(hours=1),
-            before_now(hours=6),
-            before_now(hours=11),
-            before_now(hours=23),
+            (before_now(hours=1), before_now(hours=1)),  # Two events for issue 0
+            (before_now(hours=6), before_now(hours=3)),  # Two events for issue 1
+            (before_now(hours=11), before_now(hours=10)),  # Two events for issue 2
+            (before_now(hours=23), before_now(minutes=30)),  # Two events for issue 3
         ]
-        for i, time in enumerate(times):
+        for i, (time1, time2) in enumerate(times):
             self.store_event(
                 data={
-                    "timestamp": iso_format(time),
+                    "timestamp": iso_format(time1),
                     "message": f"Error {i}",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(time2),
+                    "message": f"Error {i} - additional event",
                     "fingerprint": [f"group-{i}"],
                 },
                 project_id=project.id,
@@ -3102,18 +3110,27 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(
             query=f"firstSeen:<{twenty_four_hours_ago}", useGroupSnubaDataset=1
         )
-        assert len(response.data) == 0, "No issues should be first seen over 24 hours ago"
+        assert len(response.data) == 0
         response = self.get_success_response(query="firstSeen:-24h", useGroupSnubaDataset=1)
-        assert len(response.data) == 4, "All issues should be seen in the last 24 hours"
+        assert len(response.data) == 4
 
         # Test lastSeen filter
         response = self.get_success_response(query="lastSeen:-6h", useGroupSnubaDataset=1)
-        assert (
-            len(response.data) == 1
-        ), "Only the most recent issue should be seen in the last 6 hours"
+        assert len(response.data) == 3
 
         response = self.get_success_response(query="lastSeen:-12h", useGroupSnubaDataset=1)
-        assert len(response.data) == 3, "Three issues should be seen in the last 12 hours"
+        assert len(response.data) == 4
+
+        # Test lastSeen filter with an absolute date using before_now
+        absolute_date = iso_format(before_now(days=1))  # Assuming 365 days before now as an example
+        response = self.get_success_response(
+            query=f"lastSeen:>{absolute_date}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 4
+        response = self.get_success_response(
+            query=f"lastSeen:<{absolute_date}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
