@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
+from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
 from sentry import features, tagstore
@@ -44,7 +45,6 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
@@ -59,7 +59,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.actor import ActorTuple
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -102,16 +101,16 @@ logger = logging.getLogger(__name__)
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
-    actor = ActorTuple.from_actor_identifier(assignee)
+    actor = RpcActor.from_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
-    except actor.type.DoesNotExist:
+    except ObjectDoesNotExist:
         return None
 
-    if actor.type == Team:
+    if actor.actor_type == ActorType.TEAM:
         assignee_text = f"#{assigned_actor.slug}"
-    elif actor.type == User:
+    elif actor.actor_type == ActorType.USER:
         assignee_identity = identity_service.get_identity(
             filter={
                 "provider_id": identity.idp_id,
@@ -291,8 +290,7 @@ def get_suggested_assignees(
     if (
         issue_owners != ProjectOwnership.Everyone
     ):  # we don't want every user in the project to be a suggested assignee
-        resolved_owners = ActorTuple.resolve_many(issue_owners)
-        suggested_assignees = RpcActor.many_from_object(resolved_owners)
+        suggested_assignees = issue_owners
     try:
         suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
         suggested_assignees.extend(suspect_commit_users)
