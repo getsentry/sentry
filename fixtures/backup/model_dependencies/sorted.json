@@ -115,6 +115,7 @@
   "sentry.appconnectbuild",
   "sentry.apikey",
   "sentry.apiapplication",
+  "sentry.actor",
   "sentry.activity",
   "replays.replayrecordingsegment",
   "hybridcloud.orgauthtokenreplica",

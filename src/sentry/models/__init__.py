@@ -1,4 +1,5 @@
 from .activity import *  # NOQA
+from .actor import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
 from .apigrant import *  # NOQA
