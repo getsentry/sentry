@@ -8,11 +8,11 @@ from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessageRepository,
 )
 from sentry.integrations.slack import BlockSlackMessageBuilder, SlackClient
+from sentry.integrations.slack.threads.activity_notifications import AssignedActivityNotification
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
-from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
@@ -201,7 +201,9 @@ class SlackService:
         )
         payload.update(slack_payload)
         # TODO (Yash): Users should not have to remember to do this, interface should handle serializing the field
-        payload["blocks"] = json.dumps(payload.get("blocks"))
+        payload["blocks"] = json.dumps_experimental(
+            "integrations.slack.enable-orjson", payload.get("blocks")
+        )
         try:
             client.post("/chat.postMessage", data=payload, timeout=5)
         except Exception as err:

@@ -13,6 +13,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
@@ -258,7 +259,11 @@ function ActivatedRuleListRow({
     <ErrorBoundary>
       <AlertNameWrapper>
         <AlertNameAndStatus>
-          <AlertName>{rule.name}</AlertName>
+          <AlertName>
+            <Link to={`/organizations/${orgId}/alerts/rules/details/${rule.id}/`}>
+              {rule.name}
+            </Link>
+          </AlertName>
           <AlertActivationDate>{renderLatestActivation()}</AlertActivationDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>

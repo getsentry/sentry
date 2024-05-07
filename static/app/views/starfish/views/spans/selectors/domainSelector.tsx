@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -8,6 +7,7 @@ import omit from 'lodash/omit';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {uniq} from 'sentry/utils/array/uniq';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';

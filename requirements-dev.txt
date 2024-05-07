@@ -13,7 +13,7 @@ pytest-django>=4.8.0
 pytest-fail-slow>=0.3.0
 pytest-json-report>=1.5.0
 pytest-rerunfailures>=11
-pytest-sentry>=0.3.0rc1
+pytest-sentry>=0.3.0
 pytest-xdist>=3
 responses>=0.23.1
 selenium>=4.16.0
@@ -34,11 +34,11 @@ pip-tools>=7.1.0
 packaging>=21.3
 
 # for type checking
-sentry-forked-django-stubs>=4.2.7.post3
+sentry-forked-django-stubs>=5.0.0.post3
 sentry-forked-djangorestframework-stubs>=3.14.5.post1
 lxml-stubs
 msgpack-types>=0.2.0
-mypy>=1.9
+mypy>=1.10
 types-beautifulsoup4
 types-cachetools
 types-croniter
@@ -54,6 +54,6 @@ types-pytz
 types-pyyaml
 # make sure to match close-enough to redis==
 types-redis<4
-types-requests>=2.31.0.20231231
+types-requests>=2.31.0.20240406
 types-setuptools>=68
 types-simplejson>=3.17.7.2

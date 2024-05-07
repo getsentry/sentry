@@ -37,8 +37,8 @@ class ProjectMonitorEnvironmentDetailsEndpoint(
         operation_id="Update a Monitor Environment for a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
         responses={
@@ -59,8 +59,8 @@ class ProjectMonitorEnvironmentDetailsEndpoint(
         operation_id="Delete a Monitor Environment for a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
         responses={

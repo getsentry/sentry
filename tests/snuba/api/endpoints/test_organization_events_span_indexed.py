@@ -232,6 +232,43 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["origin.transaction"] == "/pageloads/"
         assert meta["dataset"] == "spansIndexed"
 
+    def test_id_filtering(self):
+        span = self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)
+        self.store_span(span)
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": f"id:{span['span_id']}",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["description"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": f"transaction.id:{span['event_id']}",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["description"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
     def test_span_op_casing(self):
         self.store_spans(
             [
@@ -263,4 +300,60 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         meta = response.data["meta"]
         assert len(data) == 1
         assert data[0]["span.op"] == "this is a transaction"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_queue_span(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "messaging.message.body.size": {"value": 1024, "unit": "byte"},
+                            "messaging.message.receive.latency": {
+                                "value": 1000,
+                                "unit": "millisecond",
+                            },
+                            "messaging.message.retry.count": {"value": 2, "unit": "none"},
+                        },
+                        "sentry_tags": {
+                            "transaction": "queue-processor",
+                            "messaging.destination.name": "events",
+                            "messaging.message.id": "abc123",
+                            "trace.status": "ok",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "messaging.destination.name",
+                    "messaging.message.id",
+                    "measurements.messaging.message.receive.latency",
+                    "measurements.messaging.message.body.size",
+                    "measurements.messaging.message.retry.count",
+                    "trace.status",
+                    "count()",
+                ],
+                "query": 'messaging.destination.name:"events"',
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["transaction"] == "queue-processor"
+        assert data[0]["messaging.destination.name"] == "events"
+        assert data[0]["messaging.message.id"] == "abc123"
+        assert data[0]["trace.status"] == "ok"
+        assert data[0]["measurements.messaging.message.receive.latency"] == 1000
+        assert data[0]["measurements.messaging.message.body.size"] == 1024
+        assert data[0]["measurements.messaging.message.retry.count"] == 2
         assert meta["dataset"] == "spansIndexed"

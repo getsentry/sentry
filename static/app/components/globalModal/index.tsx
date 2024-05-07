@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {FocusTrap} from 'focus-trap';
@@ -12,6 +11,7 @@ import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
 

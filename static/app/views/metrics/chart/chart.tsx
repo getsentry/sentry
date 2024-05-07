@@ -10,13 +10,13 @@ import omitBy from 'lodash/omitBy';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
 import {
   defaultFormatAxisLabel,
   getFormatter,
 } from 'sentry/components/charts/components/tooltip';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import ChartZoom from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -191,6 +191,7 @@ export const MetricChart = memo(
             left: 0,
             right: 0,
           },
+          additionalSeries,
           tooltip: {
             formatter: (params, asyncTicket) => {
               // Only show the tooltip if the current chart is hovered
@@ -338,13 +339,14 @@ export const MetricChart = memo(
         focusArea,
         releases,
         firstUnit,
+        additionalSeries,
       ]);
 
       if (!enableZoom) {
         return (
           <ChartWrapper>
             {focusArea?.overlay}
-            <CombinedChart {...chartProps} additionalSeries={additionalSeries} />
+            <CombinedChart {...chartProps} />
           </ChartWrapper>
         );
       }

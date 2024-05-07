@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 
@@ -23,6 +24,7 @@ from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.outcomes import Outcome
 
 
@@ -38,6 +40,21 @@ class BaseMonitorDetailsTest(MonitorTestCase):
 
         resp = self.get_success_response(self.organization.slug, monitor.slug)
         assert resp.data["slug"] == monitor.slug
+
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_simple_with_id(self):
+        monitor = self._create_monitor()
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["slug"] == monitor.slug
+
+        resp = self.get_success_response(self.organization.slug, monitor.guid)
+        assert resp.data["slug"] == monitor.slug
+
+        self.get_error_response(self.organization.slug, "asdf", status_code=404)
+
+        uuid = UUID("00000000-0000-0000-0000-000000000000")
+        self.get_error_response(self.organization.slug, uuid, status_code=404)
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()

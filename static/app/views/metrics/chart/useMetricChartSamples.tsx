@@ -11,7 +11,7 @@ import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   getSummaryValueForOp,
   type MetricsSamplesResults,
@@ -40,12 +40,19 @@ function getValueRectFromSeries(series: Series[]) {
     s.data.map(entry => entry.value)
   );
 
-  return {
+  const rect = {
     xMin: Math.min(...xValues),
     xMax: Math.max(...xValues),
     yMin: Math.min(0, ...yValues) / scalingFactor,
     yMax: Math.max(0, ...yValues) / scalingFactor,
   };
+
+  // happens when refenceSeries has all 0 values, commonly seen when using min() aggregation
+  if (rect.yMin === rect.yMax) {
+    return {xMin: rect.xMin, xMax: rect.xMax, yMin: -Infinity, yMax: Infinity};
+  }
+
+  return rect;
 }
 
 // TODO: remove this once we have a stabilized type for this
@@ -126,7 +133,7 @@ export function useMetricChartSamples({
         // We need to access the sample as the charts datapoints are fit to the charts viewport
         const sample = samplesById[label ?? ''];
         const yValue = getSummaryValueForOp(sample.summary, operation);
-        return formatMetricsUsingUnitAndOp(yValue, unit, operation);
+        return formatMetricUsingUnit(yValue, unit);
       },
     };
   }, [operation, samplesById, unit]);

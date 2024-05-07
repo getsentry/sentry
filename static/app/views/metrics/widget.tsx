@@ -29,6 +29,7 @@ import {
   getMetricsSeriesId,
   getMetricsSeriesName,
   isCumulativeOp,
+  isNotQueryOnly,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
@@ -56,7 +57,7 @@ import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
 import {useReleaseSeries} from 'sentry/views/metrics/chart/useMetricReleases';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {FormularFormatter} from 'sentry/views/metrics/formulaParser/formatter';
+import {EquationFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
@@ -95,10 +96,6 @@ export type Sample = {
   transactionSpanId: string;
 };
 
-function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
-  return !('isQueryOnly' in query) || !query.isQueryOnly;
-}
-
 export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   const filteredQueries = queries.filter(isNotQueryOnly);
 
@@ -107,7 +104,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     if (isMetricFormula(firstQuery)) {
       return (
         <Fragment>
-          <FormularFormatter formula={unescapeMetricsFormula(firstQuery.formula)} />
+          <EquationFormatter equation={unescapeMetricsFormula(firstQuery.formula)} />
         </Fragment>
       );
     }
@@ -143,6 +140,7 @@ export const MetricWidget = memo(
     focusedSeries,
     metricsSamples,
     overlays,
+    highlightedSampleId,
   }: MetricWidgetProps) => {
     const firstQuery = queries
       .filter(isNotQueryOnly)
@@ -179,7 +177,6 @@ export const MetricWidget = memo(
 
       onChange(index, {overlays: values});
     };
-
     const samples = useMemo(() => {
       if (!defined(metricsSamples)) {
         return undefined;
@@ -189,8 +186,15 @@ export const MetricWidget = memo(
         onSampleClick,
         unit: parseMRI(firstQuery?.mri)?.unit ?? '',
         operation: firstQuery?.op ?? '',
+        highlightedId: highlightedSampleId,
       };
-    }, [metricsSamples, firstQuery?.mri, firstQuery?.op, onSampleClick]);
+    }, [
+      metricsSamples,
+      firstQuery?.mri,
+      firstQuery?.op,
+      onSampleClick,
+      highlightedSampleId,
+    ]);
 
     const widgetTitle = getWidgetTitle(queries);
 
@@ -305,7 +309,7 @@ export interface SamplesProps {
   operation: string;
   unit: string;
   data?: MetricsSamplesResults<Field>['data'];
-  higlightedId?: string;
+  highlightedId?: string;
   onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
 }
 
@@ -377,7 +381,7 @@ const MetricWidgetBody = memo(
 
     const chartSamples = useMetricChartSamples({
       samples: samples?.data,
-      highlightedSampleId: samples?.higlightedId,
+      highlightedSampleId: samples?.highlightedId,
       operation: samples?.operation,
       onSampleClick: samples?.onSampleClick,
       timeseries: chartSeries,

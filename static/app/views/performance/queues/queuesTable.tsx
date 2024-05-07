@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'qs';
@@ -8,46 +7,48 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {useQueueByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
+import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
-  MetricsResponse,
-  | 'avg_if(span.self_time,span.op,queue.task.celery)'
-  | 'count_op(queue.submit.celery)'
-  | 'count_op(queue.task.celery)'
+  SpanMetricsResponse,
+  | 'avg_if(span.self_time,span.op,queue.process)'
+  | 'count_op(queue.publish)'
+  | 'count_op(queue.process)'
   | 'sum(span.self_time)'
-  | 'transaction'
+  | 'messaging.destination.name'
+  | 'avg(messaging.message.receive.latency)'
 >;
 
 type Column = GridColumnHeader<string>;
 
 const COLUMN_ORDER: Column[] = [
-  // TODO: Needs to be updated to display an actual destination, not transaction
   {
-    key: 'transaction',
+    key: 'messaging.destination.name',
     name: t('Destination'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'avg(messaging.message.receive.latency)',
     name: t('Avg Time in Queue'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.self_time,span.op,queue.task.celery)',
+    key: 'avg_if(span.self_time,span.op,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -57,12 +58,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.submit.celery)',
+    key: 'count_op(queue.publish)',
     name: t('Published'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.task.celery)',
+    key: 'count_op(queue.process)',
     name: t('Processed'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -77,19 +78,18 @@ interface Props {
   domain?: string;
   error?: Error | null;
   meta?: EventsMetaType;
-  pageLinks?: string;
 }
 
-export function QueuesTable({error, pageLinks}: Props) {
+export function QueuesTable({error}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {data, isLoading, meta} = useQueueByTransactionQuery({});
+  const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({});
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
+      query: {...query, [QueryParameterNames.DESTINATIONS_CURSOR]: newCursor},
     });
   };
 
@@ -135,7 +135,7 @@ function renderBodyCell(
     );
   }
 
-  if (key === 'transaction') {
+  if (key === 'messaging.destination.name' && row[key]) {
     return <DestinationCell destination={row[key]} />;
   }
 
@@ -145,6 +145,11 @@ function renderBodyCell(
 
   if (key === 'failure_rate()') {
     return <AlignRight>{formatPercentage(row[key])}</AlignRight>;
+  }
+
+  if (key.startsWith('avg')) {
+    const renderer = FIELD_FORMATTERS.duration.renderFunc;
+    return renderer(key, row);
   }
 
   if (!meta?.fields) {
@@ -161,7 +166,9 @@ function renderBodyCell(
 
 function DestinationCell({destination}: {destination: string}) {
   const organization = useOrganization();
+  const {query} = useLocation();
   const queryString = {
+    ...query,
     destination,
   };
   return (

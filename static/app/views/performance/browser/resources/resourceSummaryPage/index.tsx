@@ -24,7 +24,7 @@ import RenderBlockingSelector from 'sentry/views/performance/browser/resources/s
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
@@ -135,7 +135,6 @@ function ResourceSummary() {
               throughput={spanMetrics['spm()']}
               timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
               timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
-              spanOp={spanMetrics[SPAN_OP]}
             />
           </HeaderContainer>
           {isImage && (

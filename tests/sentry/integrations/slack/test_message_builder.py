@@ -20,13 +20,13 @@ from sentry.integrations.slack.message_builder.issues import (
     get_context,
     get_option_groups_block_kit,
     get_tags,
-    time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.message_builder.time_utils import time_since
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
-    MonitorCheckInFailure,
+    MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
@@ -46,6 +46,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
@@ -101,6 +102,7 @@ def build_test_message_blocks(
         for k, v in tags.items():
             if k == "release":
                 v = format_release_tag(v, group)
+            v = v.replace("`", "")
             tags_text += f"{k}: `{v}`  "
 
         tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
@@ -271,7 +273,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "tags": {"foo": "bar"},
+                "tags": {"escape": "`room`", "foo": "bar"},
                 "timestamp": iso_format(before_now(minutes=1)),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
@@ -284,7 +286,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        more_tags = {"foo": "bar"}
+        more_tags = {"escape": "`room`", "foo": "bar"}
         notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
@@ -294,7 +296,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}
+            group, event.for_group(group), tags={"foo", "escape"}
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -315,7 +317,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}, notes=notes
+            group, event.for_group(group), tags={"foo", "escape"}, notes=notes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -1150,8 +1152,18 @@ class ActionsTest(TestCase):
         MOCKIDENTITY = Mock()
 
         assert build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
-        ) == ([], "", "_actioned_issue")
+            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
+        ) == ([], "", False)
+
+    @with_feature("organizations:slack-improvements")
+    def test_identity_and_action_has_action(self):
+        # returns True to indicate to use the white circle emoji
+        group = self.create_group(project=self.project)
+        MOCKIDENTITY = Mock()
+
+        assert build_actions(
+            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
+        ) == ([], "", True)
 
     def _assert_message_actions_list(self, actions, expected):
         actions_dict = [
@@ -1171,9 +1183,7 @@ class ActionsTest(TestCase):
             "value": "unresolved:ongoing",
         }
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1190,9 +1200,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "unresolved:ongoing",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1209,9 +1217,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "archive_dialog",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1228,9 +1234,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "archive_dialog",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1238,9 +1242,7 @@ class ActionsTest(TestCase):
 
     def test_no_ignore_if_feedback(self):
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         # no ignore action if feedback issue, so only assign and resolve
         assert len(res[0]) == 2
 
@@ -1249,9 +1251,7 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.RESOLVED
         group.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -1270,9 +1270,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = False
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             {
@@ -1290,9 +1288,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = True
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             {
@@ -1310,9 +1306,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = True
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -1327,7 +1321,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             type=PerformanceP95EndpointRegressionGroupType.type_id
         )
 
-        self.cron_issue = self.create_group(type=MonitorCheckInFailure.type_id)
+        self.cron_issue = self.create_group(type=MonitorIncidentType.type_id)
         self.feedback_issue = self.create_group(
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )

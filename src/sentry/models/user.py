@@ -21,14 +21,20 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    get_model_name,
+)
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     BaseModel,
     BoundedBigAutoField,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.db.models.utils import unique_db_instance
@@ -44,6 +50,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.utils.http import absolute_uri
+from sentry.utils.json import JSONData
 from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
@@ -84,7 +91,7 @@ class UserManager(BaseManager["User"], DjangoUserManager):
         return self.filter(id__in=Subquery(org_members_with_provider))
 
 
-@control_silo_only_model
+@control_silo_model
 class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
     __relocation_custom_ordinal__ = ["username"]
@@ -503,6 +510,16 @@ class User(BaseModel, AbstractBaseUser):
 
             # Perform the remainder of the write while we're still holding the lock.
             return do_write()
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "username"))
+        sanitizer.set_string(json, SanitizableField(model_name, "session_nonce"))
 
     @classmethod
     def handle_async_deletion(

@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import Feature from 'sentry/components/acl/feature';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
@@ -15,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';

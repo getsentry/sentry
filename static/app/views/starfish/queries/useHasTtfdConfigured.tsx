@@ -4,9 +4,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 export function useTTFDConfigured(additionalFilters?: string[]) {
   const location = useLocation();

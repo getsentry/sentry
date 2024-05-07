@@ -8,6 +8,7 @@ from sentry_relay.processing import parse_release
 
 from sentry.models.activity import Activity
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.json import methods_for_experiment
 
 from .base import GroupActivityNotification
 
@@ -19,7 +20,8 @@ class RegressionActivityNotification(GroupActivityNotification):
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.version = self.activity.data.get("version", "")
-        self.version_parsed = parse_release(self.version)["description"]
+        json_loads, _ = methods_for_experiment("relay.enable-orjson")
+        self.version_parsed = parse_release(self.version, json_loads=json_loads)["description"]
 
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         text_message, html_message, params = "{author} marked {an issue} as a regression", None, {}

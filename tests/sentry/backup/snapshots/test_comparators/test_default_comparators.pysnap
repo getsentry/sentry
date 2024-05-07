@@ -1,5 +1,5 @@
 ---
-created: '2024-04-22T16:37:52.501407+00:00'
+created: '2024-05-01T20:30:02.246280+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -86,18 +86,12 @@ source: tests/sentry/backup/test_comparators.py
   - class: DateUpdatedComparator
     fields:
     - date_modified
-  - class: EqualOrRemovedComparator
-    fields:
-    - owner
-    - team
-    - user_id
   - class: DatetimeEqualityComparator
     fields:
     - date_added
   - class: ForeignKeyComparator
     fields:
     - organization
-    - owner
     - snuba_query
     - team
     - user_id
@@ -460,6 +454,9 @@ source: tests/sentry/backup/test_comparators.py
     - doc_integration
   model_name: sentry.docintegrationavatar
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
   - class: EmailObfuscatingComparator
     fields:
     - email
@@ -592,11 +589,12 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - actor
     - group
     - organization
     - project
     - release
+    - team
+    - user_id
   model_name: sentry.grouphistory
 - comparators:
   - class: ForeignKeyComparator
@@ -705,6 +703,7 @@ source: tests/sentry/backup/test_comparators.py
     - date_started
   - class: ForeignKeyComparator
     fields:
+    - activation
     - alert_rule
     - organization
   model_name: sentry.incident
@@ -1332,7 +1331,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - environment_id
-    - owner
     - owner_team
     - owner_user_id
     - project
@@ -1471,10 +1469,6 @@ source: tests/sentry/backup/test_comparators.py
     - organization_id
   model_name: sentry.stringindexer
 - comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - actor
-    - organization
   - class: IgnoredComparator
     fields:
     - org_role

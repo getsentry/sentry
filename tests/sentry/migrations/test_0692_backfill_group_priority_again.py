@@ -1,11 +1,12 @@
 import logging
 
+import pytest
 from django.conf import settings
 
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
-    MonitorCheckInFailure,
+    MonitorIncidentType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceP95EndpointRegressionGroupType,
     ReplayDeadClickType,
@@ -23,6 +24,7 @@ class PriorityLevel:
     HIGH = 75
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillGroupPriority(TestMigrations):
     migrate_from = "0691_remove_project_team_avatar_model"
     migrate_to = "0692_backfill_group_priority_again"
@@ -112,7 +114,7 @@ class BackfillGroupPriority(TestMigrations):
                 {
                     "status": GroupStatus.UNRESOLVED,
                     "substatus": GroupSubStatus.ESCALATING,
-                    "type": MonitorCheckInFailure.type_id,
+                    "type": MonitorIncidentType.type_id,
                 },
                 PriorityLevel.HIGH,
             ),
@@ -179,7 +181,7 @@ class BackfillGroupPriority(TestMigrations):
             (
                 "cron group with log level WARNING",
                 {
-                    "type": MonitorCheckInFailure.type_id,
+                    "type": MonitorIncidentType.type_id,
                     "level": logging.WARNING,
                 },
                 PriorityLevel.MEDIUM,
@@ -188,7 +190,7 @@ class BackfillGroupPriority(TestMigrations):
                 "cron group with log level ERROR",
                 {
                     "substatus": GroupSubStatus.ONGOING,
-                    "type": MonitorCheckInFailure.type_id,
+                    "type": MonitorIncidentType.type_id,
                     "level": logging.ERROR,
                 },
                 PriorityLevel.HIGH,
@@ -196,7 +198,7 @@ class BackfillGroupPriority(TestMigrations):
             (
                 "cron group with log level DEBUG",
                 {
-                    "type": MonitorCheckInFailure.type_id,
+                    "type": MonitorIncidentType.type_id,
                     "level": logging.DEBUG,
                 },
                 PriorityLevel.HIGH,

@@ -302,7 +302,11 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                     # Delivery was successful
                     payload_record.delete()
                     delivered += 1
+                    duration = timezone.now() - payload_record.date_added
                     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+                    metrics.timing(
+                        "hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds()
+                    )
 
             # We didn't have any more messages to deliver.
             # Break out of this task so we can get a new one.
@@ -351,8 +355,9 @@ def deliver_message(payload: WebhookPayload) -> None:
     perform_request(payload)
     payload.delete()
 
+    duration = timezone.now() - payload.date_added
+    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
-    metrics.distribution("hybridcloud.deliver_webhooks.attempts", payload.attempts)
 
 
 def perform_request(payload: WebhookPayload) -> None:

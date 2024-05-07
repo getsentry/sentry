@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -30,6 +29,7 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';

@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {formatPercentage} from 'sentry/utils/formatters';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';

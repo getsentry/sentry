@@ -1,6 +1,6 @@
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

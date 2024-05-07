@@ -91,6 +91,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
         pass
 
     @property
+    def trace_id(self) -> str | None:
+        ret_value = None
+        if self.data:
+            ret_value = self.data.get("contexts", {}).get("trace", {}).get("trace_id")
+        return ret_value
+
+    @property
     def platform(self) -> str | None:
         column = self._get_column_name(Columns.PLATFORM)
         if column in self._snuba_data:
@@ -298,7 +305,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self._project_cache = project
 
     def get_interfaces(self) -> Mapping[str, Interface]:
-        return cast(Mapping[str, Interface], CanonicalKeyView(get_interfaces(self.data)))
+        return CanonicalKeyView(get_interfaces(self.data))
 
     @cached_property
     def interfaces(self) -> Mapping[str, Interface]:
@@ -518,7 +525,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def size(self) -> int:
-        return len(json.dumps(dict(self.data)))
+        return len(json.dumps_experimental("eventstore.enable-orjson", dict(self.data)))
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
@@ -716,7 +723,7 @@ class GroupEvent(BaseEvent):
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
         occurrence: IssueOccurrence | None = None,
-    ):
+    ) -> None:
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data

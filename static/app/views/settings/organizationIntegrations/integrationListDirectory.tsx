@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import groupBy from 'lodash/groupBy';
@@ -30,6 +29,7 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types';
 import {uniq} from 'sentry/utils/array/uniq';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {

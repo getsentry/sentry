@@ -1,20 +1,15 @@
 import {useMemo} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
-import {EventExtraData} from 'sentry/components/events/eventExtraData';
-import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction, Organization, Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,10 +25,14 @@ import type {
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';
 
+import {AdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';
 import {Entries} from './sections/entries';
+import GeneralInfo from './sections/generalInfo';
+import {Measurements} from './sections/measurements';
 import ReplayPreview from './sections/replayPreview';
-import {Table} from './sections/table';
+import {Request} from './sections/request';
+import {Sdk} from './sections/sdk';
 import {EventTags} from './sections/tags';
 
 export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
@@ -43,7 +42,7 @@ export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 type TransactionNodeDetailHeaderProps = {
   event: EventTransaction;
   node: TraceTreeNode<TraceTree.Transaction>;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.Transaction>) => void;
+  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   project: Project | undefined;
 };
@@ -73,21 +72,12 @@ function TransactionNodeDetailHeader({
           </TraceDrawerComponents.TitleOp>
         </TraceDrawerComponents.TitleText>
       </TraceDrawerComponents.Title>
-
-      <TraceDrawerComponents.Actions>
-        <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-          {t('Show in view')}
-        </Button>
-        <TraceDrawerComponents.EventDetailsLink node={node} organization={organization} />
-        <Button
-          size="xs"
-          icon={<IconOpen />}
-          href={`/api/0/projects/${organization.slug}/${node.value.project_slug}/events/${node.value.event_id}/json/`}
-          external
-        >
-          {t('JSON')} (<FileSize bytes={event?.size} />)
-        </Button>
-      </TraceDrawerComponents.Actions>
+      <TraceDrawerComponents.NodeActions
+        node={node}
+        organization={organization}
+        onTabScrollToNode={onTabScrollToNode}
+        eventSize={event?.size}
+      />
     </TraceDrawerComponents.HeaderContainer>
   );
 }
@@ -135,13 +125,29 @@ export function TransactionNodeDetails({
 
       <IssueList node={node} organization={organization} issues={issues} />
 
-      <Table
-        node={node}
-        onParentClick={onParentClick}
-        organization={organization}
-        event={event}
-        location={location}
-      />
+      <TraceDrawerComponents.SectionCardGroup>
+        <GeneralInfo
+          node={node}
+          onParentClick={onParentClick}
+          organization={organization}
+          event={event}
+          location={location}
+        />
+        <AdditionalData event={event} />
+        <Measurements event={event} location={location} organization={organization} />
+        <Sdk event={event} />
+      </TraceDrawerComponents.SectionCardGroup>
+
+      <Request event={event} />
+
+      {event.projectSlug ? (
+        <Entries
+          definedEvent={event}
+          projectSlug={event.projectSlug}
+          group={undefined}
+          organization={organization}
+        />
+      ) : null}
 
       <EventTags
         node={node}
@@ -154,21 +160,6 @@ export function TransactionNodeDetails({
 
       {project ? <EventEvidence event={event} project={project} /> : null}
 
-      <ReplayPreview event={event} organization={organization} />
-
-      {event.projectSlug ? (
-        <Entries
-          definedEvent={event}
-          projectSlug={event.projectSlug}
-          group={undefined}
-          organization={organization}
-        />
-      ) : null}
-
-      <EventExtraData event={event} />
-
-      <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-
       {event._metrics_summary ? (
         <CustomMetricsEventData
           metricsSummary={event._metrics_summary}
@@ -176,6 +167,8 @@ export function TransactionNodeDetails({
           projectId={event.projectID}
         />
       ) : null}
+
+      <ReplayPreview event={event} organization={organization} />
 
       <BreadCrumbs event={event} organization={organization} />
 

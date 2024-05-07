@@ -47,12 +47,101 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    # Remove this method once we don't need to support both approaches
-    def _generate_span_ids(self) -> list[str]:
+    def load_trace(self):
+        self.root_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="root",
+            spans=[
+                {
+                    "same_process_as_parent": True,
+                    "op": "http",
+                    "description": f"GET gen1-{i}",
+                    "span_id": root_span_id,
+                    "trace_id": self.trace_id,
+                }
+                for i, root_span_id in enumerate(self.root_span_ids)
+            ],
+            measurements={
+                "lcp": 1000,
+                "fcp": 750,
+                "fid": 3.5,
+            },
+            parent_span_id=None,
+            file_io_performance_issue=True,
+            slow_db_performance_issue=True,
+            project_id=self.project.id,
+            milliseconds=3000,
+        )
+
+        # First Generation
+        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
         if isinstance(self, OrganizationEventsTraceEndpointTestUsingSpans):
-            return ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
+            self.gen1_span_ids = ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
         else:
-            return super()._generate_span_ids()
+            self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen1_project = self.create_project(organization=self.organization)
+        self.gen1_events = [
+            self.create_event(
+                trace_id=self.trace_id,
+                transaction=f"/transaction/gen1-{i}",
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": f"GET gen2-{i}",
+                        "span_id": gen1_span_id,
+                        "trace_id": self.trace_id,
+                    }
+                ],
+                parent_span_id=root_span_id,
+                project_id=self.gen1_project.id,
+                milliseconds=2000,
+            )
+            for i, (root_span_id, gen1_span_id) in enumerate(
+                zip(self.root_span_ids, self.gen1_span_ids)
+            )
+        ]
+
+        # Second Generation
+        self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen2_project = self.create_project(organization=self.organization)
+
+        # Intentially pick a span id that starts with 0s
+        self.gen2_span_id = "0011" * 4
+
+        self.gen2_events = [
+            self.create_event(
+                trace_id=self.trace_id,
+                transaction=f"/transaction/gen2-{i}",
+                spans=[
+                    {
+                        "same_process_as_parent": True,
+                        "op": "http",
+                        "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
+                        "span_id": gen2_span_id,
+                        "trace_id": self.trace_id,
+                    }
+                ],
+                parent_span_id=gen1_span_id,
+                span_id=self.gen2_span_id if i == 0 else None,
+                project_id=self.gen2_project.id,
+                milliseconds=1000,
+            )
+            for i, (gen1_span_id, gen2_span_id) in enumerate(
+                zip(self.gen1_span_ids, self.gen2_span_ids)
+            )
+        ]
+
+        # Third generation
+        self.gen3_project = self.create_project(organization=self.organization)
+        self.gen3_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="/transaction/gen3-0",
+            spans=[],
+            project_id=self.gen3_project.id,
+            parent_span_id=self.gen2_span_id,
+            milliseconds=500,
+        )
 
 
 class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBase):
@@ -434,6 +523,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             assert len(event["errors"]) == 1
             assert event["errors"][0]["event_id"] == error.event_id
             assert event["errors"][0]["issue_id"] == error.group_id
+            assert event["errors"][0]["message"] == error.search_message
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -465,6 +555,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } == response.data["orphan_errors"][0]
 
     def test_with_one_orphan_error(self):
@@ -1002,7 +1093,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def test_with_errors(self):
         self.load_trace()
-        error, error1 = self.load_errors()
+        error, error1, _ = self.load_errors(self.gen1_project, self.gen1_span_ids[0])
 
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -1012,7 +1103,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert response.status_code == 200, response.content
         self.assert_trace_data(response.data["transactions"][0])
         gen1_event = response.data["transactions"][0]["children"][0]
-        assert len(gen1_event["errors"]) == 2
+        assert len(gen1_event["errors"]) == 3
         data = {
             "event_id": error.event_id,
             "issue_id": error.group_id,
@@ -1024,6 +1115,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         }
         data1 = {
             "event_id": error1.event_id,
@@ -1036,6 +1128,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         }
         assert data in gen1_event["errors"]
         assert data1 in gen1_event["errors"]
@@ -1090,6 +1183,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } == response.data["orphan_errors"][1]
         assert {
             "event_id": error1.event_id,
@@ -1102,6 +1196,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         } == response.data["orphan_errors"][0]
 
     def test_with_only_orphan_errors_with_different_span_ids(self):
@@ -1146,6 +1241,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } in response.data["orphan_errors"]
         assert {
             "event_id": error1.event_id,
@@ -1158,6 +1254,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         } in response.data["orphan_errors"]
 
     def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
@@ -1204,6 +1301,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } in response.data["orphan_errors"]
 
     def test_with_default(self):
@@ -1230,6 +1328,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(default_event.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": default_event.search_message,
         } in root_event["errors"]
 
     def test_pruning_root(self):
@@ -1347,6 +1446,35 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert "transaction.status" not in trace_transaction
         assert "tags" not in trace_transaction
 
+    def test_with_error_event(self):
+        self.load_trace()
+        start, _ = self.get_start_end_from_day_ago(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.gen1_span_ids[0],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        errors = trace_transaction["children"][0]["errors"]
+        assert len(errors) == 1
+        error_result = errors[0]
+        assert error_result["event_id"] == error.event_id
+        assert error_result["span"] == self.gen1_span_ids[0]
+        assert error_result["title"] == error.title
+        assert error_result["message"] == error.search_message
+
     @pytest.mark.skip(
         "Loops can only be orphans cause the most recent parent to be saved will overwrite the previous"
     )
@@ -1459,6 +1587,21 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert "transaction.status" not in trace_transaction
         assert "tags" not in trace_transaction
 
+    def test_split_by_char_optimization(self):
+        self.load_trace()
+        # This changes the span_id condition so its a split on a string instead of an array
+        options.set("performance.traces.span_query_minimum_spans", 1)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+
 
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace-meta"
@@ -1528,7 +1671,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
 
     def test_with_errors(self):
         self.load_trace()
-        self.load_errors()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -1537,9 +1680,9 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
             )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["projects"] == 4
+        assert data["projects"] == 5
         assert data["transactions"] == 8
-        assert data["errors"] == 2
+        assert data["errors"] == 3
         assert data["performance_issues"] == 2
 
     def test_with_default(self):

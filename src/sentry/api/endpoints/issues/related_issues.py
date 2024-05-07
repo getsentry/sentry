@@ -33,11 +33,4 @@ class RelatedIssuesEndpoint(GroupEndpoint):
         :pparam string group_id: the ID of the issue
         """
         related_issues = find_related_issues(group)
-        return Response(
-            {
-                "data": [
-                    {"type": related_set["type"], "data": related_set["data"]}
-                    for related_set in related_issues
-                ]
-            }
-        )
+        return Response({"data": [related_set for related_set in related_issues]})

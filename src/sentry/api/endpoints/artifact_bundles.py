@@ -69,7 +69,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                           artifact bundle belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      artifact bundles of.
         """
         query = request.GET.get("query")
@@ -123,7 +123,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         :pparam string organization_slug: the slug of the organization the
                                             archive belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                         archive of.
         :qparam string name: The name of the archive to delete.
         :auth: required

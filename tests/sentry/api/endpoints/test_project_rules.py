@@ -15,7 +15,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
     SlackRuleSaveEditMessageBuilder,
 )
-from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
@@ -107,7 +106,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         frequency: int | None = 30,
         **kwargs: Any,
     ):
-        owner = get_actor_for_user(self.user).get_actor_identifier()
+        owner = f"user:{self.user.id}"
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
@@ -140,7 +139,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == name
-        assert rule.owner == get_actor_for_user(self.user)
+        assert rule.owner_user_id == self.user.id
+        assert rule.owner_team_id is None
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
 
@@ -532,7 +532,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             name="test",
-            owner=other_team.actor.get_actor_identifier(),
+            owner=f"team:{other_team.id}",
             actionMatch="any",
             filterMatch="any",
             actions=[],
@@ -558,7 +558,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert response.data["owner"] == f"team:{team.id}"
 
         rule = Rule.objects.get(id=response.data["id"])
-        assert rule.owner_id
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
 
@@ -760,7 +759,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
-            "owner": get_actor_for_user(self.user).id,
             "environment": payload.get("environment"),
             "action_match": payload["actionMatch"],
             "filter_match": payload.get("filterMatch"),
@@ -1005,3 +1003,30 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
+
+    def test_rule_with_empty_comparison_interval(self):
+        """
+        Test that the serializer cleans up any empty strings passed in the data
+        """
+        conditions = [
+            {
+                "comparisonInterval": "",
+                "comparisonType": "count",
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "interval": "1h",
+                "value": 5,
+            },
+        ]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hellboy",
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=self.notify_issue_owners_action,
+            conditions=conditions,
+        )
+        clean_rule = Rule.objects.get(id=response.data.get("id"))
+        assert not clean_rule.data.get("comparisonInterval")
