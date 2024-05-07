@@ -7,6 +7,8 @@ from enum import Enum
 from typing import Any, TypedDict
 
 from django.conf import settings
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry import features
 from sentry.models.organization import Organization
@@ -112,7 +114,7 @@ class CheckinProcessingError:
 
 
 class CheckinProcessErrorsManager:
-    def _get_cluster(self):
+    def _get_cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     def store(self, error: CheckinProcessingError, monitor: Monitor | None):
@@ -126,13 +128,13 @@ class CheckinProcessErrorsManager:
             except Monitor.DoesNotExist:
                 pass
         if monitor:
-            error_identifier = f"monitor:{monitor.id}"
+            error_identifier = self.build_monitor_identifier(monitor)
         else:
-            error_identifier = f'project:{error.checkin.message["project_id"]}'
+            error_identifier = self.build_project_identifier(error.checkin.message["project_id"])
 
         error_key = f"monitors.processing_errors.{error_identifier}"
         serialized_error = json.dumps(error.to_dict())
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        redis_client = self._get_cluster()
         pipeline = redis_client.pipeline(transaction=False)
         pipeline.zadd(error_key, {serialized_error: error.checkin.ts.timestamp()})
         # Cap the error list to the `MAX_ERRORS_PER_SET` most recent errors
@@ -146,11 +148,11 @@ class CheckinProcessErrorsManager:
     def get_for_monitor(self, monitor: Monitor) -> list[CheckinProcessingError]:
         return self._get_for_entity(self.build_monitor_identifier(monitor))
 
-    def build_project_identifier(self, project: Project) -> str:
-        return f"project:{project.id}"
+    def build_project_identifier(self, project_id: int) -> str:
+        return f"project:{project_id}"
 
     def get_for_project(self, project: Project) -> list[CheckinProcessingError]:
-        return self._get_for_entity(self.build_project_identifier(project))
+        return self._get_for_entity(self.build_project_identifier(project.id))
 
     def _get_for_entity(self, identifier: str) -> list[CheckinProcessingError]:
         redis = self._get_cluster()
@@ -161,7 +163,8 @@ class CheckinProcessErrorsManager:
 
 def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):
     try:
-        organization = Organization.objects.get(project__id=item.message["project_id"])
+        project = Project.objects.get_from_cache(id=item.message["project_id"])
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
         if not features.has("organizations:crons-write-user-feedback", organization):
             return
 
