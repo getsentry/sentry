@@ -136,7 +136,7 @@ class UsageStatsOrganization<
           {
             query: {
               ...this.endpointQuery,
-              category: DATA_CATEGORY_INFO.metrics.apiName,
+              category: DATA_CATEGORY_INFO.metricSecond.apiName,
               groupBy: ['outcome'],
             },
           },
@@ -159,7 +159,7 @@ class UsageStatsOrganization<
         ...group,
         by: {
           ...group.by,
-          category: DATA_CATEGORY_INFO.metrics.apiName,
+          category: DATA_CATEGORY_INFO.metricSecond.apiName,
         },
       };
     });
@@ -345,7 +345,7 @@ class UsageStatsOrganization<
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
         help:
-          dataCategory === DATA_CATEGORY_INFO.metrics.plural
+          dataCategory === DATA_CATEGORY_INFO.metricSecond.plural
             ? tct(
                 'Filtered metrics were blocked due to your disabled metrics [settings: settings]',
                 {

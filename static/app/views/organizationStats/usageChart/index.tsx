@@ -89,8 +89,8 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_INFO.metrics.titleName,
-    value: DATA_CATEGORY_INFO.metrics.plural,
+    label: DATA_CATEGORY_INFO.metricSecond.titleName,
+    value: DATA_CATEGORY_INFO.metricSecond.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
@@ -361,7 +361,7 @@ function UsageChartBody({
 
   const filteredOptions = useMemo(() => {
     return categoryOptions.filter(option => {
-      if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
+      if (option.value !== DATA_CATEGORY_INFO.metricSecond.plural) {
         return true;
       }
       return (
