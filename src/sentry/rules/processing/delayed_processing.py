@@ -270,7 +270,10 @@ def apply_delayed(project_id: int) -> None:
 
     # STEP 3: Fetch the Rule models we need to check
     alert_rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
-
+    snoozed_rules = RuleSnooze.objects.filter(rule__in=alert_rules, user_id=None).values_list(
+        "rule", flat=True
+    )
+    alert_rules = [rule for rule in alert_rules if rule.id not in snoozed_rules]
     # STEP 4: Create a map of unique conditions to a tuple containing the JSON
     # information needed to instantiate that condition class and the group_ids that
     # must be checked for that condition. We don't query per rule condition because
@@ -290,13 +293,8 @@ def apply_delayed(project_id: int) -> None:
     # Step 7: Fire the rule's actions
     now = timezone.now()
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
-    snoozed_rules = RuleSnooze.objects.filter(
-        rule__in=rules_to_fire.keys(), user_id=None
-    ).values_list("rule", flat=True)
-    for rule, group_ids in rules_to_fire.items():
-        if rule.id in snoozed_rules:
-            continue
 
+    for rule, group_ids in rules_to_fire.items():
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         freq_offset = now - timedelta(minutes=frequency)
         group_to_groupevent = get_group_to_groupevent(
