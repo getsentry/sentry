@@ -30,7 +30,6 @@ from sentry.db.models.fields.uuid import UUIDField
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import BackupTestCase
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import strip_silo_mode_test_suffix
 from sentry.utils import json
 from tests.sentry.backup import expect_models, verify_models_in_output
@@ -494,7 +493,6 @@ class SanitizationExhaustiveTests(BackupTestCase, IntegrationTestCase):
     were sanitized remain constant.
     """
 
-    @freeze_time("2024-01-01")
     @expect_models(SANITIZATION_TESTED, "__all__")
     def test_clean_pks(self, expected_models: list[type[Model]]):
         self.create_exhaustive_instance(is_superadmin=True)
