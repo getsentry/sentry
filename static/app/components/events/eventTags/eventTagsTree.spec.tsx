@@ -167,7 +167,7 @@ describe('EventTagsTree', function () {
       tag: {key: 'transaction', value: 'abc123'},
       labelText: 'View this transaction',
       validateLink: () => {
-        const linkElement = screen.getByText('abc123', {selector: 'a'});
+        const linkElement = screen.getByRole('link', {name: 'abc123'});
         const href = linkElement.attributes.getNamedItem('href');
         expect(href?.value).toContain(
           `/organizations/${organization.slug}/performance/summary/`
@@ -181,7 +181,7 @@ describe('EventTagsTree', function () {
       tag: {key: 'replay_id', value: 'def456'},
       labelText: 'View this replay',
       validateLink: () => {
-        const linkElement = screen.getByText('def456', {selector: 'a'});
+        const linkElement = screen.getByRole('link', {name: 'def456'});
         expect(linkElement).toHaveAttribute(
           'href',
           `/organizations/${organization.slug}/replays/def456/?referrer=${referrer}`
@@ -192,7 +192,7 @@ describe('EventTagsTree', function () {
       tag: {key: 'replayId', value: 'ghi789'},
       labelText: 'View this replay',
       validateLink: () => {
-        const linkElement = screen.getByText('ghi789', {selector: 'a'});
+        const linkElement = screen.getByRole('link', {name: 'ghi789'});
         expect(linkElement).toHaveAttribute(
           'href',
           `/organizations/${organization.slug}/replays/ghi789/?referrer=${referrer}`
@@ -204,7 +204,7 @@ describe('EventTagsTree', function () {
       labelText: 'Visit this external link',
       validateLink: async () => {
         renderGlobalModal();
-        const linkElement = screen.getByText('https://example.com', {selector: 'a'});
+        const linkElement = screen.getByText('https://example.com');
         await userEvent.click(linkElement);
         expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
       },
