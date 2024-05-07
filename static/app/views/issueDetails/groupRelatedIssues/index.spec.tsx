@@ -158,7 +158,7 @@ describe('Related Issues View', function () {
     expect(linkButton).toHaveAttribute(
       'href',
       // Opening in Issues needs to include the group we are currently viewing
-      `/organizations/org-slug/issues/?query=issue.id:[${groupId},${group1},${group2}]`
+      `/organizations/org-slug/issues/?project=-1&query=issue.id:[${groupId},${group1},${group2}]`
     );
   });
 
@@ -200,7 +200,7 @@ describe('Related Issues View', function () {
     // The Issue search supports using `trace` as a parameter
     expect(linkButton).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/?query=trace:1234`
+      `/organizations/org-slug/issues/?project=-1&query=trace:1234`
     );
   });
 });
