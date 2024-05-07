@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -93,6 +94,7 @@ export default function EventTagsTreeRow({
           <EventTagsTreeValue
             config={config}
             content={content}
+            event={event}
             projectSlug={projectSlug}
           />
         </TreeValue>
@@ -115,7 +117,7 @@ function EventTagsTreeRowDropdown({
     return null;
   }
 
-  const referrer = 'event-tags-tree';
+  const referrer = 'event-tags-table';
   const query = generateQueryWithTag({referrer}, originalTag);
   const searchQuery = `?${qs.stringify(query)}`;
 
@@ -209,10 +211,11 @@ function EventTagsTreeRowDropdown({
 }
 
 function EventTagsTreeValue({
-  content,
-  projectSlug,
   config,
-}: Pick<EventTagsTreeRowProps, 'content' | 'projectSlug' | 'config'>) {
+  content,
+  event,
+  projectSlug,
+}: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'projectSlug'>) {
   const organization = useOrganization();
   const {originalTag} = content;
   const tagMeta = content.meta?.value?.[''];
@@ -229,6 +232,7 @@ function EventTagsTreeValue({
   }
 
   let tagValue = defaultValue;
+  const referrer = 'event-tags-table';
   switch (originalTag.key) {
     case 'release':
       tagValue = (
@@ -243,6 +247,29 @@ function EventTagsTreeValue({
         </VersionHoverCard>
       );
       break;
+    case 'transaction':
+      const transactionQuery = qs.stringify({
+        project: event.projectID,
+        transaction: content.value,
+        referrer,
+      });
+      const transactionDestination = `/organizations/${organization.slug}/performance/summary/?${transactionQuery}`;
+      tagValue = (
+        <TagLinkText>
+          <Link to={transactionDestination}>{content.value}</Link>
+        </TagLinkText>
+      );
+      break;
+    case 'replayId':
+    case 'replay_id':
+      const replayQuery = qs.stringify({referrer});
+      const replayDestination = `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`;
+      tagValue = (
+        <TagLinkText>
+          <Link to={replayDestination}>{content.value}</Link>
+        </TagLinkText>
+      );
+      break;
     default:
       tagValue = defaultValue;
   }
@@ -250,14 +277,16 @@ function EventTagsTreeValue({
   return !isUrl(content.value) ? (
     tagValue
   ) : (
-    <TagExternalLink
-      onClick={e => {
-        e.preventDefault();
-        openNavigateToExternalLinkModal({linkText: content.value});
-      }}
-    >
-      {tagValue}
-    </TagExternalLink>
+    <TagLinkText>
+      <ExternalLink
+        onClick={e => {
+          e.preventDefault();
+          openNavigateToExternalLinkModal({linkText: content.value});
+        }}
+      >
+        {content.value}
+      </ExternalLink>
+    </TagLinkText>
   );
 }
 
@@ -366,7 +395,7 @@ const TreeValueErrors = styled('div')`
   margin-right: ${space(0.75)};
 `;
 
-const TagExternalLink = styled(ExternalLink)`
+const TagLinkText = styled('span')`
   color: ${p => p.theme.linkColor};
   margin: 0;
 `;
