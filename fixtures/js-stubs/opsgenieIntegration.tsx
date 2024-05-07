@@ -1,4 +1,4 @@
-import {OrganizationIntegration} from 'sentry/types';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 
 export function OpsgenieIntegrationFixture(
   params: Partial<OrganizationIntegration> = {}

@@ -9,6 +9,7 @@ export function TracePerformanceIssueFixture(
     project_id: 8,
     project_slug: 'santry',
     title: 'Large HTTP payload',
+    message: 'Large HTTP payload',
     level: 'info',
     type: 1015,
     culprit: '',

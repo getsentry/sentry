@@ -1,7 +1,7 @@
 import {useCallback, useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Opts<Q> = {

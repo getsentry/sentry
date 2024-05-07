@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any
 from uuid import UUID
 
 import jsonschema
 import sentry_sdk
+from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.processing.strategies.batching import ValuesBatch
+from arroyo.types import BrokerValue, Message
+from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
@@ -21,7 +27,8 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils import metrics
+from sentry.utils import json, metrics
+from sentry.utils.actor import parse_and_validate_actor
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +149,17 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
             metrics.distribution("occurrence.ingest.size.data", len(payload), unit="byte")
+            assignee_identifier = None
+            payload_assignee = payload.get("assignee")
+            if payload_assignee:
+                project = Project.objects.get_from_cache(id=payload["project_id"])
+                try:
+                    assignee = parse_and_validate_actor(payload_assignee, project.organization_id)
+                    if assignee:
+                        assignee_identifier = assignee.identifier
+                except Exception:
+                    logger.exception("Failed to validate assignee for occurrence")
+
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,
                 "project_id": payload["project_id"],
@@ -154,6 +172,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
                 "level": payload.get("level", DEFAULT_LEVEL),
+                "assignee": assignee_identifier,
             }
 
             process_occurrence_data(occurrence_data)
@@ -343,3 +362,56 @@ def _process_message(
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
     return None
+
+
+def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
+    """
+    Receives batches of occurrences. This function will take the batch
+    and group them together by fingerprint (ensuring order is preserved) and
+    execute each group using a ThreadPoolWorker.
+
+    By batching we're able to process occurrences in parallel while guaranteeing
+    that no occurrences are processed out of order per group.
+    """
+    batch = message.payload
+
+    occcurrence_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
+
+    for item in batch:
+        assert isinstance(item, BrokerValue)
+
+        try:
+            payload = json.loads(item.payload.value, use_rapid_json=True)
+        except Exception:
+            logger.exception("Failed to unpack message payload")
+            continue
+        # group by the fingerprint, there should only be one of them
+        partition_key: str = payload["fingerprint"][0] if payload["fingerprint"] else ""
+        occcurrence_mapping[partition_key].append(payload)
+
+    # Number of occurrences that are being processed in this batch
+    metrics.gauge("occurrence_consumer.checkin.parallel_batch_count", len(batch))
+
+    # Number of groups we've collected to be processed in parallel
+    metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
+    # Submit occurrences for processing
+    with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
+        futures = [
+            worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
+        ]
+        wait(futures)
+
+
+def process_occurrence_group(items: list[Mapping[str, Any]]):
+    """
+    Process a group of related occurrences (all part of the same group)
+    completely serially.
+    """
+    for item in items:
+        cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"
+        if cache.get(cache_key):
+            logger.info("Skipping processing of occurrence %s due to cache hit", item["id"])
+            continue
+        _process_message(item)
+        # just need a 300 second cache
+        cache.set(cache_key, 1, 300)

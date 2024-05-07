@@ -1,5 +1,4 @@
 import logging
-import re
 from concurrent.futures import ThreadPoolExecutor
 
 import sentry_sdk
@@ -22,6 +21,7 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.iterators import chunked
+from sentry.utils.performance_issues.detectors.utils import escape_transaction
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -381,9 +381,3 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 default_per_page=5,
                 max_per_page=5,
             )
-
-
-def escape_transaction(transaction: str) -> str:
-    transaction = re.sub(r'"', r"\"", transaction)
-    transaction = re.sub(r"\*", r"\*", transaction)
-    return transaction

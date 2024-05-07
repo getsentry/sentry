@@ -2,7 +2,7 @@ import type {ComponentProps, ReactNode} from 'react';
 import {Fragment, useEffect} from 'react';
 import type {Location} from 'history';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';

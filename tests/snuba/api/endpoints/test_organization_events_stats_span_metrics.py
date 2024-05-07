@@ -270,6 +270,68 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
+    def test_cache_item_size(self):
+        self.store_span_metric(
+            4,
+            metric="cache.item_size",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo", "cache.hit": "true"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "yAxis": "avg(cache.item_size)",
+                "field": ["cache.hit"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 4.0
+
+    def test_messaging_receive_latency(self):
+        self.store_span_metric(
+            {
+                "min": 10,
+                "max": 10,
+                "sum": 10,
+                "count": 1,
+                "last": 10,
+            },
+            entity="metrics_gauges",
+            metric="messaging.message.receive.latency",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"messaging.destination.name": "foo", "trace.status": "ok"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "interval": "1m",
+                "query": "messaging.destination.name:foo",
+                "yAxis": "avg(messaging.message.receive.latency)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        data = response.data["data"]
+        assert response.status_code == 200
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 10.0
+
 
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest

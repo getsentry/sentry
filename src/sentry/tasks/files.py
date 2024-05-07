@@ -1,15 +1,12 @@
-import logging
 from datetime import timedelta
 
 from django.db import DatabaseError, IntegrityError, router
 from django.utils import timezone
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion.scheduled import MAX_RETRIES
 from sentry.utils.db import atomic_transaction
-
-logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -104,26 +101,3 @@ def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
                 # Do nothing if the blob was deleted in another task, or
                 # if had another reference added concurrently.
                 pass
-
-
-# TODO(mark): Remove this after no tasks are confirmed
-@instrumented_task(
-    name="sentry.tasks.files.copy_to_control",
-    queue="files.copy",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    autoretry_for=(DatabaseError, IntegrityError),
-    acks_late=True,
-)
-def copy_file_to_control_and_update_model(
-    app_name: str,
-    model_name: str,
-    model_id: int,
-    file_id: int,
-    **kwargs,
-):
-    # Shouldn't happen but we can confirm after deploy
-    logger.info(
-        "copy_file_to_control_and_update_model.spawned",
-        extra={"model_name": model_name, "model_id": model_id, "file_id": file_id},
-    )

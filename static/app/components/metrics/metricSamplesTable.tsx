@@ -21,10 +21,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString, MRI, PageFilters, ParsedMRI} from 'sentry/types';
+import type {DateString, PageFilters} from 'sentry/types/core';
+import type {MRI, ParsedMRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
@@ -36,7 +38,6 @@ import {
   type Summary,
   useMetricsSamples,
 } from 'sentry/utils/metrics/useMetricsSamples';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -242,10 +243,6 @@ export function MetricSamplesTable({
     return null;
   }, [mri]);
 
-  const _renderPrependColumn = useMemo(() => {
-    return renderPrependColumn();
-  }, []);
-
   const _renderHeadCell = useMemo(() => {
     const generateSortLink = (key: string) => () => {
       if (!SORTABLE_COLUMNS.has(key as ResultField)) {
@@ -323,8 +320,6 @@ export function MetricSamplesTable({
         columnOrder={getColumnOrder(parsedMRI)}
         columnSortBy={[]}
         grid={{
-          prependColumnWidths,
-          renderPrependColumns: _renderPrependColumn,
           renderBodyCell: _renderBodyCell,
           renderHeadCell: _renderHeadCell,
         }}
@@ -346,6 +341,7 @@ function getColumnForMRI(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultFi
 
 function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
   const orders: (GridColumnOrder<ResultField> | undefined)[] = [
+    {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
     {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Operation'},
     getColumnForMRI(parsedMRI),
@@ -379,21 +375,6 @@ const SORTABLE_COLUMNS: Set<ResultField> = new Set([
   ...OPTIONALLY_SORTABLE_COLUMNS,
 ]);
 
-const prependColumnWidths = ['40px'];
-
-function renderPrependColumn() {
-  return function (
-    isHeader: boolean,
-    dataRow?: MetricsSamplesResults<SelectedField>['data'][number],
-    _rowIndex?: number
-  ) {
-    if (isHeader) {
-      return [null];
-    }
-    return [dataRow ? <ProjectRenderer projectSlug={dataRow.project} /> : null];
-  };
-}
-
 function renderHeadCell(
   currentSort: {direction: 'asc' | 'desc'; key: string} | undefined,
   generateSortLink: (key) => () => LocationDescriptorObject | undefined
@@ -416,16 +397,26 @@ function renderBodyCell(op?: string, unit?: string) {
     col: GridColumnOrder<ResultField>,
     dataRow: MetricsSamplesResults<SelectedField>['data'][number]
   ) {
-    if (col.key === 'span.description') {
+    if (col.key === 'id') {
       return (
-        <SpanDescription
-          description={dataRow['span.description']}
+        <SpanId
           project={dataRow.project}
+          trace={dataRow.trace}
+          timestamp={dataRow.timestamp}
           selfTime={dataRow['span.self_time']}
           duration={dataRow['span.duration']}
           spanId={dataRow.id}
           transaction={dataRow.transaction}
           transactionId={dataRow['transaction.id']}
+        />
+      );
+    }
+
+    if (col.key === 'span.description') {
+      return (
+        <SpanDescription
+          description={dataRow['span.description']}
+          project={dataRow.project}
         />
       );
     }
@@ -466,7 +457,7 @@ function ProjectRenderer({projectSlug}: {projectSlug: string}) {
   const organization = useOrganization();
 
   return (
-    <Container>
+    <Flex>
       <Projects orgId={organization.slug} slugs={[projectSlug]}>
         {({projects}) => {
           const project = projects.find(p => p.slug === projectSlug);
@@ -479,26 +470,28 @@ function ProjectRenderer({projectSlug}: {projectSlug: string}) {
           );
         }}
       </Projects>
-    </Container>
+    </Flex>
   );
 }
 
-function SpanDescription({
-  description,
+function SpanId({
   duration,
   project,
   selfTime,
   spanId,
   transaction,
   transactionId,
+  trace,
+  timestamp,
   selfTimeColor = '#694D99',
   durationColor = 'gray100',
 }: {
-  description: string;
   duration: number;
   project: string;
   selfTime: number;
   spanId: string;
+  timestamp: DateString;
+  trace: string;
   transaction: string;
   transactionId: string | null;
   durationColor?: string;
@@ -508,13 +501,16 @@ function SpanDescription({
   const organization = useOrganization();
   const {projects} = useProjects({slugs: [project]});
   const transactionDetailsTarget = defined(transactionId)
-    ? getTransactionDetailsUrl(
-        organization.slug,
-        `${project}:${transactionId}`,
-        undefined,
-        undefined,
-        spanId
-      )
+    ? generateLinkToEventInTraceView({
+        eventId: transactionId,
+        projectSlug: project,
+        traceSlug: trace,
+        timestamp: timestamp?.toString() ?? '',
+        location,
+        organization,
+        spanId,
+        transactionName: transaction,
+      })
     : undefined;
 
   const colorStops = useMemo(() => {
@@ -535,13 +531,13 @@ function SpanDescription({
     projectID: String(projects[0]?.id ?? ''),
   });
 
-  let contents = description ? (
-    <Fragment>{description}</Fragment>
+  let contents = spanId ? (
+    <Fragment>{getShortEventId(spanId)}</Fragment>
   ) : (
     <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>
   );
   if (defined(transactionDetailsTarget)) {
-    contents = <Link to={transactionDetailsTarget}>{contents}</Link>;
+    contents = <Link to={transactionDetailsTarget}>{getShortEventId(spanId)}</Link>;
   }
 
   return (
@@ -593,6 +589,15 @@ function SpanDescription({
         {contents}
       </StyledHovercard>
     </Container>
+  );
+}
+
+function SpanDescription({description, project}: {description: string; project: string}) {
+  return (
+    <Flex gap={space(0.75)} align="center">
+      <ProjectRenderer projectSlug={project} />
+      <Container>{description} </Container>
+    </Flex>
   );
 }
 
@@ -659,7 +664,6 @@ function TraceId({
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {},
     stringOrNumberTimestamp,
     eventId
   );

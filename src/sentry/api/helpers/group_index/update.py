@@ -18,16 +18,16 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
+from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
-from sentry.models.actor import Actor, ActorTuple
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -43,7 +43,6 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
@@ -51,11 +50,11 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.signals import issue_resolved
-from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 from sentry.utils import metrics
+from sentry.utils.actor import ActorTuple
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
@@ -110,7 +109,7 @@ def self_subscribe_and_assign_issue(
 ) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
-    # or the group is assigned already, otherwise returns Actor
+    # or the group is assigned already, otherwise returns ActorTuple
     # representation of current user
     if acting_user:
         GroupSubscription.objects.subscribe(
@@ -781,7 +780,10 @@ def handle_has_seen(
 
 
 def handle_priority(
-    priority: str, group_list: Sequence[Group], actor: User, project_lookup: dict[int, Project]
+    priority: str,
+    group_list: Sequence[Group],
+    actor: User | None,
+    project_lookup: dict[int, Project],
 ) -> None:
     for group in group_list:
         priority_value = PriorityLevel.from_str(priority) if priority else None
@@ -839,13 +841,13 @@ def handle_is_public(
 
 
 def handle_assigned_to(
-    assigned_actor: str,
-    assigned_by: str,
-    integration: str,
+    assigned_actor: ActorTuple,
+    assigned_by: str | None,
+    integration: str | None,
     group_list: list[Group],
     project_lookup: dict[int, Project],
     acting_user: User | None,
-) -> Actor | None:
+) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.
 
@@ -861,8 +863,8 @@ def handle_assigned_to(
         else dict()
     )
     if assigned_actor:
+        resolved_actor = assigned_actor.resolve()
         for group in group_list:
-            resolved_actor: RpcUser | Team = assigned_actor.resolve()
             assignment = GroupAssignee.objects.assign(
                 group, resolved_actor, acting_user, extra=extra
             )
@@ -874,7 +876,7 @@ def handle_assigned_to(
                 assigned_by=assigned_by,
                 had_to_deassign=assignment["updated_assignment"],
             )
-        return serialize(assigned_actor.resolve(), acting_user, ActorSerializer())
+        return serialize(resolved_actor, acting_user, ActorSerializer())
     else:
         for group in group_list:
             GroupAssignee.objects.deassign(group, acting_user)

@@ -12,7 +12,6 @@ from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRuleMonitorType
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
@@ -24,7 +23,7 @@ from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -397,6 +396,8 @@ class Fixtures:
         query_subscriptions=None,
         project=None,
         monitor_type=AlertRuleMonitorType.ACTIVATED,
+        activator=None,
+        activation_condition=None,
         *args,
         **kwargs,
     ):
@@ -409,6 +410,8 @@ class Fixtures:
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
                 monitor_type=monitor_type,
+                activation_condition=activation_condition,
+                activator=activator,
             )
 
         created_activations = []
@@ -558,15 +561,12 @@ class Fixtures:
         return Factories.create_identity_provider(integration=integration, config=config, **kwargs)
 
     def create_group_history(self, *args, **kwargs):
-        if "actor" not in kwargs:
-            kwargs["actor"] = Actor.objects.get(id=get_actor_for_user(self.user).id)
+        if "user_id" not in kwargs and "team" not in kwargs and "team_id" not in kwargs:
+            kwargs["user_id"] = self.user.id
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
-
-    def create_sentry_function(self, *args, **kwargs):
-        return Factories.create_sentry_function(*args, **kwargs)
 
     def create_saved_search(self, *args, **kwargs):
         return Factories.create_saved_search(*args, **kwargs)

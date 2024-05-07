@@ -49,7 +49,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     def trigger(self, event, rule_object):
         action = rule_object.data.get("actions", ())[0]
         action_inst = self.get_rule(data=action, rule=rule_object)
-        results = list(action_inst.after(event=event, state=self.get_state()))
+        results = list(action_inst.after(event=event))
         assert len(results) == 1
 
         rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
@@ -158,7 +158,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 "sentry-api-0-project-rules",
                 kwargs={
                     "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             ),
             format="json",
@@ -216,7 +216,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 "sentry-api-0-project-rules",
                 kwargs={
                     "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             ),
             format="json",

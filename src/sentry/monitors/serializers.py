@@ -7,12 +7,12 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.models.actor import ActorTuple
 from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
 
 from ..models import Environment
+from ..utils.actor import ActorTuple
 from .models import (
     Monitor,
     MonitorCheckIn,

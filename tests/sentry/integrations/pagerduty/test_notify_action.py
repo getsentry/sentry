@@ -5,7 +5,7 @@ import responses
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -68,9 +68,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
 
-        results = list(
-            rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
-        )
+        results = list(rule.after(event=event, notification_uuid=notification_uuid))
         assert len(results) == 1
 
         responses.add(
@@ -117,7 +115,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_applies_correctly_performance_issue(self):
         event = self.create_performance_issue()
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -152,7 +150,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         group_event.occurrence = occurrence
 
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
-        results = list(rule.after(event=group_event, state=self.get_state()))
+        results = list(rule.after(event=group_event))
         assert len(results) == 1
 
         responses.add(
@@ -280,7 +278,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": integration.id, "service": service["id"]})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(

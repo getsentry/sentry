@@ -25,7 +25,7 @@ function resize(input: HTMLInputElement) {
   const computedStyles = window.getComputedStyle(input);
 
   const sizingDiv = createSizingDiv(computedStyles);
-  sizingDiv.innerText = input.value;
+  sizingDiv.innerText = input.value || input.placeholder;
   document.body.appendChild(sizingDiv);
 
   const newTotalInputSize =

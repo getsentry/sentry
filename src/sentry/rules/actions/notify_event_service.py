@@ -14,7 +14,6 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.plugins.base import plugins
-from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
@@ -140,7 +139,7 @@ class NotifyEventServiceAction(EventAction):
         return title
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         service = self.get_option("service")
 

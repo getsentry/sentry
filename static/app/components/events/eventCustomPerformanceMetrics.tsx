@@ -7,8 +7,8 @@ import Panel from 'sentry/components/panels/panel';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
@@ -18,6 +18,8 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+import {Tooltip} from '../tooltip';
 
 export enum EventDetailPageSource {
   PERFORMANCE = 'performance',
@@ -248,7 +250,9 @@ export function TraceEventCustomPerformanceMetric({
   }
   return (
     <TraceStyledPanel>
-      <div>{name}</div>
+      <Tooltip title={name} showOnlyOnOverflow>
+        <StyledMeasurementsName>{name}</StyledMeasurementsName>
+      </Tooltip>
       <div>{rendered}</div>
       <div>
         <StyledDropdownMenuControl
@@ -329,4 +333,9 @@ const StyledPanel = styled(Panel)`
 
 const StyledDropdownMenuControl = styled(DropdownMenu)`
   margin-left: auto;
+`;
+
+const StyledMeasurementsName = styled('div')`
+  max-width: 200px;
+  ${p => p.theme.overflowEllipsis};
 `;

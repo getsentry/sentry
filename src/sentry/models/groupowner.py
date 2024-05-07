@@ -11,7 +11,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.group import Group
@@ -49,7 +49,7 @@ class OwnersSerialized(TypedDict):
     date_added: models.DateTimeField
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.
@@ -96,7 +96,7 @@ class GroupOwner(Model):
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.models.actor import ActorTuple
+        from sentry.utils.actor import ActorTuple
 
         if not self.owner_id():
             return None

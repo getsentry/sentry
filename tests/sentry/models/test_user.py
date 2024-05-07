@@ -4,13 +4,13 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.types.region import Region, RegionCategory, find_regions_for_user
 
 _TEST_REGIONS = (
     Region("na", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT),
@@ -34,9 +34,9 @@ class UserHybridCloudDeletionTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.REGION)
-    def user_tombstone_exists(self) -> bool:
+    def user_tombstone_exists(self, user_id: int) -> bool:
         return RegionTombstone.objects.filter(
-            table_name="auth_user", object_identifier=self.user_id
+            table_name="auth_user", object_identifier=user_id
         ).exists()
 
     @assume_test_silo_mode(SiloMode.REGION)
@@ -44,11 +44,11 @@ class UserHybridCloudDeletionTest(TestCase):
         return SavedSearch.objects.filter(owner_id=self.user_id).count()
 
     def test_simple(self):
-        assert not self.user_tombstone_exists()
+        assert not self.user_tombstone_exists(user_id=self.user_id)
         with outbox_runner():
             self.user.delete()
         assert not User.objects.filter(id=self.user_id).exists()
-        assert self.user_tombstone_exists()
+        assert self.user_tombstone_exists(user_id=self.user_id)
 
         # cascade is asynchronous, ensure there is still related search,
         assert self.get_user_saved_search_count() == 1
@@ -78,6 +78,35 @@ class UserHybridCloudDeletionTest(TestCase):
         eu_org = self.create_organization(region=_TEST_REGIONS[1])
         self.create_member(user=self.user, organization=eu_org)
         self.create_saved_search(name="eu-search", owner=self.user, organization=eu_org)
+
+        with outbox_runner():
+            self.user.delete()
+
+        assert self.get_user_saved_search_count() == 2
+        with assume_test_silo_mode(SiloMode.REGION), self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+        assert self.get_user_saved_search_count() == 0
+
+    def test_deletions_create_tombstones_in_regions_for_user_with_no_orgs(self):
+        # Create a user with no org memberships
+        user_to_delete = self.create_user("foo@example.com")
+        user_id = user_to_delete.id
+        with outbox_runner():
+            user_to_delete.delete()
+
+        assert self.user_tombstone_exists(user_id=user_id)
+
+    def test_cascades_to_regions_even_if_user_ownership_revoked(self):
+        eu_org = self.create_organization(region=_TEST_REGIONS[1])
+        self.create_member(user=self.user, organization=eu_org)
+        self.create_saved_search(name="eu-search", owner=self.user, organization=eu_org)
+        assert self.get_user_saved_search_count() == 2
+
+        with outbox_runner(), assume_test_silo_mode_of(OrganizationMember):
+            for member in OrganizationMember.objects.filter(user_id=self.user.id):
+                member.delete()
+
+        assert find_regions_for_user(self.user.id) == set()
 
         with outbox_runner():
             self.user.delete()

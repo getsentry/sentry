@@ -13,7 +13,7 @@ from sentry.runner.decorators import configuration
 from sentry.utils import json
 
 
-@click.command()
+@click.command("rpcschema")
 @click.option(
     "--partial",
     is_flag=True,

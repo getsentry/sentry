@@ -1,6 +1,3 @@
-import {useCallback} from 'react';
-
-import type {ApiResult} from 'sentry/api';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -18,42 +15,15 @@ export default function useMarkReplayViewed() {
   });
   const queryClient = useQueryClient();
 
-  const updateCache = useCallback(
-    ({replayId}: TVariables, hasViewed: boolean) => {
-      const cache = queryClient.getQueryCache();
-      const cachedResponses = cache.findAll([
-        `/organizations/${organization.slug}/replays/${replayId}/`,
-      ]);
-      cachedResponses.forEach(cached => {
-        const [data, ...rest] = cached.state.data as ApiResult<{
-          data: Record<string, unknown>;
-        }>;
-        cached.setData([
-          {
-            data: {
-              ...data.data,
-              has_viewed: hasViewed,
-            },
-          },
-          ...rest,
-        ]);
-      });
-    },
-    [organization.slug, queryClient]
-  );
-
   return useMutation<TData, TError, TVariables, TContext>({
-    onMutate: variables => {
-      updateCache(variables, true);
-    },
     mutationFn: ({projectSlug, replayId}) => {
       const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
       return fetchMutation(api)(['POST', url]);
     },
-    onError: (_error, variables) => {
-      updateCache(variables, false);
+    onSuccess(_data, {projectSlug, replayId}) {
+      const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
+      queryClient.refetchQueries({queryKey: [url]});
     },
-    cacheTime: 0,
     retry: false,
   });
 }

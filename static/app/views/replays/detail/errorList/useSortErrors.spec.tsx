@@ -1,8 +1,7 @@
-import {act} from 'react-test-renderer';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';

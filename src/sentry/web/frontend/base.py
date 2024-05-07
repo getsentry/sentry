@@ -44,8 +44,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloLimit
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
@@ -253,17 +252,17 @@ class OrganizationMixin:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_project(
-        self, request: HttpRequest, organization: RpcOrganization, project_slug: str | int
+        self, request: HttpRequest, organization: RpcOrganization, project_id_or_slug: int | str
     ) -> Project | None:
         try:
             if id_or_slug_path_params_enabled(
                 self.convert_args.__qualname__, str(organization.slug)
             ):
                 project = Project.objects.get(
-                    slug__id_or_slug=project_slug, organization=organization
+                    slug__id_or_slug=project_id_or_slug, organization=organization
                 )
             else:
-                project = Project.objects.get(slug=project_slug, organization=organization)
+                project = Project.objects.get(slug=project_id_or_slug, organization=organization)
         except Project.DoesNotExist:
             return None
 
@@ -682,7 +681,7 @@ class ControlSiloOrganizationView(AbstractOrganizationView):
 class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
-    matching URL pattern must pass 'org_slug' as well as 'project_slug'.
+    matching URL pattern must pass 'org_slug' as well as 'project_id_or_slug'.
 
     Three keyword arguments are added to the resulting dispatch:
 
@@ -721,7 +720,7 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str | int, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(self, request: HttpRequest, organization_slug: str, project_id_or_slug: int | str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
@@ -729,7 +728,9 @@ class ProjectView(OrganizationView):
 
             if organization:
                 active_project = self.get_active_project(
-                    request=request, organization=organization, project_slug=project_slug
+                    request=request,
+                    organization=organization,
+                    project_id_or_slug=project_id_or_slug,
                 )
 
         kwargs["project"] = active_project

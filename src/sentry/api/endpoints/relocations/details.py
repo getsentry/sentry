@@ -21,7 +21,6 @@ class RelocationDetailsEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    # TODO(getsentry/team-ospo#214): Open up permissions before GA.
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request, relocation_uuid: str) -> Response:

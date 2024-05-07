@@ -14,7 +14,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 
 
 def get_project(value: str) -> int | None:
@@ -40,6 +40,12 @@ _WorkQueue: TypeAlias = (
 )
 
 API_TOKEN_TTL_IN_DAYS = 30
+
+
+def debug_output(msg: str) -> None:
+    if os.environ.get("SENTRY_CLEANUP_SILENT", None):
+        return
+    click.echo(msg)
 
 
 def multiprocess_worker(task_queue: _WorkQueue) -> None:
@@ -71,11 +77,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
         j = task_queue.get()
         if j == _STOP_WORKER:
             task_queue.task_done()
+
             return
 
-        model, chunk = j
-        model = import_string(model)
-
+        model_name, chunk = j
+        model = import_string(model_name)
         try:
             task = deletions.get(
                 model=model,
@@ -138,11 +144,8 @@ def cleanup(
         raise click.Abort()
 
     os.environ["_SENTRY_CLEANUP"] = "1"
-
-    def debug_output(msg: str) -> None:
-        if silent:
-            return
-        click.echo(msg)
+    if silent:
+        os.environ["SENTRY_CLEANUP_SILENT"] = "1"
 
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
@@ -187,6 +190,9 @@ def cleanup(
         model_list = {m.lower() for m in model}
 
         def is_filtered(model: type[Model]) -> bool:
+            silo_limit = getattr(model._meta, "silo_limit", None)
+            if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
+                return True
             if router is not None and db_router.db_for_write(model) != router:
                 return True
             if not model_list:
@@ -228,7 +234,6 @@ def cleanup(
         ]
 
         debug_output("Removing expired values for LostPasswordHash")
-
         if is_filtered(models.LostPasswordHash):
             debug_output(">> Skipping LostPasswordHash")
         else:
@@ -237,7 +242,6 @@ def cleanup(
             ).delete()
 
         debug_output("Removing expired values for OrganizationMember")
-
         if is_filtered(models.OrganizationMember):
             debug_output(">> Skipping OrganizationMember")
         else:
@@ -344,7 +348,7 @@ def cleanup(
                 else:
                     to_delete_by_project.append(model_tp_tup)
 
-        if project_deletion_query and to_delete_by_project:
+        if project_deletion_query is not None and len(to_delete_by_project):
             debug_output("Running bulk deletes in DELETES_BY_PROJECT")
             for project_id_for_deletion in RangeQuerySetWrapper(
                 project_deletion_query.values_list("id", flat=True),
@@ -377,7 +381,6 @@ def cleanup(
             debug_output(">> Skipping FileBlob")
         else:
             cleanup_unused_files(silent)
-
     finally:
         # Shut down our pool
         for _ in pool:

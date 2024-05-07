@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
+import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,7 +20,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagWithTopValues} from 'sentry/types';
+import type {TagWithTopValues} from 'sentry/types/group';
 import {
   setApiQueryData,
   useApiQuery,
@@ -87,8 +88,10 @@ function ProjectTags(props: Props) {
   const isEmpty = !tags || !tags.length;
   return (
     <Fragment>
-      <SentryDocumentTitle title={routeTitleGen(t('Tags'), projectId, false)} />
-      <SettingsPageHeader title={t('Tags')} />
+      <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
+      <SettingsPageHeader title={t('Tags & Context')} />
+      <PermissionAlert project={project} />
+      <HighlightsSettingsForm projectSlug={projectId} />
       <TextBlock>
         {tct(
           `Each event in Sentry may be annotated with various tags (key and value pairs).
@@ -98,8 +101,6 @@ function ProjectTags(props: Props) {
           }
         )}
       </TextBlock>
-
-      <PermissionAlert project={project} />
       <Panel>
         <PanelHeader>{t('Tags')}</PanelHeader>
         <PanelBody>
