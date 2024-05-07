@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0713_team_remove_actor_state"),
+        ("sentry", "0714_drop_project_team_avatar"),
     ]
 
     operations = [
