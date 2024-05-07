@@ -397,10 +397,9 @@ function renderBodyCell(op?: string, unit?: string) {
     col: GridColumnOrder<ResultField>,
     dataRow: MetricsSamplesResults<SelectedField>['data'][number]
   ) {
-    if (col.key === 'span.description') {
+    if (col.key === 'id') {
       return (
-        <SpanDescription
-          description={dataRow['span.description']}
+        <SpanId
           project={dataRow.project}
           trace={dataRow.trace}
           timestamp={dataRow.timestamp}
@@ -413,8 +412,13 @@ function renderBodyCell(op?: string, unit?: string) {
       );
     }
 
-    if (col.key === 'id') {
-      return <Container>{getShortEventId(dataRow[col.key])}</Container>;
+    if (col.key === 'span.description') {
+      return (
+        <SpanDescription
+          description={dataRow['span.description']}
+          project={dataRow.project}
+        />
+      );
     }
 
     if (col.key === 'span.self_time' || col.key === 'span.duration') {
@@ -470,8 +474,7 @@ function ProjectRenderer({projectSlug}: {projectSlug: string}) {
   );
 }
 
-function SpanDescription({
-  description,
+function SpanId({
   duration,
   project,
   selfTime,
@@ -483,7 +486,6 @@ function SpanDescription({
   selfTimeColor = '#694D99',
   durationColor = 'gray100',
 }: {
-  description: string;
   duration: number;
   project: string;
   selfTime: number;
@@ -529,78 +531,73 @@ function SpanDescription({
     projectID: String(projects[0]?.id ?? ''),
   });
 
-  let contents = description ? (
-    <Fragment>{description}</Fragment>
+  let contents = spanId ? (
+    <Fragment>{getShortEventId(spanId)}</Fragment>
   ) : (
     <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>
   );
   if (defined(transactionDetailsTarget)) {
-    contents = <Link to={transactionDetailsTarget}>{contents}</Link>;
+    contents = <Link to={transactionDetailsTarget}>{getShortEventId(spanId)}</Link>;
   }
 
   return (
     <Container>
-      <Flex gap={space(0.75)} align="center">
-        <ProjectRenderer projectSlug={project} />
-        <Container>
-          <StyledHovercard
-            header={
-              <Flex justify="space-between" align="center">
-                {t('Span ID')}
-                <SpanIdWrapper>
-                  {getShortEventId(spanId)}
-                  <CopyToClipboardButton
-                    borderless
-                    iconSize="xs"
-                    size="zero"
-                    text={spanId}
-                  />
-                </SpanIdWrapper>
+      <StyledHovercard
+        header={
+          <Flex justify="space-between" align="center">
+            {t('Span ID')}
+            <SpanIdWrapper>
+              {getShortEventId(spanId)}
+              <CopyToClipboardButton borderless iconSize="xs" size="zero" text={spanId} />
+            </SpanIdWrapper>
+          </Flex>
+        }
+        body={
+          <Flex gap={space(0.75)} column>
+            <SectionTitle>{t('Duration')}</SectionTitle>
+            <ColorBar colorStops={colorStops} />
+            <Flex justify="space-between" align="center">
+              <Flex justify="space-between" align="center" gap={space(0.5)}>
+                <LegendDot color={selfTimeColor} />
+                {t('Self Time: ')}
+                <PerformanceDuration milliseconds={selfTime} abbreviation />
               </Flex>
-            }
-            body={
-              <Flex gap={space(0.75)} column>
-                <SectionTitle>{t('Duration')}</SectionTitle>
-                <ColorBar colorStops={colorStops} />
-                <Flex justify="space-between" align="center">
-                  <Flex justify="space-between" align="center" gap={space(0.5)}>
-                    <LegendDot color={selfTimeColor} />
-                    {t('Self Time: ')}
-                    <PerformanceDuration milliseconds={selfTime} abbreviation />
-                  </Flex>
-                  <Flex justify="space-between" align="center" gap={space(0.5)}>
-                    <LegendDot color={durationColor} />
-                    {t('Duration: ')}
-                    <PerformanceDuration milliseconds={duration} abbreviation />
-                  </Flex>
-                </Flex>
-                <SectionTitle>{t('Transaction')}</SectionTitle>
-                <Tooltip
-                  containerDisplayMode="inline"
-                  showOnlyOnOverflow
-                  title={transaction}
-                >
-                  <Link
-                    to={transactionSummaryTarget}
-                    onClick={() =>
-                      trackAnalytics('ddm.sample-table-interaction', {
-                        organization,
-                        target: 'description',
-                      })
-                    }
-                  >
-                    <TextOverflow>{transaction}</TextOverflow>
-                  </Link>
-                </Tooltip>
+              <Flex justify="space-between" align="center" gap={space(0.5)}>
+                <LegendDot color={durationColor} />
+                {t('Duration: ')}
+                <PerformanceDuration milliseconds={duration} abbreviation />
               </Flex>
-            }
-            showUnderline
-          >
-            {contents}
-          </StyledHovercard>
-        </Container>
-      </Flex>
+            </Flex>
+            <SectionTitle>{t('Transaction')}</SectionTitle>
+            <Tooltip containerDisplayMode="inline" showOnlyOnOverflow title={transaction}>
+              <Link
+                to={transactionSummaryTarget}
+                onClick={() =>
+                  trackAnalytics('ddm.sample-table-interaction', {
+                    organization,
+                    target: 'description',
+                  })
+                }
+              >
+                <TextOverflow>{transaction}</TextOverflow>
+              </Link>
+            </Tooltip>
+          </Flex>
+        }
+        showUnderline
+      >
+        {contents}
+      </StyledHovercard>
     </Container>
+  );
+}
+
+function SpanDescription({description, project}: {description: string; project: string}) {
+  return (
+    <Flex gap={space(0.75)} align="center">
+      <ProjectRenderer projectSlug={project} />
+      <Container>{description} </Container>
+    </Flex>
   );
 }
 
