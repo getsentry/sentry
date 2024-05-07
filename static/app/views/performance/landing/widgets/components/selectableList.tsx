@@ -132,7 +132,7 @@ export function HighestCacheMissRateTransactionsWidgetEmptyStateWarning() {
           'Transactions may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/cache/">
+              <ExternalLink href="https://docs.sentry.io/product/performance/caches/">
                 {t('Cache module documentation')}
               </ExternalLink>
             ),
