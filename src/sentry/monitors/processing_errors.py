@@ -112,7 +112,7 @@ class CheckinProcessingError:
 
 
 class CheckinProcessErrorsManager:
-    def get_cluster(self):
+    def _get_cluster(self):
         return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     def store(self, error: CheckinProcessingError, monitor: Monitor | None):
@@ -153,24 +153,25 @@ class CheckinProcessErrorsManager:
         return self._get_for_entity(self.build_project_identifier(project))
 
     def _get_for_entity(self, identifier: str) -> list[CheckinProcessingError]:
-        redis = self.get_cluster()
+        redis = self._get_cluster()
         error_key = f"monitors.processing_errors.{identifier}"
-        raw_errors = redis.zrange(error_key, 0, MAX_ERRORS_PER_SET)
+        raw_errors = redis.zrange(error_key, 0, MAX_ERRORS_PER_SET, desc=True)
         return [CheckinProcessingError.from_dict(json.loads(raw_error)) for raw_error in raw_errors]
 
 
 def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):
     try:
-        organization = Organization.objects.get(projects__id=item.message["project_id"])
+        organization = Organization.objects.get(project__id=item.message["project_id"])
         if not features.has("organizations:crons-write-user-feedback", organization):
             return
 
-        metric_kwargs = {
-            "source": "consumer",
-            "sdk_platform": item.message["sdk"],
-        }
-
-        metrics.incr("monitors.checkin.handle_processing_error", tags=metric_kwargs)
+        metrics.incr(
+            "monitors.checkin.handle_processing_error",
+            tags={
+                "source": "consumer",
+                "sdk_platform": item.message["sdk"],
+            },
+        )
 
         checkin_processing_error = CheckinProcessingError(error.processing_errors, item)
         manager = CheckinProcessErrorsManager()
