@@ -11,7 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.integrations.slack.message_builder.issues import get_tags
-from sentry.issues.grouptype import MonitorIncidentType
+from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
@@ -157,7 +157,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            MonitorIncidentType,
+            MonitorCheckInFailure,
             datetime.now(UTC),
             "info",
             "/api/123",
@@ -165,7 +165,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = MonitorIncidentType.type_id
+        event.group.type = MonitorCheckInFailure.type_id
         notification = AlertRuleNotification(
             Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
         )

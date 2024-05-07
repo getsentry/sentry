@@ -26,7 +26,7 @@ from sentry.integrations.slack.message_builder.time_utils import time_since
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
-    MonitorIncidentType,
+    MonitorCheckInFailure,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
@@ -1321,7 +1321,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             type=PerformanceP95EndpointRegressionGroupType.type_id
         )
 
-        self.cron_issue = self.create_group(type=MonitorIncidentType.type_id)
+        self.cron_issue = self.create_group(type=MonitorCheckInFailure.type_id)
         self.feedback_issue = self.create_group(
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )

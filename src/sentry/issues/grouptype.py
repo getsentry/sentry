@@ -245,6 +245,10 @@ class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()
 
 
+class CronGroupTypeDefaults:
+    notification_config = NotificationConfig(context=[])
+
+
 class ReplayGroupTypeDefaults:
     notification_config = NotificationConfig(context=[])
 
@@ -512,27 +516,36 @@ class ProfileFunctionRegressionType(GroupType):
 
 
 @dataclass(frozen=True)
-class MonitorIncidentType(GroupType):
+class MonitorCheckInFailure(CronGroupTypeDefaults, GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
-    description = "Crons Monitor Failed"
+    description = "Monitor Check In Failed"
     category = GroupCategory.CRON.value
     released = True
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
-    notification_config = NotificationConfig(context=[])
 
 
 @dataclass(frozen=True)
-class MonitorCheckInTimeoutDeprecated(MonitorIncidentType, GroupType):
-    # This is deprecated, only kept around for it's type_id
+class MonitorCheckInTimeout(CronGroupTypeDefaults, GroupType):
     type_id = 4002
+    slug = "monitor_check_in_timeout"
+    description = "Monitor Check In Timeout"
+    category = GroupCategory.CRON.value
+    released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
-class MonitorCheckInMissedDeprecated(MonitorIncidentType, GroupType):
-    # This is deprecated, only kept around for it's type_id
+class MonitorCheckInMissed(CronGroupTypeDefaults, GroupType):
     type_id = 4003
+    slug = "monitor_check_in_missed"
+    description = "Monitor Check In Missed"
+    category = GroupCategory.CRON.value
+    released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
