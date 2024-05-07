@@ -334,12 +334,15 @@ def _detect_performance_problems(
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
-    detection_settings = get_detection_settings(project.id)
-    detectors: list[PerformanceDetector] = [
-        detector_class(detection_settings, data)
-        for detector_class in DETECTOR_CLASSES
-        if detector_class.is_detector_enabled()
-    ]
+    with sentry_sdk.start_span(op="function", description="get_detection_settings"):
+        detection_settings = get_detection_settings(project.id)
+
+    with sentry_sdk.start_span(op="initialize", description="PerformanceDetector"):
+        detectors: list[PerformanceDetector] = [
+            detector_class(detection_settings, data)
+            for detector_class in DETECTOR_CLASSES
+            if detector_class.is_detector_enabled()
+        ]
 
     for detector in detectors:
         with sentry_sdk.start_span(
@@ -347,32 +350,34 @@ def _detect_performance_problems(
         ):
             run_detector_on_data(detector, data)
 
-    # Metrics reporting only for detection, not created issues.
-    report_metrics_for_detectors(
-        data,
-        event_id,
-        detectors,
-        sdk_span,
-        project.organization,
-        is_standalone_spans=is_standalone_spans,
-    )
+    with sentry_sdk.start_span(op="function", description="report_metrics_for_detectors"):
+        # Metrics reporting only for detection, not created issues.
+        report_metrics_for_detectors(
+            data,
+            event_id,
+            detectors,
+            sdk_span,
+            project.organization,
+            is_standalone_spans=is_standalone_spans,
+        )
 
     organization = project.organization
     if project is None or organization is None:
         return []
 
     problems: list[PerformanceProblem] = []
-    for detector in detectors:
-        if all(
-            [
-                detector.is_creation_allowed_for_system(),
-                detector.is_creation_allowed_for_organization(organization),
-                detector.is_creation_allowed_for_project(project),
-            ]
-        ):
-            problems.extend(detector.stored_problems.values())
-        else:
-            continue
+    with sentry_sdk.start_span(op="performance_detection", description="is_creation_allowed"):
+        for detector in detectors:
+            if all(
+                [
+                    detector.is_creation_allowed_for_system(),
+                    detector.is_creation_allowed_for_organization(organization),
+                    detector.is_creation_allowed_for_project(project),
+                ]
+            ):
+                problems.extend(detector.stored_problems.values())
+            else:
+                continue
 
     truncated_problems = problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
