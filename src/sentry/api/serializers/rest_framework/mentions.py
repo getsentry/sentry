@@ -44,7 +44,7 @@ def extract_user_ids_from_mentions(organization_id, mentions):
 
 def separate_actors(actors: Sequence[RpcActor]):
     users = [actor for actor in actors if actor.actor_type == ActorType.USER]
-    teams = [actor for actor in actors if actor.actor_type is ActorType.TEAM]
+    teams = [actor for actor in actors if actor.actor_type == ActorType.TEAM]
 
     return {"users": users, "teams": teams}
 
