@@ -12,7 +12,7 @@ jobs:
   check-rpc-for-breaking-changes:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
       - name: Setup sentry env
@@ -29,8 +29,9 @@ jobs:
           git checkout `git merge-base origin/${{ github.base_ref }} origin/${{ github.head_ref }}`
           sentry rpcschema --partial > schemas/old_schema.json
       - name: Invoke oasdiff on two outputs
-        run: |
-          docker run --rm -t \
-            -v $(pwd)/schemas:/schemas:ro \
-            tufin/oasdiff breaking /schemas/old_schema.json /schemas/new_schema.json \
-            -o ERR
+        uses: oasdiff/oasdiff-action/breaking@fc826b9f0d21b85b085842521c7a8cc445412c08 # v0.0.19
+        with:
+          base: ./schemas/old_schema.json
+          revision: ./schemas/new_schema.json
+          format: 'text'
+          fail-on-diff: true
