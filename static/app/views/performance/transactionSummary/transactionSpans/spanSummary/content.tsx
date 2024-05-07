@@ -15,7 +15,7 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
 import Tab from '../../tabs';
