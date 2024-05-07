@@ -5,7 +5,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import * as modal from 'sentry/actionCreators/modal';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import * as analytics from 'sentry/utils/analytics';
 
 HighlightsDataSection;
 
@@ -28,6 +30,9 @@ describe('HighlightsDataSection', function () {
     browser: ['name', 'version'],
   };
   const highlightContextTitles = ['User: email', 'Browser: name', 'Browser: version'];
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  const modalSpy = jest.spyOn(modal, 'openModal');
+
   it('renders an empty state', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -45,8 +50,20 @@ describe('HighlightsDataSection', function () {
     expect(screen.getByText('Event Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Edit'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add Highlights'})).toBeInTheDocument();
+    const viewAllButton = screen.getByRole('button', {name: 'View All'});
+    await viewAllButton.click();
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.issue_details.view_all_clicked',
+      expect.anything()
+    );
+    const editButton = screen.getByRole('button', {name: 'Edit'});
+    await editButton.click();
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.issue_details.edit_clicked',
+      expect.anything()
+    );
+    expect(modalSpy).toHaveBeenCalled();
   });
 
   it('renders highlights from the detailed project API response', async function () {

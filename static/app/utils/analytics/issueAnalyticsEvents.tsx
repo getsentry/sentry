@@ -63,6 +63,16 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
+  'highlights.edit_modal.add_context_key': {};
+  'highlights.edit_modal.add_tag': {};
+  'highlights.edit_modal.cancel_clicked': {};
+  'highlights.edit_modal.remove_context_key': {};
+  'highlights.edit_modal.remove_tag': {};
+  'highlights.edit_modal.save_clicked': {};
+  'highlights.edit_modal.use_default_clicked': {};
+  'highlights.issue_details.edit_clicked': {};
+  'highlights.issue_details.view_all_clicked': {};
+  'highlights.project_settings.updated_manually': {};
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
@@ -275,6 +285,18 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
+  'highlights.edit_modal.add_context_key': 'Highlights: Add Context in Edit Modal',
+  'highlights.edit_modal.add_tag': 'Highlights: Add Tag in Edit Modal',
+  'highlights.edit_modal.cancel_clicked': 'Highlights: Cancel from Edit Modal',
+  'highlights.edit_modal.remove_context_key': 'Highlights: Remove Context in Edit Modal',
+  'highlights.edit_modal.remove_tag': 'Highlights: Remove Tag in Edit Modal',
+  'highlights.edit_modal.save_clicked': 'Highlights: Save from Edit Modal',
+  'highlights.edit_modal.use_default_clicked':
+    'Highlights: Defaults Applied from Edit Modal',
+  'highlights.issue_details.edit_clicked': 'Highlights: Open Edit Modal',
+  'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
+  'highlights.project_settings.updated_manually':
+    'Highlights: Updated Manually from Settings',
   'issue_details.escalating_feedback_received':
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':

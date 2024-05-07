@@ -2,7 +2,12 @@ import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
 
@@ -54,6 +59,7 @@ describe('EventTagsTree', function () {
   ].concat(emptyBranchTags);
 
   const event = EventFixture({tags});
+  const referrer = 'event-tags-table';
 
   it('avoids tag tree without query param or flag', function () {
     render(<EventTags projectSlug={project.slug} event={event} />, {organization});
@@ -160,29 +166,65 @@ describe('EventTagsTree', function () {
     {
       tag: {key: 'transaction', value: 'abc123'},
       labelText: 'View this transaction',
+      validateLink: () => {
+        const linkElement = screen.getByRole('link', {name: 'abc123'});
+        const href = linkElement.attributes.getNamedItem('href');
+        expect(href?.value).toContain(
+          `/organizations/${organization.slug}/performance/summary/`
+        );
+        expect(href?.value).toContain(`project=${project.id}`);
+        expect(href?.value).toContain('transaction=abc123');
+        expect(href?.value).toContain(`referrer=${referrer}`);
+      },
     },
     {
       tag: {key: 'replay_id', value: 'def456'},
       labelText: 'View this replay',
+      validateLink: () => {
+        const linkElement = screen.getByRole('link', {name: 'def456'});
+        expect(linkElement).toHaveAttribute(
+          'href',
+          `/organizations/${organization.slug}/replays/def456/?referrer=${referrer}`
+        );
+      },
     },
     {
       tag: {key: 'replayId', value: 'ghi789'},
       labelText: 'View this replay',
+      validateLink: () => {
+        const linkElement = screen.getByRole('link', {name: 'ghi789'});
+        expect(linkElement).toHaveAttribute(
+          'href',
+          `/organizations/${organization.slug}/replays/ghi789/?referrer=${referrer}`
+        );
+      },
     },
     {
       tag: {key: 'external-link', value: 'https://example.com'},
       labelText: 'Visit this external link',
+      validateLink: async () => {
+        renderGlobalModal();
+        const linkElement = screen.getByText('https://example.com');
+        await userEvent.click(linkElement);
+        expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
+      },
     },
-  ])("renders unique links for '$tag.key' tag", async ({tag, labelText}) => {
-    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
-    const uniqueTagsEvent = EventFixture({tags: [tag]});
-    render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
-      organization: featuredOrganization,
-    });
-    const dropdown = screen.getByLabelText('Tag Actions Menu');
-    await userEvent.click(dropdown);
-    expect(screen.getByLabelText(labelText)).toBeInTheDocument();
-  });
+  ])(
+    "renders unique links for '$tag.key' tag",
+    async ({tag, labelText, validateLink}) => {
+      const featuredOrganization = OrganizationFixture({
+        features: ['event-tags-tree-ui'],
+      });
+      const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
+      render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
+        organization: featuredOrganization,
+      });
+      const dropdown = screen.getByLabelText('Tag Actions Menu');
+      await userEvent.click(dropdown);
+      expect(screen.getByLabelText(labelText)).toBeInTheDocument();
+      await validateLink();
+    }
+  );
 
   it('renders error message tooltips instead of dropdowns', function () {
     const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});

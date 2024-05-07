@@ -17,7 +17,9 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
-import {IconAdd, IconInfo, IconSubtract} from 'sentry/icons';
+import type {InputProps} from 'sentry/components/input';
+import {InputGroup} from 'sentry/components/inputGroup';
+import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
@@ -64,10 +66,10 @@ function EditPreviewHighlightSection({
     highlightContext,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, {alias, data}, i) => {
+    (rowList, {alias, data}) => {
       const meta = getContextMeta(event, alias);
-      const newRows = data.map((item, j) => (
-        <Fragment key={`edit-highlight-ctx-${i}-${j}`}>
+      const newRows = data.map(item => (
+        <Fragment key={`edit-highlight-ctx-${alias}-${item.key}`}>
           <EditButton
             aria-label={`Remove from highlights`}
             icon={<IconSubtract />}
@@ -90,8 +92,8 @@ function EditPreviewHighlightSection({
   );
 
   const highlightTagItems = getHighlightTagData({event, highlightTags});
-  const highlightTagRows = highlightTagItems.map((content, i) => (
-    <Fragment key={`edit-highlight-tag-${i}`}>
+  const highlightTagRows = highlightTagItems.map(content => (
+    <Fragment key={`edit-highlight-tag-${content.originalTag.key}`}>
       <EditButton
         aria-label={`Remove from highlights`}
         icon={<IconSubtract />}
@@ -150,10 +152,14 @@ function EditTagHighlightSection({
   onAddTag,
   ...props
 }: EditTagHighlightSectionProps) {
-  const tagData = event.tags.map(tag => tag.key);
+  const [tagFilter, setTagFilter] = useState('');
+  const tagData = event.tags
+    .filter(tag => tag.key?.includes(tagFilter))
+    .map(tag => tag.key);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
   const highlightTagsSet = new Set(highlightTags);
+
   for (let i = 0; i < tagData.length; i += tagColumnSize) {
     tagColumns.push(
       <EditHighlightColumn key={`tag-column-${i}`}>
@@ -170,7 +176,11 @@ function EditTagHighlightSection({
                 title={isDisabled && t('Already highlighted')}
                 tooltipProps={{delay: 500}}
               />
-              <HighlightKey disabled={isDisabled} aria-disabled={isDisabled}>
+              <HighlightKey
+                disabled={isDisabled}
+                aria-disabled={isDisabled}
+                data-test-id="highlight-tag-option"
+              >
                 {tagKey}
               </HighlightKey>
             </EditTagContainer>
@@ -181,7 +191,15 @@ function EditTagHighlightSection({
   }
   return (
     <EditHighlightSection {...props}>
-      <Subtitle>{t('Tags')}</Subtitle>
+      <Subtitle>
+        <SubtitleText>{t('Tags')}</SubtitleText>
+        <SectionFilterInput
+          placeholder={t('Search Tags')}
+          value={tagFilter}
+          onChange={e => setTagFilter(e.target.value)}
+          data-test-id="highlights-tag-search"
+        />
+      </Subtitle>
       <EditHighlightSectionContent columnCount={columnCount}>
         {tagColumns}
       </EditHighlightSectionContent>
@@ -203,6 +221,7 @@ function EditContextHighlightSection({
   onAddContextKey,
   ...props
 }: EditContextHighlightSectionProps) {
+  const [ctxFilter, setCtxFilter] = useState('');
   const ctxDisableMap: Record<string, Set<string>> = Object.entries(
     highlightContext
   ).reduce(
@@ -220,42 +239,66 @@ function EditContextHighlightSection({
     {}
   );
   const ctxItems = Object.entries(ctxData);
-  const ctxColumnSize = Math.ceil(ctxItems.length / columnCount);
+  const filteredCtxItems = ctxItems
+    .map<[string, string[]]>(([contextType, contextKeys]) => {
+      const filteredContextKeys = contextKeys.filter(
+        contextKey => contextKey.includes(ctxFilter) || contextType.includes(ctxFilter)
+      );
+      return [contextType, filteredContextKeys];
+    })
+    .filter(([_contextType, contextKeys]) => contextKeys.length !== 0);
+  const ctxColumnSize = Math.ceil(filteredCtxItems.length / columnCount);
   const contextColumns: React.ReactNode[] = [];
-  for (let i = 0; i < ctxItems.length; i += ctxColumnSize) {
+  for (let i = 0; i < filteredCtxItems.length; i += ctxColumnSize) {
     contextColumns.push(
       <EditHighlightColumn key={`ctx-column-${i}`}>
-        {ctxItems.slice(i, i + ctxColumnSize).map(([contextType, contextKeys], j) => (
-          <EditContextContainer key={`ctxv-item-${i}-${j}`}>
-            <ContextType>{contextType}</ContextType>
-            {contextKeys.map((contextKey, k) => {
-              const isDisabled = ctxDisableMap[contextType]?.has(contextKey) ?? false;
-              return (
-                <Fragment key={`ctx-key-${i}-${j}-${k}`}>
-                  <EditButton
-                    aria-label={`Add ${contextKey} from ${contextType} context to highlights`}
-                    icon={<IconAdd />}
-                    size="xs"
-                    onClick={() => onAddContextKey(contextType, contextKey)}
-                    disabled={isDisabled}
-                    title={isDisabled && t('Already highlighted')}
-                    tooltipProps={{delay: 500}}
-                  />
-                  <HighlightKey disabled={isDisabled} aria-disabled={isDisabled}>
-                    {contextKey}
-                  </HighlightKey>
-                </Fragment>
-              );
-            })}
-          </EditContextContainer>
-        ))}
+        {filteredCtxItems
+          .slice(i, i + ctxColumnSize)
+          .map(([contextType, contextKeys], j) => {
+            return (
+              <EditContextContainer key={`ctxv-item-${i}-${j}`}>
+                <ContextType>{contextType}</ContextType>
+                {contextKeys.map((contextKey, k) => {
+                  const isDisabled = ctxDisableMap[contextType]?.has(contextKey) ?? false;
+                  return (
+                    <Fragment key={`ctx-key-${i}-${j}-${k}`}>
+                      <EditButton
+                        aria-label={`Add ${contextKey} from ${contextType} context to highlights`}
+                        icon={<IconAdd />}
+                        size="xs"
+                        onClick={() => onAddContextKey(contextType, contextKey)}
+                        disabled={isDisabled}
+                        title={isDisabled && t('Already highlighted')}
+                        tooltipProps={{delay: 500}}
+                      />
+                      <HighlightKey
+                        disabled={isDisabled}
+                        aria-disabled={isDisabled}
+                        data-test-id="highlight-context-option"
+                      >
+                        {contextKey}
+                      </HighlightKey>
+                    </Fragment>
+                  );
+                })}
+              </EditContextContainer>
+            );
+          })}
       </EditHighlightColumn>
     );
   }
 
   return (
     <EditHighlightSection {...props}>
-      <Subtitle>{t('Context')}</Subtitle>
+      <Subtitle>
+        <SubtitleText>{t('Context')}</SubtitleText>
+        <SectionFilterInput
+          placeholder={t('Search Context')}
+          value={ctxFilter}
+          onChange={e => setCtxFilter(e.target.value)}
+          data-test-id="highlights-context-search"
+        />
+      </Subtitle>
       <EditHighlightSectionContent columnCount={columnCount}>
         {contextColumns}
       </EditHighlightSectionContent>
@@ -334,12 +377,12 @@ export default function EditHighlightsModal({
           highlightTags={highlightTags}
           highlightContext={highlightContext}
           onRemoveTag={tagKey => {
-            trackAnalytics('edit_highlights.remove_tag_key', {organization});
+            trackAnalytics('highlights.edit_modal.remove_tag', {organization});
             setHighlightTags(highlightTags.filter(tag => tag !== tagKey));
           }}
-          onRemoveContextKey={(contextType, contextKey) =>
+          onRemoveContextKey={(contextType, contextKey) => {
+            trackAnalytics('highlights.edit_modal.remove_context_key', {organization});
             setHighlightContext(() => {
-              trackAnalytics('edit_highlights.remove_context_key', {organization});
               const {[contextType]: highlightContextKeys, ...newHighlightContext} =
                 highlightContext;
               const newHighlightContextKeys = (highlightContextKeys ?? []).filter(
@@ -351,8 +394,8 @@ export default function EditHighlightsModal({
                     ...newHighlightContext,
                     [contextType]: newHighlightContextKeys,
                   };
-            })
-          }
+            });
+          }}
           project={project}
           data-test-id="highlights-preview-section"
         />
@@ -361,7 +404,7 @@ export default function EditHighlightsModal({
           columnCount={columnCount}
           highlightTags={highlightTags}
           onAddTag={tagKey => {
-            trackAnalytics('edit_highlights.add_tag_key', {organization});
+            trackAnalytics('highlights.edit_modal.add_tag', {organization});
             setHighlightTags([...highlightTags, tagKey]);
           }}
           data-test-id="highlights-tag-section"
@@ -371,7 +414,7 @@ export default function EditHighlightsModal({
           columnCount={columnCount}
           highlightContext={highlightContext}
           onAddContextKey={(contextType, contextKey) => {
-            trackAnalytics('edit_highlights.add_context_key', {organization});
+            trackAnalytics('highlights.edit_modal.add_context_key', {organization});
             setHighlightContext({
               ...highlightContext,
               [contextType]: [...(highlightContext[contextType] ?? []), contextKey],
@@ -388,7 +431,7 @@ export default function EditHighlightsModal({
         <ButtonBar gap={1}>
           <Button
             onClick={() => {
-              trackAnalytics('edit_highlights.cancel_clicked', {organization});
+              trackAnalytics('highlights.edit_modal.cancel_clicked', {organization});
               closeModal();
             }}
             size="sm"
@@ -398,7 +441,9 @@ export default function EditHighlightsModal({
           {highlightPreset && (
             <Button
               onClick={() => {
-                trackAnalytics('edit_highlights.use_default_clicked', {organization});
+                trackAnalytics('highlights.edit_modal.use_default_clicked', {
+                  organization,
+                });
                 setHighlightContext(highlightPreset.context);
                 setHighlightTags(highlightPreset.tags);
               }}
@@ -410,7 +455,7 @@ export default function EditHighlightsModal({
           <Button
             disabled={isLoading}
             onClick={() => {
-              trackAnalytics('edit_highlights.save_clicked', {organization});
+              trackAnalytics('highlights.edit_modal.save_clicked', {organization});
               saveHighlights({highlightContext, highlightTags});
             }}
             priority="primary"
@@ -424,15 +469,33 @@ export default function EditHighlightsModal({
   );
 }
 
+function SectionFilterInput(props: InputProps) {
+  return (
+    <InputGroup>
+      <InputGroup.LeadingItems disablePointerEvents>
+        <IconSearch color="subText" size="xs" />
+      </InputGroup.LeadingItems>
+      <InputGroup.Input size="xs" autoComplete="off" {...props} />
+    </InputGroup>
+  );
+}
+
 const Title = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-const Subtitle = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
+const Subtitle = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: ${space(1.5)};
   padding-bottom: ${space(0.5)};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const SubtitleText = styled('h4')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: 0;
 `;
 
 const FooterInfo = styled('div')`
