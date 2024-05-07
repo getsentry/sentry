@@ -283,16 +283,16 @@ const SentryPlayerRoot = styled(PlayerRoot)`
     }
   }
 
-  & .video-replayer {
-    .replayer-wrapper > iframe {
-      opacity: 0;
-    }
+  &.video-replayer {
     .replayer-wrapper {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
+    }
+    .replayer-wrapper > iframe {
+      opacity: 0;
     }
   }
 `;

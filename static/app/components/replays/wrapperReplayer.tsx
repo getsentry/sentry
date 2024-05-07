@@ -102,9 +102,6 @@ export class WrapperReplayer {
     // Insert after the meta event
     events.splice(metaEventIdx + 1, 0, fullSnapshotEvent);
 
-    // const events2 = events.filter(e => e?.data?.type !== 9);
-    // console.log(events2);
-
     this.rrwebInst = new Replayer(events, {
       root: root as Element,
       blockClass: 'sentry-block',
