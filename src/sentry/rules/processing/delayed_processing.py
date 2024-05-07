@@ -14,6 +14,7 @@ from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
     BaseEventFrequencyCondition,
@@ -267,7 +268,10 @@ def apply_delayed(project_id: int) -> None:
 
     # STEP 3: Fetch the Rule models we need to check
     alert_rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
-
+    snoozed_rules = RuleSnooze.objects.filter(rule__in=alert_rules, user_id=None).values_list(
+        "rule", flat=True
+    )
+    alert_rules = [rule for rule in alert_rules if rule.id not in snoozed_rules]
     # STEP 4: Create a map of unique conditions to a tuple containing the JSON
     # information needed to instantiate that condition class and the group_ids that
     # must be checked for that condition. We don't query per rule condition because
@@ -286,7 +290,6 @@ def apply_delayed(project_id: int) -> None:
         )
     # Step 7: Fire the rule's actions
     now = timezone.now()
-    # TODO: check rulesnooze table again before firing
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
 
     for rule, group_ids in rules_to_fire.items():
