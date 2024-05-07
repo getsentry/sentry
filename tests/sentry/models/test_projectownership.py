@@ -5,15 +5,13 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.actor import ActorTuple
 
 pytestmark = requires_snuba
 
@@ -100,7 +98,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "foo.py"}]}}
             ),
-            ([ActorTuple(self.team.id, Team)], [rule_a]),
+            ([RpcActor(id=self.team.id, actor_type=ActorType.TEAM)], [rule_a]),
         )
 
         # Match only rule_b
@@ -108,7 +106,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/thing.txt"}]}}
             ),
-            ([ActorTuple(self.user.id, User)], [rule_b]),
+            ([RpcActor(id=self.user.id, actor_type=ActorType.USER)], [rule_b]),
         )
 
         # Matches both rule_a and rule_b
@@ -116,7 +114,13 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
             ),
-            ([ActorTuple(self.team.id, Team), ActorTuple(self.user.id, User)], [rule_a, rule_b]),
+            (
+                [
+                    RpcActor(id=self.team.id, actor_type=ActorType.TEAM),
+                    RpcActor(id=self.user.id, actor_type=ActorType.USER),
+                ],
+                [rule_a, rule_b],
+            ),
         )
 
         # We should be ignoring the fallthrough flag
@@ -132,7 +136,13 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
             ),
-            ([ActorTuple(self.team.id, Team), ActorTuple(self.user.id, User)], [rule_a, rule_b]),
+            (
+                [
+                    RpcActor(id=self.team.id, actor_type=ActorType.TEAM),
+                    RpcActor(id=self.user.id, actor_type=ActorType.USER),
+                ],
+                [rule_a, rule_b],
+            ),
         )
 
     def test_get_owners_when_codeowners_exists_and_no_issueowners(self):
@@ -153,7 +163,7 @@ class ProjectOwnershipTestCase(TestCase):
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.js"}]}}
             ),
             (
-                [ActorTuple(self.team.id, Team)],
+                [RpcActor(id=self.team.id, actor_type=ActorType.TEAM)],
                 [rule_a],
             ),
         )
@@ -178,7 +188,10 @@ class ProjectOwnershipTestCase(TestCase):
                 self.project2.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
             ),
             (
-                [ActorTuple(self.team.id, Team), ActorTuple(self.team2.id, Team)],
+                [
+                    RpcActor(id=self.team.id, actor_type=ActorType.TEAM),
+                    RpcActor(id=self.team2.id, actor_type=ActorType.TEAM),
+                ],
                 [rule_a, rule_c],
             ),
         )
@@ -590,7 +603,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
         assert ProjectOwnership.get_owners(
             self.project.id, {"stacktrace": {"frames": [frame]}}
-        ) == ([ActorTuple(self.team.id, Team)], [rule])
+        ) == ([RpcActor(id=self.team.id, actor_type=ActorType.TEAM)], [rule])
 
     def test_saves_without_either_auto_assignment_option(self):
         self.group = self.create_group(project=self.project)
@@ -692,14 +705,14 @@ class ResolveActorsTestCase(TestCase):
     def test_basic(self):
         owners = [Owner("user", self.user.email), Owner("team", self.team.slug)]
         assert resolve_actors(owners, self.project.id) == {
-            owners[0]: ActorTuple(self.user.id, User),
-            owners[1]: ActorTuple(self.team.id, Team),
+            owners[0]: RpcActor(id=self.user.id, actor_type=ActorType.USER),
+            owners[1]: RpcActor(id=self.team.id, actor_type=ActorType.TEAM),
         }
 
     def test_teams(self):
         # Normal team
         owner1 = Owner("team", self.team.slug)
-        actor1 = ActorTuple(self.team.id, Team)
+        actor1 = RpcActor(id=self.team.id, actor_type=ActorType.TEAM)
 
         # Team that doesn't exist
         owner2 = Owner("team", "nope")
@@ -720,7 +733,7 @@ class ResolveActorsTestCase(TestCase):
     def test_users(self):
         # Normal user
         owner1 = Owner("user", self.user.email)
-        actor1 = ActorTuple(self.user.id, User)
+        actor1 = RpcActor(id=self.user.id, actor_type=ActorType.USER)
 
         # An extra secondary email
         email1 = self.create_useremail(self.user, None, is_verified=True).email

@@ -36,7 +36,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import json, metrics
-from sentry.utils.actor import ActorTuple
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
@@ -234,8 +233,7 @@ def get_owners(
 
     else:
         outcome = "match"
-        resolved_owners = ActorTuple.resolve_many(owners)
-        recipients = RpcActor.many_from_object(resolved_owners)
+        recipients = owners
         # Used to suppress extra notifications to all matched owners, only notify the would-be auto-assignee
         if not features.has("organizations:notification-all-recipients", project.organization):
             recipients = recipients[-1:]

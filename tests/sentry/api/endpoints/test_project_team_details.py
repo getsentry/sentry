@@ -2,10 +2,10 @@ from rest_framework import status
 
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.actor import ActorTuple
 
 
 class ProjectTeamDetailsTest(APITestCase):
@@ -107,17 +107,17 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         )
         ar1 = self.create_alert_rule(
             name="test alert rule",
-            owner=ActorTuple.from_id(user_id=None, team_id=team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=team.id),
             projects=[project],
         )
         ar2 = self.create_alert_rule(
             name="another test alert rule",
-            owner=ActorTuple.from_id(user_id=None, team_id=team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=team.id),
             projects=[another_project],
         )
         ar3 = self.create_alert_rule(
             name="another test alert rule",
-            owner=ActorTuple.from_id(user_id=None, team_id=another_team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=another_team.id),
             projects=[another_project],
         )
 

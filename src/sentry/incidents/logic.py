@@ -47,11 +47,10 @@ from sentry.incidents.models.incident import (
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
@@ -81,7 +80,6 @@ from sentry.snuba.subscriptions import (
 from sentry.snuba.tasks import build_query_builder
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
-from sentry.utils.actor import ActorTuple
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
 
@@ -505,7 +503,7 @@ def create_alert_rule(
     time_window,
     threshold_type,
     threshold_period,
-    owner: ActorTuple | None = None,
+    owner: RpcActor | None = None,
     resolve_threshold=None,
     environment=None,
     include_all_projects=False,
@@ -527,7 +525,7 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
-    :param owner: ActorTuple (sentry.utils.actor.ActorTuple) or None
+    :param owner: RpcActor (sentry.services.hybrid_cloud.actor.RpcActor) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
@@ -561,13 +559,12 @@ def create_alert_rule(
 
     owner_user_id = None
     owner_team_id = None
-    if owner and isinstance(owner, ActorTuple):
-        if owner.type == User:
+    if owner and isinstance(owner, RpcActor):
+        if owner.actor_type == ActorType.USER:
             owner_user_id = owner.id
-        elif owner.type == Team:
+        elif owner.actor_type == ActorType.TEAM:
             owner_team_id = owner.id
     elif owner:
-        # TODO(mark) Remove this once it has been verified to not happen in CI
         assert False, "Cannot create, invalid input type for owner"
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
@@ -693,7 +690,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
-    owner: ActorTuple | None | object = NOT_SET,
+    owner: RpcActor | None | object = NOT_SET,
     query=None,
     aggregate=None,
     time_window=None,
@@ -717,7 +714,7 @@ def update_alert_rule(
     `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
-    :param owner: ActorTuple (sentry.utils.actor.ActorTuple) or None
+    :param owner: RpcActor (sentry.services.hybrid_cloud.actor.RpcActor) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
@@ -767,13 +764,12 @@ def update_alert_rule(
     if owner is not NOT_SET:
         team_id = None
         user_id = None
-        if owner and isinstance(owner, ActorTuple):
-            if owner.type == User:
+        if owner and isinstance(owner, RpcActor):
+            if owner.actor_type == ActorType.USER:
                 user_id = owner.id
-            elif owner.type == Team:
+            elif owner.actor_type == ActorType.TEAM:
                 team_id = owner.id
         elif owner:
-            # TODO(mark) Remove this once it has been verified to not happen in CI
             assert False, "Cannot update, invalid input type for owner"
         updated_fields["team_id"] = team_id
         updated_fields["user_id"] = user_id
