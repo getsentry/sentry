@@ -47,6 +47,9 @@ class MonitorClockTasksCheckMissingTest(TestCase):
 
         # Expected check-in was a full minute ago.
         monitor_environment = MonitorEnvironment.objects.create(
+            # XXX(epurkhiser): Arbitrarily large id to make sure we can
+            # correctly use the monitor_environment.id as the partition key
+            id=62702371781194950,
             monitor=monitor,
             environment_id=self.environment.id,
             last_checkin=ts - timedelta(minutes=2),
@@ -63,7 +66,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             "monitor_environment_id": monitor_environment.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -224,7 +227,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             "monitor_environment_id": monitor_environment.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -332,7 +335,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             "monitor_environment_id": monitor_environment.id,
         }
         payload = KafkaPayload(
-            monitor_environment.id.to_bytes(),
+            str(monitor_environment.id).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -486,14 +489,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
 
     def test_missing_checkin_but_deletion_in_progress(self):
         self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
-
-    # Temporary test until we can move out of celery or reduce load
-    def test_missing_checkin_but_muted(self):
-        self.assert_state_does_not_change_for_status(ObjectStatus.ACTIVE, is_muted=True)
-
-    # Temporary test until we can move out of celery or reduce load
-    def test_missing_checkin_but_environment_muted(self):
-        self.assert_state_does_not_change_for_status(ObjectStatus.ACTIVE, environment_is_muted=True)
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
     def test_not_missing_checkin(self, mock_produce_task):

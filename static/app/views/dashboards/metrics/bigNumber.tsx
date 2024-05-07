@@ -28,13 +28,18 @@ export function MetricBigNumberContainer({
 }
 
 export function getBigNumberData(data: MetricsQueryApiResponse): string {
-  // Big number widgets only have one query
-  const value = data.data[0][0].totals;
-  const lastMetaEntry = data.meta[0][1];
-  const metaUnit =
-    (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
+  try {
+    // Big number widgets only have one query
+    const value = data.data[0][0].totals;
+    const lastMetaEntry = data.meta[0][1];
+    const metaUnit =
+      (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
 
-  return formatMetricUsingUnit(value, metaUnit);
+    return formatMetricUsingUnit(value, metaUnit);
+  } catch (e) {
+    // TODO(metrics): handle this when adding support for bing number equations
+    return '-';
+  }
 }
 
 const BigNumberWrapper = styled('div')`

@@ -588,6 +588,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_success_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
+        assert response["X-Sentry-Direct-Hit"] == "1"
 
     def test_lookup_by_short_id_alias(self):
         event_id = "f" * 32
@@ -598,8 +599,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         short_id = group.qualified_short_id
 
         self.login_as(user=self.user)
-        response = self.get_success_response(query=f"issue:{short_id}")
+        response = self.get_success_response(query=f"issue:{short_id}", shortIdLookup=1)
         assert len(response.data) == 1
+        assert response["X-Sentry-Direct-Hit"] == "1"
 
     def test_lookup_by_multiple_short_id_alias(self):
         self.login_as(self.user)
@@ -615,9 +617,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         with self.feature("organizations:global-views"):
             response = self.get_success_response(
-                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]"
+                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
+                shortIdLookup=1,
             )
         assert len(response.data) == 2
+        assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()
@@ -635,6 +639,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             organization.slug, project=project.id, query=short_id, shortIdLookup=1
         )
         assert len(response.data) == 1
+        assert response.get("X-Sentry-Direct-Hit") == "1"
 
     def test_lookup_by_short_id_no_perms(self):
         organization = self.create_organization()
@@ -649,6 +654,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_success_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
+        assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_group_id(self):
         self.login_as(user=self.user)
@@ -3021,6 +3027,54 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert next_obj["results"] == "false"
         prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
         assert prev_obj["results"] == "true"
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_find_error_by_message_with_snuba_only_search(self):
+        self.login_as(user=self.user)
+        project = self.project
+        # Simulate sending an event with Kafka enabled
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "message": "OutOfMemoryError",
+                "tags": {"level": "error"},
+            },
+            project_id=project.id,
+        )
+        # Simulate sending another event that matches the wildcard filter
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "message": "MemoryError",
+                "tags": {"level": "error"},
+            },
+            project_id=project.id,
+        )
+
+        # Simulate sending another event that doesn't match the filter
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "message": "NullPointerException",
+                "tags": {"level": "error"},
+            },
+            project_id=project.id,
+        )
+
+        # Retrieve the event based on its message
+        response = self.get_success_response(query="OutOfMemoryError", useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        issues = json.loads(response.content)
+        assert len(issues) == 1
+        assert int(issues[0]["id"]) == event.group.id
+
+        # Retrieve events based on a wildcard match for any *Error in the message
+        response = self.get_success_response(query="*Error", useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        issues = json.loads(response.content)
+        assert len(issues) >= 2  # Expecting at least two issues: OutOfMemoryError and MemoryError
+        assert any(int(issue["id"]) == event.group.id for issue in issues)
+        assert any(int(issue["id"]) == event2.group.id for issue in issues)
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
