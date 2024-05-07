@@ -10,10 +10,10 @@ from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.processing.delayed_processing import (
-    PROJECT_ID_BUFFER_LIST_KEY,
     apply_delayed,
     process_delayed_alert_conditions,
 )
+from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
