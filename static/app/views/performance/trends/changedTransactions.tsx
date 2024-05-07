@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -27,6 +26,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';

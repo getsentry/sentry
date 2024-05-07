@@ -53,6 +53,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.save_event_transaction": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
@@ -201,6 +202,22 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+def profiles_sampler(sampling_context):
+    PROFILES_SAMPLING_RATE = {
+        "spans.process.process_message": options.get(
+            "standalone-spans.profile-process-messages.rate"
+        )
+    }
+    if "transaction_context" in sampling_context:
+        transaction_name = sampling_context["transaction_context"].get("name")
+
+        if transaction_name in PROFILES_SAMPLING_RATE:
+            return PROFILES_SAMPLING_RATE[transaction_name]
+
+    # Default to the sampling rate in settings
+    return float(settings.SENTRY_PROFILES_SAMPLE_RATE or 0)
+
+
 def before_send_transaction(event: Event, _: Hint) -> Event | None:
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
@@ -210,12 +227,22 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     ):
         return None
 
+    # This code is added only for debugging purposes, as such, it should be removed once the investigation is done.
+    if event.get("transaction") in {
+        "sentry.dynamic_sampling.boost_low_volume_projects_of_org",
+        "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    }:
+        logger.info("transaction_logged", extra=event)
+
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
-    event["measurements"]["num_of_spans"] = {"value": num_of_spans}
+    event["measurements"]["num_of_spans"] = {
+        "value": num_of_spans,
+        "unit": None,
+    }
     return event
 
 
@@ -300,7 +327,7 @@ def configure_sdk():
         experimental_transport = None
 
     if settings.SENTRY_PROFILING_ENABLED:
-        sdk_options["profiles_sample_rate"] = settings.SENTRY_PROFILES_SAMPLE_RATE
+        sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):

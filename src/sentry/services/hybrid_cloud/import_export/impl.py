@@ -26,6 +26,7 @@ from sentry.backup.dependencies import (
 from sentry.backup.findings import InstanceID
 from sentry.backup.helpers import EXCLUDED_APPS, DatetimeSafeDjangoJSONEncoder, Filter, ImportFlags
 from sentry.backup.scopes import ExportScope
+from sentry.db.models.base import BaseModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.user import User
@@ -199,15 +200,24 @@ class UniversalImportExportService(ImportExportService):
                 last_seen_ordinal = min_ordinal - 1
                 for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
                     model_instance = deserialized_object.object
+                    inst_model_name = get_model_name(model_instance)
+
+                    if not isinstance(model_instance, BaseModel):
+                        return RpcImportError(
+                            kind=RpcImportErrorKind.UnexpectedModel,
+                            on=InstanceID(model=str(inst_model_name), ordinal=None),
+                            left_pk=model_instance.pk,
+                            reason=f"Received non-sentry model of kind `{inst_model_name}`",
+                        )
+
                     if model_instance._meta.app_label not in EXCLUDED_APPS or model_instance:
                         if model_instance.get_possible_relocation_scopes() & ok_relocation_scopes:
-                            inst_model_name = get_model_name(model_instance)
                             if inst_model_name != batch_model_name:
                                 return RpcImportError(
                                     kind=RpcImportErrorKind.UnexpectedModel,
-                                    on=InstanceID(model=str(inst_model_name), ordinal=1),
+                                    on=InstanceID(model=str(inst_model_name), ordinal=None),
                                     left_pk=model_instance.pk,
-                                    reason=f"Received model of kind `{str(inst_model_name)}` when `{str(batch_model_name)}` was expected",
+                                    reason=f"Received model of kind `{inst_model_name}` when `{batch_model_name}` was expected",
                                 )
 
                             for f in filters:
@@ -452,7 +462,7 @@ class UniversalImportExportService(ImportExportService):
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnexportableModel,
                     on=InstanceID(model_name),
-                    reason=f"The model `{str(batch_model_name)}` is not exportable",
+                    reason=f"The model `{batch_model_name}` is not exportable",
                 )
 
             max_pk = from_pk

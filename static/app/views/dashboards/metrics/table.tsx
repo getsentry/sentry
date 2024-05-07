@@ -7,7 +7,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
-import {unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {isNotQueryOnly, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';
 import {
@@ -154,20 +154,20 @@ interface TableData {
 
 export function getTableData(
   data: MetricsQueryApiResponse,
-  queries: MetricsQueryApiQueryParams[]
+  expressions: MetricsQueryApiQueryParams[]
 ): TableData {
-  const filteredQueries = queries.filter(
-    query => !isMetricFormula(query)
-  ) as MetricsQueryApiRequestQuery[];
-  const tags = [...new Set(filteredQueries.flatMap(query => query.groupBy ?? []))];
+  const queries = expressions.filter(isNotQueryOnly) as MetricsQueryApiRequestQuery[];
+  // @ts-expect-error TODO(metrics): use DashboardMetricsExpression type
+  const shownExpressions = expressions.filter(e => !e.isHidden);
+  const tags = [...new Set(queries.flatMap(query => query.groupBy ?? []))];
 
-  const normalizedResults = queries.map((query, index) => {
-    const queryResults = data.data[index];
+  const normalizedResults = shownExpressions.map((expression, index) => {
+    const expressionResults = data.data[index];
     const meta = data.meta[index];
     const lastMetaEntry = data.meta[index]?.[meta.length - 1];
     const metaUnit =
       (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
-    const normalizedGroupResults = queryResults.map(group => {
+    const normalizedGroupResults = expressionResults.map(group => {
       return {
         by: {...getEmptyGroup(tags), ...group.by},
         totals: group.totals,
@@ -175,10 +175,10 @@ export function getTableData(
       };
     });
 
-    return {name: query.name, results: normalizedGroupResults};
+    return {name: expression.name, results: normalizedGroupResults};
   }, {});
 
-  const groupByCombos = getGroupByCombos(filteredQueries, data.data);
+  const groupByCombos = getGroupByCombos(queries, data.data);
 
   const rows: Row[] = groupByCombos.map(combo => {
     const row = Object.entries(combo).reduce((acc, [key, value]) => {
@@ -201,13 +201,16 @@ export function getTableData(
       type: 'tag',
       order: undefined,
     })),
-    ...queries.map(query => ({
+    ...shownExpressions.map(query => ({
       name: query.name,
-      // @ts-expect-error use DashboardMetricsExpression type
+      // @ts-expect-error TODO(metrics): use DashboardMetricsExpression type
       id: query.id,
-      label: isMetricFormula(query)
-        ? unescapeMetricsFormula(query.formula)
-        : formatMRIField(MRIToField(query.mri, query.op)),
+      label:
+        // TODO(metrics): consider consolidating with getMetricQueryName (different types)
+        query.alias ??
+        (isMetricFormula(query)
+          ? unescapeMetricsFormula(query.formula)
+          : formatMRIField(MRIToField(query.mri, query.op))),
       type: 'field',
       order: query.orderBy,
     })),

@@ -481,7 +481,7 @@ def create_transaction_params(
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
     if not query_metadata:
-        return transaction_params
+        return params
 
     metadata_query = QueryBuilder(
         Dataset.Discover,
@@ -515,7 +515,7 @@ def create_transaction_params(
 
     # Do not modify the params if anything comes back empty
     if len(project_id_set) == 0 or min_timestamp is None or max_timestamp is None:
-        return
+        return params
 
     project_ids = list(project_id_set)
     # Reusing this option for now
@@ -684,8 +684,8 @@ def build_span_query(trace_id, spans_params, query_spans):
             "precise.start_ts",
             "precise.finish_ts",
         ],
-        orderby=["precise.start_ts", "id"],
-        limit=10000,
+        # Don't add an orderby here that way if clickhouse hits the # of span_ids we've asked for it'll exit early
+        limit=len(query_spans),
     )
     # Performance improvement, snuba's parser is extremely slow when we're sending thousands of
     # span_ids here, using a `splitByChar` means that snuba will not parse the giant list of spans
@@ -807,6 +807,9 @@ def augment_transactions_with_spans(
     # If we're querying over 100 span ids, lets split the query into 3
     sentry_sdk.set_tag("trace_view.use_spans.span_len", len(query_spans))
 
+    # Whether any of the span queries hit their query limit, which means that clickhouse would've exited early
+    # this is for tagging so we can see the performance difference
+    hit_limit = False
     # The max query size according to snuba/clickhouse docs is 256KiB, or about 256 thousand characters
     # Each span id maps to being 20 characters; 16 characters turned back into a number maxes out at 20
     # which at 10k transaction span ids, and even another 10k error span ids (which would only happen if there's no
@@ -830,6 +833,9 @@ def augment_transactions_with_spans(
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
         )
         parents_results = results[0]
+        for (result, query) in zip(results, queries):
+            if len(result["data"]) == query.limit.limit:
+                hit_limit = True
         for result in results[1:]:
             parents_results["data"].extend(result["data"])
     else:
@@ -837,6 +843,9 @@ def augment_transactions_with_spans(
         parents_results = parents_query.run_query(
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value
         )
+        if len(parents_results) == parents_query.limit.limit:
+            hit_limit = True
+    sentry_sdk.set_tag("trace_view.span_query.hit_limit", hit_limit)
 
     parent_map = {}
     if "data" in parents_results:

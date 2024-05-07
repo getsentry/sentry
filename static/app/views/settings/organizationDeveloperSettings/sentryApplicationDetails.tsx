@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
@@ -45,6 +44,7 @@ import type {
   Scope,
   SentryApp,
 } from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -333,7 +333,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
             <Alert type="info" showIcon>
               {t('This will be the only time your client secret is visible!')}
             </Alert>
-            <TextCopyInput aria-label="new-client-secret">
+            <TextCopyInput aria-label={t('new-client-secret')}>
               {rotateResponse.clientSecret}
             </TextCopyInput>
           </Body>

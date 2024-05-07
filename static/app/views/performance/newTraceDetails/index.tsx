@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -25,6 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
@@ -326,13 +326,6 @@ function TraceViewContent(props: TraceViewContentProps) {
 
     const newTabs = [TRACE_TAB];
 
-    if (tree.profiled_events.size > 0) {
-      newTabs.push({
-        node: 'profiles',
-        label: 'Profiles',
-      });
-    }
-
     if (tree.vitals.size > 0) {
       const types = Array.from(tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
@@ -340,6 +333,13 @@ function TraceViewContent(props: TraceViewContentProps) {
       newTabs.push({
         ...VITALS_TAB,
         label,
+      });
+    }
+
+    if (tree.profiled_events.size > 0) {
+      newTabs.push({
+        node: 'profiles',
+        label: 'Profiles',
       });
     }
 
@@ -633,6 +633,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
+      const query = qs.parse(location.search);
+
+      if (query.fov && typeof query.fov === 'string') {
+        viewManager.maybeInitializeTraceViewFromQS(query.fov);
+      }
+
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
 

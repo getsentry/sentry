@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
-from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry import options
-from sentry.conf.types.kafka_definition import Topic
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.tasks.check_missed import check_missing
 from sentry.monitors.tasks.check_timeout import check_timeout
 from sentry.utils import metrics, redis
@@ -20,13 +19,14 @@ from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger("sentry")
+
 # This key is used to store the last timestamp that the tasks were triggered.
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
 # This key is used to store the hashmap of Mapping[PartitionKey, Timestamp]
 MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
 
-CLOCK_TICK_CODEC: Codec[ClockTick] = get_codec("monitors-clock-tick")
+CLOCK_TICK_CODEC: Codec[ClockTick] = get_topic_codec(Topic.MONITORS_CLOCK_TICK)
 
 
 def _int_or_none(s: str | None) -> int | None:
@@ -147,11 +147,23 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
     metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
 
     # If more than exactly a minute has passed then we've skipped a
-    # task run, report that to sentry, it is a problem.
+    # task run, backfill those ticks. This can happen when one partition has
+    # slowed down too much and is missing a minutes worth of check-ins
     if last_ts is not None and slowest_part_ts > last_ts + 60:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("last_ts", last_ts)
-            scope.set_extra("slowest_part_ts", slowest_part_ts)
-            sentry_sdk.capture_message("Monitor task dispatch minute skipped")
+        if options.get("crons.use_clock_pulse_consumer"):
+            # We only want to do backfills when we're using the clock tick
+            # consumer, otherwise the celery tasks may process out of order
+            backfill_tick = datetime.fromtimestamp(last_ts + 60, tz=timezone.utc)
+            while backfill_tick < tick:
+                extra = {"reference_datetime": str(backfill_tick)}
+                logger.info("monitors.consumer.clock_tick_backfill", extra=extra)
+
+                _dispatch_tick(backfill_tick)
+                backfill_tick = backfill_tick + timedelta(minutes=1)
+        else:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("last_ts", last_ts)
+                scope.set_extra("slowest_part_ts", slowest_part_ts)
+                sentry_sdk.capture_message("Monitor task dispatch minute skipped")
 
     _dispatch_tick(tick)

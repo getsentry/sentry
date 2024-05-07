@@ -8,6 +8,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/apple-macos';
 import {t, tct} from 'sentry/locale';
 
@@ -65,20 +66,72 @@ const getConfigureMetricsSnippetObjC = (params: Params) => `
 const getVerifyMetricsSnippetSwift = () => `
 import Sentry
 
+// Incrementing a counter by one for each button click.
 SentrySDK.metrics
     .increment(key: "button_login_click",
                value: 1.0,
                tags: ["screen": "login"]
+    )
+
+// Add '150' to a distribution used to track the loading time.
+SentrySDK.metrics
+    .distribution(key: "image_download_duration",
+                value: 150.0,
+                unit: MeasurementUnitDuration.millisecond,
+                tags: ["screen": "login"]
+    )
+
+// Adding '1' to a gauge used to track the loading time.
+SentrySDK.metrics
+    .gauge(key: "page_load",
+          value: 1.0,
+          unit: MeasurementUnitDuration.millisecond,
+          tags: ["screen": "login"]
+    )
+
+// Add 'jane' to a set
+// used for tracking the number of users that viewed a page.
+SentrySDK.metrics
+    .set(key: "user_view",
+          value: "jane",
+          unit: MeasurementUnit(unit: "username"),
+          tags: ["screen": "login"]
     )`;
 
 const getVerifyMetricsSnippetObjC = () => `
 @import Sentry;
 
+// Incrementing a counter by one for each button click.
 [SentrySDK.metrics
     incrementWithKey :@"button_login_click"
     value: 1.0
     unit: SentryMeasurementUnit.none
     tags: @{ @"screen" : @"login" }
+];
+
+// Add '150' to a distribution used to track the loading time.
+[SentrySDK.metrics
+    distributionWithKey: @"image_download_duration"
+    value: 150.0
+    unit: SentryMeasurementUnitDuration.millisecond
+    tags: @{ @"screen" : @"login" }
+];
+
+// Adding '1' to a gauge used to track the loading time.
+[SentrySDK.metrics
+    gaugeWithKey: @"page_load"
+    value: 1.0
+    unit: SentryMeasurementUnitDuration.millisecond
+    tags: @{ @"screen" : @"login" }
+];
+
+// Add 'jane' to a set
+// used for tracking the number of users that viewed a page.
+[SentrySDK.metrics
+  setWithKey :@"user_view"
+  value: @"jane"
+  unit: [[SentryMeasurementUnit alloc] initWithUnit:@"username"]
+  tags: @{ @"screen" : @"login" }
 ];`;
 
 const onboarding: OnboardingConfig = {
@@ -295,7 +348,7 @@ const metricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:SentrySDK.metrics()] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:SentrySDK.metrics()] namespace.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -306,22 +359,22 @@ const metricsOnboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          configurations: [
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
             {
-              code: [
-                {
-                  label: 'Swift',
-                  value: 'swift',
-                  language: 'swift',
-                  code: getVerifyMetricsSnippetSwift(),
-                },
-                {
-                  label: 'Objective-C',
-                  value: 'c',
-                  language: 'c',
-                  code: getVerifyMetricsSnippetObjC(),
-                },
-              ],
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: getVerifyMetricsSnippetSwift(),
+            },
+            {
+              label: 'Objective-C',
+              value: 'c',
+              language: 'c',
+              code: getVerifyMetricsSnippetObjC(),
             },
           ],
         },

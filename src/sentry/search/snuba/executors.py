@@ -57,6 +57,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.events.builder.discover import UnresolvedQuery
+from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.dataset import Dataset
@@ -1147,14 +1148,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         Returns the basic lookup for a search filter.
         """
-
-        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
-
-        query_builder = UnresolvedQuery(
-            dataset=dataset,
-            entity=joined_entity,
-            params={},
-        )
+        query_builder = self.def_get_query_builder(joined_entity)
         return query_builder.default_filter_converter(search_filter)
 
     def get_assigned(
@@ -1386,6 +1380,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             conditions=top_level_conditions,
         )
 
+    def def_get_query_builder(self, joined_entity: Entity) -> Condition:
+        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
+
+        return UnresolvedQuery(
+            dataset=dataset,
+            entity=joined_entity,
+            params={},
+        )
+
+    def get_message_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        query_builder = self.def_get_query_builder(joined_entity)
+
+        # leverage discover logic internally here
+        dataset_config = DiscoverDatasetConfig(query_builder)
+        return dataset_config._message_filter_converter(search_filter)
+
     def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
         return Function(
             "ifNull",
@@ -1418,6 +1430,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "substatus": get_basic_group_snuba_condition,
         "assigned_or_suggested": get_assigned_or_suggested,
         "assigned_to": get_assigned,
+        "message": get_message_condition,
     }
 
     first_seen = Column("group_first_seen", entities["attrs"])
@@ -1618,7 +1631,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
 
         data = []
-        count = 0
+        count: int = 0
         # get the query data and the query counts
         k = 0
         for _ in range(len(entities_to_check)):
@@ -1628,20 +1641,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 count += bulk_result[k]["data"][0]["count"]
             k += 1
 
-        hits = 0
         paginator_results = SequencePaginator(
             [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
-        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
+        ).get_result(limit, cursor, known_hits=count, max_hits=max_hits)
 
-        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
-        # Since replay between Postgres and Clickhouse can happen, we might get back results that
-        # have changed state in Postgres. By rechecking them we guarantee than any returned results
-        # have the correct state.
-        # TODO: This can result in us returning less than a full page of results, but shouldn't
-        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
-        # full page. In practice, this will likely only skip a couple of results at worst, and
+        # TODO: do we need to set has_results for the next cursor?
+
+        if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
+            # If the user passed a cursor, and it isn't already a 0 result `is_prev`
+            # cursor, then it's worth allowing them to go back a page to check for
+            # more results.
+            paginator_results.prev.has_results = True
+
+        # We filter against `group_queryset` here to ensure we only return groups that aren't being migrated
+        # or being deleted before snuba is updated. This can result in us returning less than a full page of
+        # results, but we can't do much about that without a more complex solution such as asking for more results
+        # In practice, this will likely only skip a couple of results at worst, and
         # probably not be noticeable to the user, so holding off for now to reduce complexity.
 
         groups = group_queryset.in_bulk(paginator_results.results)

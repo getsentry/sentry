@@ -10,7 +10,7 @@ import jsonschema
 
 from sentry import features, options
 from sentry.constants import DataCategory
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.spam_detection import is_spam
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -35,6 +35,7 @@ class FeedbackCreationSource(Enum):
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
+    UPDATE_USER_REPORTS_TASK = "update_user_reports_task"
 
     @classmethod
     def new_feedback_category_values(cls) -> set[str]:
@@ -54,6 +55,7 @@ class FeedbackCreationSource(Enum):
                 cls.CRASH_REPORT_EMBED_FORM,
                 cls.USER_REPORT_ENVELOPE,
                 cls.USER_REPORT_DJANGO_ENDPOINT,
+                cls.UPDATE_USER_REPORTS_TASK,
             ]
         }
 
@@ -61,6 +63,13 @@ class FeedbackCreationSource(Enum):
 def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
+    if feedback.get("associated_event_id"):
+        evidence_data["associated_event_id"] = feedback["associated_event_id"]
+        evidence_display.append(
+            IssueEvidence(
+                name="associated_event_id", value=feedback["associated_event_id"], important=False
+            )
+        )
     if feedback.get("contact_email"):
         evidence_data["contact_email"] = feedback["contact_email"]
         evidence_display.append(
@@ -173,7 +182,7 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     return False
 
 
-def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
     metrics.incr("feedback.create_feedback_issue.entered")
 
     if should_filter_feedback(event, project_id, source):
@@ -288,7 +297,7 @@ class UserReportShimDict(TypedDict):
 
 def shim_to_feedback(
     report: UserReportShimDict,
-    event: Event,
+    event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
 ):

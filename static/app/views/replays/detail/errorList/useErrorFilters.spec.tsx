@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {

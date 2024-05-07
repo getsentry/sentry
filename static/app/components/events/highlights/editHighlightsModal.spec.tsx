@@ -86,6 +86,7 @@ describe('EditHighlightsModal', function () {
     expect(screen.getByText('Edit Event Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-preview-section')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-empty-message')).toBeInTheDocument();
+    expect(screen.getByTestId('highlights-save-info')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-tag-section')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-context-section')).toBeInTheDocument();
 
@@ -106,7 +107,7 @@ describe('EditHighlightsModal', function () {
     // Reopen the modal to test cancel button
     jest.resetAllMocks();
     renderModal({highlightContext: {}, highlightTags: []});
-    const saveButton = screen.getByRole('button', {name: 'Save'});
+    const saveButton = screen.getByRole('button', {name: 'Apply to Project'});
     await userEvent.click(saveButton);
     expect(updateProjectMock).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
@@ -150,7 +151,7 @@ describe('EditHighlightsModal', function () {
       expect(contextItem).not.toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply to Project'}));
     expect(updateProjectMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
@@ -205,7 +206,7 @@ describe('EditHighlightsModal', function () {
     await Promise.all(tagTestPromises);
 
     // All event tags should be present now
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply to Project'}));
     expect(updateProjectMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
@@ -281,7 +282,7 @@ describe('EditHighlightsModal', function () {
     });
 
     // All event tags should be present now
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply to Project'}));
     expect(updateProjectMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({

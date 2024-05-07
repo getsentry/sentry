@@ -1,7 +1,7 @@
 import Feature from 'sentry/components/acl/feature';
 import useOrganization from 'sentry/utils/useOrganization';
 import ScreensTemplate from 'sentry/views/performance/mobile/components/screensTemplate';
-import {ScreensView, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
+import {UIScreens} from 'sentry/views/performance/mobile/ui/screens';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
 export default function ResponsivenessModule() {
@@ -13,7 +13,7 @@ export default function ResponsivenessModule() {
       organization={organization}
     >
       <ScreensTemplate
-        content={<ScreensView yAxes={[YAxis.SLOW_FRAME_RATE, YAxis.FROZEN_FRAME_RATE]} />}
+        content={<UIScreens />}
         compatibilityProps={{
           compatibleSDKNames: ['sentry.cocoa', 'sentry.java.android'],
           docsUrl: 'www.docs.sentry.io', // TODO: Add real docs URL

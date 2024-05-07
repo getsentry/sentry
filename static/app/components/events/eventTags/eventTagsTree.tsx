@@ -7,6 +7,7 @@ import EventTagsTreeRow, {
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {space} from 'sentry/styles/space';
 import type {Event, EventTag} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -43,6 +44,10 @@ function addToTagTree(
   originalTag: EventTag
 ): TagTree {
   const BRANCH_MATCHES_REGEX = /\./g;
+  if (!defined(tag.key)) {
+    return tree;
+  }
+
   const branchMatches = tag.key.match(BRANCH_MATCHES_REGEX) ?? [];
 
   const hasInvalidBranchCount =
@@ -186,6 +191,7 @@ export const TreeContainer = styled('div')<{columnCount: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
+  margin-left: -${space(1)};
 `;
 
 export const TreeColumn = styled('div')`
