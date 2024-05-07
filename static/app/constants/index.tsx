@@ -310,6 +310,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     uid: 10,
   },
+  [DataCategoryExact.SPAN]: {
+    name: DataCategoryExact.SPAN,
+    apiName: 'span',
+    plural: 'spans',
+    displayName: 'spans',
+    titleName: t('Span'),
+    uid: 12,
+  },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
@@ -318,8 +326,25 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Cron Monitors'),
     uid: 13,
   },
+  [DataCategoryExact.PROFILE_DURATION]: {
+    name: DataCategoryExact.PROFILE_DURATION,
+    apiName: 'profileDuration',
+    plural: 'profile durations',
+    displayName: 'profile duration',
+    titleName: t('Profile Durations'),
+    uid: 17,
+  },
   [DataCategoryExact.METRICS]: {
     name: DataCategoryExact.METRICS,
+    apiName: 'metrics',
+    plural: 'metrics',
+    displayName: 'metrics',
+    titleName: t('Metrics'),
+    uid: 19,
+  },
+  // TODO: Deduplicate metrics and metricHour
+  [DataCategoryExact.METRIC_HOUR]: {
+    name: DataCategoryExact.METRIC_HOUR,
     apiName: 'metrics',
     plural: 'metrics',
     displayName: 'metrics',

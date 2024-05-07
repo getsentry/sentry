@@ -80,6 +80,9 @@ export enum DataCategory {
   PROFILES = 'profiles',
   REPLAYS = 'replays',
   MONITOR_SEATS = 'monitorSeats',
+  METRIC_HOUR = 'metricHour',
+  PROFILE_DURATION = 'profileDuration',
+  SPAN = 'span',
 }
 
 /**
@@ -98,6 +101,9 @@ export enum DataCategoryExact {
   MONITOR = 'monitor',
   MONITOR_SEAT = 'monitorSeat',
   METRICS = 'metrics',
+  METRIC_HOUR = 'metricHour',
+  PROFILE_DURATION = 'profileDuration',
+  SPAN = 'span',
 }
 
 export interface DataCategoryInfo {
