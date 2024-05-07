@@ -27,9 +27,7 @@ class BaseAlertRuleSerializerTest:
         self, alert_rule, result, skip_dates=False, resolve_threshold=NOT_SET
     ):
         alert_rule_projects = sorted(
-            AlertRule.objects.filter(id=alert_rule.id).values_list(
-                "snuba_query__subscriptions__project__slug", flat=True
-            )
+            AlertRule.objects.filter(id=alert_rule.id).values_list("projects__slug", flat=True)
         )
         assert result["id"] == str(alert_rule.id)
         assert result["organizationId"] == str(alert_rule.organization_id)
@@ -181,8 +179,9 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[1]["projects"] == [
             project.slug for project in activated_alert_rule.projects.all()
         ]
+        # NOTE: we are now _only_ referencing alert_rule.projects fk (AlertRuleProjects)
         assert result[2]["projects"] == [
-            project.slug for project in activated_alert_rule.projects.all()
+            project.slug for project in alert_rule_no_projects.projects.all()
         ]
 
     def test_environment(self):

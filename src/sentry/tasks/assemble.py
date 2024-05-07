@@ -6,11 +6,9 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os import path
-from typing import IO, TYPE_CHECKING, Generic, NamedTuple, Protocol, TypeVar
+from typing import IO, Generic, NamedTuple, Protocol, TypeVar
 
-import orjson
 import sentry_sdk
-from django.conf import settings
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
@@ -41,15 +39,12 @@ from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics, redis
+from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from rediscluster import RedisCluster
 
 
 class ChunkFileState:
@@ -169,18 +164,12 @@ def _get_cache_key(task, scope, checksum):
             % (
                 str(scope).encode("ascii"),
                 checksum.encode("ascii"),
-                str(task).encode(),
+                str(task).encode("utf-8"),
             )
         ).hexdigest()
     )
 
 
-def _get_redis_cluster_for_assemble() -> RedisCluster:
-    cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
-
-
-@sentry_sdk.tracing.trace
 def get_assemble_status(task, scope, checksum):
     """
     Checks the current status of an assembling task.
@@ -190,43 +179,26 @@ def get_assemble_status(task, scope, checksum):
     notice or error message.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-
-    if options.get("assemble.read_from_redis"):
-        client = _get_redis_cluster_for_assemble()
-        rv = client.get(cache_key)
-
-        # It is stored as bytes with [state, detail] on Redis.
-        if rv:
-            [state, detail] = orjson.loads(rv)
-            rv = (state, detail)
-    else:
-        rv = default_cache.get(cache_key)
-
+    rv = default_cache.get(cache_key)
     if rv is None:
         return None, None
     return tuple(rv)
 
 
-@sentry_sdk.tracing.trace
 def set_assemble_status(task, scope, checksum, state, detail=None):
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
     """
     cache_key = _get_cache_key(task, scope, checksum)
     default_cache.set(cache_key, (state, detail), 600)
-    redis_client = _get_redis_cluster_for_assemble()
-    redis_client.set(name=cache_key, value=orjson.dumps([state, detail]), ex=600)
 
 
-@sentry_sdk.tracing.trace
 def delete_assemble_status(task, scope, checksum):
     """
     Deletes the status of an assembling task.
     """
     cache_key = _get_cache_key(task, scope, checksum)
     default_cache.delete(cache_key)
-    redis_client = _get_redis_cluster_for_assemble()
-    redis_client.delete(cache_key)
 
 
 @instrumented_task(

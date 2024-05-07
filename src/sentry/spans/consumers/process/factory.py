@@ -16,12 +16,11 @@ from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
-from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry import options
-from sentry.conf.types.kafka_definition import Topic
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.spans.buffer.redis import ProcessSegmentsContext, RedisSpansBuffer, SegmentKey
 from sentry.spans.consumers.process.strategy import CommitSpanOffsets, NoOp
 from sentry.utils import metrics
@@ -30,7 +29,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 logger = logging.getLogger(__name__)
 
-SPANS_CODEC: Codec[SpanEvent] = get_codec("snuba-spans")
+SPANS_CODEC: Codec[SpanEvent] = get_topic_codec(Topic.SNUBA_SPANS)
 MAX_PAYLOAD_SIZE = 10 * 1000 * 1000  # 10 MB
 
 BATCH_SIZE = 100

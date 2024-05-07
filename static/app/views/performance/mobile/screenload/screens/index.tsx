@@ -23,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {
   DEFAULT_PLATFORM,
@@ -40,12 +41,12 @@ import {
   isCrossPlatform,
   transformReleaseEvents,
 } from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 export enum YAxis {
@@ -57,10 +58,10 @@ export enum YAxis {
   FROZEN_FRAME_RATE = 5,
   THROUGHPUT = 6,
   COUNT = 7,
+  SLOW_FRAMES = 8,
+  FROZEN_FRAMES = 9,
+  FRAMES_DELAY = 10,
 }
-
-export const TOP_SCREENS = 5;
-const MAX_CHART_RELEASE_CHARS = 12;
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
@@ -71,6 +72,11 @@ export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.FROZEN_FRAME_RATE]: 'avg(measurements.frames_frozen_rate)',
   [YAxis.THROUGHPUT]: 'tpm()',
   [YAxis.COUNT]: 'count()',
+
+  // Using span metrics
+  [YAxis.SLOW_FRAMES]: 'avg(mobile.slow_frames)',
+  [YAxis.FROZEN_FRAMES]: 'avg(mobile.frozen_frames)',
+  [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',
 };
 
 export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
@@ -82,6 +88,9 @@ export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
   [YAxis.FROZEN_FRAME_RATE]: 'avg(frames_frozen_rate)',
   [YAxis.THROUGHPUT]: 'tpm()',
   [YAxis.COUNT]: 'count()',
+  [YAxis.SLOW_FRAMES]: 'avg(mobile.slow_frames)',
+  [YAxis.FROZEN_FRAMES]: 'avg(mobile.frozen_frames)',
+  [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',
 };
 
 export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
@@ -93,6 +102,9 @@ export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
   [YAxis.FROZEN_FRAME_RATE]: t('Frozen Frame Rate'),
   [YAxis.THROUGHPUT]: t('Throughput'),
   [YAxis.COUNT]: t('Count'),
+  [YAxis.SLOW_FRAMES]: t('Slow Frames'),
+  [YAxis.FROZEN_FRAMES]: t('Frozen Frames'),
+  [YAxis.FRAMES_DELAY]: t('Frames Delay'),
 };
 
 export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
@@ -104,6 +116,9 @@ export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
   [YAxis.FROZEN_FRAME_RATE]: 'percentage',
   [YAxis.THROUGHPUT]: 'number',
   [YAxis.COUNT]: 'number',
+  [YAxis.SLOW_FRAMES]: 'number',
+  [YAxis.FROZEN_FRAMES]: 'number',
+  [YAxis.FRAMES_DELAY]: 'duration',
 };
 
 type Props = {
@@ -135,6 +150,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
     secondaryRelease,
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
+  const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
 
   const router = useRouter();
 
@@ -277,14 +293,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
     topTransactions,
   });
 
-  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_CHART_RELEASE_CHARS
-  );
-  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_CHART_RELEASE_CHARS
-  );
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
   const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
@@ -313,8 +321,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
                   subtitle: primaryRelease
                     ? t(
                         '%s v. %s',
-                        truncatedPrimaryChart,
-                        secondaryRelease ? truncatedSecondaryChart : ''
+                        truncatedPrimaryRelease,
+                        secondaryRelease ? truncatedSecondaryRelease : ''
                       )
                     : '',
                 },
@@ -345,8 +353,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
                     subtitle: primaryRelease
                       ? t(
                           '%s v. %s',
-                          truncatedPrimaryChart,
-                          secondaryRelease ? truncatedSecondaryChart : ''
+                          truncatedPrimaryRelease,
+                          secondaryRelease ? truncatedSecondaryRelease : ''
                         )
                       : '',
                   },
