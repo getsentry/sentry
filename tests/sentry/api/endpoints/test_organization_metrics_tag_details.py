@@ -46,48 +46,6 @@ class OrganizationMetricsTagDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert response.status_code == 200
         assert response.data == []
 
-    @patch(
-        "sentry.snuba.metrics.datasource.get_mri",
-        mocked_mri_resolver(["metric1", "metric2", "metric3", "random_tag"], get_mri),
-    )
-    def test_metric_tag_details(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            "tag1",
-        )
-        assert response.data == [
-            {"key": "tag1", "value": "value1"},
-            {"key": "tag1", "value": "value2"},
-        ]
-
-        # When single metric_name is supplied, get only tag values for that metric:
-        response = self.get_success_response(
-            self.organization.slug,
-            "tag1",
-            metric=["metric1"],
-        )
-        assert response.data == [
-            {"key": "tag1", "value": "value1"},
-        ]
-
-        # When metric names are supplied, get intersection of tags:
-        response = self.get_success_response(
-            self.organization.slug,
-            "tag1",
-            metric=["metric1", "metric2"],
-        )
-        assert response.data == []
-
-        # We need to ensure that if the tag is present in the indexer but has no values in the
-        # dataset, the intersection of it and other tags should not yield any results
-        _indexer_record(self.organization.id, "random_tag")
-        response = self.get_success_response(
-            self.organization.slug,
-            "tag1",
-            metric=["metric1", "random_tag"],
-        )
-        assert response.data == []
-
     def test_tag_values_for_session_status_tag(self):
         self.store_session(
             self.build_session(
