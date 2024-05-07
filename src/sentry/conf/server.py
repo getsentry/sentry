@@ -1636,6 +1636,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-group-attributes-side-query": False,
     # Enable the updated empty state for issues
     "organizations:issue-stream-empty-state": False,
+    # Enable new events graph design for issue stream
+    "organizations:issue-stream-new-events-graph": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
     # Enabled latest adopted release filter for issue alerts
