@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import FeatureBadge from 'sentry/components/featureBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
@@ -27,8 +27,16 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
   const isResourcesWidget =
     chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES;
 
+  const isRequestsWidget =
+    chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS;
+
+  const isCacheWidget =
+    chartSetting === PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS;
+
   const featureBadge =
-    isWebVitalsWidget || isResourcesWidget ? <FeatureBadge type="new" /> : null;
+    isWebVitalsWidget || isResourcesWidget || isRequestsWidget || isCacheWidget ? (
+      <FeatureBadge type="new" />
+    ) : null;
 
   return (
     <WidgetHeaderContainer>

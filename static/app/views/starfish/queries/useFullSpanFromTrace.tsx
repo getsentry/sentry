@@ -1,6 +1,7 @@
-import type {Entry, EntrySpans} from 'sentry/types';
-import {EntryType} from 'sentry/types';
+import type {Entry, EntrySpans} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useEventDetails} from 'sentry/views/starfish/queries/useEventDetails';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -27,7 +28,7 @@ export function useFullSpanFromTrace(
   const fields = Object.values(SpanIndexedField).slice(0, 20);
 
   const indexedSpansResponse = useIndexedSpans({
-    filters,
+    search: MutableSearch.fromQueryObject(filters),
     sorts: sorts || DEFAULT_SORT,
     limit: 1,
     enabled,

@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {UseProfileEventsOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';

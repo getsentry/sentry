@@ -283,7 +283,7 @@ search_value
   = quoted_value / value
 
 numeric_value
-  = value:("-"? numeric) unit:[kmb]? &(end_value / comma / closed_bracket) {
+  = value:("-"? numeric) unit:(number_unit)? &(end_value / comma / closed_bracket) {
       return tc.tokenValueNumber(value.join(''), unit);
     }
 
@@ -345,14 +345,14 @@ rel_date_format
 
 duration_format
   = value:numeric
-    unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")
+    unit:(duration_unit)
     &end_value {
       return tc.tokenValueDuration(value, unit);
     }
 
 size_format
   = value:numeric
-    unit:("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib")
+    unit:(size_unit)
     &end_value {
       return tc.tokenValueSize(value, unit);
     }
@@ -361,6 +361,15 @@ percentage_format
   = value:numeric "%" {
       return tc.tokenValuePercentage(value);
     }
+
+// Units for special values
+number_unit = "k"i/"m"i/"b"i
+
+duration_unit = "ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w"
+size_unit     = bit_unit / byte_unit
+
+bit_unit      = "bit"i / "kib"i / "mib"i / "gib"i / "tib"i / "pib"i / "eib"i / "zib"i / "yib"i
+byte_unit     = "bytes"i / "nb"i / "kb"i / "mb"i / "gb"i / "tb"i / "pb"i / "eb"i / "zb"i / "yb"i
 
 // NOTE: the order in which these operators are listed matters because for
 // example, if < comes before <= it will match that even if the operator is <=

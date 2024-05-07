@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {IconArrow} from 'sentry/icons';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 export type Alignments = 'left' | 'right' | undefined;
 export type Directions = 'desc' | 'asc' | undefined;

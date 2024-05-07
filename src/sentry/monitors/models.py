@@ -28,18 +28,18 @@ from sentry.db.models import (
     JSONField,
     Model,
     UUIDField,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models.actor import ActorTuple
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -202,7 +202,7 @@ class ScheduleType:
         return dict(cls.as_choices())[value]
 
 
-@region_silo_only_model
+@region_silo_model
 class Monitor(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -251,21 +251,14 @@ class Monitor(Model):
     Type of monitor. Currently there are only CRON_JOB monitors.
     """
 
-    owner_actor_id = BoundedBigIntegerField(null=True, db_index=True)
-    """
-    The owner of the monitors actor_id.
-
-    @deprecated Will be replaced with user_id / team_id
-    """
-
-    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
+    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     """
     The user assigned as the owner of this model.
     """
 
     owner_team_id = BoundedBigIntegerField(null=True, db_index=True)
     """
-    The team assigned as the owener of this model.
+    The team assigned as the owner of this model.
     """
 
     config: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
@@ -308,8 +301,10 @@ class Monitor(Model):
         return super().save(*args, **kwargs)
 
     @property
-    def owner_actor(self) -> ActorTuple | None:
-        return ActorTuple.from_id(self.owner_user_id, self.owner_team_id)
+    def owner_actor(self) -> RpcActor | None:
+        if not (self.owner_user_id or self.owner_team_id):
+            return None
+        return RpcActor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
 
     @property
     def schedule(self) -> CrontabSchedule | IntervalSchedule:
@@ -331,7 +326,16 @@ class Monitor(Model):
         return ScheduleType.get_name(self.config["schedule_type"])
 
     def get_audit_log_data(self):
-        return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
+        return {
+            "name": self.name,
+            "type": self.type,
+            "status": self.status,
+            "config": self.config,
+            "is_muted": self.is_muted,
+            "slug": self.slug,
+            "owner_user_id": self.owner_user_id,
+            "owner_team_id": self.owner_team_id,
+        }
 
     def get_next_expected_checkin(self, last_checkin: datetime) -> datetime:
         """
@@ -446,7 +450,7 @@ def check_organization_monitor_limits(sender, instance, **kwargs):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -570,7 +574,7 @@ def delete_file_for_monitorcheckin(instance: MonitorCheckIn, **kwargs):
 post_delete.connect(delete_file_for_monitorcheckin, sender=MonitorCheckIn)
 
 
-@region_silo_only_model
+@region_silo_model
 class MonitorLocation(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -618,7 +622,7 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         return monitor_env
 
 
-@region_silo_only_model
+@region_silo_model
 class MonitorEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -721,7 +725,7 @@ def default_grouphash():
     return uuid.uuid4().hex
 
 
-@region_silo_only_model
+@region_silo_model
 class MonitorIncident(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -773,7 +777,7 @@ class MonitorIncident(Model):
         ]
 
 
-@region_silo_only_model
+@region_silo_model
 class MonitorEnvBrokenDetection(Model):
     """
     Records an instance where we have detected a monitor environment to be

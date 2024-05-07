@@ -27,7 +27,7 @@ from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -137,6 +137,9 @@ class GitHubEnterpriseIntegration(
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self):
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
+
         base_url = self.model.metadata["domain_name"].split("/")[0]
         return GitHubEnterpriseAppsClient(
             base_url=base_url,
@@ -144,6 +147,7 @@ class GitHubEnterpriseIntegration(
             private_key=self.model.metadata["installation"]["private_key"],
             app_id=self.model.metadata["installation"]["id"],
             verify_ssl=self.model.metadata["installation"]["verify_ssl"],
+            org_integration_id=self.org_integration.id,
         )
 
     def get_repositories(self, query=None):

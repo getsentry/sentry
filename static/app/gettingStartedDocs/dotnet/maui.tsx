@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -23,17 +25,36 @@ const getInstallSnippetPackageManager = (params: Params) => `
 Install-Package Sentry.Maui -Version ${getPackageVersion(
   params,
   'sentry.dotnet.maui',
-  '3.34.0'
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry.Maui -v ${getPackageVersion(
   params,
   'sentry.dotnet.maui',
-  '3.34.0'
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
 )}`;
 
-const getConfigureSnippet = (params: Params) => `
+const getInstallProfilingSnippetPackageManager = (params: Params) => `
+Install-Package Sentry.Profiling -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet.profiling',
+  '4.3.0'
+)}`;
+
+const getInstallProfilingSnippetCoreCli = (params: Params) => `
+dotnet add package Sentry.Profiling -v ${getPackageVersion(
+  params,
+  'sentry.dotnet.profiling',
+  '4.3.0'
+)}`;
+
+enum DotNetPlatform {
+  WINDOWS = 0,
+  IOS_MACCATALYST = 1,
+}
+
+const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
 public static MauiApp CreateMauiApp()
 {
   var builder = MauiApp.CreateBuilder();
@@ -49,11 +70,38 @@ public static MauiApp CreateMauiApp()
       // Debug messages are written to stdout with Console.Writeline,
       // and are viewable in your IDE's debug console or with 'adb logcat', etc.
       // This option is not recommended when deploying your application.
-      options.Debug = true;
+      options.Debug = true;${
+        params.isPerformanceSelected
+          ? `
 
       // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
       // We recommend adjusting this value in production.
-      options.TracesSampleRate = 1.0;
+      options.TracesSampleRate = 1.0;`
+          : ''
+      }${
+        params.isProfilingSelected
+          ? `
+
+      // Sample rate for profiling, applied on top of othe TracesSampleRate,
+      // e.g. 0.2 means we want to profile 20 % of the captured transactions.
+      // We recommend adjusting this value in production.
+      options.ProfilesSampleRate = 1.0;${
+        platform !== DotNetPlatform.IOS_MACCATALYST
+          ? `
+
+      // Requires NuGet package: Sentry.Profiling
+      // Note: By default, the profiler is initialized asynchronously. This can
+      // be tuned by passing a desired initialization timeout to the constructor.
+      options.AddIntegration(new ProfilingIntegration(
+          // During startup, wait up to 500ms to profile the app startup code.
+          // This could make launching the app a bit slower so comment it out if you
+          // prefer profiling to start asynchronously
+          TimeSpan.FromMilliseconds(500)
+      ));`
+          : ''
+      }`
+          : ''
+      }
 
       // Other Sentry options can be set here.
   })
@@ -109,6 +157,41 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: tct(
+                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                  {
+                    sentryProfilingPackage: <code />,
+                  }
+                ),
+                code: [
+                  {
+                    language: 'shell',
+                    label: 'Package Manager',
+                    value: 'packageManager',
+                    code: getInstallProfilingSnippetPackageManager(params),
+                  },
+                  {
+                    language: 'shell',
+                    label: '.NET Core CLI',
+                    value: 'coreCli',
+                    code: getInstallProfilingSnippetCoreCli(params),
+                  },
+                ],
+              },
+              {
+                description: (
+                  <AlertWithoutMarginBottom type="info">
+                    {t(
+                      'Profiling for .NET Framework and .NET on Android are not supported.'
+                    )}
+                  </AlertWithoutMarginBottom>
+                ),
+              },
+            ]
+          : []),
       ],
     },
   ],
@@ -123,14 +206,31 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        params.isProfilingSelected
+          ? {
+              code: [
+                {
+                  language: 'csharp',
+                  label: 'Windows',
+                  value: 'Windows',
+                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS),
+                },
+                {
+                  language: 'csharp',
+                  label: 'iOS/Mac Catalyst',
+                  value: 'ios/macCatalyst',
+                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
+                },
+              ],
+            }
+          : {
+              language: 'csharp',
+              code: getConfigureSnippet(params),
+            },
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -143,57 +243,61 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance Monitoring'),
-      description: (
-        <Fragment>
-          {t(
-            'We do not yet have automatic performance instrumentation for .NET MAUI. We will be adding that in a future release. However, if desired you can still manually instrument parts of your application.'
-          )}
-          <p>
-            {tct(
-              'For some parts of your code, [automaticInstrumentationLink:automatic instrumentation] is available across all of our .NET SDKs, and can be used with MAUI as well:',
-              {
-                automaticInstrumentationLink: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/performance/instrumentation/automatic-instrumentation/" />
-                ),
-              }
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
-        {
-          description: tct(
-            'If your app uses [code:HttpClient], you can instrument your HTTP calls by passing our HTTP message handler:',
-            {code: <code />}
-          ),
-          language: 'csharp',
-          code: getPerformanceMessageHandlerSnippet(),
-        },
-        {
-          description: (
-            <Fragment>
-              {t(
-                'If your app uses Entity Framework Core or SQL Client, we will automatically instrument that for you without any additional code.'
-              )}
-              <p>
-                {tct(
-                  'For other parts of your code, you can use [customInstrumentationLink:custom instrumentation], such as in the following example:',
-                  {
-                    customInstrumentationLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/performance/instrumentation/custom-instrumentation/" />
-                    ),
-                  }
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Performance Monitoring'),
+            description: (
+              <Fragment>
+                {t(
+                  'We do not yet have automatic performance instrumentation for .NET MAUI. We will be adding that in a future release. However, if desired you can still manually instrument parts of your application.'
                 )}
-              </p>
-            </Fragment>
-          ),
-          language: 'csharp',
-          code: getPerformanceInstrumentationSnippet(),
-        },
-      ],
-    },
+                <p>
+                  {tct(
+                    'For some parts of your code, [automaticInstrumentationLink:automatic instrumentation] is available across all of our .NET SDKs, and can be used with MAUI as well:',
+                    {
+                      automaticInstrumentationLink: (
+                        <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/performance/instrumentation/automatic-instrumentation/" />
+                      ),
+                    }
+                  )}
+                </p>
+              </Fragment>
+            ),
+            configurations: [
+              {
+                description: tct(
+                  'If your app uses [code:HttpClient], you can instrument your HTTP calls by passing our HTTP message handler:',
+                  {code: <code />}
+                ),
+                language: 'csharp',
+                code: getPerformanceMessageHandlerSnippet(),
+              },
+              {
+                description: (
+                  <Fragment>
+                    {t(
+                      'If your app uses Entity Framework Core or SQL Client, we will automatically instrument that for you without any additional code.'
+                    )}
+                    <p>
+                      {tct(
+                        'For other parts of your code, you can use [customInstrumentationLink:custom instrumentation], such as in the following example:',
+                        {
+                          customInstrumentationLink: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/performance/instrumentation/custom-instrumentation/" />
+                          ),
+                        }
+                      )}
+                    </p>
+                  </Fragment>
+                ),
+                language: 'csharp',
+                code: getPerformanceInstrumentationSnippet(),
+              },
+            ],
+          },
+        ]
+      : []),
     {
       title: t('Sample Application'),
       description: tct(
@@ -232,3 +336,7 @@ const docs: Docs = {
 };
 
 export default docs;
+
+const AlertWithoutMarginBottom = styled(Alert)`
+  margin-bottom: 0;
+`;

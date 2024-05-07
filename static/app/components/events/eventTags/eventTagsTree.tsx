@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import EventTagsTreeRow, {
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {space} from 'sentry/styles/space';
-import type {EventTag} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
-import {useDimensions} from 'sentry/utils/useDimensions';
+import type {Event, EventTag} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -44,6 +44,10 @@ function addToTagTree(
   originalTag: EventTag
 ): TagTree {
   const BRANCH_MATCHES_REGEX = /\./g;
+  if (!defined(tag.key)) {
+    return tree;
+  }
+
   const branchMatches = tag.key.match(BRANCH_MATCHES_REGEX) ?? [];
 
   const hasInvalidBranchCount =
@@ -81,8 +85,9 @@ function getTagTreeRows({
   tagKey,
   content,
   spacerCount = 0,
+  uniqueKey,
   ...props
-}: EventTagsTreeRowProps) {
+}: EventTagsTreeRowProps & {uniqueKey: string}) {
   const subtreeTags = Object.keys(content.subtree);
   const subtreeRows = subtreeTags.reduce((rows, tag, i) => {
     const branchRows = getTagTreeRows({
@@ -91,16 +96,18 @@ function getTagTreeRows({
       content: content.subtree[tag],
       spacerCount: spacerCount + 1,
       isLast: i === subtreeTags.length - 1,
+      // Encoding the trunk index with the branch index ensures uniqueness for the key
+      uniqueKey: `${uniqueKey}-${i}`,
     });
     return rows.concat(branchRows);
   }, []);
-
   return [
     <EventTagsTreeRow
-      key={`${tagKey}-${spacerCount}`}
+      key={`${tagKey}-${spacerCount}-${uniqueKey}`}
       tagKey={tagKey}
       content={content}
       spacerCount={spacerCount}
+      data-test-id="tag-tree-row"
       {...props}
     />,
     ...subtreeRows,
@@ -126,7 +133,8 @@ function TagTreeColumns({
     // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
-      ([tagKey, content]) => getTagTreeRows({tagKey, content, ...props})
+      ([tagKey, content], i) =>
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, ...props})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
@@ -170,28 +178,23 @@ function TagTreeColumns({
 
 function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions<HTMLDivElement>({elementRef: containerRef});
-  const columnCount = width < 700 ? 1 : 2;
+  const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
-    <TreeContainer ref={containerRef}>
-      <TreeGarden columnCount={columnCount}>
-        <TagTreeColumns columnCount={columnCount} {...props} />
-      </TreeGarden>
+    <TreeContainer columnCount={columnCount} ref={containerRef}>
+      <TagTreeColumns columnCount={columnCount} {...props} />
     </TreeContainer>
   );
 }
 
-const TreeContainer = styled('div')`
+export const TreeContainer = styled('div')<{columnCount: number}>`
   margin-top: ${space(1.5)};
-`;
-
-const TreeGarden = styled('div')<{columnCount: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
+  margin-left: -${space(1)};
 `;
 
-const TreeColumn = styled('div')`
+export const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};

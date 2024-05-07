@@ -21,9 +21,9 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, get_region_for_organization
+from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -203,7 +203,6 @@ class BaseRequestParser(abc.ABC):
                 "integrations.parser.activate_buckets",
                 extra={"provider": self.provider, "integration_id": integration.id},
             )
-
         if not use_buckets:
             return str(integration.id)
 
@@ -300,8 +299,8 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
-        regions = [get_region_for_organization(organization.slug) for organization in organizations]
-        return sorted(regions, key=lambda r: r.name)
+        region_names = find_regions_for_orgs([org.id for org in organizations])
+        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)

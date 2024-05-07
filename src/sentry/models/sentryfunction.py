@@ -3,12 +3,7 @@ from typing import ClassVar
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    DefaultFieldsModel,
-    FlexibleForeignKey,
-    region_silo_only_model,
-)
+from sentry.db.models import BaseManager, DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.array import ArrayField
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
@@ -20,8 +15,10 @@ class SentryFunctionManager(BaseManager["SentryFunction"]):
         return functions
 
 
-@region_silo_only_model
+@region_silo_model
 class SentryFunction(DefaultFieldsModel):
+    """UNUSED! WILL BE DELETED!"""
+
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")

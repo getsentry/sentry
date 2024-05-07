@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -26,7 +25,9 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -306,14 +307,12 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
         <PermissionAlert project={project} />
-
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
             fields={[fields.name, fields.platform]}
           />
-
           <JsonForm
             {...jsonFormProps}
             title={t('Email')}

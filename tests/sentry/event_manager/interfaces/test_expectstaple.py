@@ -2,6 +2,13 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
+from sentry.testutils.helpers import override_options
+
+
+@pytest.fixture(autouse=True)
+def run_before_each():
+    with override_options({"relay.enable-orjson": 0.0}):
+        yield
 
 
 @pytest.fixture

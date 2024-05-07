@@ -1,8 +1,8 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
-import type {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {FILTER_OPTIONS} from './constants';

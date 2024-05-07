@@ -6,6 +6,7 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 
@@ -148,14 +149,14 @@ class IncidentListEndpointTest(APITestCase):
             name="alert rule",
             organization=self.organization,
             projects=[self.project],
-            owner=team.actor.get_actor_tuple(),
+            owner=RpcActor.from_id(user_id=None, team_id=team.id),
         )
         other_team = self.create_team(organization=self.organization, members=[self.user])
         other_alert_rule = self.create_alert_rule(
             name="rule 2",
             organization=self.organization,
             projects=[self.project],
-            owner=other_team.actor.get_actor_tuple(),
+            owner=RpcActor.from_id(user_id=None, team_id=other_team.id),
         )
         unassigned_alert_rule = self.create_alert_rule(
             name="rule 66",

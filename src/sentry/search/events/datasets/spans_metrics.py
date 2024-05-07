@@ -43,6 +43,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
                 self.builder, alias
             ),
+            constants.PROJECT_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
+                self.builder, alias
+            ),
+            constants.PROJECT_NAME_ALIAS: lambda alias: field_aliases.resolve_project_slug_alias(
+                self.builder, alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -149,21 +155,15 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.self_time",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS.union(
-                                    constants.SPAN_METRIC_BYTES_COLUMNS
-                                ),
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                                | constants.SPAN_METRIC_BYTES_COLUMNS
+                                | constants.SPAN_METRIC_COUNT_COLUMNS,
                             ),
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "avgIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_gauge=self._resolve_avg,
+                    snql_distribution=self._resolve_avg,
                     is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
@@ -173,7 +173,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.SPAN_METRIC_COUNT_COLUMNS,
                         ),
                         fields.MetricArg(
                             "if_col",
@@ -184,29 +185,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "avgIf",
-                        [
-                            Column("value"),
-                            Function(
-                                "and",
-                                [
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            args["metric_id"],
-                                        ],
-                                    ),
-                                    Function(
-                                        "equals",
-                                        [self.builder.column(args["if_col"]), args["if_val"]],
-                                    ),
-                                ],
-                            ),
-                        ],
-                        alias,
-                    ),
+                    snql_gauge=self._resolve_avg_if,
+                    snql_distribution=self._resolve_avg_if,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -333,6 +313,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
+                    "ai_total_tokens_used",
+                    optional_args=[
+                        fields.with_default(
+                            "c:spans/ai.total_tokens.used@none",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=["c:spans/ai.total_tokens.used@none"],
+                                allow_custom_measurements=False,
+                                allow_mri=True,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_counter=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
                     "http_response_rate",
                     required_args=[
                         SnQLStringArg("code"),
@@ -352,6 +355,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                                 ),
                             ],
                         ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "cache_hit_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_hit_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "cache_miss_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_miss_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
                         alias,
                     ),
                     default_result_type="percentage",
@@ -454,7 +475,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.SPAN_METRIC_COUNT_COLUMNS,
                             allow_custom_measurements=False,
                         ),
                         fields.MetricArg(
@@ -472,9 +494,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_avg_compare(
-                        self.builder.column, args, alias
-                    ),
+                    snql_gauge=self._resolve_avg_compare,
+                    snql_distribution=self._resolve_avg_compare,
                     default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
@@ -534,9 +555,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "count_op",
                     required_args=[
-                        SnQLStringArg(
-                            "op", allowed_strings=["queue.task.celery", "queue.submit.celery"]
-                        ),
+                        SnQLStringArg("op"),
                     ],
                     snql_distribution=self._resolve_count_op,
                     default_result_type="integer",
@@ -682,6 +701,80 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             total_time,
+            alias,
+        )
+
+    def _resolve_cache_hit_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("true"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("false"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_hit_and_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        statuses = [self.builder.resolve_tag_value(status) for status in constants.CACHE_HIT_STATUS]
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "in",
+                [
+                    self.builder.column("cache.hit"),
+                    list(status for status in statuses if status is not None),
+                ],
+            ),
             alias,
         )
 
@@ -988,6 +1081,44 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             ),
             alias,
         )
+
+    def _resolve_avg(self, args, alias):
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
+    def _resolve_avg_if(self, args, alias):
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                args["metric_id"],
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [self.builder.column(args["if_col"]), args["if_val"]],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_avg_compare(self, args, alias):
+        return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
 
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:

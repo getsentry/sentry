@@ -31,7 +31,7 @@ import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  fetchError: undefined | Error;
+  fetchError: null | undefined | Error;
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;

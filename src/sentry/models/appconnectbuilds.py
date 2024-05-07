@@ -1,5 +1,5 @@
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_only_model
+from sentry.db.models import region_silo_model
 
 """Database models to keep track of the App Store Connect builds for a project.
 
@@ -13,7 +13,7 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model
 
 
-@region_silo_only_model
+@region_silo_model
 class AppConnectBuild(Model):
     """A single build that exists or has existed on App Store Connect.
 

@@ -36,6 +36,10 @@ describe('EventEntries', function () {
   });
 
   it('renders the replay section in the correct place', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
     render(
       <EventEntries
         {...defaultProps}

@@ -76,7 +76,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         # We test without search.
@@ -215,7 +218,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         # We test without search.
@@ -274,7 +280,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         # We test without search.
@@ -347,7 +356,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -375,7 +387,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "sentry-api-0-artifact-bundles",
                 kwargs={
                     "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
+                    "project_id_or_slug": project.slug,
                 },
             )
 
@@ -403,7 +415,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -457,7 +472,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -511,7 +529,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             "sentry-api-0-artifact-bundles",
             kwargs={
                 "organization_slug": project_a.organization.slug,
-                "project_slug": project_a.slug,
+                "project_id_or_slug": project_a.slug,
             },
         )
 
@@ -567,7 +585,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             "sentry-api-0-artifact-bundles",
             kwargs={
                 "organization_slug": project_a.organization.slug,
-                "project_slug": project_a.slug,
+                "project_id_or_slug": project_a.slug,
             },
         )
 

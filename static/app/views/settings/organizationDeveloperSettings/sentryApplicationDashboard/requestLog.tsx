@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -15,7 +16,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Tag} from 'sentry/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

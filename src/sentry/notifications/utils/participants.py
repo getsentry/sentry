@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Q
 
 from sentry import features
-from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -234,8 +233,7 @@ def get_owners(
 
     else:
         outcome = "match"
-        resolved_owners = ActorTuple.resolve_many(owners)
-        recipients = RpcActor.many_from_object(resolved_owners)
+        recipients = owners
         # Used to suppress extra notifications to all matched owners, only notify the would-be auto-assignee
         if not features.has("organizations:notification-all-recipients", project.organization):
             recipients = recipients[-1:]

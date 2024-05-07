@@ -14,7 +14,7 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MonitorCheckInFailure,
+    MonitorIncidentType,
     NoiseConfig,
 )
 from sentry.issues.ingest import (
@@ -26,6 +26,7 @@ from sentry.issues.ingest import (
 )
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
@@ -147,6 +148,23 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
 
+    def test_new_group_with_user_assignee(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(event_id=event.event_id, assignee=f"user:{self.user.id}")
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.LOW
+        assignee = GroupAssignee.objects.get(group=group_info.group)
+        assert assignee.user_id == self.user.id
+
+    def test_new_group_with_team_assignee(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(event_id=event.event_id, assignee=f"team:{self.team.id}")
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        assignee = GroupAssignee.objects.get(group=group_info.group)
+        assert assignee.team_id == self.team.id
+
 
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
@@ -230,7 +248,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=["some-fingerprint"], type=MonitorCheckInFailure.type_id
+            fingerprint=["some-fingerprint"], type=MonitorIncidentType.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None

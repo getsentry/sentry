@@ -6,7 +6,6 @@ from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
-from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
@@ -25,6 +24,7 @@ from sentry.notifications.utils.participants import ParticipantMap, get_particip
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.json import methods_for_experiment
 
 from .base import ActivityNotification
 
@@ -64,7 +64,8 @@ class ReleaseActivityNotification(ActivityNotification):
         self.group_counts_by_project = get_group_counts_by_project(self.release, self.projects)
 
         self.version = self.release.version
-        self.version_parsed = parse_release(self.version)["description"]
+        json_loads, _ = methods_for_experiment("relay.enable-orjson")
+        self.version_parsed = parse_release(self.version, json_loads=json_loads)["description"]
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         return get_participants_for_release(self.projects, self.organization, self.user_ids)
@@ -160,9 +161,7 @@ class ReleaseActivityNotification(ActivityNotification):
                 return [
                     MessageAction(
                         name=project.slug,
-                        label=project.slug
-                        if features.has("organizations:slack-block-kit", self.project.organization)
-                        else None,
+                        label=project.slug,
                         url=self.organization.absolute_url(
                             f"/organizations/{project.organization.slug}/releases/{release.version}/",
                             query=f"project={project.id}&unselectedSeries=Healthy&referrer={self.metrics_key}&notification_uuid={self.notification_uuid}",

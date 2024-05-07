@@ -1,4 +1,4 @@
-import {Artifact} from 'sentry/types';
+import type {Artifact} from 'sentry/types/release';
 
 export function SourceMapArtifactFixture(params: Partial<Artifact> = {}): Artifact {
   return {

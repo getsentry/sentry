@@ -13,7 +13,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

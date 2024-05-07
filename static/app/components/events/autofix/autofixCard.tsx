@@ -1,24 +1,53 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
-import {AutofixResult} from 'sentry/components/events/autofix/fixResult';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
+import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import Panel from 'sentry/components/panels/panel';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => void}) {
+type AutofixCardProps = {
+  data: AutofixData;
+  groupId: string;
+  onRetry: () => void;
+};
+
+function AutofixFeedback() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const feedback = useFeedbackWidget({
+    buttonRef,
+    messagePlaceholder: t('How can we make Autofix better for you?'),
+  });
+
+  if (!feedback) {
+    return null;
+  }
+
+  return (
+    <Button ref={buttonRef} size="xs" icon={<IconMegaphone />}>
+      {t('Give Feedback')}
+    </Button>
+  );
+}
+
+export function AutofixCard({data, onRetry, groupId}: AutofixCardProps) {
   return (
     <AutofixPanel>
       <AutofixHeader>
         <Title>{t('Autofix')}</Title>
-        <Button size="xs" onClick={onRetry}>
-          Start Over
-        </Button>
+        <ButtonBar gap={1}>
+          <AutofixFeedback />
+          <Button size="xs" onClick={onRetry}>
+            {t('Start Over')}
+          </Button>
+        </ButtonBar>
       </AutofixHeader>
-      <AutofixSteps data={data} />
-      <AutofixResult autofixData={data} onRetry={onRetry} />
+      <AutofixSteps data={data} runId={data.run_id} groupId={groupId} onRetry={onRetry} />
     </AutofixPanel>
   );
 }

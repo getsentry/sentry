@@ -1,10 +1,13 @@
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
+from django.db.models.base import Model
 
 from sentry import eventstream, similarity, tsdb
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tsdb.base import TSDBModel
 
@@ -12,7 +15,7 @@ logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
 
 
-EXTRA_MERGE_MODELS = []
+EXTRA_MERGE_MODELS: list[type[Model]] = []
 
 
 @instrumented_task(
@@ -24,11 +27,11 @@ EXTRA_MERGE_MODELS = []
 )
 @track_group_async_operation
 def merge_groups(
-    from_object_ids=None,
-    to_object_id=None,
-    transaction_id=None,
-    recursed=False,
-    eventstream_state=None,
+    from_object_ids: list[int] | None = None,
+    to_object_id: list[int] | None = None,
+    transaction_id: int | None = None,
+    recursed: bool = False,
+    eventstream_state: Mapping[str, Any] | None = None,
     **kwargs,
 ):
     # TODO(mattrobenolt): Write tests for all of this
@@ -117,36 +120,42 @@ def merge_groups(
             )
 
             for model in [TSDBModel.group]:
-                tsdb.merge(
+                tsdb.backend.merge(
                     model,
                     new_group.id,
                     [group.id],
-                    environment_ids=environment_ids
-                    if model in tsdb.models_with_environment_support
-                    else None,
+                    environment_ids=(
+                        environment_ids
+                        if model in tsdb.backend.models_with_environment_support
+                        else None
+                    ),
                 )
 
             for model in [TSDBModel.users_affected_by_group]:
-                tsdb.merge_distinct_counts(
+                tsdb.backend.merge_distinct_counts(
                     model,
                     new_group.id,
                     [group.id],
-                    environment_ids=environment_ids
-                    if model in tsdb.models_with_environment_support
-                    else None,
+                    environment_ids=(
+                        environment_ids
+                        if model in tsdb.backend.models_with_environment_support
+                        else None
+                    ),
                 )
 
             for model in [
                 TSDBModel.frequent_releases_by_group,
                 TSDBModel.frequent_environments_by_group,
             ]:
-                tsdb.merge_frequencies(
+                tsdb.backend.merge_frequencies(
                     model,
                     new_group.id,
                     [group.id],
-                    environment_ids=environment_ids
-                    if model in tsdb.models_with_environment_support
-                    else None,
+                    environment_ids=(
+                        environment_ids
+                        if model in tsdb.backend.models_with_environment_support
+                        else None
+                    ),
                 )
 
             previous_group_id = group.id
