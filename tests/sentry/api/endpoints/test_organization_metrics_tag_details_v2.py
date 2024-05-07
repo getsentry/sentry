@@ -1,9 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
-from django.utils import timezone
 
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
@@ -11,29 +9,23 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
-MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
-    hour=10, minute=0, second=0, microsecond=0
-)
 
-
-def _indexer_record(org_id: int, string: str) -> None:
-    indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
-
-
-@freeze_time(MOCK_DATETIME)
+@freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricsTagDetailsTestV2(MetricsAPIBaseTestCase):
     method = "get"
     endpoint = "sentry-api-0-organization-metrics-tag-details"
 
     def setUp(self):
         super().setUp()
-        self.login_as(user=self.user)
+        self.login_as(self.user)
 
         release_1 = self.create_release(
-            project=self.project, version="1.0", date_added=MOCK_DATETIME
+            project=self.project, version="1.0", date_added=MetricsAPIBaseTestCase.MOCK_DATETIME
         )
         release_2 = self.create_release(
-            project=self.project, version="2.0", date_added=MOCK_DATETIME + timedelta(minutes=5)
+            project=self.project,
+            version="2.0",
+            date_added=MetricsAPIBaseTestCase.MOCK_DATETIME + timedelta(minutes=5),
         )
 
         for value, transaction, platform, env, release, time in (
@@ -73,19 +65,14 @@ class OrganizationMetricsTagDetailsTestV2(MetricsAPIBaseTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    def ts(self, dt: datetime) -> int:
-        return int(dt.timestamp())
-
     def test_unknown_tag(self):
-        qs_params = {
-            "metric": "d:transactions/duration@millisecond",
-            "project": "1",
-            "useCase": "transactions",
-        }
-
-        response = self.get_success_response(self.organization.slug, "transaction", **qs_params)
-        assert response
-        assert False
+        self.get_success_response(
+            self.organization.slug,
+            "transaction",
+            metric=["d:transactions/duration@millisecond"],
+            project=[self.project.id],
+            useCase="transactions",
+        )
 
     def test_non_existing_tag(self):
         assert False
@@ -99,14 +86,12 @@ class OrganizationMetricsTagDetailsTestV2(MetricsAPIBaseTestCase):
     def test_tag_values_for_session_status_tag(self):
         assert False
 
-    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_tag_values_for_derived_metrics(self):
         assert False
 
     def test_metric_not_in_naming_layer(self):
         assert False
 
-    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_tag_values_for_composite_derived_metrics(self):
         assert False
 
