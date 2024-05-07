@@ -1,7 +1,9 @@
 import type {Event} from 'sentry/types/event';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
-export default function hydrateEventTags(
-  eventData: Event | undefined
+export default function hydrateFeedbackTags(
+  eventData: Event | undefined,
+  issueData: FeedbackIssue | undefined
 ): Record<string, string> {
   if (!eventData || !eventData.contexts) {
     return {};
@@ -25,7 +27,9 @@ export default function hydrateEventTags(
     ...(eventTags.find(e => e.key === 'transaction')
       ? {transaction: eventTags.find(e => e.key === 'transaction')?.value}
       : {}),
-    ...(eventData.platform ? {platform: eventData.platform} : {}),
+    ...(eventData.platform
+      ? {platform: issueData?.project.platform ?? eventData.platform}
+      : {}),
     ...(eventData.sdk?.name ? {'sdk.name': eventData.sdk?.name} : {}),
     ...(eventData.sdk?.version ? {'sdk.version': eventData.sdk?.version} : {}),
     ...(eventData?.contexts?.feedback?.replay_id
