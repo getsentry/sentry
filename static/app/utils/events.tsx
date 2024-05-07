@@ -126,7 +126,7 @@ export function getTitle(
   grouping = false
 ) {
   const {metadata, type, culprit, title} = event;
-  const customTitle = metadata?.title || title;
+  const customTitle = metadata?.title;
 
   switch (type) {
     case EventOrGroupType.ERROR: {
@@ -178,7 +178,7 @@ export function getTitle(
       };
     case EventOrGroupType.DEFAULT:
       return {
-        title: customTitle ?? metadata.title ?? '',
+        title: customTitle ?? title,
         subtitle: '',
         treeLabel: undefined,
       };
