@@ -1,16 +1,18 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
+import Duration from 'sentry/components/duration';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
-import {TOP_SCREENS} from 'sentry/views/performance/mobile/screenload/screens';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -94,6 +96,18 @@ export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
             {row.transaction}
           </Link>
         </Fragment>
+      );
+    }
+
+    if (field.startsWith('avg_if(mobile.frames_delay')) {
+      return (
+        <NumberContainer>
+          {row[field] ? (
+            <Duration seconds={row[field]} fixedDigits={2} abbreviation />
+          ) : (
+            '-'
+          )}
+        </NumberContainer>
       );
     }
 

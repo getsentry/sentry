@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,

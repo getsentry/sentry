@@ -8,6 +8,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/apple-macos';
 import {t, tct} from 'sentry/locale';
 
@@ -347,7 +348,7 @@ const metricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:SentrySDK.metrics()] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:SentrySDK.metrics()] namespace.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -358,22 +359,22 @@ const metricsOnboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          configurations: [
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
             {
-              code: [
-                {
-                  label: 'Swift',
-                  value: 'swift',
-                  language: 'swift',
-                  code: getVerifyMetricsSnippetSwift(),
-                },
-                {
-                  label: 'Objective-C',
-                  value: 'c',
-                  language: 'c',
-                  code: getVerifyMetricsSnippetObjC(),
-                },
-              ],
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: getVerifyMetricsSnippetSwift(),
+            },
+            {
+              label: 'Objective-C',
+              value: 'c',
+              language: 'c',
+              code: getVerifyMetricsSnippetObjC(),
             },
           ],
         },

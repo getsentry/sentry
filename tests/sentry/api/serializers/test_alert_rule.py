@@ -14,12 +14,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.rule import Rule
-from sentry.models.team import Team
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.utils.actor import ActorTuple
 
 NOT_SET = object()
 
@@ -29,9 +27,7 @@ class BaseAlertRuleSerializerTest:
         self, alert_rule, result, skip_dates=False, resolve_threshold=NOT_SET
     ):
         alert_rule_projects = sorted(
-            AlertRule.objects.filter(id=alert_rule.id).values_list(
-                "snuba_query__subscriptions__project__slug", flat=True
-            )
+            AlertRule.objects.filter(id=alert_rule.id).values_list("projects__slug", flat=True)
         )
         assert result["id"] == str(alert_rule.id)
         assert result["organizationId"] == str(alert_rule.organization_id)
@@ -68,7 +64,7 @@ class BaseAlertRuleSerializerTest:
             assert result["environment"] is None
 
         if alert_rule.user_id or alert_rule.team_id:
-            owner = ActorTuple.from_id(user_id=alert_rule.user_id, team_id=alert_rule.team_id)
+            owner = RpcActor.from_id(user_id=alert_rule.user_id, team_id=alert_rule.team_id)
             assert owner
             assert result["owner"] == owner.identifier
         else:
@@ -109,11 +105,10 @@ class BaseAlertRuleSerializerTest:
         if data.get("date_added"):
             rule.date_added = data["date_added"]
         if data.get("owner"):
-            actor = ActorTuple.from_actor_identifier(data["owner"])
-            assert actor, "Should not be None"
-            if actor.type == User:
+            actor = RpcActor.from_identifier(data["owner"])
+            if actor.actor_type == ActorType.USER:
                 rule.owner_user_id = actor.id
-            if actor.type == Team:
+            if actor.actor_type == ActorType.TEAM:
                 rule.owner_team_id = actor.id
 
         rule.save()
@@ -184,8 +179,9 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[1]["projects"] == [
             project.slug for project in activated_alert_rule.projects.all()
         ]
+        # NOTE: we are now _only_ referencing alert_rule.projects fk (AlertRuleProjects)
         assert result[2]["projects"] == [
-            project.slug for project in activated_alert_rule.projects.all()
+            project.slug for project in alert_rule_no_projects.projects.all()
         ]
 
     def test_environment(self):
@@ -203,7 +199,9 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_owner(self):
         user = self.create_user("foo@example.com")
         alert_rule = self.create_alert_rule(
-            environment=self.environment, user=user, owner=self.team.actor.get_actor_tuple()
+            environment=self.environment,
+            user=user,
+            owner=RpcActor.from_id(team_id=self.team.id, user_id=None),
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)

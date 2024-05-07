@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import SearchBar from 'sentry/components/events/searchBar';
+import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {TagCollection} from 'sentry/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
@@ -18,6 +21,18 @@ const getSpanName = (index: number) => {
   return spanNames[index];
 };
 
+const omitSupportedTags = [SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
+
+const getTracesSupportedTags = () => {
+  const tags: TagCollection = Object.fromEntries(
+    Object.values(SpanIndexedField)
+      .filter(v => !omitSupportedTags.includes(v))
+      .map(v => [v, {key: v, name: v}])
+  );
+  tags.has = getHasTag(tags);
+  return tags;
+};
+
 export function TracesSearchBar({
   queries,
   handleSearch,
@@ -27,6 +42,8 @@ export function TracesSearchBar({
   const organization = useOrganization();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
+  const supportedTags = getTracesSupportedTags();
+
   return (
     <TraceSearchBarsContainer>
       {localQueries.map((query, index) => (
@@ -39,6 +56,9 @@ export function TracesSearchBar({
               'Search for traces containing a span matching these attributes'
             )}
             organization={organization}
+            metricAlert={false}
+            supportedTags={supportedTags}
+            dataset={DiscoverDatasets.SPANS_INDEXED}
           />
           <StyledButton
             aria-label={t('Remove span')}

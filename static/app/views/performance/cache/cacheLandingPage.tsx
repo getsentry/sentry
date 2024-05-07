@@ -10,6 +10,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -31,12 +32,13 @@ import {
 } from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanFunction} from 'sentry/views/starfish/types';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const {CACHE_MISS_RATE} = SpanFunction;
+const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
 export function CacheLandingPage() {
   const organization = useOrganization();
@@ -83,12 +85,15 @@ export function CacheLandingPage() {
       `${CACHE_MISS_RATE}()`,
       'sum(span.self_time)',
       'time_spent_percentage()',
+      `avg(${CACHE_ITEM_SIZE})`,
     ],
     sorts: [sort],
     cursor,
     limit: TRANSACTIONS_TABLE_ROW_COUNT,
     referrer: Referrer.LANDING_CACHE_TRANSACTION_LIST,
   });
+
+  addCustomMeta(transactionsListMeta);
 
   return (
     <React.Fragment>
@@ -172,6 +177,14 @@ export function LandingPageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+// TODO - this should come from the backend
+const addCustomMeta = (meta?: EventsMetaType) => {
+  if (meta) {
+    meta.fields[`avg(${CACHE_ITEM_SIZE})`] = 'size';
+    meta.units[`avg(${CACHE_ITEM_SIZE})`] = 'byte';
+  }
+};
 
 const DEFAULT_SORT = {
   field: 'time_spent_percentage()' as const,

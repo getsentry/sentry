@@ -70,6 +70,7 @@ export enum PerformanceWidgetSetting {
   SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
   SLOW_SCREENS_BY_COLD_START = 'slow_screens_by_cold_start',
   SLOW_SCREENS_BY_WARM_START = 'slow_screens_by_warm_start',
+  HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highest_cache__miss_rate_transactions',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -284,6 +285,17 @@ export const WIDGET_DEFINITIONS: ({
       PerformanceTerm.MOST_TIME_CONSUMING_RESOURCES
     ),
     fields: [`time_spent_percentage()`],
+    dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+    chartColor: WIDGET_PALETTE[0],
+  },
+  [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]: {
+    title: t('Highest Cache Miss Rates'),
+    subTitle: t('Suggested Transactions'),
+    titleTooltip: getTermHelp(
+      organization,
+      PerformanceTerm.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+    ),
+    fields: [`cache_miss_rate()`],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
   },

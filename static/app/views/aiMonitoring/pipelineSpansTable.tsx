@@ -31,13 +31,8 @@ type Column = GridColumnHeader<
 const COLUMN_ORDER: Column[] = [
   {
     key: SpanIndexedField.ID,
-    name: t('ID'),
+    name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: SpanIndexedField.SPAN_DURATION,
-    name: t('Total duration'),
-    width: 150,
   },
   {
     key: SpanIndexedField.USER,
@@ -48,6 +43,11 @@ const COLUMN_ORDER: Column[] = [
     key: SpanIndexedField.TIMESTAMP,
     name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: SpanIndexedField.SPAN_DURATION,
+    name: t('Total duration'),
+    width: 150,
   },
 ];
 

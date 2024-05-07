@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 type Props = {
   destination?: string;
@@ -11,8 +11,7 @@ type Props = {
 export function useQueuesMetricsQuery({destination, transaction, enabled}: Props) {
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
   if (destination) {
-    // TODO: This should filter by destination, not transaction
-    mutableSearch.addFilterValue('transaction', destination);
+    mutableSearch.addFilterValue('messaging.destination.name', destination);
   }
   if (transaction) {
     mutableSearch.addFilterValue('transaction', transaction);
@@ -21,12 +20,13 @@ export function useQueuesMetricsQuery({destination, transaction, enabled}: Props
     search: mutableSearch,
     fields: [
       'count()',
-      'count_op(queue.submit.celery)',
-      'count_op(queue.task.celery)',
+      'count_op(queue.publish)',
+      'count_op(queue.process)',
       'sum(span.self_time)',
       'avg(span.self_time)',
-      'avg_if(span.self_time,span.op,queue.submit.celery)',
-      'avg_if(span.self_time,span.op,queue.task.celery)',
+      'avg_if(span.self_time,span.op,queue.publish)',
+      'avg_if(span.self_time,span.op,queue.process)',
+      'avg(messaging.message.receive.latency)',
     ],
     enabled,
     sorts: [],

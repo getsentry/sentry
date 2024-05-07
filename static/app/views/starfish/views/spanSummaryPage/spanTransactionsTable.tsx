@@ -26,7 +26,10 @@ import {
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import type {SpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import type {MetricsResponse, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import type {
+  SpanIndexedFieldTypes,
+  SpanMetricsResponse,
+} from 'sentry/views/starfish/types';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
@@ -44,7 +47,7 @@ type Row = {
 
 type Props = {
   sort: ValidSort;
-  span: Pick<MetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
+  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
   endpoint?: string;
   endpointMethod?: string;
 };
@@ -155,6 +158,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
         hasData={spanTransactionMetrics.length > 0}
       >
         <GridEditable
+          aria-label={t('Transactions')}
           isLoading={isLoading}
           error={error}
           data={spanTransactionsWithMetrics}

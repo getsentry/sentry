@@ -1,5 +1,9 @@
 import {t} from 'sentry/locale';
-import type {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {
+  ActivationConditionType,
+  AlertRuleActivation,
+  MonitorType,
+} from 'sentry/types/alerts';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -84,21 +88,6 @@ export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
 };
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
-
-export type AlertRuleActivation = {
-  alertRuleId: string;
-  dateCreated: string;
-  finishedAt: string;
-  id: string;
-  isComplete: boolean;
-  querySubscriptionId: string;
-  metricValue?: number;
-};
-
-export enum ActivationCondition {
-  RELEASE_CONDITION = 0,
-  DEPLOY_CONDITION = 1,
-}
 
 // Form values for creating a new metric alert rule
 export type UnsavedMetricRule = {
