@@ -65,7 +65,7 @@ func application(_ application: UIApplication,
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn}"
-        options.debug = true // Enabled debug when first installing is always helpful${
+        options.debug = true // Enabling debug when first installing is always helpful${
           params.isPerformanceSelected
             ? `
 
@@ -77,7 +77,7 @@ func application(_ application: UIApplication,
           params.isProfilingSelected
             ? `
 
-        // Sample rate for profiling, applied on top of othe TracesSampleRate,
+        // Sample rate for profiling, applied on top of TracesSampleRate.
         // We recommend adjusting this value in production.
         options.profilesSampleRate = 1.0`
             : ''
@@ -95,7 +95,7 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn}"
-            options.debug = true // Enabled debug when first installing is always helpful${
+            options.debug = true // Enabling debug when first installing is always helpful${
               params.isPerformanceSelected
                 ? `
 
@@ -107,7 +107,7 @@ struct SwiftUIApp: App {
               params.isProfilingSelected
                 ? `
 
-            // Sample rate for profiling, applied on top of othe TracesSampleRate,
+            // Sample rate for profiling, applied on top of TracesSampleRate.
             // We recommend adjusting this value in production.
             options.profilesSampleRate = 1.0`
                 : ''
@@ -372,7 +372,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: (
               <p>
                 {tct(
-                  'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your AppDelegate [appDelegate: application:didFinishLaunchingWithOptions] method:',
+                  'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your UIAppDelegate: [appDelegate: - [UIAppDelegate application:didFinishLaunchingWithOptions:]] method:',
                   {
                     appDelegate: <code />,
                   }
