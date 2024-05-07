@@ -39,6 +39,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
+from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -470,7 +471,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             rules_by_environment_id[environment_id].add(rule_id)
 
         environment_names = dict(
-            Environment.objects.filter(id__in=rules_by_environment_id).values_list("id", "name")
+            Environment.objects.filter(organization_id=old_org_id).values_list("id", "name")
         )
 
         for environment_id, rule_ids in rules_by_environment_id.items():
@@ -487,6 +488,14 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             if monitor.slug in new_monitors:
                 RegionScheduledDeletion.schedule(monitor, days=0)
             else:
+                for monitor_env_id, env_id in MonitorEnvironment.objects.filter(
+                    monitor_id=monitor.id, status=MonitorStatus.ACTIVE
+                ).values_list("id", "environment_id"):
+                    MonitorEnvironment.objects.filter(id=monitor_env_id).update(
+                        environment_id=Environment.get_or_create(
+                            self, name=environment_names.get(env_id, None)
+                        ).id
+                    )
                 monitor.update(organization_id=organization.id)
 
         # Remove alert owners not in new org
