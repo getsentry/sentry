@@ -459,7 +459,7 @@ describe('AssigneeSelectorDropdown', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByText('Search users or teams...'), 'Cert');
+    await userEvent.type(screen.getByRole('textbox'), 'Cert');
 
     // 1 total item
     await waitFor(() => {
