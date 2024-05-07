@@ -101,7 +101,7 @@ export function CacheLandingPage() {
     isLoading: isTransactionDurationLoading,
   } = useMetrics({
     search: new MutableSearch(
-      `transaction:[${transactionsList.map(({transaction}) => transaction).join(',')}]`
+      `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`
     ),
     fields: [`avg(transaction.duration)`, 'transaction'],
     enabled: !isTransactionsListLoading && transactionsList.length > 0,
