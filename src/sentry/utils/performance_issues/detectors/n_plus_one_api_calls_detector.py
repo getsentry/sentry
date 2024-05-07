@@ -85,7 +85,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project=None):
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         trace_op = event.get("contexts", {}).get("trace", {}).get("op")
         if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
             return False
@@ -147,11 +147,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         return True
 
-    def on_complete(self):
+    def on_complete(self) -> None:
         self._maybe_store_problem()
         self.spans = []
 
-    def _maybe_store_problem(self):
+    def _maybe_store_problem(self) -> None:
         if len(self.spans) < 1:
             return
 
@@ -223,7 +223,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
         ]
 
-    def _get_path_prefix(self, repeating_span) -> str:
+    def _get_path_prefix(self, repeating_span: Span) -> str:
         if not repeating_span:
             return ""
 
