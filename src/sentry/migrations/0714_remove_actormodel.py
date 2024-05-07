@@ -26,7 +26,14 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                    ALTER TABLE "sentry_actor" DROP CONSTRAINT IF EXISTS "sentry_actor_team_id_6ca8eba5_fk_sentry_team_id"
+                    """,
+                    hints={"tables": ["sentry_actor"]},
+                )
+            ],
             state_operations=[
                 migrations.DeleteModel(
                     name="Actor",
