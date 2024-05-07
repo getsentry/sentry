@@ -219,6 +219,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             subscription.project.organization_id,
         )
         # TODO: determine whether concatenating query_extra is proper
+        # ANSWER: it is not. we need a proper timestamp start and end :thinking:
         snql_query = build_query_builder(
             entity_subscription=entity_subscription,
             query=f'{snuba_query.query}{f" and {subscription.query_extra}" if subscription.query_extra else ""}',

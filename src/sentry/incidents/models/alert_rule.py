@@ -139,6 +139,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         query_extra: str,
         origin: str,
         activator: str,
+        restrict_to_window: bool = False,
     ) -> list[QuerySubscription]:
         """
         Subscribes a project to an alert rule given activation condition
@@ -162,14 +163,21 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                             "origin": origin,
                             "query_extra": query_extra,
                             "condition": activation_condition,
+                            "restrict_to_window": restrict_to_window,
                         },
                     )
-                    # attempt to subscribe the alert rule
+                    now = timezone.now()
+                    window_delta = timedelta(seconds=alert_rule.snuba_query.time_window)
                     created_subscriptions.extend(
                         alert_rule.subscribe_projects(
                             projects=[project],
                             monitor_type=AlertRuleMonitorType.ACTIVATED,
-                            query_extra=query_extra,
+                            query_extra=(
+                                f"{query_extra}"
+                                + f" and lastSeen:>={now.isoformat()} and lastSeen:<{(now + window_delta).isoformat()}"
+                                if restrict_to_window
+                                else ""
+                            ),
                             activation_condition=activation_condition,
                             activator=activator,
                         )
