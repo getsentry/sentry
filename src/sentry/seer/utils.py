@@ -174,7 +174,7 @@ class SeerSimilarIssueData:
 
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
-) -> list[RawSeerSimilarIssueData]:
+) -> list[SeerSimilarIssueData]:
     """Call /v0/issues/similar-issues endpoint from seer."""
     response = seer_staging_connection_pool.urlopen(
         "POST",
@@ -199,4 +199,22 @@ def get_similar_issues_embeddings(
         )
         return []
 
-    return response_data.get("responses") or []
+    normalized = []
+
+    for raw_similar_issue_data in response_data.get("responses") or []:
+        try:
+            normalized.append(
+                SeerSimilarIssueData.from_raw(
+                    similar_issues_request["project_id"], raw_similar_issue_data
+                )
+            )
+        except (IncompleteSeerDataError, SimilarGroupNotFoundError) as err:
+            logger.exception(
+                str(err),
+                extra={
+                    "request_params": similar_issues_request,
+                    "raw_similar_issue_data": raw_similar_issue_data,
+                },
+            )
+
+    return normalized
