@@ -25,10 +25,11 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
+  MetricsFields,
   SpanFunction,
   SpanIndexedField,
   type SpanIndexedQueryFilters,
@@ -36,6 +37,8 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+
+const {TRANSACTION_DURATION} = MetricsFields;
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -74,6 +77,13 @@ export function CacheSamplePanel() {
       ],
       enabled: isPanelOpen,
       referrer: Referrer.SAMPLES_CACHE_METRICS_RIBBON,
+    });
+
+  const {data: transactionDurationData, isLoading: isTransactionDurationLoading} =
+    useMetrics({
+      search: MutableSearch.fromQueryObject({transaction: query.transaction}),
+      fields: [`avg(${TRANSACTION_DURATION})`],
+      enabled: isPanelOpen && Boolean(query.transaction),
     });
 
   const sampleFilters: SpanIndexedQueryFilters = {
@@ -190,6 +200,14 @@ export function CacheSamplePanel() {
                 value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
                 isLoading={areCacheTransactionMetricsFetching}
+              />
+
+              <MetricReadout
+                align="left"
+                title={DataTitles[`avg(${TRANSACTION_DURATION})`]}
+                value={transactionDurationData?.[0]?.[`avg(${TRANSACTION_DURATION})`]}
+                unit={DurationUnit.MILLISECOND}
+                isLoading={isTransactionDurationLoading}
               />
 
               <MetricReadout
