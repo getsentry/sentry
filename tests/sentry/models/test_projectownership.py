@@ -106,7 +106,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/thing.txt"}]}}
             ),
-            ([RpcActor(id=self.user.id, actor_type=ActorType.TEAM)], [rule_b]),
+            ([RpcActor(id=self.user.id, actor_type=ActorType.USER)], [rule_b]),
         )
 
         # Matches both rule_a and rule_b
