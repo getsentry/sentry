@@ -250,7 +250,7 @@ describe('CompactSelect', function () {
       await userEvent.click(screen.getByPlaceholderText('Search here…'));
       await userEvent.keyboard('Two');
 
-      // only Option Two should be available, Option One should be filtered out
+      // only Option Two should be available
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
       expect(screen.getAllByRole('option')).toHaveLength(1);
