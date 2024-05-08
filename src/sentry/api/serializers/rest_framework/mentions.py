@@ -7,7 +7,7 @@ from rest_framework import serializers
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import region_silo_function
 
@@ -43,8 +43,8 @@ def extract_user_ids_from_mentions(organization_id, mentions):
 
 
 def separate_actors(actors: Sequence[RpcActor]):
-    users = [actor for actor in actors if actor.actor_type == ActorType.USER]
-    teams = [actor for actor in actors if actor.actor_type == ActorType.TEAM]
+    users = [actor for actor in actors if actor.is_user]
+    teams = [actor for actor in actors if actor.is_team]
 
     return {"users": users, "teams": teams}
 

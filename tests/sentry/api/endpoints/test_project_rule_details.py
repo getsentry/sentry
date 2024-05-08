@@ -18,7 +18,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -38,10 +38,10 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     owner_id = payload.get("owner")
     if owner_id:
         actor = RpcActor.from_identifier(owner_id)
-        if actor.actor_type == ActorType.USER:
+        if actor.is_user:
             assert rule.owner_user_id == actor.id
             assert rule.owner_team_id is None
-        if actor.actor_type == ActorType.TEAM:
+        if actor.is_team:
             assert rule.owner_team_id == actor.id
             assert rule.owner_user_id is None
     else:

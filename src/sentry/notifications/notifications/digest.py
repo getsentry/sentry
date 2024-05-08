@@ -31,7 +31,7 @@ from sentry.notifications.utils.digest import (
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -192,9 +192,9 @@ class DigestNotification(ProjectNotification):
         for participants_by_provider in participants_by_provider_by_event.values():
             for provider, participants in participants_by_provider.items():
                 for participant in participants:
-                    if participant.actor_type == ActorType.TEAM:
+                    if participant.is_team:
                         team_ids.add(participant.id)
-                    elif participant.actor_type == ActorType.USER:
+                    elif participant.is_user:
                         user_ids.add(participant.id)
                     combined_participants_by_provider[provider].add(participant)
 
