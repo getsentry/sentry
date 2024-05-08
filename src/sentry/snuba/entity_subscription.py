@@ -145,6 +145,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        skip_time_conditions: bool = True,
     ) -> QueryBuilder:
         raise NotImplementedError
 
@@ -295,6 +296,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        skip_time_conditions: bool = True,
     ) -> QueryBuilder:
         from sentry.search.events.builder import AlertMetricsQueryBuilder
 
@@ -315,7 +317,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             offset=None,
             granularity=self.get_granularity(),
             config=QueryBuilderConfig(
-                skip_time_conditions=True,
+                skip_time_conditions=skip_time_conditions,
                 use_metrics_layer=self.use_metrics_layer,
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,

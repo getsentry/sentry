@@ -201,8 +201,11 @@ def build_query_builder(
     project_ids: list[int],
     environment: Environment | None,
     params: ParamsType | None = None,
+    skip_time_conditions: bool = True,
 ) -> QueryBuilder:
-    return entity_subscription.build_query_builder(query, project_ids, environment, params)
+    return entity_subscription.build_query_builder(
+        query, project_ids, environment, params, skip_time_conditions=skip_time_conditions
+    )
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
