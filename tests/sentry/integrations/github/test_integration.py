@@ -7,6 +7,7 @@ from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode, urlparse
 
+import orjson
 import pytest
 import responses
 from django.urls import reverse
@@ -33,7 +34,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -412,12 +412,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         self.client.get(init_path_1)
 
-        webhook_event = json.loads(INSTALLATION_EVENT_EXAMPLE)
+        webhook_event = orjson.loads(INSTALLATION_EVENT_EXAMPLE)
         webhook_event["installation"]["id"] = self.installation_id
         webhook_event["sender"]["login"] = "attacker"
         resp = self.client.post(
             path="/extensions/github/webhook/",
-            data=json.dumps(webhook_event),
+            data=orjson.dumps(webhook_event),
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation",
             HTTP_X_HUB_SIGNATURE="sha1=d184e6717f8bfbcc291ebc8c0756ee446c6c9486",

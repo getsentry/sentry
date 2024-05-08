@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from typing import TypeGuard
 
+import orjson
+
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
     ActionSet,
@@ -53,7 +55,6 @@ from sentry.testutils.helpers.notifications import (
 )
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -387,7 +388,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Assign" == assign_action["card"]["actions"][0]["title"]
 
         # Check if card is serializable to json
-        card_json = json.dumps(issue_card)
+        card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_message_builder_with_escalating_issues(self):
@@ -482,7 +483,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             assert "Assign" == assign_action["card"]["actions"][0]["title"]
 
             # Check if card is serializable to json
-            card_json = json.dumps(issue_card)
+            card_json = orjson.dumps(issue_card).decode()
             assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_without_description(self):

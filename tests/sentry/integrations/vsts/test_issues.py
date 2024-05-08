@@ -5,6 +5,7 @@ from time import time
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.test import RequestFactory, override_settings
@@ -30,7 +31,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -189,7 +189,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         }
         request = responses.calls[-1].request
         assert request.headers["Content-Type"] == "application/json-patch+json"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == [
             {"op": "add", "path": "/fields/System.Title", "value": "Hello"},
             # Adds both a comment and a description.
@@ -256,7 +256,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             ],
         )
 
-        request_body = json.loads(responses.calls[1].request.body)
+        request_body = orjson.loads(responses.calls[1].request.body)
         assert len(request_body) == 1
         assert request_body[0]["path"] == "/fields/System.AssignedTo"
         assert request_body[0]["value"] == "ftotten@vscsi.us"
@@ -319,7 +319,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             ],
         )
 
-        request_body = json.loads(responses.calls[2].request.body)
+        request_body = orjson.loads(responses.calls[2].request.body)
         assert len(request_body) == 1
         assert request_body[0]["path"] == "/fields/System.AssignedTo"
         assert request_body[0]["value"] == "ftotten@vscsi.us"
@@ -376,7 +376,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             req.url
             == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
         )
-        assert json.loads(req.body) == [
+        assert orjson.loads(req.body) == [
             {"path": "/fields/System.State", "value": "Resolved", "op": "replace"}
         ]
         assert responses.calls[2].response.status_code == 200

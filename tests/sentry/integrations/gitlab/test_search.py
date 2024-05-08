@@ -1,12 +1,12 @@
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 from django.urls import reverse
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
 
 @control_silo_test
@@ -104,7 +104,7 @@ class GitlabSearchTest(GitLabTestCase):
                 projects = [project_a, project_b] * 10
             else:
                 projects = [project_a, project_b] * 50
-            return (200, {}, json.dumps(projects))
+            return 200, {}, orjson.dumps(projects).decode()
 
         responses.add_callback(
             responses.GET,

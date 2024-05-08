@@ -1,4 +1,5 @@
-from sentry.utils import json
+import orjson
+
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.integration_extension_configuration import (
@@ -28,5 +29,5 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
                 max_age=INSTALL_EXPIRATION_TIME,
             )
         )
-        params["metadata"] = json.loads(params["metadata"])
+        params["metadata"] = orjson.loads(params["metadata"])
         return params

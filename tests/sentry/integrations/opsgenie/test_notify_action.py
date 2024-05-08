@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import orjson
 import pytest
 import responses
 
@@ -10,7 +11,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -69,7 +69,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert event.group is not None
         assert data["message"] == event.message
@@ -203,7 +203,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert event.group is not None
         assert data["message"] == event.message

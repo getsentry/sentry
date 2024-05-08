@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 
 import boto3
+import orjson
 
 from sentry import options
-from sentry.utils import json
 
 
 class ConfigurationError(Exception):
@@ -45,7 +45,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
         RoleSessionName="Sentry",
         RoleArn=role_arn,
         ExternalId=aws_external_id,
-        Policy=json.dumps(
+        Policy=orjson.dumps(
             {
                 "Version": "2012-10-17",
                 "Statement": [
@@ -66,7 +66,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
                     },
                 ],
             }
-        ),
+        ).decode(),
     )
 
     credentials = assumed_role_object["Credentials"]

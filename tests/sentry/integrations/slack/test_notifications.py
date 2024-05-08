@@ -1,6 +1,7 @@
 from unittest import mock
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 
 from sentry.integrations.slack.notifications import send_notification_as_slack
@@ -8,7 +9,6 @@ from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import DummyNotification
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 
 def additional_attachment_generator_block_kit(integration, organization):
@@ -40,7 +40,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             assert "text" in data
             assert data["text"][0] == "Notification Title"
 
-            blocks = json.loads(data["blocks"][0])
+            blocks = orjson.loads(data["blocks"][0])
             assert len(blocks) == 5
 
             assert blocks[0]["text"]["text"] == "Notification Title"
@@ -77,7 +77,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         assert "text" in data
         assert data["text"][0] == "Notification Title"
 
-        blocks = json.loads(data["blocks"][0])
+        blocks = orjson.loads(data["blocks"][0])
         assert len(blocks) == 3
 
         assert blocks[0]["text"]["text"] == "Notification Title"

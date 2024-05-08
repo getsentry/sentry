@@ -1,13 +1,13 @@
 import time
 from unittest.mock import patch
 
+import orjson
 import responses
 
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
 
 @control_silo_test
@@ -64,11 +64,11 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/auth-link-identity.html")
 
         def user_conversation_id_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "a_p_w_b_d"}] and payload["channelData"] == {
                 "tenant": {"id": "h0g5m34d3"}
             }:
-                return (200, {}, json.dumps({"id": "dumbl3d0r3"}))
+                return 200, {}, orjson.dumps({"id": "dumbl3d0r3"}).decode()
 
         responses.add_callback(
             method=responses.POST,
@@ -119,12 +119,12 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         )
 
         def user_conversation_id_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "g_w"}] and payload["channelData"] == {
                 "tenant": {"id": "th3_burr0w"}
             }:
-                return (200, {}, json.dumps({"id": "g1nny_w345l3y"}))
-            return (404, {}, json.dumps({}))
+                return 200, {}, orjson.dumps({"id": "g1nny_w345l3y"}).decode()
+            return 404, {}, orjson.dumps({}).decode()
 
         responses.add_callback(
             method=responses.POST,

@@ -1,5 +1,6 @@
 from time import time
 
+import orjson
 import responses
 
 from fixtures.vsts import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
@@ -14,7 +15,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
-from sentry.utils import json
 
 from .test_issues import VstsIssueBase
 
@@ -74,7 +74,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         # Trigger rule callback
         rule_future = RuleFuture(rule=azuredevops_rule, kwargs=results[0].kwargs)
         results[0].callback(event, futures=[rule_future])
-        data = json.loads(responses.calls[0].response.text)
+        data = orjson.loads(responses.calls[0].response.text)
 
         assert data["fields"]["System.Title"] == "Hello"
         assert data["fields"]["System.Description"] == "Fix this."

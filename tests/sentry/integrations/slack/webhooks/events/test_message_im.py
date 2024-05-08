@@ -1,3 +1,4 @@
+import orjson
 import responses
 
 from sentry.models.identity import Identity, IdentityStatus
@@ -5,7 +6,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegratedApiTestCase
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 
 from . import BaseEventTest
 
@@ -58,22 +58,22 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
     @responses.activate
     def test_identifying_channel_correctly(self):
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        event_data = json.loads(MESSAGE_IM_EVENT)
+        event_data = orjson.loads(MESSAGE_IM_EVENT)
         self.post_webhook(event_data=event_data)
         request = responses.calls[0].request
-        data = json.loads(request.body)
+        data = orjson.loads(request.body)
         assert data.get("channel") == event_data["channel"]
 
     @responses.activate
     def test_user_message_im_notification_platform(self):
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
+        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT))
         assert resp.status_code == 200, resp.content
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = json.loads(request.body)
+        data = orjson.loads(request.body)
         heading, contents = self.get_block_section_text(data)
         assert heading == "Unknown command: `helloo`"
         assert (
@@ -90,13 +90,13 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
             self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
 
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
+        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = json.loads(request.body)
+        data = orjson.loads(request.body)
         assert "Link your Slack identity" in get_response_text(data)
 
     @responses.activate
@@ -116,13 +116,13 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
             )
 
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
+        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = json.loads(request.body)
+        data = orjson.loads(request.body)
         assert "You are already linked" in get_response_text(data)
 
     @responses.activate
@@ -141,13 +141,13 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
             )
 
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
+        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = json.loads(request.body)
+        data = orjson.loads(request.body)
         assert "Click here to unlink your identity" in get_response_text(data)
 
     @responses.activate
@@ -160,22 +160,22 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
             self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
 
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
+        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = json.loads(request.body)
+        data = orjson.loads(request.body)
         assert "You do not have a linked identity to unlink" in get_response_text(data)
 
     def test_bot_message_im(self):
-        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))
+        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_BOT_EVENT))
         assert resp.status_code == 200, resp.content
 
     @responses.activate
     def test_user_message_im_no_text(self):
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_NO_TEXT))
+        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_NO_TEXT))
         assert resp.status_code == 200, resp.content
         assert len(responses.calls) == 0

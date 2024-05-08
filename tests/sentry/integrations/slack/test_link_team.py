@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Optional
 from urllib.parse import urlencode
 
+import orjson
 import responses
 from django.db.models import QuerySet
 from django.http.response import HttpResponseBase
@@ -19,7 +20,6 @@ from sentry.testutils.helpers import add_identity, get_response_text, install_sl
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 
 class SlackIntegrationLinkTeamTestBase(TestCase):
@@ -140,7 +140,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert external_actors[0].team_id == self.team.id
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"The {self.team.slug} team will now receive issue alert notifications in the {external_actors[0].external_name} channel."
             in get_response_text(data)
@@ -173,7 +173,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         response = self.get_success_response(data={"team": self.team.id})
         self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"The {self.team.slug} team has already been linked to a Slack channel."
             in get_response_text(data)
@@ -213,7 +213,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         external_actors = self.get_linked_teams()
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
             in get_response_text(data)
@@ -234,7 +234,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert external_actors[0].team_id == self.team.id
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
             in get_response_text(data)
@@ -276,7 +276,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(external_actors) == 0
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
             in get_response_text(data)
@@ -317,7 +317,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(external_actors) == 0
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
             in get_response_text(data)

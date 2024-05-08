@@ -1,5 +1,6 @@
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 
 from sentry.notifications.notifications.integration_nudge import (
@@ -9,7 +10,6 @@ from sentry.notifications.notifications.integration_nudge import (
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 SEED = 0
 
@@ -37,4 +37,4 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
 
         # Slack requires callback_id to handle enablement
         request_data = parse_qs(responses.calls[0].request.body)
-        assert json.loads(request_data["callback_id"][0]) == {"enable_notifications": True}
+        assert orjson.loads(request_data["callback_id"][0]) == {"enable_notifications": True}

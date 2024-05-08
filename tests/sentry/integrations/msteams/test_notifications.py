@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, Mock, call, patch
 
+import orjson
 import responses
 
 from sentry.integrations.msteams.notifications import send_notification_as_msteams
@@ -15,7 +16,6 @@ from sentry.testutils.helpers.notifications import (
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -224,7 +224,7 @@ class MSTeamsNotificationIntegrationTest(MSTeamsActivityNotificationTest):
         with self.tasks():
             notification.send()
 
-        data = json.loads(responses.calls[-1].request.body)
+        data = orjson.loads(responses.calls[-1].request.body)
 
         attachment = data["attachments"][0]
         assert "AdaptiveCard" == attachment["content"]["type"]

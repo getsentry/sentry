@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import orjson
 import responses
 
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
@@ -11,7 +12,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -81,7 +81,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == event.message
@@ -128,7 +128,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         perf_issue_title = "N+1 Query"
 
@@ -163,7 +163,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         results[0].callback(group_event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == group_event.occurrence.issue_title
@@ -291,7 +291,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
 
