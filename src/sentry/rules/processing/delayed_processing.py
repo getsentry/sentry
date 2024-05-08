@@ -4,8 +4,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
-from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
-
 from sentry import nodestore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
@@ -30,8 +28,10 @@ from sentry.rules.processing.processor import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.post_process import should_retry_fetch
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
@@ -212,13 +212,9 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
             node_id = Event.generate_node_id(project_id, event_id=event_id)
             node_id_to_event_id[node_id] = event_id
 
-    try:
-        bulk_data = nodestore.get_multi(list(node_id_to_event_id.keys()))
-    except (ServiceUnavailable, DeadlineExceeded):
-        try:
-            bulk_data = nodestore.get_multi(list(node_id_to_event_id.keys()))
-        except (ServiceUnavailable, DeadlineExceeded):
-            bulk_data = nodestore.get_multi(list(node_id_to_event_id.keys()))
+    node_ids = list(node_id_to_event_id.keys())
+    fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
+    bulk_data = fetch_retry_policy(lambda: nodestore.get_multi(node_ids))
 
     bulk_event_id_to_events: dict[str, Event] = {}
     for node_id, data in bulk_data.items():
@@ -238,40 +234,41 @@ def get_group_to_groupevent(
     group_to_groupevent: dict[Group, GroupEvent] = {}
     groups = Group.objects.filter(id__in=group_ids)
     group_id_to_group = {group.id: group for group in groups}
-    event_ids_to_group_ids: dict[str, int] = {}
+    event_ids: set[str] = set()
     occurrence_ids: list[str] = []
 
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
         group_id = rule_group[1]
         if event_id:
-            event_ids_to_group_ids[event_id] = int(group_id)
+            event_ids.add(event_id)
         occurrence_id = instance_data.get("occurrence_id")
         if occurrence_id:
             occurrence_ids.append(occurrence_id)
 
-    bulk_event_id_to_events = bulk_fetch_events(list(event_ids_to_group_ids.keys()), project_id)
+    bulk_event_id_to_events = bulk_fetch_events(list(event_ids), project_id)
     bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
+    bulk_occurrence_id_to_occurrence = {
+        occurrence.id: occurrence for occurrence in bulk_occurrences
+    }
 
-    for event_id, group_id in event_ids_to_group_ids.items():
-        event = None
+    for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
+        event_id = instance_data.get("event_id")
+        occurrence_id = instance_data.get("occurrence_id")
+        group_id = int(rule_group[1])
         group_event = None
-        occurrence = None
 
         event = bulk_event_id_to_events.get(event_id)
         group = group_id_to_group.get(group_id)
-        if event and group:
-            group_event = event.for_group(group)
+        if not group or not event:
+            continue
 
+        group_event = event.for_group(group)
+        occurrence = bulk_occurrence_id_to_occurrence.get(occurrence_id)
+        if occurrence and group_event:
+            group_event.occurrence = occurrence
         if group_event:
-            for bulk_occurrence in bulk_occurrences:
-                if bulk_occurrence:
-                    if occurrence_id == bulk_occurrence.id:
-                        occurrence = bulk_occurrence
-            if occurrence:
-                group_event.occurrence = occurrence
-            if group:
-                group_to_groupevent[group] = group_event
+            group_to_groupevent[group] = group_event
 
     return group_to_groupevent
 
