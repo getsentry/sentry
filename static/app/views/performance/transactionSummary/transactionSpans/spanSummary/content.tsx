@@ -117,7 +117,7 @@ function SpanSummaryContent(props: ContentProps) {
 
   const description = spanHeaderData[0]?.['span.description'] ?? t('unknown');
   const timeSpent = spanHeaderData[0]?.['sum(span.self_time)'];
-  const avgDuration = spanHeaderData[0]?.['avg(span.self_time)'];
+  const avgDuration = spanHeaderData[0]?.['avg(span.duration)'];
   const spanCount = spanHeaderData[0]?.['count()'];
 
   return (
