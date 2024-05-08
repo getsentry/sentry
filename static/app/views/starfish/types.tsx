@@ -132,7 +132,7 @@ export type SpanMetricsResponse = {
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
 } & {
-  'ai_total_tokens_used(c:spans/ai.total_cost@none)': number;
+  'ai_total_tokens_used(c:spans/ai.total_cost@usd)': number;
 } & {
   ['project']: string;
   ['project.id']: number;
