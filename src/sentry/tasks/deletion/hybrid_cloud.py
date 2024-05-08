@@ -263,6 +263,8 @@ def _process_tombstone_reconciliation(
     tombstone_cls: type[TombstoneBase],
     row_after_tombstone: bool,
 ) -> bool:
+    import logging
+
     from sentry import deletions
 
     prefix = "tombstone"
@@ -275,6 +277,11 @@ def _process_tombstone_reconciliation(
         prefix, field, watermark_manager, batch_size=get_batch_size(), model=model
     )
     has_more = watermark_batch.has_more
+    if "Monitor" in model.__name__:
+        logging.info(
+            "watermark status model=%s field=%s batch=%s", model.__name__, field, watermark_batch
+        )
+
     if watermark_batch.low < watermark_batch.up:
         to_delete_ids, oldest_seen = _get_model_ids_for_tombstone_cascade(
             tombstone_cls=tombstone_cls,
@@ -405,10 +412,15 @@ def get_ids_cross_db_for_row_watermark(
     field: HybridCloudForeignKey,
     row_watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
+    import logging
+
     oldest_seen = timezone.now()
     model_object_id_pairs = model.objects.filter(
         id__lte=row_watermark_batch.up, id__gt=row_watermark_batch.low
     ).values_list("id", f"{field.name}")
+
+    # TODO remove this logging after CI is sorted.
+    logging.info("model %s, field %s, model_list %s", model.__name__, field, model_object_id_pairs)
 
     # Construct a map of foreign key IDs to model IDs, which gives us the
     # minimal set of foreign key values to lookup in the tombstones table.
@@ -422,6 +434,8 @@ def get_ids_cross_db_for_row_watermark(
         table_name=field.foreign_table_name,
     ).values_list("object_identifier", "created_at")
 
+    logging.info("object_ids_to_check %s", object_ids_to_check)
+
     affected_rows: list[int] = []
     # Once we have the intersecting tombstones, use the dictionary we
     # created before to construct the minimal set of model IDs we need to
@@ -430,6 +444,7 @@ def get_ids_cross_db_for_row_watermark(
         affected_rows.extend(fk_to_model_id_map[object_id])
         oldest_seen = min(oldest_seen, created_at)
 
+    logging.info("affected_rows %s", [affected_rows, oldest_seen])
     return affected_rows, oldest_seen
 
 
