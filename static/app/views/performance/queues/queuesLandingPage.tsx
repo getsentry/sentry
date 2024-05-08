@@ -69,7 +69,9 @@ function QueuesLandingPage() {
             </ModuleLayout.Full>
 
             {onboardingProject && (
-              <Onboarding organization={organization} project={onboardingProject} />
+              <ModuleLayout.Full>
+                <Onboarding organization={organization} project={onboardingProject} />
+              </ModuleLayout.Full>
             )}
 
             {!onboardingProject && (

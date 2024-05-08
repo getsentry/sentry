@@ -1110,12 +1110,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-daily-organization-reports": {
-        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-        # Run every 1 hour on business days
-        "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-        "options": {"expires": 60 * 60 * 3},
-    },
+    # "schedule-daily-organization-reports": {
+    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+    #     # Run every 1 hour on business days
+    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
+    #     "options": {"expires": 60 * 60 * 3},
+    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1664,7 +1664,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
-    "organizations:multi-region-selector": False,
+    "organizations:multi-region-selector": True,
     # Enable new page filter UI
     "organizations:new-page-filter": True,
     # Display warning banner for every event issue alerts
