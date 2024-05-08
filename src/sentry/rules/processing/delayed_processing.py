@@ -4,7 +4,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
-from sentry import eventstore
+from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
+
+from sentry import nodestore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -200,6 +202,31 @@ def parse_rulegroup_to_event_data(
     return parsed_rulegroup_to_event_data
 
 
+def bulk_fetch_events(event_ids: list[str], project_id: int) -> set[Event]:
+    node_id_to_event_id = {
+        Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
+    }
+
+    try:
+        bulk_data = nodestore.get_multi(list(node_id_to_event_id.keys()))
+    except (ServiceUnavailable, DeadlineExceeded):
+        try:
+            bulk_data = nodestore.get_multi(list(node_id_to_event_id.keys()))
+        except (ServiceUnavailable, DeadlineExceeded):
+            bulk_data = nodestore.get_multi(list(node_id_to_event_id.keys()))
+
+    bulk_events = set()
+    for node_id, data in bulk_data.items():
+        if node_id in node_id_to_event_id:
+            event_id = node_id_to_event_id[node_id]
+            if data is not None:
+                event = Event(event_id=event_id, project_id=project_id)
+                event.data = data
+            bulk_events.add(event)
+
+    return bulk_events
+
+
 def get_group_to_groupevent(
     parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
     project_id: int,
@@ -208,30 +235,43 @@ def get_group_to_groupevent(
     group_to_groupevent: dict[Group, GroupEvent] = {}
     groups = Group.objects.filter(id__in=group_ids)
     group_id_to_group = {group.id: group for group in groups}
+    event_ids_to_group_ids: dict[str, int] = {}
+    occurrence_ids: list[str] = []
+
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
-        occurrence_id = instance_data.get("occurrence_id")
         group_id = rule_group[1]
-        group = group_id_to_group.get(int(group_id))
-        if group and event_id:
-            # TODO: fetch events and occurrences in batches
-            event = Event(
-                event_id=event_id,
-                project_id=project_id,
-                snuba_data={
-                    "event_id": event_id,
-                    "group_id": group.id,
-                    "project_id": project_id,
-                },
-            )
-            eventstore.backend.bind_nodes([event])
-            group_event = event.for_group(group)
-            if occurrence_id:
-                occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project_id)
-                if occurrence:
-                    group_event.occurrence = occurrence
+        if event_id:
+            event_ids_to_group_ids[event_id] = int(group_id)
+        occurrence_id = instance_data.get("occurrence_id")
+        if occurrence_id:
+            occurrence_ids.append(occurrence_id)
 
-            group_to_groupevent[group] = group_event
+    bulk_events = bulk_fetch_events(list(event_ids_to_group_ids.keys()), project_id)
+    bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
+
+    for event_id, group_id in event_ids_to_group_ids.items():
+        event = None
+        group_event = None
+        occurrence = None
+
+        for bulk_event in bulk_events:
+            if bulk_event.event_id == event_id:
+                event = bulk_event
+        group = group_id_to_group.get(group_id)
+        if event and group:
+            group_event = event.for_group(group)
+
+        if group_event:
+            for bulk_occurrence in bulk_occurrences:
+                if bulk_occurrence:
+                    if occurrence_id == bulk_occurrence.id:
+                        occurrence = bulk_occurrence
+            if occurrence:
+                group_event.occurrence = occurrence
+            if group:
+                group_to_groupevent[group] = group_event
+
     return group_to_groupevent
 
 
