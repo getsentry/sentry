@@ -12,27 +12,21 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
 
+type AssigneeBadgeProps = {
+  chevronDirection: 'up' | 'down';
+  assignedTo?: Actor | undefined;
+  assignmentReason?: string;
+  showLabel?: boolean;
+};
+
+const AVATAR_SIZE = 16;
+
 export function AssigneeBadge({
   assignedTo,
   assignmentReason,
   showLabel = false,
-}: {
-  assignedTo?: Actor | undefined;
-  assignmentReason?: string;
-  showLabel?: boolean;
-}) {
-  // const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
-  //   suspectCommit: tct('Based on [commit:commit data]', {
-  //     commit: (
-  //       <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
-  //     ),
-  //   }),
-  //   ownershipRule: t('Matching Issue Owners Rule'),
-  //   projectOwnership: t('Matching Issue Owners Rule'),
-  //   codeowners: t('Matching Codeowners Rule'),
-  // };
-  const AVATAR_SIZE = 16;
-
+  chevronDirection = 'down',
+}: AssigneeBadgeProps) {
   const makeAssignedIcon = (actor: Actor) => {
     return (
       <Fragment>
@@ -43,7 +37,7 @@ export function AssigneeBadge({
           hasTooltip={false}
         />
         {showLabel && <Fragment>{actor.name}</Fragment>}
-        <Chevron direction="down" size="small" />
+        <Chevron direction={chevronDirection} size="small" />
       </Fragment>
     );
   };
@@ -57,7 +51,7 @@ export function AssigneeBadge({
           height={`${AVATAR_SIZE}px`}
         />
         {showLabel && <Fragment>Unassigned</Fragment>}
-        <Chevron direction="down" size="small" />
+        <Chevron direction={chevronDirection} size="small" />
       </Fragment>
     );
   };
@@ -100,11 +94,6 @@ export function AssigneeBadge({
     </Tooltip>
   );
 }
-
-// const StyledIconUser = styled(IconUser)`
-//   /* We need this to center with Avatar */
-//   margin-right: 2px;
-// `;
 
 const TooltipWrapper = styled('div')`
   text-align: left;
