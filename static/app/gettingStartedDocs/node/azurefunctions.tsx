@@ -11,52 +11,20 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
-import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
 import {
-  getDefaultNodeImports,
   getInstallConfig,
+  getNodeRunCommandSnippet,
+  getSdkInitSnippet,
+  getSentryImportsSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const productSelection = (params: Params): ProductSelectionMap => {
-  return {
-    [ProductSolution.ERROR_MONITORING]: true,
-    [ProductSolution.PROFILING]: params.isProfilingSelected,
-    [ProductSolution.PERFORMANCE_MONITORING]: params.isPerformanceSelected,
-    [ProductSolution.SESSION_REPLAY]: params.isReplaySelected,
-  };
-};
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = () => `
 "use strict";
 
-${getDefaultNodeImports({productSelection: productSelection(params)}).join('\n')}
-
-Sentry.init({
-  dsn: "${params.dsn}",
-  integrations: [${
-    params.isProfilingSelected
-      ? `
-    nodeProfilingIntegration(),`
-      : ''
-  }
-  ],${
-    params.isPerformanceSelected
-      ? `
-  // Performance Monitoring
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-  // Set sampling rate for profiling - this is relative to tracesSampleRate
-  profilesSampleRate: 1.0,`
-      : ''
-  }
-});
+${getSentryImportsSnippet('node')}
 
 module.exports = async function (context, req) {
   try {
@@ -84,18 +52,46 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t('To set up Sentry error logging for an Azure Function:'),
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
+      ),
       configurations: [
         {
-          language: 'javascript',
-          code: getSdkSetupSnippet(params),
+          description: tct(
+            'To initialize the SDK before everything else, create an external file called [code:instrument.ts/js].',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'instrument.(js|mjs|ts)',
+              code: getSdkInitSnippet(params, 'node'),
+            },
+          ],
         },
         {
-          language: 'javascript',
+          description: tct(
+            'Modify the Node.js command to include the [code1:--require] option. This preloads [code2:instrument.(js|mjs|ts)] at startup.',
+            {code1: <code />, code2: <code />}
+          ),
+          code: [
+            {
+              label: 'Bash',
+              value: 'bash',
+              language: 'bash',
+              code: getNodeRunCommandSnippet(),
+            },
+          ],
+        },
+        {
           description: tct(
             'Note: You need to call both [captureExceptionCode:captureException] and [flushCode:flush] for captured events to be successfully delivered to Sentry.',
             {captureExceptionCode: <code />, flushCode: <code />}
           ),
+          language: 'javascript',
+          code: getSdkSetupSnippet(),
         },
       ],
     },

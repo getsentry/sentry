@@ -11,58 +11,25 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
-import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
 import {
-  getDefaultNodeImports,
   getInstallConfig,
+  getNodeRunCommandSnippet,
+  getSdkInitSnippet,
+  getSentryImportsSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const productSelection = (params: Params): ProductSelectionMap => {
-  return {
-    [ProductSolution.ERROR_MONITORING]: true,
-    [ProductSolution.PROFILING]: params.isProfilingSelected,
-    [ProductSolution.PERFORMANCE_MONITORING]: params.isPerformanceSelected,
-    [ProductSolution.SESSION_REPLAY]: params.isReplaySelected,
-  };
-};
-
-const getSdkSetupSnippet = (params: Params) => `
-${getDefaultNodeImports({productSelection: productSelection(params)}).join('\n')}
-
-Sentry.init({
-  dsn: "${params.dsn}",
-  integrations: [${
-    params.isProfilingSelected
-      ? `
-      nodeProfilingIntegration(),`
-      : ''
-  }
-],${
-  params.isPerformanceSelected
-    ? `
-      // Performance Monitoring
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
-    // Set sampling rate for profiling - this is relative to tracesSampleRate
-    profilesSampleRate: 1.0,`
-    : ''
-}
-});
-
-// Make sure to require/import this _after_ calling Sentry.init()!
+const getSdkSetupSnippet = () => `
+${getSentryImportsSnippet('node')}
 const express = require("express");
 
 const app = express();
 
 // All your controllers should live here
+
 app.get("/", function rootHandler(req, res) {
   res.end("Hello world!");
 });
@@ -92,18 +59,50 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Initialize Sentry as early as possible in your application's lifecycle, for example in your [code:index.ts/js] entry point. Make sure to initialize it before importing any other package:",
-        {code: <code />}
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
       ),
       configurations: [
         {
+          description: tct(
+            'To initialize the SDK before everything else, create an external file called [code:instrument.ts/js].',
+            {code: <code />}
+          ),
           code: [
             {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              filename: 'instrument.(js|mjs|ts)',
+              code: getSdkInitSnippet(params, 'node'),
+            },
+          ],
+        },
+        {
+          description: tct(
+            'Modify the Node.js command to include the [code1:--require] option. This preloads [code2:instrument.(js|mjs|ts)] at startup.',
+            {code1: <code />, code2: <code />}
+          ),
+          code: [
+            {
+              label: 'Bash',
+              value: 'bash',
+              language: 'bash',
+              code: getNodeRunCommandSnippet(),
+            },
+          ],
+        },
+        {
+          description: tct(
+            "Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)].",
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(),
             },
           ],
         },

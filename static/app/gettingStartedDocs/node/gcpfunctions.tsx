@@ -14,7 +14,7 @@ import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/getting
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
-import {getDefaulServerlessImports} from 'sentry/utils/gettingStartedDocs/node';
+import {getDefaultServerlessImports} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -40,7 +40,7 @@ dependencies: {
 }`;
 
 const getSdkSetupSnippet = (params: Params) => `
-${getDefaulServerlessImports({productSelection: productSelection(params), library: 'google-cloud-serverless'}).join('\n')}
+${getDefaultServerlessImports({productSelection: productSelection(params), library: 'google-cloud-serverless'}).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn}",
