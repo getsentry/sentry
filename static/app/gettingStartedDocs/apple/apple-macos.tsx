@@ -26,16 +26,27 @@ import Sentry
 
 // ....
 
-func application(_ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+func applicationDidFinishLaunching(_ aNotification: Notification) {
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn}"
-        options.debug = true // Enabled debug when first installing is always helpful
+        options.debug = true // Enabling debug when first installing is always helpful${
+          params.isPerformanceSelected
+            ? `
 
         // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
         // We recommend adjusting this value in production.
-        options.tracesSampleRate = 1.0
+        options.tracesSampleRate = 1.0`
+            : ''
+        }${
+          params.isProfilingSelected
+            ? `
+
+        // Sample rate for profiling, applied on top of TracesSampleRate.
+        // We recommend adjusting this value in production.
+        options.profilesSampleRate = 1.0`
+            : ''
+        }
     }
 
     return true
@@ -49,11 +60,23 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn}"
-            options.debug = true // Enabled debug when first installing is always helpful
+            options.debug = true // Enabling debug when first installing is always helpful${
+              params.isPerformanceSelected
+                ? `
 
             // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
-            options.tracesSampleRate = 1.0
+            options.tracesSampleRate = 1.0`
+                : ''
+            }${
+              params.isProfilingSelected
+                ? `
+
+            // Sample rate for profiling, applied on top of TracesSampleRate.
+            // We recommend adjusting this value in production.
+            options.profilesSampleRate = 1.0`
+                : ''
+            }
         }
     }
 }`;
@@ -115,9 +138,13 @@ const onboarding: OnboardingConfig = {
       description: (
         <p>
           {tct(
-            'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your AppDelegate [appDelegate: application:didFinishLaunchingWithOptions] method:',
+            'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your [appDelegate:] method:',
             {
-              appDelegate: <code />,
+              appDelegate: (
+                <code>
+                  - [NSAppDelegate applicationDidFinishLaunchingWithNotification:]
+                </code>
+              ),
             }
           )}
         </p>
