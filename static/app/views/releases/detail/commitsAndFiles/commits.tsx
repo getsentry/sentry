@@ -49,7 +49,7 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
     getResponseHeader,
   } = useApiQuery<Commit[]>(
     [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(
+      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
         params.release
       )}/commits/`,
       {query},
@@ -58,7 +58,6 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
       staleTime: Infinity,
     }
   );
-
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
   const activeRepoName: string | undefined = activeReleaseRepo

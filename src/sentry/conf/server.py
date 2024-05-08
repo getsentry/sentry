@@ -135,6 +135,7 @@ SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
+SENTRY_ASSEMBLE_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -1636,6 +1637,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-group-attributes-side-query": False,
     # Enable the updated empty state for issues
     "organizations:issue-stream-empty-state": False,
+    # Enable new events graph design for issue stream
+    "organizations:issue-stream-new-events-graph": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
     # Enabled latest adopted release filter for issue alerts

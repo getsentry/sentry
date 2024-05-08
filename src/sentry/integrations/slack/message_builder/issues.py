@@ -387,7 +387,7 @@ def build_actions(
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
         text = get_action_text(actions, identity)
-        if features.has("organizations:slack-improvements", project.organization):
+        if features.has("organizations:slack-thread-issue-alert", project.organization):
             # if actions are taken, return True at the end to show the white circle emoji
             return [], text, True
         return [], text, False
@@ -608,7 +608,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions and self.identity and not action_text:
             # this means somebody is interacting with the message
             action_text = get_action_text(self.actions, self.identity)
-            if features.has("organizations:slack-improvements", self.group.project.organization):
+            if features.has(
+                "organizations:slack-thread-issue-alert", self.group.project.organization
+            ):
                 has_action = True
 
         blocks = [self.get_title_block(rule_id, notification_uuid, obj, has_action)]

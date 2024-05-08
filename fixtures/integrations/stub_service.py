@@ -4,8 +4,9 @@ import os
 from copy import deepcopy
 from typing import Any
 
+import orjson
+
 from fixtures.integrations import FIXTURE_DIRECTORY
-from sentry.utils import json
 
 
 class StubService:
@@ -48,7 +49,7 @@ class StubService:
         if cached:
             data = cached
         else:
-            data = json.loads(StubService.get_stub_json(service_name, name))
+            data = orjson.loads(StubService.get_stub_json(service_name, name))
             StubService.stub_data_cache[cache_key] = data
         return deepcopy(data)
 
