@@ -50,7 +50,6 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         """
         from sentry.incidents.models.alert_rule import AlertRule
 
-        # We need an end time - so we'll need to calculate this from the alert rule :(
         query_extra = f"release:{release.version}"
         return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
             project=project,
@@ -58,7 +57,6 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             query_extra=query_extra,
             origin=trigger,
             activator=release.version,
-            restrict_to_window=True,
         )
 
     def post_save(self, instance, created, **kwargs):

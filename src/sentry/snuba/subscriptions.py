@@ -179,8 +179,8 @@ def create_snuba_subscription(
         timebox_start=timebox_start,
     )
 
-    # IF start exists on QuerySubscription
-    # Then set skip_time_conditions to false in query builder
+    # IF timebox_start exists on QuerySubscription
+    # Then skip_time_conditions set to false in query builder
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )

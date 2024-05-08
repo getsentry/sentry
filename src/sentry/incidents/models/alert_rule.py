@@ -171,7 +171,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                             query_extra=query_extra,
                             activation_condition=activation_condition,
                             activator=activator,
-                            timebox=True,
+                            timebox=True,  # activated alerts are timeboxed from subscription creation to end of SnubaQuery time_window
                         )
                     )
             return created_subscriptions
