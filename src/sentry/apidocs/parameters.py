@@ -25,6 +25,13 @@ class GlobalParams:
         type=str,
         location="path",
     )
+    ORG_ID_OR_SLUG = OpenApiParameter(
+        name="organization_id_or_slug",
+        description="The id or slug of the organization the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
         description="The id or slug of the project the resource belongs to.",
