@@ -166,15 +166,20 @@ def query_using_optimized_search(
         ]
 
     for i in range(len(search_filters)):
-        sf = search_filters[i]
-        if isinstance(sf, SearchFilter) and sf.key.name in VIEWED_BY_ME_KEY_ALIASES:
+        search_filter = search_filters[i]
+        if (
+            isinstance(search_filter, SearchFilter)
+            and search_filter.key.name in VIEWED_BY_ME_KEY_ALIASES
+        ):
             # "viewed_by_me" is not a valid query field.
             # It's a convenience alias for users without the admin access to lookup ids.
-            if sf.operator != "=":  # since the value is boolean, negations (!) are not allowed
-                raise ParseError(f"Invalid operator specified for {sf.key.name}")
+            if (
+                search_filter.operator != "="
+            ):  # since the value is boolean, negations (!) are not allowed
+                raise ParseError(f"Invalid operator specified for {search_filter.key.name}")
             search_filters[i] = SearchFilter(
                 SearchKey("viewed_by_id"),
-                "=" if sf.value.value else "!=",
+                "=" if search_filter.value.value else "!=",
                 SearchValue(request_user_id),
             )
 
