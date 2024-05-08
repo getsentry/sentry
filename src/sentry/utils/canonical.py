@@ -43,14 +43,7 @@ CANONICAL_KEY_MAPPING = {
 
 
 def get_canonical_name(key: str) -> str:
-    rv = CANONICAL_KEY_MAPPING.get(key)
-    if rv is None:
-        return key
-    else:
-        from sentry.utils import metrics
-
-        metrics.incr("canonical-legacy-key")
-        return rv[0]
+    return CANONICAL_KEY_MAPPING.get(key, (key,))[0]
 
 
 class CanonicalKeyView(Mapping[str, V]):

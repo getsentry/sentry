@@ -10,10 +10,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm';
+import {
+  DEFAULT_CHECKIN_MARGIN,
+  DEFAULT_MAX_RUNTIME,
+} from 'sentry/views/monitors/components/monitorForm';
 import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
 import {ScheduleType} from 'sentry/views/monitors/types';
@@ -67,7 +69,10 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       </CheckIns>
       <SectionHeading>{t('Schedule')}</SectionHeading>
       <Schedule>
-        <Text>{scheduleAsText(monitor.config)}</Text>
+        <Text>
+          {scheduleAsText(monitor.config)}{' '}
+          {schedule_type === ScheduleType.CRONTAB && `(${timezone})`}
+        </Text>
         {schedule_type === ScheduleType.CRONTAB && (
           <CrontabText>({schedule})</CrontabText>
         )}
@@ -76,13 +81,11 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       <Thresholds>
         <MonitorIndicator status="warning" size={12} />
         <Text>
-          {defined(checkin_margin)
-            ? tn(
-                'Check-ins missed after %s min',
-                'Check-ins missed after %s mins',
-                checkin_margin
-              )
-            : t('Check-ins that are missed')}
+          {tn(
+            'Check-ins missed after %s min',
+            'Check-ins missed after %s mins',
+            checkin_margin ?? DEFAULT_CHECKIN_MARGIN
+          )}
         </Text>
         <MonitorIndicator status="error" size={12} />
         <Text>
@@ -96,9 +99,6 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <KeyValueTable>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
-        {schedule_type === ScheduleType.CRONTAB && (
-          <KeyValueTableRow keyName={t('Timezone')} value={timezone} />
-        )}
         <KeyValueTableRow
           keyName={t('Owner')}
           value={

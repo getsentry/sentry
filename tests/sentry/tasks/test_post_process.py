@@ -1578,9 +1578,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
     def test_invalidates_snooze_issue_platform(self, mock_processor, mock_send_unignored_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
-        should_detect_escalation = group.issue_type.should_detect_escalation(
-            self.project.organization
-        )
+        should_detect_escalation = group.issue_type.should_detect_escalation()
 
         # Check for has_reappeared=False if is_new=True
         self.call_post_process_group(
