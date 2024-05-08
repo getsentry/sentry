@@ -769,8 +769,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*st",
                 "!activity:3",
                 "activity:<2",
-                f"viewed_by_id:{self.user.id+1}",
-                f"seen_by_id:{self.user.id+1}",
+                "viewed_by_id:7467356",
+                "seen_by_id:7467356",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
