@@ -12,7 +12,10 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate} from 'sentry/utils/dates';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm';
+import {
+  DEFAULT_CHECKIN_MARGIN,
+  DEFAULT_MAX_RUNTIME,
+} from 'sentry/views/monitors/components/monitorForm';
 import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
 import {ScheduleType} from 'sentry/views/monitors/types';
@@ -78,7 +81,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
           {tn(
             'Check-ins missed after %s min',
             'Check-ins missed after %s mins',
-            checkin_margin ?? 1
+            checkin_margin ?? DEFAULT_CHECKIN_MARGIN
           )}
         </Text>
         <MonitorIndicator status="error" size={12} />
