@@ -39,8 +39,6 @@ import {
 } from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
-const {TRANSACTION_DURATION} = MetricsFields;
-
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
   const router = useRouter();
@@ -85,7 +83,7 @@ export function CacheSamplePanel() {
       search: MutableSearch.fromQueryObject({
         transaction: query.transaction,
       } satisfies MetricsQueryFilters),
-      fields: [`avg(${TRANSACTION_DURATION})`],
+      fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
       enabled: isPanelOpen && Boolean(query.transaction),
     });
 
