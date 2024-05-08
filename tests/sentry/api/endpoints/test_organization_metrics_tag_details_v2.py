@@ -98,7 +98,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             project=[self.project.id],
             useCase="transactions",
         )
-        assert response.data == [
+        assert sorted(response.data, key=lambda x: x["value"]) == [
             {"key": "transaction", "value": "/hello"},
             {"key": "transaction", "value": "/world"},
         ]
