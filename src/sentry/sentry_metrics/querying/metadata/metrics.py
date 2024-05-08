@@ -22,44 +22,50 @@ def get_metrics_meta(
     if not projects:
         return []
 
-    stored_metrics = get_available_mris(organization, projects, use_case_ids)
-    metrics_blocking_state = (
-        get_metrics_blocking_state_of_projects(projects) if UseCaseID.CUSTOM in use_case_ids else {}
-    )
-
     metrics_metas = []
-    for metric_mri, project_ids in stored_metrics.items():
-        parsed_mri = parse_mri(metric_mri)
 
-        blocking_status = []
-        if (metric_blocking := metrics_blocking_state.get(metric_mri)) is not None:
-            blocking_status = [
-                BlockedMetric(isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id)
-                for is_blocked, blocked_tags, project_id in metric_blocking
-            ]
-            # We delete the metric so that in the next steps we can just merge the remaining blocked metrics that are
-            # not stored.
-            del metrics_blocking_state[metric_mri]
+    for use_case_id in use_case_ids:
+        stored_metrics = get_available_mris(organization, projects, use_case_id)
+        metrics_blocking_state = (
+            get_metrics_blocking_state_of_projects(projects)
+            if UseCaseID.CUSTOM in use_case_ids
+            else {}
+        )
 
-        metrics_metas.append(_build_metric_meta(parsed_mri, project_ids, blocking_status))
+        for metric_mri, project_ids in stored_metrics.items():
+            parsed_mri = parse_mri(metric_mri)
 
-    for metric_mri, metric_blocking in metrics_blocking_state.items():
-        parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is None:
-            continue
-
-        metrics_metas.append(
-            _build_metric_meta(
-                parsed_mri,
-                [],
-                [
+            blocking_status = []
+            if (metric_blocking := metrics_blocking_state.get(metric_mri)) is not None:
+                blocking_status = [
                     BlockedMetric(
                         isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id
                     )
                     for is_blocked, blocked_tags, project_id in metric_blocking
-                ],
+                ]
+                # We delete the metric so that in the next steps we can just merge the remaining blocked metrics that are
+                # not stored.
+                del metrics_blocking_state[metric_mri]
+
+            metrics_metas.append(_build_metric_meta(parsed_mri, project_ids, blocking_status))
+
+        for metric_mri, metric_blocking in metrics_blocking_state.items():
+            parsed_mri = parse_mri(metric_mri)
+            if parsed_mri is None:
+                continue
+
+            metrics_metas.append(
+                _build_metric_meta(
+                    parsed_mri,
+                    [],
+                    [
+                        BlockedMetric(
+                            isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id
+                        )
+                        for is_blocked, blocked_tags, project_id in metric_blocking
+                    ],
+                )
             )
-        )
 
     return metrics_metas
 

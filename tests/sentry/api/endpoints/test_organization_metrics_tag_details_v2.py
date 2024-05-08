@@ -11,7 +11,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
-class OrganizationMetricsTagDetailsTestV2(MetricsAPIBaseTestCase):
+class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
     method = "get"
     endpoint = "sentry-api-0-organization-metrics-tag-details"
 
@@ -143,6 +143,19 @@ class OrganizationMetricsTagDetailsTestV2(MetricsAPIBaseTestCase):
             self.project.organization.slug,
             "my_non_existent_tag",
             metric=["d:custom/my_non_existent_test_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
+        )
+        assert response.content == b'{"detail":"Unknown metric or tag key"}'
+
+    def test_tag_details_for_multiple_supplied_metrics(self):
+        response = self.get_error_response(
+            self.project.organization.slug,
+            "my_non_existent_tag",
+            metric=[
+                "d:custom/my_test_metric@percent",
+                "d:transactions/duration@millisecond",
+            ],
             project=[self.project.id],
             useCase="custom",
         )

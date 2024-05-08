@@ -37,6 +37,7 @@ from sentry.sentry_metrics.querying.errors import (
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
+from sentry.sentry_metrics.querying.metadata.metrics import get_metrics_meta
 from sentry.sentry_metrics.querying.metadata.tags import get_tag_values
 from sentry.sentry_metrics.querying.metadata.utils import convert_metric_names_to_mris
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
@@ -47,13 +48,7 @@ from sentry.sentry_metrics.use_case_id_registry import (
     get_use_case_id_api_access,
 )
 from sentry.sentry_metrics.utils import string_to_use_case_id
-from sentry.snuba.metrics import (
-    QueryDefinition,
-    get_all_tags,
-    get_metrics_meta,
-    get_series,
-    get_single_metric_info,
-)
+from sentry.snuba.metrics import QueryDefinition, get_all_tags, get_series, get_single_metric_info
 from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
@@ -156,10 +151,8 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
         if not projects:
             raise InvalidParams("You must supply at least one project to see its metrics")
 
-        start, end = get_date_range_from_params(request.GET)
-
         metrics = get_metrics_meta(
-            projects=projects, use_case_ids=get_use_case_ids(request), start=start, end=end
+            organization=organization, projects=projects, use_case_ids=get_use_case_ids(request)
         )
 
         return Response(metrics, status=200)
