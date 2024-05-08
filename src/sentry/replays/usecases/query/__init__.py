@@ -44,13 +44,16 @@ from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
-NULL_VIEWED_BY_ID_VALUE = 0  # default in Snuba
+NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
 
 
 def handle_viewed_by_me_filters(
     search_filters: Sequence[SearchFilter | str | ParenExpression], request_user_id: int | None
 ) -> Sequence[SearchFilter | str | ParenExpression]:
     """Translate "viewed_by_me" as it's not a valid Snuba field, but a convenience alias for the frontend"""
+    if request_user_id is None:
+        request_user_id = NULL_VIEWED_BY_ID_VALUE
+
     new_filters = []
     for search_filter in search_filters:
         if (
@@ -74,11 +77,10 @@ def handle_viewed_by_me_filters(
             SearchFilter(
                 SearchKey("viewed_by_id"),
                 operator,
-                SearchValue(
-                    request_user_id if request_user_id is not None else NULL_VIEWED_BY_ID_VALUE
-                ),
+                SearchValue(request_user_id),
             )
         )
+
     return new_filters
 
 
