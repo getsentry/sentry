@@ -1,6 +1,7 @@
 import logging
 
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -124,7 +125,11 @@ def update_snuba_query(
 
 
 def bulk_create_snuba_subscriptions(
-    projects, subscription_type, snuba_query, query_extra: str | None = None
+    projects,
+    subscription_type,
+    snuba_query,
+    query_extra: str | None = None,
+    timebox: bool = False,
 ) -> list[QuerySubscription]:
     """
     Creates a subscription to a snuba query for each project.
@@ -139,13 +144,19 @@ def bulk_create_snuba_subscriptions(
     # TODO: Batch this up properly once we care about multi-project rules.
     for project in projects:
         subscriptions.append(
-            create_snuba_subscription(project, subscription_type, snuba_query, query_extra)
+            create_snuba_subscription(
+                project, subscription_type, snuba_query, query_extra, timebox=timebox
+            )
         )
     return subscriptions
 
 
 def create_snuba_subscription(
-    project, subscription_type, snuba_query, query_extra: str | None = None
+    project,
+    subscription_type,
+    snuba_query,
+    query_extra: str | None = None,
+    timebox: bool = False,
 ) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
@@ -156,14 +167,20 @@ def create_snuba_subscription(
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
     :return: The QuerySubscription representing the subscription
     """
+    timebox_start = None
+    if timebox:
+        timebox_start = timezone.now()
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,
         project=project,
         snuba_query=snuba_query,
         type=subscription_type,
         query_extra=query_extra,
+        timebox_start=timebox_start,
     )
 
+    # IF start exists on QuerySubscription
+    # Then set skip_time_conditions to false in query builder
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )

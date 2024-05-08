@@ -166,6 +166,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        skip_time_conditions: bool = True,
     ) -> QueryBuilder:
         from sentry.search.events.builder import ErrorsQueryBuilder, QueryBuilder
 
@@ -198,7 +199,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             offset=None,
             limit=None,
             config=QueryBuilderConfig(
-                skip_time_conditions=True,
+                skip_time_conditions=skip_time_conditions,
                 parser_config_overrides=parser_config_overrides,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
             ),
