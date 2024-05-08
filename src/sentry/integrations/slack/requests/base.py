@@ -209,9 +209,6 @@ class SlackRequest:
     def _check_signing_secret(self, signing_secret: str) -> bool:
         signature = self.request.META.get("HTTP_X_SLACK_SIGNATURE")
         timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
-        if not (signature and timestamp):
-            return False
-
         return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
 
     def _check_verification_token(self, verification_token: str) -> bool:
