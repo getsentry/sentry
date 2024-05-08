@@ -9,7 +9,7 @@ from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -105,11 +105,11 @@ def get_integrations_by_channel_by_recipient(
     output: MutableMapping[RpcActor, Mapping[str, RpcIntegration]] = defaultdict(dict)
     for recipient in RpcActor.many_from_object(recipients):
         channels_to_integrations = None
-        if recipient.actor_type == ActorType.USER:
+        if recipient.is_user:
             channels_to_integrations = _get_channel_and_integration_by_user(
                 recipient.id, organization, provider
             )
-        elif recipient.actor_type == ActorType.TEAM:
+        elif recipient.is_team:
             channels_to_integrations = _get_channel_and_integration_by_team(
                 recipient.id, organization, provider
             )

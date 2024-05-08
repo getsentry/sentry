@@ -50,7 +50,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
@@ -560,9 +560,9 @@ def create_alert_rule(
     owner_user_id = None
     owner_team_id = None
     if owner and isinstance(owner, RpcActor):
-        if owner.actor_type == ActorType.USER:
+        if owner.is_user:
             owner_user_id = owner.id
-        elif owner.actor_type == ActorType.TEAM:
+        elif owner.is_team:
             owner_team_id = owner.id
     elif owner:
         assert False, "Cannot create, invalid input type for owner"
@@ -765,9 +765,9 @@ def update_alert_rule(
         team_id = None
         user_id = None
         if owner and isinstance(owner, RpcActor):
-            if owner.actor_type == ActorType.USER:
+            if owner.is_user:
                 user_id = owner.id
-            elif owner.actor_type == ActorType.TEAM:
+            elif owner.is_team:
                 team_id = owner.id
         elif owner:
             assert False, "Cannot update, invalid input type for owner"

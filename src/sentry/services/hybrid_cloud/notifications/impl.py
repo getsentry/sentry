@@ -66,7 +66,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         value: NotificationSettingsOptionEnum,
     ):
         kwargs = {}
-        if actor.actor_type == ActorType.USER:
+        if actor.is_user:
             kwargs["user_id"] = actor.id
         else:
             kwargs["team_id"] = actor.id

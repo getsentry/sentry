@@ -32,7 +32,6 @@ from sentry.monitors.utils import (
     update_issue_alert_rule,
 )
 from sentry.monitors.validators import MonitorValidator
-from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.outcomes import Outcome
 
@@ -98,9 +97,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             owner = result["owner"]
             params["owner_user_id"] = None
             params["owner_team_id"] = None
-            if owner and owner.actor_type == ActorType.USER:
+            if owner and owner.is_user:
                 params["owner_user_id"] = owner.id
-            elif owner and owner.actor_type == ActorType.TEAM:
+            elif owner and owner.is_team:
                 params["owner_team_id"] = owner.id
         if "config" in result:
             params["config"] = result["config"]

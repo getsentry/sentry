@@ -105,7 +105,7 @@ def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, 
 def recipient_is_user(recipient: RpcActor | Team | RpcUser | User) -> bool:
     from sentry.models.user import User
 
-    if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.USER:
+    if isinstance(recipient, RpcActor) and recipient.is_user:
         return True
     return isinstance(recipient, (RpcUser, User))
 
@@ -113,7 +113,7 @@ def recipient_is_user(recipient: RpcActor | Team | RpcUser | User) -> bool:
 def recipient_is_team(recipient: RpcActor | Team | RpcUser | User) -> bool:
     from sentry.models.team import Team
 
-    if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.TEAM:
+    if isinstance(recipient, RpcActor) and recipient.is_team:
         return True
     return isinstance(recipient, Team)
 

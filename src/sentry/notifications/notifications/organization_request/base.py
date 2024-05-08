@@ -11,7 +11,7 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -47,7 +47,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return ""
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
-        if recipient.actor_type == ActorType.TEAM:
+        if recipient.is_team:
             raise NotImplementedError
 
         settings_url = self.format_url(
@@ -64,7 +64,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return None
 
     def get_log_params(self, recipient: RpcActor) -> MutableMapping[str, Any]:
-        if recipient.actor_type == ActorType.TEAM:
+        if recipient.is_team:
             raise NotImplementedError
 
         return {
