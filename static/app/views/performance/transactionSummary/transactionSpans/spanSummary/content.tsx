@@ -110,7 +110,7 @@ function SpanSummaryContent(props: ContentProps) {
 
   const {data: spanHeaderData} = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
-    fields: ['span.description', 'avg(span.self_time)', 'sum(span.self_time)', 'count()'],
+    fields: ['span.description', 'avg(span.duration)', 'sum(span.self_time)', 'count()'],
     enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page',
   });
