@@ -13,7 +13,7 @@ from sentry.db.models import Model
 from sentry.models.environment import Environment
 from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.safe import safe_execute
 
@@ -133,7 +133,7 @@ class BaseNotification(abc.ABC):
             "actor_type": recipient.actor_type,
             "group_id": group.id if group else None,
         }
-        if recipient.actor_type == ActorType.USER:
+        if recipient.is_user:
             params["user_id"] = recipient.id
         return params
 
@@ -213,7 +213,7 @@ class BaseNotification(abc.ABC):
     def get_settings_url(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         set_organization_id = False
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
-        if recipient.actor_type == ActorType.TEAM:
+        if recipient.is_team:
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"

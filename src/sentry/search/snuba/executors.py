@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import Enum, auto
 from hashlib import md5
 from math import floor
 from typing import Any, TypedDict, cast
@@ -85,6 +86,11 @@ DEFAULT_TRENDS_WEIGHTS: TrendsSortWeights = {
     "v2": True,
     "norm": False,
 }
+
+
+class Clauses(Enum):
+    HAVING = auto()
+    WHERE = auto()
 
 
 @dataclass
@@ -1130,6 +1136,24 @@ class InvalidQueryForExecutor(Exception):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    def get_last_seen_filter(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
+        # get the max timestamp of the error/search_issue event
+        return Condition(
+            Function("max", [Column("timestamp", joined_entity)]),
+            Op(search_filter.operator),
+            search_filter.value.raw_value,
+        )
+
+    def get_first_seen_filter(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        # use the group first seen from the group dataset
+        return Condition(
+            Column("group_first_seen", self.entities["attrs"]),
+            Op(search_filter.operator),
+            search_filter.value.raw_value,
+        )
+
     def get_basic_group_snuba_condition(
         self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
@@ -1426,13 +1450,14 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     }
 
     group_conditions_lookup = {
-        "status": get_basic_group_snuba_condition,
-        "substatus": get_basic_group_snuba_condition,
-        "assigned_or_suggested": get_assigned_or_suggested,
-        "assigned_to": get_assigned,
-        "message": get_message_condition,
+        "status": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "substatus": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
+        "assigned_to": (get_assigned, Clauses.WHERE),
+        "message": (get_message_condition, Clauses.WHERE),
+        "first_seen": (get_first_seen_filter, Clauses.WHERE),
+        "last_seen": (get_last_seen_filter, Clauses.HAVING),
     }
-
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
 
@@ -1538,14 +1563,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 Condition(Column("timestamp", joined_entity), Op.GTE, start),
                 Condition(Column("timestamp", joined_entity), Op.LT, end),
             ]
+            having = []
             for search_filter in search_filters or ():
                 # use the stored function if it exists in our mapping, otherwise use the basic lookup
-                fn = self.group_conditions_lookup.get(search_filter.key.name)
-                if fn:
-                    where_conditions.append(fn(self, search_filter, joined_entity))
-                elif search_filter.key.name in ["issue.category", "issue.type"]:
-                    # handle this separately since it's a special case that combines both issue.type and issue.category to determine the type
+                lookup = self.group_conditions_lookup.get(search_filter.key.name)
+                fn = lookup[0] if lookup else None
+                clause = lookup[1] if lookup else Clauses.WHERE
+
+                # skip these
+                if search_filter.key.name in ["issue.category", "issue.type"]:
                     pass
+                elif fn:
+                    # dynamic lookup of what clause to use
+                    if clause == Clauses.WHERE:
+                        where_conditions.append(fn(self, search_filter, joined_entity))
+                    elif clause == Clauses.HAVING:
+                        having.append(fn(self, search_filter, joined_entity))
+                    else:
+                        raise InvalidQueryForExecutor(f"Invalid clause {clause}")
                 else:
                     where_conditions.append(
                         self.get_basic_event_snuba_condition(search_filter, joined_entity)
@@ -1578,7 +1613,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         Column("environment", joined_entity), Op.IN, [e.name for e in environments]
                     )
                 )
-            having = []
+
             if cursor is not None:
                 op = Op.GTE if cursor.is_prev else Op.LTE
                 having.append(Condition(sort_func, op, cursor.value))
