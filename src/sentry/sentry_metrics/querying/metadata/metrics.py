@@ -35,6 +35,9 @@ def get_metrics_meta(
         for metric_mri, project_ids in stored_metrics.items():
             parsed_mri = parse_mri(metric_mri)
 
+            if parsed_mri is None:
+                continue
+
             blocking_status = []
             if (metric_blocking := metrics_blocking_state.get(metric_mri)) is not None:
                 blocking_status = [
