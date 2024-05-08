@@ -330,11 +330,6 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.team",
         "nullable": true
-      },
-      "user_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
       }
     },
     "model": "sentry.actor",
@@ -344,14 +339,7 @@
       "Region"
     ],
     "table_name": "sentry_actor",
-    "uniques": [
-      [
-        "team"
-      ],
-      [
-        "user_id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.alertrule": {
     "dangling": false,
@@ -5803,7 +5791,6 @@
     },
     "model": "sentry.snubaquery",
     "relocation_dependencies": [
-      "sentry.actor",
       "sentry.organization",
       "sentry.project"
     ],

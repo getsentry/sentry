@@ -14,7 +14,6 @@ from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models.actor import Actor
     from sentry.models.team import Team
     from sentry.models.user import User
     from sentry.services.hybrid_cloud.organization import RpcTeam
@@ -25,7 +24,7 @@ class ActorType(str, Enum):
     TEAM = "Team"
 
 
-ActorTarget = Union["Actor", "RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
+ActorTarget = Union["RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
 
 
 class RpcActor(RpcModel):

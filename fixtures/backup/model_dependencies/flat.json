@@ -45,8 +45,7 @@
     "sentry.user"
   ],
   "sentry.actor": [
-    "sentry.team",
-    "sentry.user"
+    "sentry.team"
   ],
   "sentry.alertrule": [
     "sentry.organization",
