@@ -195,7 +195,7 @@ def query_selector_dataset(
         query_options["limit"] = Limit(pagination.limit)
         query_options["offset"] = Offset(pagination.offset)
 
-    conditions = handle_search_filters(query_config, search_filters, request_user_id=None)
+    conditions = handle_search_filters(query_config, search_filters)
     sorting = handle_ordering(sort_config, sort or "-count_dead_clicks")
 
     # Pre-fetch the number of replays in the set.

@@ -11,7 +11,6 @@ from sentry.replays.testutils import (
     mock_replay_click,
     mock_replay_viewed,
 )
-from sentry.replays.usecases.query import VIEWED_BY_ME_KEY_ALIASES
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import QueryMemoryLimitExceeded
@@ -711,17 +710,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "count_infos:>1",
                 "count_infos:<3",
                 f"viewed_by_id:{self.user.id}",
-                f"!viewed_by_id:{self.user.id}",
-                "viewed_by_id:[34,214]",
+                f"!viewed_by_id:{self.user.id+1}",
+                f"viewed_by_id:[34,{self.user.id},214]",
                 f"seen_by_id:{self.user.id}",
-                f"!seen_by_id:{self.user.id}",
-                "seen_by_id:[34,214]",
+                f"!seen_by_id:{self.user.id+1}",
+                f"seen_by_id:[34,{self.user.id},214]",
+                "viewed_by_me:true",
+                "seen_by_me:true",
             ]
-
-            for key in VIEWED_BY_ME_KEY_ALIASES:
-                queries.append(f"{key}:true")
-                queries.append(f"{key}:false")
-                # since the value is boolean, negations (!) are not supported
 
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -771,6 +767,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "activity:<2",
                 "viewed_by_id:7467356",
                 "seen_by_id:7467356",
+                "viewed_by_me:false",
+                "seen_by_me:false",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
