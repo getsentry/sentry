@@ -2528,6 +2528,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectBackfillSimilarIssuesEmbeddingsRecords.as_view(),
         name="sentry-api-0-project-backfill-similar-embeddings-records",
     ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/stats/$",
         ProjectStatsEndpoint.as_view(),
         name="sentry-api-0-project-stats",
