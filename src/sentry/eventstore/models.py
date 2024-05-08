@@ -368,7 +368,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
                 return rv
 
         # Create fresh hashes
-        flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
+        from sentry.grouping.api import sort_grouping_variants
+
+        variants = self.get_grouping_variants(force_config)
+        flat_variants, hierarchical_variants = sort_grouping_variants(variants)
         flat_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
         hierarchical_hashes, tree_labels = self._hashes_from_sorted_grouping_variants(
             hierarchical_variants
@@ -388,15 +391,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
             tree_labels=tree_labels,
             variants=[*flat_variants, *hierarchical_variants],
         )
-
-    def get_sorted_grouping_variants(
-        self, force_config: StrategyConfiguration | None = None
-    ) -> tuple[KeyedVariants, KeyedVariants]:
-        """Get grouping variants sorted into flat and hierarchical variants"""
-        from sentry.grouping.api import sort_grouping_variants
-
-        variants = self.get_grouping_variants(force_config)
-        return sort_grouping_variants(variants)
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(
