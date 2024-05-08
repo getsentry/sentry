@@ -172,7 +172,9 @@ def query_using_optimized_search(
             # It's a convenience alias for users without the admin access to lookup ids.
             if sf.operator not in ["=", "!="]:
                 raise ParseError(f"Invalid operator specified for {sf.key.name}")
-            is_me = not ((sf.operator == "=") ^ sf.value.value)
+            is_me = not (
+                (sf.operator == "=") ^ sf.value.value
+            )  # True if both expressions are the same, else False.
             search_filters[i] = SearchFilter(
                 SearchKey("viewed_by_id"), "=" if is_me else "!=", SearchValue(request_user_id)
             )
