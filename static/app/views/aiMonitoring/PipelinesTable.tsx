@@ -39,7 +39,7 @@ type Row = Pick<
   | 'avg(span.duration)'
   | 'sum(span.duration)'
   | 'ai_total_tokens_used()'
-  | 'ai_total_tokens_used(c:spans/ai.total_cost@none)'
+  | 'ai_total_tokens_used(c:spans/ai.total_cost@usd)'
 >;
 
 type Column = GridColumnHeader<
@@ -47,7 +47,7 @@ type Column = GridColumnHeader<
   | 'spm()'
   | 'avg(span.duration)'
   | 'ai_total_tokens_used()'
-  | 'ai_total_tokens_used(c:spans/ai.total_cost@none)'
+  | 'ai_total_tokens_used(c:spans/ai.total_cost@usd)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -62,7 +62,7 @@ const COLUMN_ORDER: Column[] = [
     width: 180,
   },
   {
-    key: 'ai_total_tokens_used(c:spans/ai.total_cost@none)',
+    key: 'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
     name: t('Total cost'),
     width: 180,
   },
@@ -130,7 +130,7 @@ export function PipelinesTable() {
     fields: [
       'span.ai.pipeline.group',
       'ai_total_tokens_used()',
-      'ai_total_tokens_used(c:spans/ai.total_cost@none)',
+      'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
     ],
   });
 
@@ -138,7 +138,7 @@ export function PipelinesTable() {
     const row: Row = {
       ...baseRow,
       'ai_total_tokens_used()': 0,
-      'ai_total_tokens_used(c:spans/ai.total_cost@none)': 0,
+      'ai_total_tokens_used(c:spans/ai.total_cost@usd)': 0,
     };
     if (!tokensUsedLoading) {
       const tokenUsedDataPoint = tokensUsedData.find(
@@ -146,8 +146,8 @@ export function PipelinesTable() {
       );
       if (tokenUsedDataPoint) {
         row['ai_total_tokens_used()'] = tokenUsedDataPoint['ai_total_tokens_used()'];
-        row['ai_total_tokens_used(c:spans/ai.total_cost@none)'] =
-          tokenUsedDataPoint['ai_total_tokens_used(c:spans/ai.total_cost@none)'];
+        row['ai_total_tokens_used(c:spans/ai.total_cost@usd)'] =
+          tokenUsedDataPoint['ai_total_tokens_used(c:spans/ai.total_cost@usd)'];
       }
     }
     return row;
@@ -237,8 +237,8 @@ function renderBodyCell(
       </Link>
     );
   }
-  if (column.key === 'ai_total_tokens_used(c:spans/ai.total_cost@none)') {
-    const cost = row['ai_total_tokens_used(c:spans/ai.total_cost@none)'];
+  if (column.key === 'ai_total_tokens_used(c:spans/ai.total_cost@usd)') {
+    const cost = row['ai_total_tokens_used(c:spans/ai.total_cost@usd)'];
     if (cost) {
       if (cost < 0.01) {
         return <span>US {cost * 100}¢</span>;
