@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -25,8 +25,8 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
   SpanFunction,
@@ -70,6 +70,7 @@ export function CacheSamplePanel() {
         `${SpanFunction.CACHE_MISS_RATE}()`,
         `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
       ],
       enabled: isPanelOpen,
       referrer: Referrer.SAMPLES_CACHE_METRICS_RIBBON,
@@ -172,6 +173,17 @@ export function CacheSamplePanel() {
 
           <ModuleLayout.Full>
             <MetricsRibbon>
+              <MetricReadout
+                align="left"
+                title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
+                value={
+                  cacheTransactionMetrics?.[0]?.[
+                    `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`
+                  ]
+                }
+                unit={SizeUnit.BYTE}
+                isLoading={areCacheTransactionMetricsFetching}
+              />
               <MetricReadout
                 align="left"
                 title={getThroughputTitle('cache')}

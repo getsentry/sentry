@@ -66,6 +66,10 @@ function GroupRelatedIssues({params}: Props) {
     {same_root_cause: [], trace_connected: []}
   );
 
+  // project=-1 allows ensuring that the query will show issues from any projects for the org
+  // This is important for traces since issues can be for any project in the org
+  const baseUrl = `/organizations/${orgSlug}/issues/?project=-1`;
+
   return (
     <Fragment>
       {isLoading ? (
@@ -85,18 +89,18 @@ function GroupRelatedIssues({params}: Props) {
                   <TextButtonWrapper>
                     <div />
                     <LinkButton
-                      to={`/organizations/${orgSlug}/issues/?query=issue.id:[${groupId},${sameRootCauseIssues}]`}
+                      to={`${baseUrl}&query=issue.id:[${groupId},${sameRootCauseIssues}]`}
                       size="xs"
+                      analyticsEventName="Clicked Open Issues from same-root related issues"
+                      analyticsEventKey="similar_issues.same_root_cause_clicked_open_issues"
                     >
                       {t('Open in Issues')}
                     </LinkButton>
                   </TextButtonWrapper>
                   <GroupList
-                    endpointPath={`/organizations/${orgSlug}/issues/`}
                     orgSlug={orgSlug}
                     queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
-                    query=""
-                    source="related-issues-tab"
+                    source="similar-issues-tab"
                     canSelectGroups={false}
                     withChart={false}
                   />
@@ -122,18 +126,18 @@ function GroupRelatedIssues({params}: Props) {
                       .
                     </small>
                     <LinkButton
-                      to={`/organizations/${orgSlug}/issues/?query=trace:${traceMeta.trace_id}`}
+                      to={`${baseUrl}&query=trace:${traceMeta.trace_id}`}
                       size="xs"
+                      analyticsEventName="Clicked Open Issues from trace-connected related issues"
+                      analyticsEventKey="similar_issues.trace_connected_issues_clicked_open_issues"
                     >
                       {t('Open in Issues')}
                     </LinkButton>
                   </TextButtonWrapper>
                   <GroupList
-                    endpointPath={`/organizations/${orgSlug}/issues/`}
                     orgSlug={orgSlug}
                     queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
-                    query=""
-                    source="related-issues-tab"
+                    source="similar-issues-tab"
                     canSelectGroups={false}
                     withChart={false}
                   />

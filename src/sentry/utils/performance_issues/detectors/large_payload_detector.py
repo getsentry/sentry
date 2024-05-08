@@ -57,7 +57,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if encoded_body_size > payload_size_threshold:
             self._store_performance_problem(span)
 
-    def _store_performance_problem(self, span) -> None:
+    def _store_performance_problem(self, span: Span) -> None:
         fingerprint = self._fingerprint(span)
         offender_span_ids = []
         if offender_span_id := span.get("span_id", None):
@@ -122,7 +122,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
         return True
 
-    def _fingerprint(self, span) -> str:
+    def _fingerprint(self, span: Span) -> str:
         hashed_url_paths = fingerprint_http_spans([span])
         return f"1-{PerformanceLargeHTTPPayloadGroupType.type_id}-{hashed_url_paths}"
 
