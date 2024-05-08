@@ -34,7 +34,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
     string_to_use_case_id,
 )
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
@@ -577,6 +577,9 @@ def _query_meta_table(
         raise InvalidParams("You must supply at least one use case id")
 
     if mri:
+        if len(use_case_ids) != 1:
+            raise InvalidParams("You must supply one use case id")
+
         column_name = "tag_key"
         metric_id = resolve_weak(use_case_ids[0], org_id, mri)
         if metric_id == -1:
@@ -622,10 +625,10 @@ def _query_meta_table(
         )
 
     entity_keys = (
-        EntityKey.GenericMetricsCountersMeta,
-        EntityKey.GenericMetricsSetsMeta,
-        EntityKey.GenericMetricsDistributionsMeta,
-        EntityKey.GenericMetricsGaugesMeta,
+        "generic_metrics_distributions_meta"
+        "generic_metrics_sets_meta"
+        "generic_metrics_counters_meta"
+        "generic_metrics_gauges_meta"
     )
 
     requests = []
