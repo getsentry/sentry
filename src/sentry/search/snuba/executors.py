@@ -1586,9 +1586,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 if len(group_ids_to_pass_to_snuba) == 0:
                     return self.empty_result
 
-                where_conditions.append(
-                    Condition(Column("group_id", attr_entity), Op.IN, group_ids_to_pass_to_snuba)
-                )
+                # limit groups and events to the group ids
+                for entity_with_group_id in [attr_entity, joined_entity]:
+                    where_conditions.append(
+                        Condition(
+                            Column("group_id", entity_with_group_id),
+                            Op.IN,
+                            group_ids_to_pass_to_snuba,
+                        )
+                    )
 
             for search_filter in search_filters or ():
                 # use the stored function if it exists in our mapping, otherwise use the basic lookup
