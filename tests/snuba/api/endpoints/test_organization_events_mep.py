@@ -3241,6 +3241,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["faketag"] == "foo"
         assert not meta["isMetricsData"]
 
+    def test_filtering_by_org_id_is_not_compatible(self):
+        """Implicitly test the fact that percentiles are their own 'dataset'"""
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["title", "p50()", "count()"],
+                "query": "event.type:transaction organization_id:2",
+                "dataset": "metrics",
+                "project": self.project.id,
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 400, response.content
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase

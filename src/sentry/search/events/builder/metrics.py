@@ -678,6 +678,8 @@ class MetricsQueryBuilder(QueryBuilder):
                     1,
                 )
 
+        if name in ["organization_id", "org_id"]:
+            raise IncompatibleMetricsQuery(f"{name} isn't compatible with metrics queries")
         lhs = self.resolve_column(name)
         # If this is an aliasedexpression, we don't need the alias here, just the expression
         if isinstance(lhs, AliasedExpression):
