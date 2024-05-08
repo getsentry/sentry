@@ -1620,6 +1620,41 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             },
         ]
 
+    def test_messaging_does_not_exist_as_metric(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            tags={"messaging.destination.name": "foo", "trace.status": "ok"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "messaging.destination.name",
+                    "trace.status",
+                    "avg(messaging.message.receive.latency)",
+                    "avg(span.duration)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {
+                "messaging.destination.name": "foo",
+                "trace.status": "ok",
+                "avg(messaging.message.receive.latency)": None,
+                "avg(span.duration)": 100,
+            },
+        ]
+        meta = response.data["meta"]
+        assert meta["fields"]["avg(messaging.message.receive.latency)"] == "null"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest

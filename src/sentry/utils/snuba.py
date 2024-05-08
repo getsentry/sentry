@@ -1448,6 +1448,7 @@ JSON_TYPE_MAP = {
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
+    "Nullable": "null",
 }
 
 

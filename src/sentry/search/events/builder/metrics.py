@@ -594,35 +594,41 @@ class MetricsQueryBuilder(QueryBuilder):
         resolve_only: bool,
     ) -> SelectType | None:
         prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
+        # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
+        nullable = arguments.get("metric_id") == 0
 
         if snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
             resolved_function = snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
-                if snql_function.is_percentile:
-                    self.percentiles.append(resolved_function)
-                else:
-                    self.distributions.append(resolved_function)
+                if not nullable:
+                    if snql_function.is_percentile:
+                        self.percentiles.append(resolved_function)
+                    else:
+                        self.distributions.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
         if snql_function.snql_set is not None and (prefix is None or prefix == "s"):
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
-                self.sets.append(resolved_function)
+                if not nullable:
+                    self.sets.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
         if snql_function.snql_counter is not None and (prefix is None or prefix == "c"):
             resolved_function = snql_function.snql_counter(arguments, alias)
             if not resolve_only:
-                self.counters.append(resolved_function)
+                if not nullable:
+                    self.counters.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
         if snql_function.snql_gauge is not None and (prefix is None or prefix == "g"):
             resolved_function = snql_function.snql_gauge(arguments, alias)
             if not resolve_only:
-                self.gauges.append(resolved_function)
+                if not nullable:
+                    self.gauges.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
@@ -630,10 +636,11 @@ class MetricsQueryBuilder(QueryBuilder):
             resolved_function = snql_function.snql_metric_layer(arguments, alias)
             if not resolve_only:
                 self.aggregates.append(resolved_function)
-                if snql_function.is_percentile:
-                    self.percentiles.append(resolved_function)
-                else:
-                    self.metrics_layer_functions.append(resolved_function)
+                if not nullable:
+                    if snql_function.is_percentile:
+                        self.percentiles.append(resolved_function)
+                    else:
+                        self.metrics_layer_functions.append(resolved_function)
             return resolved_function
         return None
 
@@ -1299,6 +1306,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
         result["data"] = list(value_map.values())
         result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
+        # Nullable columns won't be in the meta
+        for function in self.aggregates:
+            if function.alias not in [meta["name"] for meta in result["meta"]]:
+                result["meta"].append({"name": function.alias, "type": "Nullable"})
 
         # Data might be missing for fields after merging the requests, eg a transaction with no users
         for row in result["data"]:
