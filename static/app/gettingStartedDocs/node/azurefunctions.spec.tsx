@@ -16,7 +16,9 @@ describe('express onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
 
     // Includes import statement
-    const allMatches = screen.getAllByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/));
+    const allMatches = screen.getAllByText(
+      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/)
+    );
     allMatches.forEach(match => {
       expect(match).toBeInTheDocument();
     });
