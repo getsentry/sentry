@@ -12,15 +12,16 @@ import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/
 export function useSampleScatterPlotSeries(
   spans: Partial<IndexedResponse>[],
   average?: number,
-  highlightedSpanId?: string
+  highlightedSpanId?: string,
+  plotValueKey: string = 'span.self_time'
 ): Series[] {
   const theme = useTheme();
 
   return spans.map(span => {
     let symbol, color;
 
-    if (span['span.self_time'] && defined(average)) {
-      ({symbol, color} = getSampleChartSymbol(span['span.self_time'], average, theme));
+    if (span[plotValueKey] && defined(average)) {
+      ({symbol, color} = getSampleChartSymbol(span[plotValueKey], average, theme));
     } else {
       symbol = 'circle';
       color = AVG_COLOR;
@@ -30,7 +31,7 @@ export function useSampleScatterPlotSeries(
       data: [
         {
           name: span?.timestamp ?? span.span_id ?? t('Span'),
-          value: span?.['span.self_time'] ?? 0,
+          value: span?.[plotValueKey] ?? 0,
         },
       ],
       symbol,

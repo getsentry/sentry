@@ -62,6 +62,7 @@ const NUMERIC_FIELDS = new Set([
   CACHE_ITEM_SIZE,
   'transaction.duration',
   SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.SPAN_DURATION,
   MESSAGING_MESSAGE_BODY_SIZE,
 ]);
 
