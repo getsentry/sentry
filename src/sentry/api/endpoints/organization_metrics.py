@@ -36,10 +36,13 @@ from sentry.sentry_metrics.querying.errors import (
     LatestReleaseNotFoundError,
     MetricsQueryExecutionError,
 )
-from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
-from sentry.sentry_metrics.querying.metadata.metrics import get_metrics_meta
-from sentry.sentry_metrics.querying.metadata.tags import get_tag_values
-from sentry.sentry_metrics.querying.metadata.utils import convert_metric_names_to_mris
+from sentry.sentry_metrics.querying.metadata import (
+    MetricCodeLocations,
+    convert_metric_names_to_mris,
+    get_metric_code_locations,
+    get_metrics_meta,
+    get_tag_values,
+)
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
 from sentry.sentry_metrics.use_case_id_registry import (
