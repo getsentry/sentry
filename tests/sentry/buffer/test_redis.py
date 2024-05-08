@@ -334,7 +334,7 @@ class TestRedisBuffer:
         self.buf.delete_hash(
             model=Project,
             filters={"project_id": project_id},
-            field=f"{rule_id}:{group_id}",
+            fields=[f"{rule_id}:{group_id}"],
         )
 
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})

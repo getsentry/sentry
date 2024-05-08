@@ -70,8 +70,6 @@ class ProcessDelayedAlertConditionsTest(
         )
 
     def assert_buffer_cleared(self, project_id):
-        # project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
-        # assert project_ids[0][0] != project_id
         rule_group_data = self.redis_buffer.get_hash(Project, {"project_id": project_id})
         assert rule_group_data == {}
 

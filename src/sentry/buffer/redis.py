@@ -273,10 +273,14 @@ class RedisBuffer(Buffer):
         self,
         model: type[models.Model],
         filters: dict[str, models.Model | str | int],
-        field: str,
+        fields: list[str],
     ) -> None:
         key = self._make_key(model, filters)
-        self._execute_redis_operation(key, RedisOperation.HASH_DELETE, field)
+        pipe = self.get_redis_connection(self.pending_key)
+        for field in fields:
+            getattr(pipe, RedisOperation.HASH_DELETE.value)(key, field)
+        pipe.expire(key, self.key_expire)
+        pipe.execute()
 
     def push_to_hash(
         self,

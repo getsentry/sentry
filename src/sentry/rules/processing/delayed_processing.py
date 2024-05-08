@@ -323,10 +323,11 @@ def apply_delayed(project_id: int, date_added: float, *args: Any, **kwargs: Any)
                 safe_execute(callback, groupevent, futures, _with_transaction=False)
 
     # Step 8: Clean up Redis buffer data
-    for rule, groups in rules_to_groups.items():
-        for group in groups:
-            buffer.delete_hash(
-                model=Project,
-                filters={"project_id": project_id},
-                field=f"{rule}:{group}",
-            )
+    hashes_to_delete = [
+        f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
+    ]
+    buffer.delete_hash(
+        model=Project,
+        filters={"project_id": project_id},
+        fields=hashes_to_delete,
+    )
