@@ -35,5 +35,9 @@ class RelatedIssuesEndpoint(GroupEndpoint):
         """
         # The type of related issues to retrieve. Can be either `same_root_cause` or `trace_connected`.
         related_type = request.query_params["type"]
-        data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group)
+        extra_args = {
+            "event_id": request.query_params.get("event_id"),
+            "project_id": request.query_params.get("project_id"),
+        }
+        data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group, extra_args)
         return Response({"type": related_type, "data": data, "meta": meta})
