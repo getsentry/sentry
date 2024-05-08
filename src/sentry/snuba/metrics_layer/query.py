@@ -624,7 +624,7 @@ def _query_meta_table(
             },
         )
 
-    entity_keys = (
+    entities = (
         "generic_metrics_distributions_meta"
         "generic_metrics_sets_meta"
         "generic_metrics_counters_meta"
@@ -634,8 +634,8 @@ def _query_meta_table(
     requests = []
     index_to_use_case_id = {}
     for use_case_id in use_case_ids:
-        for entity_key in entity_keys:
-            new_query = base_query.set_match(Entity(entity_key.value)).set_where(
+        for entity in entities:
+            new_query = base_query.set_match(Entity(entity)).set_where(
                 cast(list, base_query.where)
                 + [Condition(Column("use_case_id"), Op.EQ, use_case_id.value)]
             )
