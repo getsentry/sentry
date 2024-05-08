@@ -1450,15 +1450,14 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     }
 
     group_conditions_lookup = {
-        "status": [get_basic_group_snuba_condition, Clauses.WHERE],
-        "substatus": [get_basic_group_snuba_condition, Clauses.WHERE],
-        "assigned_or_suggested": [get_assigned_or_suggested, Clauses.WHERE],
-        "assigned_to": [get_assigned, Clauses.WHERE],
-        "message": [get_message_condition, Clauses.WHERE],
-        "first_seen": [get_first_seen_filter, Clauses.WHERE],
-        "last_seen": [get_last_seen_filter, Clauses.HAVING],
+        "status": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "substatus": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
+        "assigned_to": (get_assigned, Clauses.WHERE),
+        "message": (get_message_condition, Clauses.WHERE),
+        "first_seen": (get_first_seen_filter, Clauses.WHERE),
+        "last_seen": (get_last_seen_filter, Clauses.HAVING),
     }
-
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
 
