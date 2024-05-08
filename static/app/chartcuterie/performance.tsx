@@ -18,11 +18,9 @@ performanceCharts.push({
 
     return {
       ...chartOptions,
-
       backgroundColor: theme.background,
       series: transformedSeries,
       grid: slackChartDefaults.grid,
-      visualMap: chartOptions.options?.visualMap,
     };
   },
   ...slackChartSize,
