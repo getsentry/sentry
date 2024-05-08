@@ -62,7 +62,7 @@ export class VideoReplayerWithInteractions {
     root?.classList.add('video-replayer');
 
     const eventsWithSnapshots: eventWithTime[] = [];
-    events.forEach((e, idx) => {
+    events.forEach(e => {
       eventsWithSnapshots.push(e);
       if (e.type === 4) {
         // Create a mock full snapshot event, in order to render rrweb gestures properly
@@ -93,7 +93,7 @@ export class VideoReplayerWithInteractions {
               id: 0,
             },
           },
-          timestamp: events[idx].timestamp,
+          timestamp: e.timestamp,
         };
         eventsWithSnapshots.push(fullSnapshotEvent);
       }
