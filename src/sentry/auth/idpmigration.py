@@ -52,6 +52,13 @@ def get_redis_cluster() -> LocalClient:
     return redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
 
 
+# Helper function for serializing named tuples with orjson.
+def _serialize_named_tuple(data: Any) -> Any:
+    if isinstance(data, tuple) and hasattr(data, "_asdict") and hasattr(data, "_fields"):
+        return list(data)
+    raise TypeError
+
+
 @dataclass
 class AccountConfirmLink:
     user: User
@@ -106,7 +113,7 @@ class AccountConfirmLink:
         cluster.setex(
             self.verification_key,
             int(_TTL.total_seconds()),
-            orjson.dumps(verification_value).decode(),
+            orjson.dumps(verification_value, default=_serialize_named_tuple).decode(),
         )
 
 
