@@ -25,7 +25,7 @@ import {
 import {PipelineSpansTable} from 'sentry/views/aiMonitoring/pipelineSpansTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   SpanFunction,
   SpanMetricsField,
@@ -73,10 +73,7 @@ export default function AiMonitoringPage({params}: Props) {
       'span.category': 'ai',
       'span.ai.pipeline.group': groupId,
     }),
-    fields: [
-      'ai_total_tokens_used()',
-      'ai_total_tokens_used(c:spans/ai.total_cost@none)',
-    ],
+    fields: ['ai_total_tokens_used()', 'ai_total_tokens_used(c:spans/ai.total_cost@usd)'],
     enabled: Boolean(groupId),
     referrer: 'api.ai-pipelines.view',
   });
@@ -137,7 +134,7 @@ export default function AiMonitoringPage({params}: Props) {
                             title={t('Total Cost')}
                             value={
                               tokenUsedMetric[
-                                'ai_total_tokens_used(c:spans/ai.total_cost@none)'
+                                'ai_total_tokens_used(c:spans/ai.total_cost@usd)'
                               ]
                             }
                             unit={CurrencyUnit.USD}

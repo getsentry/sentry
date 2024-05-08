@@ -9,7 +9,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');

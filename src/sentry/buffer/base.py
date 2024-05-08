@@ -69,12 +69,10 @@ class Buffer(Service):
             }
         )
 
-    # TODO: `partition` is unused, remove after a deploy
-
-    def process_pending(self, partition: int | None = None) -> None:
+    def process_pending(self) -> None:
         return
 
-    def process_batch(self, partition: int | None = None) -> None:
+    def process_batch(self) -> None:
         return
 
     def process(
