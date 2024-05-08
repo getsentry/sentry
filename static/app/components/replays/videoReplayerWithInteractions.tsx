@@ -32,9 +32,8 @@ export class VideoReplayerWithInteractions {
     skipInactive: false,
     speed: 1.0,
   };
-  public iframe = {};
-  public videoReplayer: VideoReplayer;
-  public replayer: Replayer;
+  private videoReplayer: VideoReplayer;
+  private replayer: Replayer;
 
   constructor({
     videoEvents,
