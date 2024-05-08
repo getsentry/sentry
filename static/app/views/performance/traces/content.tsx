@@ -224,7 +224,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <SpanTimeRenderer timestamp={trace.start} tooltipShowSeconds />
+        <SpanTimeRenderer timestamp={trace.end} tooltipShowSeconds />
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <TraceIssuesRenderer trace={trace} />
@@ -333,7 +333,7 @@ function SpanRow({
 
       <StyledSpanPanelItem align="right">
         <SpanTimeRenderer
-          timestamp={span['precise.start_ts'] * 1000}
+          timestamp={span['precise.finish_ts'] * 1000}
           tooltipShowSeconds
         />
       </StyledSpanPanelItem>
