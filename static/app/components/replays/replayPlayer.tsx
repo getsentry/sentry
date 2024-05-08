@@ -283,6 +283,7 @@ const SentryPlayerRoot = styled(PlayerRoot)`
     }
   }
 
+  /* Correctly positions the canvas for video replays and shows the purple "mousetails" */
   &.video-replayer {
     .replayer-wrapper {
       position: absolute;
