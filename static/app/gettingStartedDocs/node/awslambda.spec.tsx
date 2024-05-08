@@ -17,7 +17,9 @@ describe('awslambda onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
-    const allMatches = screen.getAllByText(textWithMarkupMatcher(/const Sentry = require\("@sentry\/aws-serverless"\);/));
+    const allMatches = screen.getAllByText(
+      textWithMarkupMatcher(/const Sentry = require\("@sentry\/aws-serverless"\);/)
+    );
     allMatches.forEach(match => {
       expect(match).toBeInTheDocument();
     });
