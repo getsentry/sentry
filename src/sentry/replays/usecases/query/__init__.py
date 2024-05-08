@@ -43,6 +43,8 @@ from sentry.replays.lib.new_query.fields import ColumnField, FieldProtocol
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
+VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
+
 
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
@@ -162,6 +164,17 @@ def query_using_optimized_search(
             *search_filters,
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
+
+    for i in range(len(search_filters)):
+        sf = search_filters[i]
+        if sf.key.name in VIEWED_BY_ME_KEY_ALIASES:
+            # "viewed_by_me" is not a valid query field.
+            # It's a convenience alias for users without the admin access to lookup ids.
+            if sf.operator not in ["=", "!="]:
+                raise ParseError("Invalid operator specified for viewed_by_me")
+            search_filters[i] = SearchFilter(
+                SearchKey("viewed_by_id"), sf.operator, SearchValue(request_user_id)
+            )
 
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
     can_scalar_search = can_scalar_search_subquery(search_filters)
