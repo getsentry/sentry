@@ -1,5 +1,5 @@
 ---
-created: '2024-05-08T14:31:35.472856+00:00'
+created: '2024-05-08T18:49:05.727788+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1150,6 +1150,8 @@ source: tests/sentry/backup/test_comparators.py
   - class: DatetimeEqualityComparator
     fields:
     - date_added
+    - timebox_end
+    - timebox_start
   - class: ForeignKeyComparator
     fields:
     - project
