@@ -167,7 +167,7 @@ def query_using_optimized_search(
 
     for i in range(len(search_filters)):
         sf = search_filters[i]
-        if sf.key.name in VIEWED_BY_ME_KEY_ALIASES:
+        if isinstance(sf, SearchFilter) and sf.key.name in VIEWED_BY_ME_KEY_ALIASES:
             # "viewed_by_me" is not a valid query field.
             # It's a convenience alias for users without the admin access to lookup ids.
             if sf.operator != "=":  # since the value is boolean, negations (!) are not allowed

@@ -724,7 +724,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # since the value is boolean, negations (!) are not allowed
 
             for query in queries:
-                # print(query)
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()
