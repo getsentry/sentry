@@ -80,7 +80,7 @@ def test_simple_similar_issues_embeddings_only_group_id_returned(
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": NonNone(event.group_id),
-        "group_hash": NonNone(event.get_primary_hash()),
+        "hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -97,7 +97,7 @@ def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, 
 
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
-        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": NonNone(similar_event.get_primary_hash()),
         "should_group": True,
         "stacktrace_distance": 0.01,
     }
@@ -107,7 +107,7 @@ def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, 
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": NonNone(event.group_id),
-        "group_hash": NonNone(event.get_primary_hash()),
+        "hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -134,7 +134,7 @@ def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, defau
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
         "parent_group_id": NonNone(similar_event.group_id),
-        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": NonNone(similar_event.get_primary_hash()),
         "should_group": True,
         "stacktrace_distance": 0.01,
     }
@@ -144,7 +144,7 @@ def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, defau
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": NonNone(event.group_id),
-        "group_hash": NonNone(event.get_primary_hash()),
+        "hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -163,7 +163,7 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
 
     params: SimilarIssuesEmbeddingsRequest = {
         "group_id": NonNone(event.group_id),
-        "group_hash": NonNone(event.get_primary_hash()),
+        "hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -192,7 +192,7 @@ def test_from_raw_only_parent_hash(default_project):
     similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
-        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": NonNone(similar_event.get_primary_hash()),
         "should_group": True,
         "stacktrace_distance": 0.01,
     }
@@ -216,7 +216,7 @@ def test_from_raw_parent_group_id_and_parent_hash(default_project):
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
         "parent_group_id": NonNone(similar_event.group_id),
-        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": NonNone(similar_event.get_primary_hash()),
         "should_group": True,
         "stacktrace_distance": 0.01,
     }
@@ -230,7 +230,7 @@ def test_from_raw_parent_group_id_and_parent_hash(default_project):
 def test_from_raw_missing_data(default_project):
     with pytest.raises(IncompleteSeerDataError):
         raw_similar_issue_data: RawSeerSimilarIssueData = {
-            # missing both `parent_group_id` and `parent_group_hash`
+            # missing both `parent_group_id` and `parent_hash`
             "message_distance": 0.05,
             "should_group": True,
             "stacktrace_distance": 0.01,
@@ -244,7 +244,7 @@ def test_from_raw_nonexistent_group(default_project):
     with pytest.raises(SimilarGroupNotFoundError):
         raw_similar_issue_data: RawSeerSimilarIssueData = {
             "parent_group_id": 1121201212312012,  # too high to be real
-            "parent_group_hash": "not a real hash",
+            "parent_hash": "not a real hash",
             "message_distance": 0.05,
             "should_group": True,
             "stacktrace_distance": 0.01,
