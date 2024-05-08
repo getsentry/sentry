@@ -258,7 +258,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
             # This also means we cannot order by any columns or paginate.
             orderby=None,
             limit=len(trace_ids) * max_spans_per_trace,
-            limitby=("trace", 1),
+            limitby=("trace", max_spans_per_trace),
         )
 
         trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
@@ -609,7 +609,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
             # This also means we cannot order by any columns or paginate.
             orderby=None,
             limit=len(trace_ids) * max_spans_per_trace,
-            limitby=("trace", 1),
+            limitby=("trace", max_spans_per_trace),
         )
 
         trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
@@ -943,7 +943,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             # This also means we cannot order by any columns or paginate.
             orderby=None,
             limit=len(trace_ids) * max_spans_per_trace,
-            limitby=("trace", 1),
+            limitby=("trace", max_spans_per_trace),
         )
 
         trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
