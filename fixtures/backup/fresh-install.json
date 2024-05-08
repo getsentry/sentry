@@ -40,15 +40,6 @@
   }
 },
 {
-  "model": "sentry.actor",
-  "pk": 1,
-  "fields": {
-    "type": 0,
-    "user_id": null,
-    "team": 1
-  }
-},
-{
   "model": "sentry.email",
   "pk": 1,
   "fields": {

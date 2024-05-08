@@ -74,6 +74,10 @@ DELETED_FIELDS: dict[str, set[str]] = {
     "sentry.grouphistory": {"actor"},
 }
 
+# When models are removed from the application, they will continue to be in exports
+# from previous releases. Models in this list are elided from data as imports are processed.
+DELETED_MODELS = {"sentry.actor"}
+
 # The maximum number of models that may be sent at a time.
 MAX_BATCH_SIZE = 20
 
@@ -169,16 +173,20 @@ def _import(
         else src.read().decode("utf-8")
     )
 
-    if len(DELETED_FIELDS) > 0:
-        # Parse the content JSON and remove and fields that we have marked for deletion in the
+    if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
+        # Parse the content JSON and remove fields and models that we have marked for deletion in the
         # function.
-        shimmed_models = set(DELETED_FIELDS.keys())
         content_as_json = json.loads_experimental("backup.enable-orjson", content)  # type: ignore[arg-type]
-        for json_model in content_as_json:
+
+        shimmed_models = set(DELETED_FIELDS.keys())
+        for i, json_model in enumerate(content_as_json):
             if json_model["model"] in shimmed_models:
                 fields_to_remove = DELETED_FIELDS[json_model["model"]]
                 for field in fields_to_remove:
                     json_model["fields"].pop(field, None)
+
+            if json_model["model"] in DELETED_MODELS:
+                del content_as_json[i]
 
         # Return the content to byte form, as that is what the Django deserializer expects.
         content = json.dumps_experimental("backup.enable-orjson", content_as_json)
