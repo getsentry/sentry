@@ -1,14 +1,6 @@
 from sentry.sentry_metrics.querying.metadata.metrics import _flatten, _reverse_mapping
 
 
-def test_get_metrics_meta():
-    assert False
-
-
-def test_get_available_mris():
-    assert False
-
-
 def test_reverse_mapping():
     project_id_to_mris = {
         1: ["metric1", "metric2", "metric3"],
