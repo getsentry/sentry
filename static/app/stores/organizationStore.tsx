@@ -25,9 +25,18 @@ interface OrganizationStoreDefinition extends CommonStoreDefinition<State> {
   onUpdate(org: Partial<Organization>, options?: {replace?: false}): void;
   reset(): void;
   setNoOrganization(): void;
+  state: State;
 }
 
 const storeConfig: OrganizationStoreDefinition = {
+  state: {
+    dirty: false,
+    loading: true,
+    organization: null,
+    error: null,
+    errorType: null,
+  },
+
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
@@ -36,69 +45,77 @@ const storeConfig: OrganizationStoreDefinition = {
   },
 
   reset() {
-    this.loading = true;
-    this.error = null;
-    this.errorType = null;
-    this.organization = null;
-    this.dirty = false;
+    this.state = {
+      loading: true,
+      error: null,
+      errorType: null,
+      organization: null,
+      dirty: false,
+    };
     this.trigger(this.get());
   },
 
   onUpdate(updatedOrg: Organization, {replace = false} = {}) {
-    this.loading = false;
-    this.error = null;
-    this.errorType = null;
-    this.organization = replace ? updatedOrg : {...this.organization, ...updatedOrg};
-    this.dirty = false;
+    const organization = replace
+      ? updatedOrg
+      : {...this.state.organization, ...updatedOrg};
+    this.state = {
+      organization,
+      loading: false,
+      error: null,
+      errorType: null,
+      dirty: false,
+    };
     this.trigger(this.get());
 
-    ReleaseStore.updateOrganization(this.organization);
-    LatestContextStore.onUpdateOrganization(this.organization);
+    ReleaseStore.updateOrganization(organization);
+    LatestContextStore.onUpdateOrganization(organization);
     HookStore.getCallback(
       'react-hook:route-activated',
       'setOrganization'
-    )?.(this.organization);
+    )?.(organization);
   },
 
   onFetchOrgError(err) {
-    this.organization = null;
-    this.errorType = null;
+    let errorType: string | null = null;
 
     switch (err?.status) {
       case 401:
-        this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS;
+        errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS;
         break;
       case 404:
-        this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND;
+        errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND;
         break;
       default:
     }
-    this.loading = false;
-    this.error = err;
-    this.dirty = false;
+    this.state = {
+      ...this.state,
+      organization: null,
+      errorType,
+      loading: false,
+      dirty: false,
+      error: err,
+    };
     this.trigger(this.get());
   },
 
   setNoOrganization() {
-    this.organization = null;
-    this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.NO_ORGS;
-    this.loading = false;
-    this.dirty = false;
+    this.state = {
+      ...this.state,
+      organization: null,
+      errorType: ORGANIZATION_FETCH_ERROR_TYPES.NO_ORGS,
+      loading: false,
+      dirty: false,
+    };
     this.trigger(this.get());
   },
 
   get() {
-    return {
-      organization: this.organization,
-      error: this.error,
-      loading: this.loading,
-      errorType: this.errorType,
-      dirty: this.dirty,
-    };
+    return this.state;
   },
 
   getState() {
-    return this.get();
+    return this.state;
   },
 };
 
