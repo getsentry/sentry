@@ -14,11 +14,9 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
-        self.features = {}
 
     def do_request(self, url: str):
-        with self.feature(self.features):
-            return self.client.get(url, format="json")
+        return self.client.get(url, format="json")
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
