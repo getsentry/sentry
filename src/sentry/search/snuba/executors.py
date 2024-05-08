@@ -93,6 +93,11 @@ class Clauses(Enum):
     WHERE = auto()
 
 
+# we cannot use snuba for these fields because they require a join with tables that don't exist there
+# if we ever see these fields, we will use postgres to get the group_ids before sending back to ClickHouse
+POSTGRES_ONLY_SEARCH_FIELDS = ["bookmarked_by", "linked", "subscribed_by"]
+
+
 @dataclass
 class TrendsParams:
     # (event or issue age_hours) / (event or issue halflife hours)
@@ -1538,6 +1543,17 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if len(projects) == 0:
             return self.empty_result
 
+        # Check if any search filters are in POSTGRES_ONLY_SEARCH_FIELDS
+        search_filters = search_filters or ()
+        group_ids_to_pass_to_snuba = None
+        if any(sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS for sf in search_filters):
+            group_ids_to_pass_to_snuba = list(group_queryset.values_list("id", flat=True))
+
+        # remove the search filters that are only for postgres
+        search_filters = [
+            sf for sf in search_filters if sf.key.name not in POSTGRES_ONLY_SEARCH_FIELDS
+        ]
+
         organization = projects[0].organization
 
         event_entity = self.entities["event"]
@@ -1564,6 +1580,16 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 Condition(Column("timestamp", joined_entity), Op.LT, end),
             ]
             having = []
+            # if we need to prefetch from postgres, we add filter by the group ids
+            if group_ids_to_pass_to_snuba is not None:
+                # will not find any matches, we can return early
+                if len(group_ids_to_pass_to_snuba) == 0:
+                    return self.empty_result
+
+                where_conditions.append(
+                    Condition(Column("group_id", attr_entity), Op.IN, group_ids_to_pass_to_snuba)
+                )
+
             for search_filter in search_filters or ():
                 # use the stored function if it exists in our mapping, otherwise use the basic lookup
                 lookup = self.group_conditions_lookup.get(search_filter.key.name)

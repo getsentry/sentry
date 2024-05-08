@@ -3132,6 +3132,133 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert len(response.data) == 0
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_bookmarked_by(self):
+        self.login_as(user=self.user)
+        project = self.project
+        user2 = self.create_user(email="user2@example.com")
+
+        # Create two issues, one bookmarked by each user
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupBookmark.objects.create(user_id=self.user.id, group=group1, project_id=project.id)
+
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+        group2 = event2.group
+        GroupBookmark.objects.create(user_id=user2.id, group=group2, project_id=project.id)
+
+        # Filter by bookmarked_by the first user
+        response = self.get_success_response(
+            query=f"bookmarked_by:{self.user.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # Filter by bookmarked_by the second user
+        response = self.get_success_response(
+            query=f"bookmarked_by:{user2.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group2.id
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_linked(self):
+        self.login_as(user=self.user)
+        project = self.project
+
+        # Create two issues, one linked and one not linked
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupLink.objects.create(
+            group_id=group1.id,
+            project=project,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=1,
+        )
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+        group2 = event2.group
+
+        # Filter by linked issues
+        response = self.get_success_response(query="is:linked", useGroupSnubaDataset=1)
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # Ensure the unlinked issue is not returned
+        response = self.get_success_response(query="is:unlinked", useGroupSnubaDataset=1)
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group2.id
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_subscribed_by(self):
+        self.login_as(user=self.user)
+        project = self.project
+
+        # Create two issues, one subscribed by user1 and one not subscribed
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupSubscription.objects.create(
+            user_id=self.user.id,
+            group=group1,
+            project=project,
+            is_active=True,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+
+        # Filter by subscriptions
+        response = self.get_success_response(
+            query=f"subscribed:{self.user.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # ensure we don't return ny results
+        response = self.get_success_response(
+            query="subscribed:fake@fake.com", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
