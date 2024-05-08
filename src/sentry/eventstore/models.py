@@ -389,7 +389,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             hashes=flat_hashes,
             hierarchical_hashes=hierarchical_hashes,
             tree_labels=tree_labels,
-            variants=[*flat_variants, *hierarchical_variants],
+            variants=variants,
         )
 
     @staticmethod

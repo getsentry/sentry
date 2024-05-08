@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Optional, TypedDict
 
 from sentry.db.models import NodeData
-from sentry.grouping.variants import KeyedVariants
+from sentry.grouping.variants import BaseVariant
 from sentry.utils.safe import get_path, safe_execute, set_path
 
 EventMetadata = dict[str, Any]
@@ -100,7 +100,7 @@ class CalculatedHashes:
     hashes: list[str]
     hierarchical_hashes: list[str]
     tree_labels: list[TreeLabel | None]
-    variants: KeyedVariants | None = None
+    variants: dict[str, BaseVariant] | None = None
 
     def write_to_event(self, event_data: NodeData) -> None:
         event_data["hashes"] = self.hashes
