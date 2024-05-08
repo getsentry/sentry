@@ -20,6 +20,7 @@ import {
 } from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
 import {
+  EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
@@ -110,6 +111,10 @@ export default function HighlightsDataSection({
       event={event}
       tagKey={content.originalTag.key}
       projectSlug={project.slug}
+      config={{
+        disableActions: content.value === EMPTY_HIGHLIGHT_DEFAULT,
+        disableRichValue: content.value === EMPTY_HIGHLIGHT_DEFAULT,
+      }}
       data-test-id="highlight-tag-row"
     />
   ));
