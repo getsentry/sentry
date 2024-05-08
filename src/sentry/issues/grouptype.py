@@ -183,11 +183,9 @@ class GroupType:
         return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
-    def should_detect_escalation(cls, organization: Organization) -> bool:
+    def should_detect_escalation(cls) -> bool:
         """
-        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
-
-        When the feature flag is removed, we can remove the organization parameter from this method.
+        If enable_escalation_detection=True, then escalation detection is enabled.
         """
         return cls.enable_escalation_detection
 

@@ -347,7 +347,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":red_circle:" in update_data["blocks"][0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_archive_issue_until_escalating_block_kit_improvements(self):
         original_message = self.get_original_message_block_kit(self.group.id)
         self.archive_issue_block_kit(original_message, "ignored:archived_until_escalating")
@@ -648,7 +648,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_assign_issue_block_kit_improvements(self):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
@@ -995,7 +995,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":red_circle:" in update_data["blocks"][0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_resolve_issue_block_kit_improvements(self):
         original_message = self.get_original_message_block_kit(self.group.id)
         self.resolve_issue_block_kit(original_message, "resolved")
@@ -1012,7 +1012,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":white_circle:" in update_data["blocks"][0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_resolve_perf_issue_block_kit_improvements(self):
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 

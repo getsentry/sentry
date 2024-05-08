@@ -18,7 +18,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
+import {isCustomMeasurement, isCustomMetric, isGaugeMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
@@ -188,6 +188,7 @@ export function getCreateAlert(organization: Organization, metricsQuery: Metrics
     !metricsQuery.mri ||
     !metricsQuery.op ||
     isCustomMeasurement(metricsQuery) ||
+    isGaugeMetric(metricsQuery) ||
     !organization.access.includes('alerts:write')
   ) {
     return undefined;

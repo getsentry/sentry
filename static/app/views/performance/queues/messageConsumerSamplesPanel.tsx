@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DurationUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -25,7 +25,8 @@ import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/messageSp
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 // We're defining our own query filter here, apart from settings.ts because the spans endpoint doesn't accept IN operations
@@ -92,6 +93,16 @@ export function MessageConsumerSamplesPanel() {
     min: 0,
     max: durationAxisMax,
     enabled: isPanelOpen && durationAxisMax > 0,
+    fields: [
+      SpanIndexedField.TRACE,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+      SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+      SpanIndexedField.MESSAGING_MESSAGE_ID,
+      SpanIndexedField.TRACE_STATUS,
+      SpanIndexedField.SPAN_SELF_TIME,
+    ],
   });
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
@@ -220,8 +231,12 @@ export function MessageConsumerSamplesPanel() {
               meta={{
                 fields: {
                   'span.self_time': 'duration',
+                  'measurements.messaging.message.body.size': 'size',
                 },
-                units: {},
+                units: {
+                  'span.self_time': DurationUnit.MILLISECOND,
+                  'measurements.messaging.message.body.size': SizeUnit.BYTE,
+                },
               }}
             />
           </ModuleLayout.Full>

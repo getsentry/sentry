@@ -7,11 +7,11 @@ from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils import json
-from sentry.utils.actor import ActorTuple
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -70,14 +70,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6),
-            owner=ActorTuple.from_id(user_id=None, team_id=self.team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=self.team.id),
         )
         self.other_alert_rule = self.create_alert_rule(
             name="other alert rule",
             organization=self.org,
             projects=[self.project2],
             date_added=before_now(minutes=5),
-            owner=ActorTuple.from_id(user_id=None, team_id=self.team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=self.team.id),
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -94,7 +94,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=3),
-            owner=ActorTuple.from_id(user_id=None, team_id=self.team2.id),
+            owner=RpcActor.from_id(user_id=None, team_id=self.team2.id),
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
@@ -170,14 +170,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6),
-            owner=ActorTuple.from_id(user_id=None, team_id=self.team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=self.team.id),
         )
         alert_rule1 = self.create_alert_rule(
             name="!1?zz",
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=6),
-            owner=ActorTuple.from_id(user_id=None, team_id=self.team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=self.team.id),
         )
 
         # Test Limit as 1, no cursor:
@@ -543,7 +543,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=another_org,
             projects=[another_project],
             date_added=before_now(minutes=6),
-            owner=ActorTuple.from_id(user_id=None, team_id=another_org_team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=another_org_team.id),
         )
 
         self.create_issue_alert_rule(
@@ -824,7 +824,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org,
             projects=[self.project],
             date_added=before_now(minutes=1),
-            owner=ActorTuple.from_id(user_id=None, team_id=team.id),
+            owner=RpcActor.from_id(user_id=None, team_id=team.id),
         )
         self.create_issue_alert_rule(
             data={
