@@ -136,7 +136,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert len(results) == 0
         buffer = RedisBuffer()
         project_ids = buffer.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, int(timezone.now().timestamp())
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
@@ -180,7 +180,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert len(results) == 0
         buffer = RedisBuffer()
         project_ids = buffer.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, int(timezone.now().timestamp())
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
@@ -217,7 +217,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert len(results) == 0
         buffer = RedisBuffer()
         project_ids = buffer.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, int(timezone.now().timestamp())
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
@@ -305,7 +305,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert len(results) == 0
         buffer = RedisBuffer()
         project_ids = buffer.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, int(timezone.now().timestamp())
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id

@@ -84,7 +84,7 @@ redis_buffer_registry = BufferHookRegistry()
 
 class RedisOperation(Enum):
     SORTED_SET_ADD = "zadd"
-    SORTED_SET_GET_RANGE = "zrange"
+    SORTED_SET_GET_RANGE = "zrangebyscore"
     SORTED_SET_DELETE_RANGE = "zremrangebyscore"
     HASH_ADD = "hset"
     HASH_GET_ALL = "hgetall"
@@ -253,9 +253,13 @@ class RedisBuffer(Buffer):
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
 
-    def get_sorted_set(self, key: str, start: int, end: int) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         redis_set = self._execute_redis_operation(
-            key, RedisOperation.SORTED_SET_GET_RANGE, start=start, end=end, withscores=True
+            key,
+            RedisOperation.SORTED_SET_GET_RANGE,
+            min=min,
+            max=max,
+            withscores=True,
         )
         decoded_set = []
         for items in redis_set:

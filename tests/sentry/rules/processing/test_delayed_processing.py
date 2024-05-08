@@ -172,7 +172,7 @@ class ProcessDelayedAlertConditionsTest(
                 assert mock_apply_delayed.delay.call_count == 2
 
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
             assert project_ids == []
 
@@ -183,7 +183,7 @@ class ProcessDelayedAlertConditionsTest(
         """
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
@@ -246,7 +246,7 @@ class ProcessDelayedAlertConditionsTest(
         )
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
@@ -280,7 +280,7 @@ class ProcessDelayedAlertConditionsTest(
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
@@ -311,7 +311,7 @@ class ProcessDelayedAlertConditionsTest(
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
@@ -344,7 +344,7 @@ class ProcessDelayedAlertConditionsTest(
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
@@ -377,7 +377,7 @@ class ProcessDelayedAlertConditionsTest(
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
@@ -415,7 +415,7 @@ class ProcessDelayedAlertConditionsTest(
 
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
             apply_delayed(project_ids[0][0], project_ids[0][1])
             rule_fire_histories = RuleFireHistory.objects.filter(
@@ -459,12 +459,11 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(
             self.project.id, two_conditions_match_all_rule.id, group5.id, event5.event_id
         )
-
         with patch("sentry.buffer.backend.get_hash", self.redis_buffer.get_hash):
             project_ids = self.redis_buffer.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+                PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
             )
-            apply_delayed(project_ids[0][0], project_ids[0][1])
+            apply_delayed(project_ids[0][0])
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[self.rule1, two_conditions_match_all_rule, condition_wont_pass_rule],
                 group__in=[self.group1, group5],

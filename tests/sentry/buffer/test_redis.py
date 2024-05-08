@@ -242,8 +242,9 @@ class TestRedisBuffer:
             field=f"{rule2_id}:{group3_id}",
             value=json.dumps({"event_id": event3_id, "occurrence_id": None}),
         )
-        now = datetime.datetime(2024, 4, 15, 3, 30, 00, tzinfo=datetime.UTC)
-        project_ids = self.buf.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, 0, int(now.timestamp()))
+        project_ids = self.buf.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
+        )
         assert project_ids
         project_ids_to_rule_data = self.group_rule_data_by_project_id(self.buf, project_ids)
         result = json.loads(project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}"))
@@ -318,7 +319,9 @@ class TestRedisBuffer:
             )
 
         # retrieve them
-        project_ids = self.buf.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, 0, int(now.timestamp()))
+        project_ids = self.buf.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
+        )
         assert len(project_ids) == 2
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
         assert len(rule_group_pairs)
@@ -327,7 +330,9 @@ class TestRedisBuffer:
         self.buf.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=now.timestamp())
 
         # retrieve again to make sure only project_id was removed
-        project_ids = self.buf.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, 0, int(now.timestamp()))
+        project_ids = self.buf.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
+        )
         assert project_ids == [(project2_id, one_minute_from_now.timestamp())]
 
         # delete the project_id hash

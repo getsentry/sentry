@@ -1,5 +1,4 @@
 import logging
-import math
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -240,10 +239,11 @@ def get_group_to_groupevent(
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
-        end_time = int(math.ceil(fetch_time.timestamp()))
-        project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, 0, end_time)
-        for project_id, date_added in project_ids:
-            apply_delayed.delay(project_id, date_added)
+        project_ids = buffer.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp()
+        )
+        for project_id, _ in project_ids:
+            apply_delayed.delay(project_id)
 
         buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
@@ -257,7 +257,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int, date_added: float, *args: Any, **kwargs: Any) -> None:
+def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """

@@ -41,7 +41,7 @@ class Buffer(Service):
     ) -> dict[str, str]:
         return {}
 
-    def get_sorted_set(self, key: str, start: int, end: int) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         return []
 
     def incr(
