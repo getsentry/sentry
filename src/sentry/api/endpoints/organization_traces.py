@@ -356,12 +356,17 @@ class TraceSamplesExecutor:
                 return min_timestamp, max_timestamp, [], []
         else:
             # No user queries so take the first N trace ids as our list
+            min_timestamp = snuba_params.end
+            max_timestamp = snuba_params.start
+            assert min_timestamp is not None
+            assert max_timestamp is not None
+
             trace_ids = trace_ids[: self.limit]
             timestamps = timestamps[: self.limit]
             for timestamp in timestamps:
                 if timestamp < min_timestamp:
                     min_timestamp = timestamp
-                if timestamp < max_timestamp:
+                if timestamp > max_timestamp:
                     max_timestamp = timestamp
 
         self.refine_params(min_timestamp, max_timestamp)
