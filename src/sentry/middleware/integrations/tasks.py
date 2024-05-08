@@ -2,6 +2,7 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any, cast
 
+import orjson
 import requests
 import sentry_sdk
 from requests import Response
@@ -11,7 +12,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_region_by_name
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ def convert_to_async_slack_response(
 
     response_payload = {}
     try:
-        response_payload = json.loads(response_body.decode(encoding="utf-8"))
+        response_payload = orjson.loads(response_body)
     except Exception as exc:
         sentry_sdk.capture_exception(exc)
 
@@ -145,9 +145,7 @@ def convert_to_async_discord_response(
         # handling the request asynchronously, we extract only the data, and post it to the webhook
         # that discord provides.
         # https://discord.com/developers/docs/interactions/receiving-and-responding#followup-messages
-        response_payload = json.loads(result["response"].content.decode(encoding="utf-8")).get(
-            "data"
-        )
+        response_payload = orjson.loads(result["response"].content).get("data")
     except Exception as e:
         sentry_sdk.capture_exception(e)
     integration_response = requests.post(response_url, json=response_payload)

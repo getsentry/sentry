@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
@@ -11,7 +12,6 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class VstsRequestParser(BaseRequestParser):
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         try:
-            data = json.loads(self.request.body.decode(encoding="utf-8"))
+            data = orjson.loads(self.request.body)
             external_id = get_vsts_external_id(data=data)
         except Exception as e:
             sentry_sdk.capture_exception(e)

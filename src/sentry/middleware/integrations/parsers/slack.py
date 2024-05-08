@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 
+import orjson
 import sentry_sdk
 from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
@@ -29,7 +30,6 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
-from sentry.utils import json
 from sentry.utils.signing import unsign
 
 from .base import BaseRequestParser, create_async_request_payload
@@ -127,8 +127,8 @@ class SlackRequestParser(BaseRequestParser):
         # Handle event interactions challenge request
         data = None
         try:
-            data = json.loads(self.request.body.decode(encoding="utf-8"))
-        except Exception:
+            data = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
             pass
         if data and is_event_challenge(data):
             return self.get_response_from_control_silo()

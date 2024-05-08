@@ -4,6 +4,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import orjson
 from django.http import HttpResponse
 
 from sentry.integrations.jira_server.webhooks import (
@@ -12,7 +13,6 @@ from sentry.integrations.jira_server.webhooks import (
 )
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,8 @@ class JiraServerRequestParser(BaseRequestParser):
         regions = self.get_regions_from_organizations(organizations=organizations)
 
         try:
-            data = json.loads(self.request.body)
-        except ValueError:
+            data = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
             data = {}
 
         # We only process webhooks with changelogs

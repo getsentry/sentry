@@ -4,6 +4,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import orjson
 from django.http.response import HttpResponseBase
 from django.urls import resolve
 
@@ -16,7 +17,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -87,8 +88,8 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
             return self.get_default_missing_integration_response()
 
         try:
-            data = json.loads(self.request.body)
-        except ValueError:
+            data = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
             data = {}
 
         return self.get_response_from_webhookpayload(
