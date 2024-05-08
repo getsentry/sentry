@@ -6,7 +6,7 @@ export type ProductSelectionMap = Record<ProductSolution, boolean>;
 /**
  * Transforms the product selection array into a map of booleans for each product for easier access.
  */
-const productSelectionMap = (params: DocsParams): ProductSelectionMap => {
+const getProductSelectionMap = (params: DocsParams): ProductSelectionMap => {
   return {
     [ProductSolution.ERROR_MONITORING]: true,
     [ProductSolution.PROFILING]: params.isProfilingSelected,
@@ -150,15 +150,15 @@ export const getSdkInitSnippet = (
 ) => `
 ${
   sdkImport === 'node'
-    ? getDefaultNodeImports({productSelection: productSelectionMap(params)}).join('\n')
+    ? getDefaultNodeImports({productSelection: getProductSelectionMap(params)}).join('\n')
     : sdkImport === 'aws'
       ? getDefaultServerlessImports({
-          productSelection: productSelectionMap(params),
+          productSelection: getProductSelectionMap(params),
           library: 'aws-serverless',
         }).join('\n')
       : sdkImport === 'gpc'
         ? getDefaultServerlessImports({
-            productSelection: productSelectionMap(params),
+            productSelection: getProductSelectionMap(params),
             library: 'google-cloud-serverless',
           }).join('\n')
         : ''
