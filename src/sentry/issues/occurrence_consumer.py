@@ -364,7 +364,7 @@ def _process_message(
     return None
 
 
-def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
+def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]) -> None:
     """
     Receives batches of occurrences. This function will take the batch
     and group them together by fingerprint (ensuring order is preserved) and
@@ -402,7 +402,7 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
         wait(futures)
 
 
-def process_occurrence_group(items: list[Mapping[str, Any]]):
+def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     """
     Process a group of related occurrences (all part of the same group)
     completely serially.
