@@ -21,9 +21,15 @@ describe('latencyChart', () => {
         data: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: [],
+    });
   });
   it('renders', async () => {
     render(<LatencyChart />);
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByText('Avg Latency');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -39,6 +45,5 @@ describe('latencyChart', () => {
         }),
       })
     );
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 });

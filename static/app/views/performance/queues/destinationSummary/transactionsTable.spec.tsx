@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import useOrganization from 'sentry/utils/useOrganization';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
@@ -54,6 +54,7 @@ describe('transactionsTable', () => {
   });
   it('renders', async () => {
     render(<TransactionsTable />);
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(screen.getByRole('table', {name: 'Transactions'})).toBeInTheDocument();
 
     expect(screen.getByRole('columnheader', {name: 'Transactions'})).toBeInTheDocument();

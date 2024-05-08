@@ -21,9 +21,15 @@ describe('throughputChart', () => {
         data: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: [],
+    });
   });
   it('renders', async () => {
     render(<ThroughputChart />);
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -39,6 +45,5 @@ describe('throughputChart', () => {
         }),
       })
     );
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 });
