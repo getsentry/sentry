@@ -28,7 +28,16 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
         url="https://www.sentry.io",
         node={
             "tagName": "a",
-            "attributes": {"class": "class1 class2", "role": "button", "aria-label": "test"},
+            "attributes": {
+                "id": "id",
+                "class": "class1 class2",
+                "role": "button",
+                "aria-label": "test",
+                "alt": "1",
+                "data-testid": "2",
+                "title": "3",
+                "data-sentry-component": "SignUpForm",
+            },
         },
         component_name="SmartSearchBar",
         replay_event=mock_replay_event(),
@@ -46,7 +55,16 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
     assert issue_occurence_call["evidence_data"] == {
         "node": {
             "tagName": "a",
-            "attributes": {"class": "class1 class2", "role": "button", "aria-label": "test"},
+            "attributes": {
+                "id": "id",
+                "class": "class1 class2",
+                "role": "button",
+                "aria-label": "test",
+                "alt": "1",
+                "data-testid": "2",
+                "title": "3",
+                "data-sentry-component": "SignUpForm",
+            },
         },
         "selector": "div.xyz > SmartSearchBar",
         "component_name": "SmartSearchBar",
@@ -56,7 +74,7 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
         issue_occurence_call["evidence_display"][0].to_dict()
         == IssueEvidence(
             name="Clicked Element",
-            value='a[class="class1 class2"][role="button"][aria-label="test"]',
+            value='a#id.class1.class2[role="button"][aria="test"][alt="1"][data-test-id="2"][title="3"][data-sentry-component="SignUpForm"]',
             important=False,
         ).to_dict()
     )
