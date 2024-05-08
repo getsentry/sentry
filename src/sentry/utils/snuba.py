@@ -1020,7 +1020,10 @@ def _bulk_snuba_query(
 
         if response.status != 200:
             _log_request_query(snuba_param_list[index][0])
-
+            metrics.incr(
+                "snuba.client.api.error",
+                tags={"status_code": response.status, "referrer": query_referrer},
+            )
             if body.get("error"):
                 error = body["error"]
                 if response.status == 429:
