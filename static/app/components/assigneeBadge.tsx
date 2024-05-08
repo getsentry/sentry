@@ -29,6 +29,7 @@ export function AssigneeBadge({
   //   projectOwnership: t('Matching Issue Owners Rule'),
   //   codeowners: t('Matching Codeowners Rule'),
   // };
+  const AVATAR_SIZE = 16;
 
   const makeAssignedIcon = (actor: Actor) => {
     return (
@@ -36,7 +37,7 @@ export function AssigneeBadge({
         <ActorAvatar
           actor={actor}
           className="avatar"
-          size={16}
+          size={AVATAR_SIZE}
           tooltip={
             <TooltipWrapper>
               {tct('Assigned to [name]', {
@@ -55,7 +56,11 @@ export function AssigneeBadge({
   const makeUnassignedIcon = () => {
     return (
       <Fragment>
-        <Placeholder shape="circle" width={'16px'} height={'16px'} />
+        <Placeholder
+          shape="circle"
+          width={`${AVATAR_SIZE}px`}
+          height={`${AVATAR_SIZE}px`}
+        />
         {showLabel && <Fragment>Unassigned</Fragment>}
         <Chevron direction="down" size="small" />
       </Fragment>
@@ -91,7 +96,11 @@ const StyledTag = styled(Tag)`
   span {
     display: flex;
     align-items: center;
-    gap: ${space(0.5)};
+    gap: ${space(0.25)};
+  }
+  & > div {
+    height: 24px;
+    padding: ${space(0.5)};
   }
 `;
 
