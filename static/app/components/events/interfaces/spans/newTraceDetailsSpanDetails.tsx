@@ -236,6 +236,11 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       ? props.node.value.sentry_tags?.group ?? ''
       : props.node.value.hash;
 
+    // Do not render a button if there is no group hash, since this can result in broken links
+    if (hasNewSpansUIFlag && !groupHash) {
+      return null;
+    }
+
     return (
       <ButtonGroup>
         <SpanSummaryButton
