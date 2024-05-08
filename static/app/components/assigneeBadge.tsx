@@ -113,7 +113,7 @@ const StyledTag = styled(Tag)`
   span {
     display: flex;
     align-items: center;
-    gap: ${space(0.25)};
+    gap: ${space(0.5)};
   }
   & > div {
     height: 24px;
