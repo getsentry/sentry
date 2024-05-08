@@ -89,6 +89,8 @@ export function AssigneeBadge({
     <Tooltip title={makeAssignedTooltipText(assignedTo)}>
       <StyledTag
         data-is-team={assignedTo.type === 'team'}
+        // Team avatars need extra left padding since the square avatar
+        // is being fit into a rounded edge
         css={css`
           --avatar-spacing: ${space(0.5)} ${space(0.25)} ${space(0.5)}
             ${assignedTo.type === 'team' ? space(0.75) : space(0.5)};
