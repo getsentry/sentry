@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CheckInStatus} from 'sentry/views/monitors/types';
+import type {CheckInStatus} from 'sentry/views/monitors/types';
 import {getTickStyle} from 'sentry/views/monitors/utils';
 
 const MonitorIndicator = styled('div')<{

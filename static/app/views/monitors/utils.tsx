@@ -1,4 +1,4 @@
-import {css,Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 
 import {t, tn} from 'sentry/locale';
 import type {Organization, SelectValue} from 'sentry/types';
