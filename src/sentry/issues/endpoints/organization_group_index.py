@@ -57,8 +57,6 @@ UNSUPPORTED_SNUBA_FILTERS = [
     "regressed_in_release",
     "issue.priority",
     "firstRelease",
-    "firstSeen",
-    "lastSeen",
     "release.build",
     "release.package",
     "release.dist",
