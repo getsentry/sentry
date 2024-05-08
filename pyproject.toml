@@ -644,6 +644,7 @@ module = [
     "tests.sentry.issues.endpoints",
     "tests.sentry.issues.endpoints.test_actionable_items",
     "tests.sentry.issues.endpoints.test_organization_activity",
+    "tests.sentry.issues.endpoints.test_organization_searches",
     "tests.sentry.issues.endpoints.test_source_map_debug",
     "tests.sentry.issues.test_escalating_issues_alg",
     "tests.sentry.issues.test_group_attributes_dataset",
