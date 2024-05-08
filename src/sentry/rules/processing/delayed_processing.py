@@ -241,8 +241,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
         fetch_time = datetime.now(tz=timezone.utc)
         project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
         for project_id, date_added in project_ids:
-            with metrics.timer("delayed_processing.process_project.duration"):
-                apply_delayed.delay(project_id, date_added)
+            apply_delayed.delay(project_id, date_added)
 
         buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
