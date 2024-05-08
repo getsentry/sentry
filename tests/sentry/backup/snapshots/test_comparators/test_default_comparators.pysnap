@@ -1,5 +1,9 @@
 ---
+<<<<<<< HEAD
 created: '2024-05-08T14:31:35.472856+00:00'
+=======
+created: '2024-05-08T18:28:32.110822+00:00'
+>>>>>>> ac971821a73 (snapshots)
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1150,6 +1154,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: DatetimeEqualityComparator
     fields:
     - date_added
+    - timebox_start
   - class: ForeignKeyComparator
     fields:
     - project

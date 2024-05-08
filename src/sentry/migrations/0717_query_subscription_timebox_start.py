@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0715_remove_actormodel_constraints"),
+        ("sentry", "0716_remove_actormodel"),
     ]
 
     operations = [
