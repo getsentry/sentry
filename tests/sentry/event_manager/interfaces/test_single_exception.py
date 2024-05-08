@@ -2,6 +2,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -22,6 +23,7 @@ def make_single_exception_snapshot(insta_snapshot):
     return inner
 
 
+@django_db_all
 def test_basic(make_single_exception_snapshot):
     make_single_exception_snapshot(dict(type="ValueError", value="hello world", module="foo.bar"))
 
@@ -38,6 +40,7 @@ def test_coerces_object_value_to_string(make_single_exception_snapshot):
     make_single_exception_snapshot({"type": "ValueError", "value": {"unauthorized": True}})
 
 
+@django_db_all
 def test_handles_type_in_value(make_single_exception_snapshot):
     make_single_exception_snapshot(dict(value="ValueError: unauthorized"))
 
