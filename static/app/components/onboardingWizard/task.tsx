@@ -130,7 +130,7 @@ function Task(props: Props) {
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock color="pink400" isSolid />
+      <IconLock color="pink400" locked />
     </Tooltip>
   );
 
