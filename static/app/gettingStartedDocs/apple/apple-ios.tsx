@@ -372,9 +372,13 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             description: (
               <p>
                 {tct(
-                  'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your UIAppDelegate: [appDelegate: - [UIAppDelegate application:didFinishLaunchingWithOptions:]] method:',
+                  'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your [appDelegate:] method:',
                   {
-                    appDelegate: <code />,
+                    appDelegate: (
+                      <code>
+                        - [UIAppDelegate application:didFinishLaunchingWithOptions:]
+                      </code>
+                    ),
                   }
                 )}
               </p>

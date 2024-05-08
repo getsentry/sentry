@@ -26,8 +26,7 @@ import Sentry
 
 // ....
 
-func application(_ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+func applicationDidFinishLaunching(_ aNotification: Notification) {
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn}"
@@ -139,9 +138,13 @@ const onboarding: OnboardingConfig = {
       description: (
         <p>
           {tct(
-            'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your AppDelegate [appDelegate: application:didFinishLaunchingWithOptions] method:',
+            'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your [appDelegate:] method:',
             {
-              appDelegate: <code />,
+              appDelegate: (
+                <code>
+                  - [NSAppDelegate applicationDidFinishLaunchingWithNotification:]
+                </code>
+              ),
             }
           )}
         </p>
