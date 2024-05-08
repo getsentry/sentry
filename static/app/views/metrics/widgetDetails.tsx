@@ -52,7 +52,7 @@ export function WidgetDetails() {
 
   // TODO(aknaus): better fallback
   if (selectedWidget?.type === MetricExpressionType.EQUATION) {
-    <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
+    return <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
   const {mri, op, query, focusedSeries} = selectedWidget as MetricsQueryWidget;
