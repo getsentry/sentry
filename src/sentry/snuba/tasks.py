@@ -225,7 +225,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
         skip_time_conditions = True
         if subscription.timebox_start:
             start = subscription.timebox_start.isoformat()
-            window = snuba_query.time_window
+            window = timedelta(seconds=snuba_query.time_window)
             end = (subscription.timebox_start + window).isoformat()
             skip_time_conditions = False
             params[start] = start
