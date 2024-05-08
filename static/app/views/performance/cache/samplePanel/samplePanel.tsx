@@ -287,6 +287,8 @@ export function CacheSamplePanel() {
                 }}
                 isLoading={isCacheSpanSamplesFetching || isFetchingTransactions}
                 highlightedSpanId={highlightedSpanId}
+                onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+                onSampleMouseOut={() => setHighlightedSpanId(undefined)}
                 error={transactionError}
               />
             </ModuleLayout.Full>
