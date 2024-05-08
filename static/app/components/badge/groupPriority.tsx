@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -211,6 +211,7 @@ export function GroupPriorityDropdown({
     () => makeGroupPriorityDropdownOptions({onChange}),
     [onChange]
   );
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   return (
     <DropdownMenu
@@ -229,11 +230,12 @@ export function GroupPriorityDropdown({
           size="zero"
         >
           <GroupPriorityBadge priority={value}>
-            <Chevron direction="down" size="small" />
+            <Chevron direction={isDropdownOpen ? 'up' : 'down'} size="small" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}
       items={options}
+      onOpenChange={isOpen => setIsDropdownOpen(isOpen)}
       menuFooter={
         <Fragment>
           <StyledFooter>
