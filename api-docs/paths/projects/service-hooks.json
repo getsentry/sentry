@@ -5,9 +5,9 @@
     "operationId": "List a Project's Service Hooks",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the client keys belong to.",
+        "description": "The id or slug of the organization the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -66,9 +66,9 @@
     "operationId": "Register a New Service Hook",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the client keys belong to.",
+        "description": "The id or slug of the organization the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
