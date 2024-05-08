@@ -52,7 +52,7 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.referrer import Referrer
@@ -108,9 +108,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     except ObjectDoesNotExist:
         return None
 
-    if actor.actor_type == ActorType.TEAM:
+    if actor.is_team:
         assignee_text = f"#{assigned_actor.slug}"
-    elif actor.actor_type == ActorType.USER:
+    elif actor.is_user:
         assignee_identity = identity_service.get_identity(
             filter={
                 "provider_id": identity.idp_id,
@@ -303,12 +303,12 @@ def get_suggested_assignees(
         assignee_texts = []
         for assignee in suggested_assignees:
             # skip over any suggested assignees that are the current assignee of the issue, if there is any
-            if assignee.actor_type == ActorType.USER and not (
+            if assignee.is_user and not (
                 isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
             ):
                 assignee_as_user = assignee.resolve()
                 assignee_texts.append(assignee_as_user.get_display_name())
-            elif assignee.actor_type == ActorType.TEAM and not (
+            elif assignee.is_team and not (
                 isinstance(current_assignee, Team) and assignee.id == current_assignee.id
             ):
                 assignee_texts.append(f"#{assignee.slug}")
@@ -590,9 +590,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         obj = self.event if self.event is not None else self.group
         action_text = ""
 
-        if not self.issue_details or (
-            self.recipient and self.recipient.actor_type == ActorType.TEAM
-        ):
+        if not self.issue_details or (self.recipient and self.recipient.is_team):
             payload_actions, action_text, has_action = build_actions(
                 self.group, project, text, self.actions, self.identity
             )

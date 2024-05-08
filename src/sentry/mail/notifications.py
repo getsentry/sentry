@@ -14,7 +14,7 @@ from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.notifications.types import UnsubscribeContext
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -96,7 +96,7 @@ def get_context(
     # TODO: The unsubscribe system relies on `user_id` so it doesn't
     # work with Teams.
     unsubscribe_key = notification.get_unsubscribe_key()
-    if recipient_actor.actor_type == ActorType.USER and unsubscribe_key:
+    if recipient_actor.is_user and unsubscribe_key:
         context.update(
             {"unsubscribe_link": get_unsubscribe_link(recipient_actor.id, unsubscribe_key)}
         )
@@ -114,7 +114,7 @@ def send_notification_as_email(
     for recipient in recipients:
         recipient_actor = RpcActor.from_object(recipient)
         with sentry_sdk.start_span(op="notification.send_email", description="one_recipient"):
-            if recipient_actor.actor_type == ActorType.TEAM:
+            if recipient_actor.is_team:
                 # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
                 continue
             _log_message(notification, recipient_actor)

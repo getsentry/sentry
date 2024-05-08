@@ -21,7 +21,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.json import methods_for_experiment
@@ -102,7 +102,7 @@ class ReleaseActivityNotification(ActivityNotification):
         if not self.release:
             return set()
 
-        if recipient.actor_type == ActorType.USER:
+        if recipient.is_user:
             if self.organization.flags.allow_joinleave:
                 return self.projects
             team_ids = self.get_users_by_teams()[recipient.id]

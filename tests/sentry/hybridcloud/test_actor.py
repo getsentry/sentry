@@ -17,6 +17,8 @@ def test_many_from_object_users():
     assert all([isinstance(a, RpcActor) for a in actors])
     assert actors[0].id == users[0].id
     assert actors[0].actor_type == ActorType.USER
+    assert actors[0].is_user
+    assert not actors[0].is_team
 
     assert actors[1].id == users[1].id
     assert actors[1].actor_type == ActorType.USER
@@ -32,6 +34,8 @@ def test_from_identifier():
     assert actor
     assert actor.id == user.id
     assert actor.actor_type == ActorType.USER
+    assert actor.is_user
+    assert not actor.is_team
 
     actor = RpcActor.from_identifier(str(user.id))
     assert actor
@@ -59,6 +63,8 @@ def test_from_identifier():
     assert actor.id == team.id
     assert actor.actor_type == ActorType.TEAM
     assert actor.identifier == f"team:{team.id}"
+    assert actor.is_team
+    assert not actor.is_user
 
 
 def test_from_id():

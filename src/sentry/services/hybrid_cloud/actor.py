@@ -8,6 +8,7 @@ from collections.abc import Iterable, MutableMapping, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Union, overload
 
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from sentry.services.hybrid_cloud import RpcModel
@@ -22,6 +23,12 @@ if TYPE_CHECKING:
 class ActorType(str, Enum):
     USER = "User"
     TEAM = "Team"
+
+
+class InvalidActor(ObjectDoesNotExist):
+    """Raised when an Actor fails to resolve or be found"""
+
+    pass
 
 
 ActorTarget = Union["RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
@@ -39,7 +46,7 @@ class RpcActor(RpcModel):
     slug: str | None = None
 
     def __post_init__(self) -> None:
-        if (self.actor_type == ActorType.TEAM) == (self.slug is None):
+        if (self.is_team) == (self.slug is None):
             raise ValueError("Slugs are expected for teams only")
 
     def __hash__(self) -> int:
@@ -204,7 +211,7 @@ class RpcActor(RpcModel):
             user = user_service.get_by_username(username=id)[0]
             return cls(id=user.id, actor_type=ActorType.USER)
         except IndexError as e:
-            raise ValueError(f"Unable to resolve actor identifier: {e}")
+            raise InvalidActor(f"Unable to resolve actor identifier: {e}")
 
     @classmethod
     def from_id(cls, user_id: int | None = None, team_id: int | None = None) -> "RpcActor":
@@ -214,7 +221,7 @@ class RpcActor(RpcModel):
             return cls(id=user_id, actor_type=ActorType.USER)
         if team_id:
             return cls(id=team_id, actor_type=ActorType.TEAM)
-        raise ValueError("You must provide one of user_id and team_id")
+        raise InvalidActor("You must provide one of user_id and team_id")
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -230,22 +237,29 @@ class RpcActor(RpcModel):
         Will raise Team.DoesNotExist or User.DoesNotExist when the actor is invalid
         """
         from sentry.models.team import Team
-        from sentry.models.user import User
         from sentry.services.hybrid_cloud.user.service import user_service
 
-        if self.actor_type == ActorType.TEAM:
+        if self.is_team:
             return Team.objects.filter(id=self.id).get()
-        if self.actor_type == ActorType.USER:
+        if self.is_user:
             user = user_service.get_user(user_id=self.id)
             if user:
                 return user
-            # TODO(actor) would be better to have an error for 'InvalidActor'
-            raise User.DoesNotExist()
-        raise ValueError("Cannot resolve invalid RpcActor")
+            raise InvalidActor("Cannot find an Actor with that id")
+        # This should be un-reachable
+        raise InvalidActor("Cannot resolve an actor with an unknown type")
 
     @property
     def identifier(self) -> str:
         return f"{self.actor_type.lower()}:{self.id}"
+
+    @property
+    def is_team(self) -> bool:
+        return self.actor_type == ActorType.TEAM
+
+    @property
+    def is_user(self) -> bool:
+        return self.actor_type == ActorType.USER
 
 
 def parse_and_validate_actor(actor_identifier: str | None, organization_id: int) -> RpcActor | None:
