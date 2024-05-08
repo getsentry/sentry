@@ -628,10 +628,10 @@ def _query_meta_table(
         )
 
     entities = (
-        "generic_metrics_distributions_meta"
-        "generic_metrics_sets_meta"
-        "generic_metrics_counters_meta"
-        "generic_metrics_gauges_meta"
+        "generic_metrics_distributions_meta",
+        "generic_metrics_sets_meta",
+        "generic_metrics_counters_meta",
+        "generic_metrics_gauges_meta",
     )
 
     requests = []
