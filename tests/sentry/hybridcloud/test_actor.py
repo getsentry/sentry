@@ -78,9 +78,9 @@ def test_from_id():
     assert actor.id == 11
     assert actor.actor_type == ActorType.USER
 
-    with pytest.raises(ValueError):
+    with pytest.raises(RpcActor.InvalidActor):
         RpcActor.from_id(user_id=11, team_id=99)
-    with pytest.raises(ValueError):
+    with pytest.raises(RpcActor.InvalidActor):
         RpcActor.from_id(user_id=None)
 
 
