@@ -59,7 +59,7 @@ function getSentryIntegrations(routes?: Function) {
       routes: typeof routes === 'function' ? createRoutes(routes()) : [],
       match,
       _experiments: {
-        enableInteractions: true,
+        enableInteractions: false,
       },
     }),
     Sentry.browserProfilingIntegration(),
