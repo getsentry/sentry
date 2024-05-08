@@ -171,7 +171,9 @@ class ProcessDelayedAlertConditionsTest(
             ):
                 assert mock_apply_delayed.delay.call_count == 2
 
-            project_ids = self.redis_buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
+            project_ids = self.redis_buffer.get_sorted_set(
+                PROJECT_ID_BUFFER_LIST_KEY, 0, int(self.now.timestamp())
+            )
             assert project_ids == []
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)

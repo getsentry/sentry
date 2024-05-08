@@ -1,4 +1,5 @@
 import logging
+import math
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -239,7 +240,8 @@ def get_group_to_groupevent(
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
-        project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY)
+        end_time = int(math.ceil(fetch_time.timestamp()))
+        project_ids = buffer.get_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, 0, end_time)
         for project_id, date_added in project_ids:
             apply_delayed.delay(project_id, date_added)
 
