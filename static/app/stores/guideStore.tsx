@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {createStore} from 'reflux';
 
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
@@ -10,8 +9,9 @@ import type {
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ModalStore from 'sentry/stores/modalStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import type {CommonStoreDefinition} from './types';
 

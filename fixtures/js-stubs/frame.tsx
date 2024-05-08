@@ -1,4 +1,4 @@
-import type {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
 
 export function FrameFixture(props: Partial<Frame> = {}): Frame {
   return {

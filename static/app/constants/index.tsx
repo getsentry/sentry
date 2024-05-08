@@ -2,7 +2,7 @@
 
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
-import {DataCategoryExact} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types/core';
 
 /**
  * Common constants here
@@ -317,6 +317,14 @@ export const DATA_CATEGORY_INFO = {
     displayName: 'cron monitors',
     titleName: t('Cron Monitors'),
     uid: 13,
+  },
+  [DataCategoryExact.METRICS]: {
+    name: DataCategoryExact.METRICS,
+    apiName: 'metrics',
+    plural: 'metrics',
+    displayName: 'metrics',
+    titleName: t('Metrics'),
+    uid: 19,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Text from 'sentry/components/text';
@@ -9,7 +10,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm';
@@ -75,13 +75,11 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       <Thresholds>
         <MonitorIndicator status="warning" size={12} />
         <Text>
-          {defined(checkin_margin)
-            ? tn(
-                'Check-ins missed after %s min',
-                'Check-ins missed after %s mins',
-                checkin_margin
-              )
-            : t('Check-ins that are missed')}
+          {tn(
+            'Check-ins missed after %s min',
+            'Check-ins missed after %s mins',
+            checkin_margin ?? 1
+          )}
         </Text>
         <MonitorIndicator status="error" size={12} />
         <Text>
@@ -98,6 +96,16 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
         {schedule_type === ScheduleType.CRONTAB && (
           <KeyValueTableRow keyName={t('Timezone')} value={timezone} />
         )}
+        <KeyValueTableRow
+          keyName={t('Owner')}
+          value={
+            monitor.owner ? (
+              <ActorAvatar size={24} actor={monitor.owner} />
+            ) : (
+              t('Unassigned')
+            )
+          }
+        />
         <KeyValueTableRow
           keyName={t('Date created')}
           value={getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}

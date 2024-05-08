@@ -18,6 +18,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
@@ -40,12 +41,16 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
     permission_classes = ()
-    log_extra: dict[str, str | int] = {}
+    log_extra: dict[str, str | int]
     enforce_rate_limit = False
     """
     This endpoint is used to proxy requests from region silos to the third-party
     integration on behalf of credentials stored in the control silo.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.log_extra = dict()
 
     @property
     def client(self):
@@ -88,7 +93,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         # Get the organization integration
         org_integration_id_header = request.headers.get(PROXY_OI_HEADER)
-        if org_integration_id_header is None or not org_integration_id_header.isnumeric():
+        if org_integration_id_header is None or not org_integration_id_header.isdecimal():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
         org_integration_id = int(org_integration_id_header)
@@ -156,8 +161,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info("integration_proxy.failure.invalid_request", extra=self.log_extra)
             metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request", sample_rate=1.0)
             return False
-
-        logger.info("integration_proxy.valid_request", extra=self.log_extra)
         return True
 
     def _call_third_party_api(self, request, full_url: str, headers) -> HttpResponse:
@@ -213,7 +216,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             tags={"status": response.status_code},
             sample_rate=1.0,
         )
-        logger.info("proxy_success", extra=self.log_extra)
         return response
 
     def handle_exception(  # type: ignore[override]
@@ -224,6 +226,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         scope: Scope | None = None,
     ) -> DRFResponse:
         if isinstance(exc, IdentityNotValid):
+            logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
             return self.respond(status=400)
+        elif isinstance(exc, ApiHostError):
+            logger.info(
+                "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
+            )
+            return self.respond(status=exc.code)
+        elif isinstance(exc, ApiTimeoutError):
+            logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
+            return self.respond(status=exc.code)
 
         return super().handle_exception(request, exc, handler_context, scope)

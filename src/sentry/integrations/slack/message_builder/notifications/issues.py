@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -21,7 +21,7 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         super().__init__(notification, context, recipient)
         self.notification: ProjectNotification = notification
 
-    def build(self) -> SlackAttachment | SlackBlock:
+    def build(self) -> SlackBlock:
         group = getattr(self.notification, "group", None)
         return SlackIssuesMessageBuilder(
             group=group,

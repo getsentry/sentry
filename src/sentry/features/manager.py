@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 import sentry_sdk
 from django.conf import settings
 
+from sentry.utils import metrics
+
 from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
 
@@ -108,7 +110,7 @@ class RegisteredFeatureManager:
 
                 batch = FeatureCheckBatch(self, name, organization, remaining, actor)
                 handler_result = handler.has_for_batch(batch)
-                for (obj, flag) in handler_result.items():
+                for obj, flag in handler_result.items():
                     if flag is not None:
                         remaining.remove(obj)
                         result[obj] = flag
@@ -127,6 +129,7 @@ class FeatureManager(RegisteredFeatureManager):
         super().__init__()
         self._feature_registry: MutableMapping[str, type[Feature]] = {}
         self.entity_features: MutableSet[str] = set()
+        self.option_features: MutableSet[str] = set()
         self._entity_handler: FeatureHandler | None = None
 
     def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
@@ -156,6 +159,12 @@ class FeatureManager(RegisteredFeatureManager):
             if name.startswith("users:"):
                 raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
+        if entity_feature_strategy == FeatureHandlerStrategy.OPTIONS:
+            if name.startswith("users:"):
+                raise NotImplementedError(
+                    "OPTIONS feature handler strategy only supports organizations (for now)"
+                )
+            self.option_features.add(name)
         self._feature_registry[name] = cls
 
     def _get_feature_class(self, name: str) -> type[Feature]:
@@ -210,26 +219,49 @@ class FeatureManager(RegisteredFeatureManager):
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
 
         """
+        sample_rate = 0.01
         try:
-            actor = kwargs.pop("actor", None)
-            feature = self.get(name, *args, **kwargs)
+            with metrics.timer("features.has", tags={"feature": name}, sample_rate=sample_rate):
+                actor = kwargs.pop("actor", None)
+                feature = self.get(name, *args, **kwargs)
 
-            # Check registered feature handlers
-            rv = self._get_handler(feature, actor)
-            if rv is not None:
-                return rv
-
-            if self._entity_handler and not skip_entity:
-                rv = self._entity_handler.has(feature, actor)
+                # Check registered feature handlers
+                rv = self._get_handler(feature, actor)
                 if rv is not None:
+                    metrics.incr(
+                        "feature.has.result",
+                        tags={"feature": name, "result": rv},
+                        sample_rate=sample_rate,
+                    )
                     return rv
 
-            rv = settings.SENTRY_FEATURES.get(feature.name, False)
-            if rv is not None:
-                return rv
+                if self._entity_handler and not skip_entity:
+                    rv = self._entity_handler.has(feature, actor)
+                    if rv is not None:
+                        metrics.incr(
+                            "feature.has.result",
+                            tags={"feature": name, "result": rv},
+                            sample_rate=sample_rate,
+                        )
+                        return rv
 
-            # Features are by default disabled if no plugin or default enables them
-            return False
+                rv = settings.SENTRY_FEATURES.get(feature.name, False)
+                if rv is not None:
+                    metrics.incr(
+                        "feature.has.result",
+                        tags={"feature": name, "result": rv},
+                        sample_rate=sample_rate,
+                    )
+                    return rv
+
+                # Features are by default disabled if no plugin or default enables them
+                metrics.incr(
+                    "feature.has.result",
+                    tags={"feature": name, "result": False},
+                    sample_rate=sample_rate,
+                )
+
+                return False
         except Exception:
             logging.exception("Failed to run feature check")
             return False
@@ -254,7 +286,7 @@ class FeatureManager(RegisteredFeatureManager):
             )
         else:
             # Fall back to default handler if no entity handler available.
-            project_features = filter(lambda name: name.startswith("projects:"), feature_names)
+            project_features = [name for name in feature_names if name.startswith("projects:")]
             if projects and project_features:
                 results: MutableMapping[str, Mapping[str, bool]] = {}
                 for project in projects:

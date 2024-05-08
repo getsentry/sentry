@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
 type SetupType = 'automatic' | 'manual';

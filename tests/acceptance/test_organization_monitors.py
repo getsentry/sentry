@@ -32,8 +32,7 @@ class OrganizationMontorsTest(AcceptanceTestCase):
 
     def test_empty_crons_page(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        assert self.browser.element_exists(xpath="//h3[text()='Monitor Your Cron Jobs']")
+        self.browser.wait_until(xpath="//h3[text()='Monitor Your Cron Jobs']")
 
     def test_quick_start_flow(self):
         self.browser.get(self.path)

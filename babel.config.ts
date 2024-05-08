@@ -15,7 +15,7 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.27',
+        corejs: '3.37',
       },
     ],
     // TODO: Remove allowDeclareFields when we upgrade to Babel 8
@@ -26,20 +26,6 @@ const config: TransformOptions = {
   env: {
     production: {
       plugins: [
-        [
-          'transform-react-remove-prop-types',
-          {
-            mode: 'remove', // remove from bundle
-            removeImport: true, // removes `prop-types` import statements
-            classNameMatchers: [
-              'SelectField',
-              'FormField',
-              'DeprecatedAsyncComponent',
-              'DeprecatedAsyncView',
-            ],
-            additionalLibraries: [/app\/sentryTypes$/],
-          },
-        ],
         ['babel-plugin-add-react-displayname'],
         '@sentry/babel-plugin-component-annotate',
       ],

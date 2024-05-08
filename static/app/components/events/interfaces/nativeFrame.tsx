@@ -3,6 +3,7 @@ import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -20,8 +21,8 @@ import {
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import {Tag} from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
@@ -268,6 +269,7 @@ function NativeFrame({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
+          {expandable ? <InteractionStateLayer /> : null}
           <SymbolicatorIcon>
             {status === 'error' ? (
               <Tooltip
@@ -505,6 +507,7 @@ const RowHeader = styled('span')<{
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
   grid-template-rows: repeat(2, auto);
@@ -532,19 +535,6 @@ const StackTraceFrame = styled('li')`
   :not(:last-child) {
     ${RowHeader} {
       border-bottom: 1px solid ${p => p.theme.border};
-    }
-  }
-
-  &:last-child {
-    ${RowHeader} {
-      border-bottom-right-radius: 5px;
-      border-bottom-left-radius: 5px;
-    }
-  }
-
-  &:first-child {
-    ${RowHeader} {
-      border-top-right-radius: 5px;
     }
   }
 `;

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
@@ -17,6 +17,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
+import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -70,6 +71,28 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   const replayErrors = errors.filter(e => e.title !== 'User Feedback');
 
   useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
+
+  const {mutate: markAsViewed} = useMarkReplayViewed();
+  useEffect(() => {
+    if (
+      !fetchError &&
+      replayRecord &&
+      !replayRecord.has_viewed &&
+      projectSlug &&
+      !fetching &&
+      replayId
+    ) {
+      markAsViewed({projectSlug, replayId});
+    }
+  }, [
+    fetchError,
+    fetching,
+    markAsViewed,
+    organization,
+    projectSlug,
+    replayId,
+    replayRecord,
+  ]);
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,

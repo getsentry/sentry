@@ -25,7 +25,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.silo.base import SiloMode
@@ -74,7 +74,7 @@ class UseCase(enum.Enum):
     ESCALATING_ISSUES = "escalating_issues"
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectKey(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -260,7 +260,7 @@ class ProjectKey(Model):
 
     @property
     def crons_endpoint(self):
-        return f"{self.get_endpoint()}/api/{self.project_id}/crons/___MONITOR_SLUG___/{self.public_key}/"
+        return f"{self.get_endpoint()}/api/{self.project_id}/cron/___MONITOR_SLUG___/{self.public_key}/"
 
     @property
     def js_sdk_loader_cdn_url(self) -> str:

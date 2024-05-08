@@ -41,7 +41,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         operation_id="Retrieve a Client Key",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the client key"),
         ],
         request=None,
@@ -69,7 +69,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         operation_id="Update a Client Key",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the key to update."),
         ],
         request=inline_serializer(
@@ -145,6 +145,8 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         if features.has("projects:rate-limits", project):
             ratelimit = result.get("rateLimit", -1)
+            prev_rate_limit_count = key.rate_limit_count
+            prev_rate_limit_window = key.rate_limit_window
             if (
                 ratelimit is None
                 or ratelimit != -1
@@ -159,12 +161,19 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         key.save()
 
+        data = key.get_audit_log_data()
+        if features.has("projects:rate-limits", project):
+            if prev_rate_limit_count != key.rate_limit_count:
+                data["prev_rate_limit_count"] = prev_rate_limit_count
+            if prev_rate_limit_window != key.rate_limit_window:
+                data["prev_rate_limit_window"] = prev_rate_limit_window
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=key.id,
             event=audit_log.get_event_id("PROJECTKEY_EDIT"),
-            data=key.get_audit_log_data(),
+            data=data,
         )
 
         return Response(serialize(key, request.user, request=request), status=200)
@@ -173,7 +182,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         operation_id="Delete a Client Key",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.key_id("The ID of the key to delete."),
         ],
         responses={

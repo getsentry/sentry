@@ -233,7 +233,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
     };
 
     const result = getMetricsQueryApiRequestPayload([metric], filters, {
-      intervalLadder: 'ddm',
+      intervalLadder: 'metrics',
     });
 
     expect(result.query).toEqual({

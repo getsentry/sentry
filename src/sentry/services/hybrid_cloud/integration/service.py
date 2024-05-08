@@ -14,7 +14,7 @@ from sentry.services.hybrid_cloud.integration.model import (
 )
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class IntegrationService(RpcService):

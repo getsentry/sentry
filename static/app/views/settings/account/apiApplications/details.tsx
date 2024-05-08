@@ -6,6 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/actions/button';
 import {Alert} from 'sentry/components/alert';
+import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -37,15 +38,14 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
       );
       openModal(({Body, Header}) => (
         <Fragment>
-          <Header>{t('Rotated Client Secret')}</Header>
+          <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert type="info" showIcon>
               {t('This will be the only time your client secret is visible!')}
             </Alert>
-            <p>
-              {t('Your client secret is:')}
-              <code>{rotateResponse.clientSecret}</code>
-            </p>
+            <TextCopyInput aria-label={t('new-client-secret')}>
+              {rotateResponse.clientSecret}
+            </TextCopyInput>
           </Body>
         </Fragment>
       ));
@@ -107,9 +107,14 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                   ) : (
                     <ClientSecret>
                       <HiddenSecret>{t('hidden')}</HiddenSecret>
-                      <Button onClick={this.rotateClientSecret} priority="danger">
-                        Rotate client secret
-                      </Button>
+                      <Confirm
+                        onConfirm={this.rotateClientSecret}
+                        message={t(
+                          'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                        )}
+                      >
+                        <Button priority="danger">Rotate client secret</Button>
+                      </Confirm>
                     </ClientSecret>
                   )
                 }

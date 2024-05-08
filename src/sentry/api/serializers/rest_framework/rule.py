@@ -37,12 +37,16 @@ class RuleNodeField(serializers.Field):
         if "id" not in data:
             raise ValidationError("Missing attribute 'id'")
 
+        for key, value in list(data.items()):
+            if not value:
+                del data[key]
+
         cls = rules.get(data["id"], self.type_name)
         if cls is None:
             msg = "Invalid node. Could not find '%s'"
             raise ValidationError(msg % data["id"])
 
-        node = cls(self.context["project"], data)
+        node = cls(project=self.context["project"], data=data)
 
         # Nodes with user-declared fields will manage their own validation
         if node.id in SENTRY_APP_ACTIONS:
@@ -182,7 +186,10 @@ class RuleSerializer(RuleSetSerializer):
         if self.validated_data.get("frequency"):
             rule.data["frequency"] = self.validated_data["frequency"]
         if self.validated_data.get("owner"):
-            rule.owner = self.validated_data["owner"].resolve_to_actor()
+            actor = self.validated_data["owner"].resolve_to_actor()
+            rule.owner_id = actor.id
+            rule.owner_user_id = actor.user_id
+            rule.owner_team_id = actor.team_id
         rule.save()
         return rule
 

@@ -59,8 +59,10 @@ class SymbolicatorTaskKind:
 class SymbolicatorPools(Enum):
     default = "default"
     js = "js"
+    jvm = "jvm"
     lpq = "lpq"
     lpq_js = "lpq_js"
+    lpq_jvm = "lpq_jvm"
 
 
 class Symbolicator:
@@ -73,14 +75,17 @@ class Symbolicator:
     ):
         URLS = settings.SYMBOLICATOR_POOL_URLS
         pool = SymbolicatorPools.default.value
-        # TODO: Add a pool for JVM
         if task_kind.is_low_priority:
             if task_kind.platform == SymbolicatorPlatform.js:
                 pool = SymbolicatorPools.lpq_js.value
+            elif task_kind.platform == SymbolicatorPlatform.jvm:
+                pool = SymbolicatorPools.lpq_jvm.value
             else:
                 pool = SymbolicatorPools.lpq.value
         elif task_kind.platform == SymbolicatorPlatform.js:
             pool = SymbolicatorPools.js.value
+        elif task_kind.platform == SymbolicatorPlatform.jvm:
+            pool = SymbolicatorPools.jvm.value
 
         base_url = (
             URLS.get(pool)

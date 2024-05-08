@@ -22,7 +22,8 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, TeamWithProjects} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, TeamWithProjects} from 'sentry/types/project';
 import {sortProjects} from 'sentry/utils';
 import {
   onRenderCallback,

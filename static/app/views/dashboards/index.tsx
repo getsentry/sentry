@@ -5,7 +5,7 @@ import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 

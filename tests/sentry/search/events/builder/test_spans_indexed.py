@@ -73,21 +73,90 @@ def test_field_alias(params, field, expected):
 
 
 @pytest.mark.parametrize(
-    ["condition", "op", "value"],
+    ["condition", "expected"],
     [
-        pytest.param("1s", Op.EQ, 1000, id="=1s"),
-        pytest.param(">1s", Op.GT, 1000, id=">1s"),
-        pytest.param("<1s", Op.LT, 1000, id="<1s"),
-        pytest.param(">=1s", Op.GTE, 1000, id=">=1s"),
-        pytest.param("<=1s", Op.LTE, 1000, id="<=1s"),
+        pytest.param(
+            "span.duration:1s", Condition(span_duration, Op.EQ, 1000), id="span.duration:1s"
+        ),
+        pytest.param(
+            "span.duration:>1s", Condition(span_duration, Op.GT, 1000), id="span.duration:>1s"
+        ),
+        pytest.param(
+            "span.duration:<1s", Condition(span_duration, Op.LT, 1000), id="span.duration:<1s"
+        ),
+        pytest.param(
+            "span.duration:>=1s", Condition(span_duration, Op.GTE, 1000), id="span.duration:>=1s"
+        ),
+        pytest.param(
+            "span.duration:<=1s", Condition(span_duration, Op.LTE, 1000), id="span.duration:<=1s"
+        ),
+        pytest.param(
+            "span.duration:<=1s", Condition(span_duration, Op.LTE, 1000), id="span.duration:<=1s"
+        ),
+        pytest.param(
+            "span.op:db",
+            Condition(Column("op"), Op.EQ, "db"),
+            id="span.op:db",
+        ),
+        pytest.param(
+            "span.op:[db,http.client]",
+            Condition(Column("op"), Op.IN, ["db", "http.client"]),
+            id="span.op:[db,http.client]",
+        ),
+        pytest.param(
+            "span.status:ok",
+            Condition(Column("span_status"), Op.EQ, 0),
+            id="span.status:ok",
+        ),
+        pytest.param(
+            "span.status:[invalid_argument,not_found]",
+            Condition(Column("span_status"), Op.IN, [3, 5]),
+            id="span.status:[invalid_argument,not_found]",
+        ),
     ],
 )
 @django_db_all
-def test_span_duration_where(params, condition, op, value):
+def test_where(params, condition, expected):
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
-        query=f"span.duration:{condition}",
+        query=condition,
         selected_columns=["count"],
     )
-    assert Condition(span_duration, op, value) in builder.where
+    assert expected in builder.where
+
+
+@django_db_all
+def test_where_project(params):
+    project = next(iter(params["project_objects"]))
+
+    for query in [f"project:{project.slug}", f"project.id:{project.id}"]:
+        builder = SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            params,
+            query=query,
+            selected_columns=["count"],
+        )
+
+        assert Condition(Column("project_id"), Op.EQ, project.id) in builder.where
+
+
+@pytest.mark.parametrize(
+    ["query", "result"],
+    [
+        pytest.param("span.op:params test", Condition(Column("description"), Op.EQ, "test")),
+        pytest.param("testing", Condition(Column("description"), Op.EQ, "testing")),
+        pytest.param(
+            "span.description:test1 test2", Condition(Column("description"), Op.EQ, "test2")
+        ),
+    ],
+)
+@django_db_all
+def test_free_text_search(params, query, result):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query=query,
+        selected_columns=["count"],
+    )
+    assert result in builder.where

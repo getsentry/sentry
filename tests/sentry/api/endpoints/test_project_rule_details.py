@@ -15,11 +15,11 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.silo import SiloMode
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import freeze_time
@@ -37,10 +37,16 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        with assume_test_silo_mode(SiloMode.REGION):
-            assert Actor.objects.get(id=rule.owner_id)
+        actor = RpcActor.from_identifier(owner_id)
+        if actor.actor_type == ActorType.USER:
+            assert rule.owner_user_id == actor.id
+            assert rule.owner_team_id is None
+        if actor.actor_type == ActorType.TEAM:
+            assert rule.owner_team_id == actor.id
+            assert rule.owner_user_id is None
     else:
-        assert rule.owner is None
+        assert rule.owner_team_id is None
+        assert rule.owner_user_id is None
 
     environment = payload.get("environment")
     if environment:
@@ -534,6 +540,41 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert_rule_from_payload(self.rule, payload)
 
+    def test_update_owner_type(self):
+        team = self.create_team(organization=self.organization)
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        payload = {
+            "name": "hello world 2",
+            "owner": f"team:{team.id}",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["owner"] == f"team:{team.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
+
+        payload = {
+            "name": "hello world 2",
+            "owner": f"user:{self.user.id}",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["owner"] == f"user:{self.user.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id is None
+        assert rule.owner_user_id == self.user.id
+
     def test_update_name(self):
         conditions = [
             {
@@ -1002,9 +1043,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
-    @with_feature({"organizations:slack-block-kit": False})
     def test_slack_confirmation_notification_contents(self):
-        # TODO: make this a block kit test
         conditions = [
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
         ]
@@ -1078,7 +1117,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "frequency": 180,
             "filters": filters,
             "environment": staging_env.name,
-            "owner": get_actor_for_user(self.user).get_actor_identifier(),
+            "owner": f"user:{self.user.id}",
         }
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
@@ -1093,7 +1132,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert rendered_blocks[0]["text"]["text"] == message
         changes = "*Changes*\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
-        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] in notification* to *Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] in notification*\n"
+        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] and notes  in notification* to *Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] and notes  in notification*\n"
         changes += "• Changed frequency from *5 minutes* to *3 hours*\n"
         changes += f"• Added *{staging_env.name}* environment\n"
         changes += "• Changed rule name from *my rule* to *new rule*\n"
@@ -1233,7 +1272,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filterMatch": "any",
             "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
             "actions": [],
-            "owner": get_actor_for_user(new_user).get_actor_identifier(),
+            "owner": f"user:{new_user.id}",
         }
         response = self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload

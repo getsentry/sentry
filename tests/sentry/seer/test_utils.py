@@ -1,3 +1,4 @@
+import copy
 from unittest import mock
 
 import pytest
@@ -9,12 +10,19 @@ from urllib3.response import HTTPResponse
 from sentry.seer.utils import (
     POST_BULK_GROUPING_RECORDS_TIMEOUT,
     CreateGroupingRecordsRequest,
+    IncompleteSeerDataError,
+    RawSeerSimilarIssueData,
+    SeerSimilarIssueData,
+    SimilarGroupNotFoundError,
     SimilarIssuesEmbeddingsRequest,
     detect_breakpoints,
     get_similar_issues_embeddings,
     post_bulk_grouping_records,
 )
+from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.types import NonNone
 
 DUMMY_POOL = ConnectionPool("dummy")
 CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
@@ -67,46 +75,199 @@ def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, s
     assert mock_capture_exception.called
 
 
+# TODO: Remove once switch is complete
+@django_db_all
 @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-def test_get_similar_issues_embeddings_simple(mock_seer_request):
+def test_simple_similar_issues_embeddings_only_group_id_returned(
+    mock_seer_request, default_project
+):
     """Test that valid responses are decoded and returned."""
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
+    similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
 
-    expected_return_value = {
-        "responses": [
-            {
-                "message_similarity": 0.95,
-                "parent_group_id": 6,
-                "should_group": True,
-                "stacktrace_similarity": 0.99,
-            }
-        ]
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_id": NonNone(similar_event.group_id),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
     }
-    mock_seer_request.return_value = HTTPResponse(json.dumps(expected_return_value).encode("utf-8"))
+
+    seer_return_value = {"responses": [raw_similar_issue_data]}
+    mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "group_id": 1,
-        "project_id": 1,
+        "group_id": NonNone(event.group_id),
+        "group_hash": NonNone(event.get_primary_hash()),
+        "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
     }
-    response = get_similar_issues_embeddings(params)
-    assert response == expected_return_value
+    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
 
 
+@django_db_all
 @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-def test_get_similar_issues_embeddings_empty(mock_seer_request):
+def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, default_project):
+    """Test that valid responses are decoded and returned."""
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
+    similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
+
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    seer_return_value = {"responses": [raw_similar_issue_data]}
+    mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+    params: SimilarIssuesEmbeddingsRequest = {
+        "group_id": NonNone(event.group_id),
+        "group_hash": NonNone(event.get_primary_hash()),
+        "project_id": default_project.id,
+        "stacktrace": "string",
+        "message": "message",
+    }
+
+    similar_issue_data = {
+        **raw_similar_issue_data,
+        "parent_group_id": similar_event.group_id,
+    }
+
+    assert get_similar_issues_embeddings(params) == [
+        SeerSimilarIssueData(**similar_issue_data)  # type: ignore[arg-type]
+    ]
+
+
+# TODO: Remove once switch is complete
+@django_db_all
+@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, default_project):
+    """Test that valid responses are decoded and returned."""
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
+    similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
+
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_id": NonNone(similar_event.group_id),
+        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    seer_return_value = {"responses": [raw_similar_issue_data]}
+    mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+    params: SimilarIssuesEmbeddingsRequest = {
+        "group_id": NonNone(event.group_id),
+        "group_hash": NonNone(event.get_primary_hash()),
+        "project_id": default_project.id,
+        "stacktrace": "string",
+        "message": "message",
+    }
+
+    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
+
+
+@django_db_all
+@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
     """Test that empty responses are returned."""
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
 
     mock_seer_request.return_value = HTTPResponse([])
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "group_id": 1,
-        "project_id": 1,
+        "group_id": NonNone(event.group_id),
+        "group_hash": NonNone(event.get_primary_hash()),
+        "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
     }
-    response = get_similar_issues_embeddings(params)
-    assert response == {"responses": []}
+    assert get_similar_issues_embeddings(params) == []
+
+
+# TODO: Remove once switch is complete
+@django_db_all
+def test_from_raw_only_parent_group_id(default_project):
+    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_id": NonNone(similar_event.group_id),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    assert SeerSimilarIssueData.from_raw(
+        default_project.id, raw_similar_issue_data
+    ) == SeerSimilarIssueData(**raw_similar_issue_data)
+
+
+@django_db_all
+def test_from_raw_only_parent_hash(default_project):
+    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    similar_issue_data = {
+        **raw_similar_issue_data,
+        "parent_group_id": NonNone(similar_event.group_id),
+    }
+
+    assert SeerSimilarIssueData.from_raw(
+        default_project.id, raw_similar_issue_data
+    ) == SeerSimilarIssueData(
+        **similar_issue_data  # type:ignore[arg-type]
+    )
+
+
+# TODO: Remove once switch is complete
+@django_db_all
+def test_from_raw_parent_group_id_and_parent_hash(default_project):
+    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_group_id": NonNone(similar_event.group_id),
+        "parent_group_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+
+    assert SeerSimilarIssueData.from_raw(
+        default_project.id, raw_similar_issue_data
+    ) == SeerSimilarIssueData(**raw_similar_issue_data)
+
+
+@django_db_all
+def test_from_raw_missing_data(default_project):
+    with pytest.raises(IncompleteSeerDataError):
+        raw_similar_issue_data: RawSeerSimilarIssueData = {
+            # missing both `parent_group_id` and `parent_group_hash`
+            "message_distance": 0.05,
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+
+        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
+
+
+@django_db_all
+def test_from_raw_nonexistent_group(default_project):
+    with pytest.raises(SimilarGroupNotFoundError):
+        raw_similar_issue_data: RawSeerSimilarIssueData = {
+            "parent_group_id": 1121201212312012,  # too high to be real
+            "parent_group_hash": "not a real hash",
+            "message_distance": 0.05,
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+
+        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
 
 
 @mock.patch("sentry.seer.utils.logger")
@@ -169,3 +330,16 @@ def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
             "reason": "INTERNAL SERVER ERROR",
         },
     )
+
+
+@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+def test_post_bulk_grouping_records_empty_data(mock_seer_request):
+    """Test that function handles empty data. This should not happen, but we do not want to error if it does."""
+    expected_return_value = {"success": True}
+    mock_seer_request.return_value = HTTPResponse(
+        json.dumps(expected_return_value).encode("utf-8"), status=200
+    )
+    empty_data = copy.deepcopy(CREATE_GROUPING_RECORDS_REQUEST_PARAMS)
+    empty_data["data"] = []
+    response = post_bulk_grouping_records(empty_data)
+    assert response == expected_return_value

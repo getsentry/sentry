@@ -87,10 +87,10 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       return currentCategory?.platforms?.has(platform.id);
     };
 
-    // temporary replacement of selectablePlatforms while `nintendo` is behind feature flag
+    // temporary replacement of selectablePlatforms while `nintendo-switch` is behind feature flag
     const tempSelectablePlatforms = selectablePlatforms;
     if (this.props.organization?.features.includes('selectable-nintendo-platform')) {
-      const nintendo = platforms.find(p => p.id === 'nintendo');
+      const nintendo = platforms.find(p => p.id === 'nintendo-switch');
       if (nintendo) {
         if (!tempSelectablePlatforms.includes(nintendo)) {
           tempSelectablePlatforms.push(nintendo);

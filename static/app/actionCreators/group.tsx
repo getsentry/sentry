@@ -4,15 +4,10 @@ import type {Tag} from 'sentry/actionCreators/events';
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
-import type {
-  Actor,
-  Group,
-  Member,
-  Note,
-  Tag as GroupTag,
-  TagValue,
-  User,
-} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Group, Note, Tag as GroupTag, TagValue} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -214,7 +209,7 @@ export function updateNote(
 type ParamsType = {
   environment?: string | string[] | null;
   itemIds?: string[];
-  project?: number[] | null;
+  project?: number[] | string[] | null;
   query?: string;
 };
 
@@ -227,16 +222,16 @@ type QueryArgs =
   | {
       query: string;
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     }
   | {
       id: Array<number> | Array<string>;
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     }
   | {
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     };
 
 /**

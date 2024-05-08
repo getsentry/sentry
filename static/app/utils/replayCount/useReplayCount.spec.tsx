@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
@@ -36,7 +36,7 @@ describe('useReplayCount', () => {
         '3333': 0,
       });
 
-      const {result, waitFor} = reactHooks.renderHook(useReplayCount, {
+      const {result} = renderHook(useReplayCount, {
         wrapper,
         initialProps,
       });
@@ -72,7 +72,7 @@ describe('useReplayCount', () => {
         '2222': 7,
       });
 
-      const {result, waitFor} = reactHooks.renderHook(useReplayCount, {
+      const {result} = renderHook(useReplayCount, {
         wrapper,
         initialProps,
       });
@@ -108,7 +108,7 @@ describe('useReplayCount', () => {
         '3333': 0,
       });
 
-      const {result, waitFor} = reactHooks.renderHook(useReplayCount, {
+      const {result} = renderHook(useReplayCount, {
         wrapper,
         initialProps,
       });
@@ -144,7 +144,7 @@ describe('useReplayCount', () => {
         '2222': 7,
       });
 
-      const {result, waitFor} = reactHooks.renderHook(useReplayCount, {
+      const {result} = renderHook(useReplayCount, {
         wrapper,
         initialProps,
       });

@@ -10,15 +10,15 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releases.constants import DB_VERSION_LENGTH
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupResolution(Model):
     """
     Describes when a group was marked as resolved.
@@ -116,8 +116,13 @@ class GroupResolution(Model):
                     # If current_release_version == release.version => 0
                     # If current_release_version < release.version => -1
                     # If current_release_version > release.version => 1
-                    current_release_raw = parse_release(current_release_version).get("version_raw")
-                    release_raw = parse_release(release.version).get("version_raw")
+                    json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
+                    current_release_raw = parse_release(
+                        current_release_version, json_loads=json_loads
+                    ).get("version_raw")
+                    release_raw = parse_release(release.version, json_loads=json_loads).get(
+                        "version_raw"
+                    )
                     return compare_version_relay(current_release_raw, release_raw) >= 0
                 except RelayError:
                     ...
@@ -157,8 +162,13 @@ class GroupResolution(Model):
                 try:
                     # A resolution only exists if the resolved release is greater (in semver
                     # terms) than the provided release
-                    res_release_raw = parse_release(res_release_version).get("version_raw")
-                    release_raw = parse_release(release.version).get("version_raw")
+                    json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
+                    res_release_raw = parse_release(res_release_version, json_loads=json_loads).get(
+                        "version_raw"
+                    )
+                    release_raw = parse_release(release.version, json_loads=json_loads).get(
+                        "version_raw"
+                    )
                     return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...

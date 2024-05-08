@@ -1,4 +1,4 @@
-import type {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 
 export type SelectKey = string | number;
 

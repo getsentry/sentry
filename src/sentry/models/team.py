@@ -10,22 +10,19 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.helpers import ImportFlags
-from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.outbox import OutboxCategory
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -160,7 +157,7 @@ class TeamStatus:
     DELETION_IN_PROGRESS = 2
 
 
-@region_silo_only_model
+@region_silo_model
 class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     """
     A team represents a group of individuals which maintain ownership of projects.
@@ -182,13 +179,6 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
             (TeamStatus.DELETION_IN_PROGRESS, _("Deletion in Progress")),
         ),
         default=TeamStatus.ACTIVE,
-    )
-    actor = FlexibleForeignKey(
-        "sentry.Actor",
-        related_name="team_from_actor",
-        db_index=True,
-        unique=True,
-        null=True,
     )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -250,40 +240,5 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
 
         return Project.objects.get_for_team_ids([self.id])
 
-    def get_member_actor_ids(self):
-        owner_ids = [self.actor_id]
-        member_user_ids = self.member_set.values_list("user_id", flat=True)
-        owner_ids += Actor.objects.filter(
-            type=ACTOR_TYPES["user"],
-            user_id__in=member_user_ids,
-        ).values_list("id", flat=True)
-
-        return owner_ids
-
-    # TODO(hybrid-cloud): actor refactor. Remove this method when done. For now, we do no filtering
-    # on teams.
-    @classmethod
-    def query_for_relocation_export(cls, q: models.Q, _: PrimaryKeyMap) -> models.Q:
-        return q
-
-    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
-    def normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> int | None:
-        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
-        # `Actor` and `Team` have a direct circular dependency between them for the time being due
-        # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`
-        # foreign keys directly into `Actor`). If we use `INSERT` database calls naively, they will
-        # always fail, because one half of the cycle will always be missing.
-        #
-        # Because `Team` ends up first in the dependency sorting (see:
-        # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
-        # out the `actor_id` field of the `Team` when we import it, and then make sure to circle
-        # back and update the relevant `Team` after we create the `Actor` models later on (see the
-        # `write_relocation_import` method override on that class for details).
-        self.actor_id = None
-
-        return old_pk
+    def get_member_user_ids(self):
+        return self.member_set.values_list("user_id", flat=True)

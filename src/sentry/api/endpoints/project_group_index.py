@@ -41,9 +41,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         }
     }
 
@@ -79,7 +79,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                     events from this environment
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :auth: required
         """
@@ -216,7 +216,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                ``"ignored"``.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
@@ -273,7 +273,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         parameter shall be repeated for each issue.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :auth: required
         """

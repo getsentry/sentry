@@ -78,14 +78,31 @@ sudo-askpass() {
     fi
 }
 
-# needed by getsentry make
 pip-install() {
     pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
 }
 
-# needed by getsentry make
 upgrade-pip() {
     pip-install pip
+}
+
+install-py-dev() {
+    upgrade-pip
+    # It places us within top src dir to be at the same path as setup.py
+    # This helps when getsentry calls into this script
+    cd "${HERE}/.." || exit
+
+    echo "--> Installing Sentry (for development)"
+
+    # pip doesn't do well with swapping drop-ins
+    pip uninstall -qqy djangorestframework-stubs django-stubs
+
+    pip-install -r requirements-dev-frozen.txt
+
+    # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
+    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
+    # and acceptance tests, which webpack automatically if run.
+    python3 -m tools.fast_editable --path .
 }
 
 setup-git-config() {
@@ -121,6 +138,32 @@ node-version-check() {
         )
 }
 
+install-js-dev() {
+    node-version-check
+    echo "--> Installing Yarn packages (for development)"
+    # Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
+    NODE_ENV=development yarn install --frozen-lockfile
+    # A common problem is with node packages not existing in `node_modules` even though `yarn install`
+    # says everything is up to date. Even though `yarn install` is run already, it doesn't take into
+    # account the state of the current filesystem (it only checks .yarn-integrity).
+    # Add an additional check against `node_modules`
+    yarn check --verify-tree || yarn install --check-files
+}
+
+develop() {
+    install-js-dev
+    install-py-dev
+    setup-git
+}
+
+init-config() {
+    sentry init --dev --no-clobber
+}
+
+run-dependent-services() {
+    sentry devservices up
+}
+
 create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
@@ -130,11 +173,39 @@ create-db() {
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
 }
 
+apply-migrations() {
+    create-db
+    echo "--> Applying migrations"
+    sentry upgrade --noinput
+}
+
+create-superuser() {
+    echo "--> Creating a superuser account"
+    if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
+        sentry createuser --superuser --email foo@tbd.com --no-password --no-input
+    else
+        sentry createuser --superuser --email admin@sentry.io --password admin --no-input
+        echo "Password is admin."
+    fi
+}
+
 build-platform-assets() {
     echo "--> Building platform assets"
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
     # make sure this didn't silently do nothing
     test -f src/sentry/integration-docs/android.json
+}
+
+bootstrap() {
+    develop
+    init-config
+    run-dependent-services
+    apply-migrations
+    create-superuser
+    # Load mocks requires a superuser
+    bin/load-mocks
+    build-platform-assets
+    echo "--> Finished bootstrapping. Have a nice day."
 }
 
 clean() {
@@ -160,7 +231,8 @@ drop-db() {
 
 reset-db() {
     drop-db
-    devenv sync
+    apply-migrations
+    create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
 }
 

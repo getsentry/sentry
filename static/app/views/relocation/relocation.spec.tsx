@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   fireEvent,
@@ -11,6 +9,7 @@ import {
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import Relocation from 'sentry/views/relocation/relocation';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -176,6 +175,23 @@ describe('Relocation', function () {
       expect(addErrorMessage).not.toHaveBeenCalled();
     });
 
+    it('should persist form data across reloads', async function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          promoCode: fakePromoCode,
+          regionUrl: fakeRegions.Earth.url,
+        })
+      );
+
+      await waitForRenderSuccess('get-started');
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+
+      expect(screen.getByLabelText('org-slugs')).toHaveValue(fakeOrgSlug);
+      expect(screen.getByLabelText('promocode')).toHaveValue(fakePromoCode);
+    });
+
     it('should not be allowed to go to next step if org slug is entered, region is selected, and promo code is invalid', async function () {
       await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
@@ -335,6 +351,22 @@ describe('Relocation', function () {
       expect(screen.queryByText('key.pub')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
+
+    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          // regionUrl missing
+        })
+      );
+
+      await waitForRenderSuccess('public-key');
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+
+      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
+    });
   });
 
   describe('Encrypt Backup', function () {
@@ -347,6 +379,22 @@ describe('Relocation', function () {
           'Create an encrypted backup of your current self-hosted instance'
         )
       ).toBeInTheDocument();
+    });
+
+    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          // orgSlugs missing
+          regionUrl: fakeRegions.Earth.url,
+        })
+      );
+
+      await waitForRenderSuccess('encrypt-backup');
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+
+      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
   });
 
@@ -399,32 +447,6 @@ describe('Relocation', function () {
       expect(
         await screen.findByText('Upload Tarball to begin the relocation process')
       ).toBeInTheDocument();
-    });
-
-    it('fails to starts relocation job if some form data is missing', async function () {
-      // Remove `orgSlugs` from session storage; this will act as the "missing form data".
-      sessionStorage.setItem(
-        'relocationOnboarding',
-        JSON.stringify({
-          promoCode: fakePromoCode,
-          regionUrl: fakeRegions.Earth.url,
-        })
-      );
-
-      const postRelocation = MockApiClient.addMockResponse({
-        url: `/relocations/`,
-        method: 'POST',
-      });
-      await waitForRenderSuccess('upload-backup');
-      await userEvent.upload(
-        screen.getByLabelText('file-upload'),
-        new File(['hello'], 'hello.tar', {type: 'file'})
-      );
-      await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(postRelocation).not.toHaveBeenCalled());
-      expect(addErrorMessage).toHaveBeenCalledWith(
-        'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
-      );
     });
 
     it('starts relocation job if form data is available from previous steps', async function () {
@@ -560,6 +582,16 @@ describe('Relocation', function () {
       expect(addErrorMessage).toHaveBeenCalledWith(
         'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
       );
+    });
+
+    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+      sessionStorage.setItem('relocationOnboarding', JSON.stringify({}));
+
+      await waitForRenderSuccess('upload-backup');
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+
+      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
   });
 

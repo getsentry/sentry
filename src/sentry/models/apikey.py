@@ -5,18 +5,16 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    BoundedPositiveIntegerField,
-    control_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import BaseManager, BoundedPositiveIntegerField, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import OutboxCategory
 from sentry.services.hybrid_cloud.replica import region_replica_service
+from sentry.utils.json import JSONData
 
 
 # TODO(dcramer): pull in enum library
@@ -25,7 +23,7 @@ class ApiKeyStatus:
     INACTIVE = 1
 
 
-@control_silo_only_model
+@control_silo_model
 class ApiKey(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.API_KEY_UPDATE
@@ -85,6 +83,17 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
             "scopes": self.get_scopes(),
             "status": self.status,
         }
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "allowed_origins"), lambda _: "")
+        sanitizer.set_string(json, SanitizableField(model_name, "key"))
+        sanitizer.set_name(json, SanitizableField(model_name, "label"))
 
 
 def is_api_key_auth(auth: object) -> bool:

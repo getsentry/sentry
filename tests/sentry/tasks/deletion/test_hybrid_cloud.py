@@ -1,3 +1,4 @@
+from operator import itemgetter
 from unittest.mock import patch
 
 import pytest
@@ -5,30 +6,42 @@ from django.apps import apps
 from django.db.models import Max, QuerySet
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model
+from sentry.db.models import Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.savedsearch import SavedSearch
+from sentry.models.tombstone import RegionTombstone
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.monitors.models import Monitor
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
+    WatermarkBatch,
+    get_ids_cross_db_for_row_watermark,
+    get_ids_cross_db_for_tombstone_watermark,
     get_watermark,
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
 )
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    control_silo_test,
+    region_silo_test,
+)
 from sentry.types.region import find_regions_for_user
 
 
-@region_silo_only_model
+@region_silo_model
 class DoNothingIntegrationModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
@@ -274,3 +287,465 @@ def test_set_null_deletion_behavior(task_runner):
     # Deletion set field to null
     saved_query = DiscoverSavedQuery.objects.get(id=saved_query.id)
     assert saved_query.created_by_id is None
+
+
+def setup_cross_db_deletion_data(
+    desired_user_id: int | None = None,
+    desired_monitor_id: int | None = None,
+):
+    user = Factories.create_user(id=desired_user_id)
+    organization = Factories.create_organization(owner=user, name="Delete Me")
+    project = Factories.create_project(organization=organization)
+    group = Factories.create_group(project=project)
+    with assume_test_silo_mode_of(DiscoverSavedQuery, Monitor):
+        saved_query = DiscoverSavedQuery.objects.create(
+            name="disco-query",
+            organization=organization,
+            created_by_id=user.id,
+        )
+        monitor = Monitor.objects.create(
+            id=desired_monitor_id,
+            organization_id=organization.id,
+            project_id=project.id,
+            slug="test-monitor",
+            name="Test Monitor",
+            owner_user_id=user.id,
+        )
+
+        assert monitor.owner_user_id == user.id
+
+    return dict(
+        user=user,
+        organization=organization,
+        project=project,
+        monitor=monitor,
+        group=group,
+        saved_query=saved_query,
+    )
+
+
+# TODO(Gabe): Enable this test when the multi-db test changes land
+@region_silo_test
+@pytest.mark.skip
+class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
+    def assert_monitors_unchanged(self, unaffected_data: list[dict]):
+        for u_data in unaffected_data:
+            u_user, u_monitor = itemgetter("user", "monitor")(u_data)
+            queried_monitor = Monitor.objects.get(id=u_monitor.id)
+            # Validate that none of the existing user's monitors have been affected
+            assert u_monitor.owner_user_id is not None
+            assert u_monitor.owner_user_id == queried_monitor.owner_user_id
+            assert u_monitor.owner_user_id == u_user.id
+
+    def assert_monitors_user_ids_null(self, monitors: list[Monitor]):
+        for monitor in monitors:
+            monitor.refresh_from_db()
+            assert monitor.owner_user_id is None
+
+    def run_hybrid_cloud_fk_jobs(self):
+        with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
+            with BurstTaskRunner() as burst:
+                schedule_hybrid_cloud_foreign_key_jobs()
+
+            burst()
+
+    def test_raises_when_option_disabled(self):
+        data = setup_cross_db_deletion_data()
+        user, monitor = itemgetter("user", "monitor")(data)
+        with assume_test_silo_mode_of(User), outbox_runner():
+            User.objects.get(id=user.id).delete()
+
+        assert Monitor.objects.filter(id=monitor.id).exists()
+
+        with pytest.raises(Exception) as exc, override_options(
+            {"hybrid_cloud.allow_cross_db_tombstones": False}
+        ):
+            with BurstTaskRunner() as burst:
+                schedule_hybrid_cloud_foreign_key_jobs()
+
+            burst()
+
+        assert exc.match("Cannot process tombstones due to model living in separate database.")
+        assert Monitor.objects.filter(id=monitor.id).exists()
+
+    def test_cross_db_deletion(self):
+        data = setup_cross_db_deletion_data()
+        user, monitor, organization, project = itemgetter(
+            "user", "monitor", "organization", "project"
+        )(data)
+        unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
+
+        affected_monitors = [monitor]
+
+        affected_monitors.extend(
+            [
+                Monitor.objects.create(
+                    id=5 + i * 2,  # Ensure that each monitor is in its own batch
+                    organization_id=organization.id,
+                    project_id=project.id,
+                    slug=f"test-monitor-{i}",
+                    name="Test Monitor",
+                    owner_user_id=user.id,
+                )
+                for i in range(4)
+            ]
+        )
+
+        with assume_test_silo_mode_of(User), outbox_runner():
+            User.objects.get(id=user.id).delete()
+
+        assert Monitor.objects.filter(id=monitor.id).exists()
+        assert monitor.owner_user_id == user.id
+
+        self.run_hybrid_cloud_fk_jobs()
+
+        self.assert_monitors_unchanged(unaffected_data=unaffected_data)
+        self.assert_monitors_user_ids_null(monitors=affected_monitors)
+
+    def test_deletion_row_after_tombstone(self):
+        data = setup_cross_db_deletion_data()
+        user, monitor, organization, project = itemgetter(
+            "user", "monitor", "organization", "project"
+        )(data)
+        unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
+
+        affected_monitors = [monitor]
+
+        with assume_test_silo_mode_of(User), outbox_runner():
+            User.objects.get(id=user.id).delete()
+
+        assert Monitor.objects.filter(id=monitor.id).exists()
+        assert monitor.owner_user_id == user.id
+
+        self.run_hybrid_cloud_fk_jobs()
+
+        self.assert_monitors_unchanged(unaffected_data=unaffected_data)
+        self.assert_monitors_user_ids_null(monitors=affected_monitors)
+
+        # Same as previous test, but this time with monitors created after
+        # the tombstone has been processed
+        affected_monitors.extend(
+            [
+                Monitor.objects.create(
+                    id=10 + i * 2,  # Ensure that each monitor is in its own batch
+                    organization_id=organization.id,
+                    project_id=project.id,
+                    slug=f"test-monitor-{i}",
+                    name="Test Monitor",
+                    owner_user_id=user.id,
+                )
+                for i in range(4)
+            ]
+        )
+
+        self.run_hybrid_cloud_fk_jobs()
+
+        self.assert_monitors_unchanged(unaffected_data=unaffected_data)
+        self.assert_monitors_user_ids_null(monitors=affected_monitors)
+
+    def test_empty_tombstones_table(self):
+        unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
+        assert RegionTombstone.objects.count() == 0
+
+        self.run_hybrid_cloud_fk_jobs()
+        self.assert_monitors_unchanged(unaffected_data=unaffected_data)
+
+
+@region_silo_test
+class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
+    def test_get_ids_for_tombstone_cascade_cross_db(self):
+        data = setup_cross_db_deletion_data()
+
+        unaffected_data = []
+        for i in range(3):
+            unaffected_data.append(setup_cross_db_deletion_data())
+
+        user = data["user"]
+        user_id = user.id
+        monitor = data["monitor"]
+        with assume_test_silo_mode_of(User), outbox_runner():
+            user.delete()
+
+        tombstone = RegionTombstone.objects.get(
+            object_identifier=user_id, table_name=User._meta.db_table
+        )
+
+        highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
+        monitor_owner_field = Monitor._meta.get_field("owner_user_id")
+
+        ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=monitor_owner_field,
+            tombstone_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_tombstone_id["id__max"] + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at
+
+    def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(self):
+        cascade_data = [setup_cross_db_deletion_data() for _ in range(3)]
+
+        # Create some additional filler data
+        [setup_cross_db_deletion_data() for _ in range(3)]
+
+        in_order_tombstones = []
+        for data in cascade_data:
+            user = data["user"]
+            user_id = user.id
+            with assume_test_silo_mode_of(User), outbox_runner():
+                user.delete()
+
+            in_order_tombstones.append(
+                RegionTombstone.objects.get(
+                    object_identifier=user_id, table_name=User._meta.db_table
+                )
+            )
+
+        bounds_with_expected_results = [
+            (
+                {"low": 0, "up": in_order_tombstones[1].id},
+                [cascade_data[0]["monitor"].id, cascade_data[1]["monitor"].id],
+            ),
+            (
+                {"low": in_order_tombstones[1].id, "up": in_order_tombstones[2].id},
+                [cascade_data[2]["monitor"].id],
+            ),
+            (
+                {"low": 0, "up": in_order_tombstones[0].id - 1},
+                [],
+            ),
+            (
+                {"low": in_order_tombstones[2].id + 1, "up": in_order_tombstones[2].id + 5},
+                [],
+            ),
+            (
+                {"low": -1, "up": in_order_tombstones[2].id + 1},
+                [
+                    cascade_data[0]["monitor"].id,
+                    cascade_data[1]["monitor"].id,
+                    cascade_data[2]["monitor"].id,
+                ],
+            ),
+        ]
+
+        for bounds, bounds_with_expected_results in bounds_with_expected_results:
+            monitor_owner_field = Monitor._meta.get_field("owner_user_id")
+
+            ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
+                tombstone_cls=RegionTombstone,
+                model=Monitor,
+                field=monitor_owner_field,
+                tombstone_watermark_batch=WatermarkBatch(
+                    low=bounds["low"],
+                    up=bounds["up"],
+                    has_more=False,
+                    transaction_id="foobar",
+                ),
+            )
+            assert ids == bounds_with_expected_results
+
+    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self):
+        data = setup_cross_db_deletion_data()
+        unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
+
+        # Pollute the tombstone data with references to relationships in other
+        # tables matching other User IDs just to ensure we are filtering on the
+        # correct table name.
+        for udata in unaffected_data:
+            unaffected_user = udata["user"]
+            RegionTombstone.objects.create(
+                table_name="something_table", object_identifier=unaffected_user.id
+            )
+
+        user, monitor = itemgetter("user", "monitor")(data)
+        user_id = user.id
+        with assume_test_silo_mode_of(User), outbox_runner():
+            user.delete()
+
+        tombstone = RegionTombstone.objects.get(
+            object_identifier=user_id, table_name=User._meta.db_table
+        )
+
+        highest_tombstone_id = RegionTombstone.objects.aggregate(Max("id"))
+
+        ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor._meta.get_field("owner_user_id"),
+            tombstone_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_tombstone_id["id__max"] + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at
+
+
+@region_silo_test
+class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
+    def test_with_simple_tombstone_intersection(self):
+        data = setup_cross_db_deletion_data(desired_user_id=10, desired_monitor_id=42)
+        user, monitor = itemgetter("user", "monitor")(data)
+
+        assert user.id == 10
+        user_id = user.id
+        assert monitor.id == 42
+
+        with assume_test_silo_mode_of(User), outbox_runner():
+            user.delete()
+
+        highest_model_id = Monitor.objects.aggregate(Max("id"))
+        tombstone = RegionTombstone.objects.get(
+            object_identifier=user_id, table_name=User._meta.db_table
+        )
+        ids, oldest_obj = get_ids_cross_db_for_row_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor._meta.get_field("owner_user_id"),
+            row_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_model_id["id__max"] + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at
+
+    def test_with_empty_tombstones_table(self):
+        # Set up some sample data that shouldn't be affected
+        with outbox_runner():
+            [setup_cross_db_deletion_data() for _ in range(3)]
+
+        highest_model_id = Monitor.objects.aggregate(Max("id"))["id__max"]
+
+        assert highest_model_id is not None
+        assert not RegionTombstone.objects.filter().exists()
+
+        ids, oldest_obj = get_ids_cross_db_for_row_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor._meta.get_field("owner_user_id"),
+            row_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_model_id + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+
+        assert ids == []
+
+    def test_row_watermarking_bounds(self):
+        # In testing, the IDs for these models will be low, sequential values
+        # so adding some seed data to space the IDs out gives better insight
+        # on filter correctness.
+        desired_user_and_monitor_ids = [(10, 9), (42, 30), (77, 120)]
+        cascade_data = [
+            setup_cross_db_deletion_data(desired_user_id=user_id, desired_monitor_id=monitor_id)
+            for user_id, monitor_id in desired_user_and_monitor_ids
+        ]
+
+        # Create some additional filler data
+        [setup_cross_db_deletion_data() for _ in range(3)]
+
+        with assume_test_silo_mode_of(User), outbox_runner():
+            for data in cascade_data:
+                user = data["user"]
+                User.objects.get(id=user.id).delete()
+
+        bounds_with_expected_results = [
+            # Get batch containing first 2 monitors
+            (
+                {"low": 0, "up": cascade_data[1]["monitor"].id},
+                [cascade_data[0]["monitor"].id, cascade_data[1]["monitor"].id],
+            ),
+            # Get batch containing only the last monitor
+            (
+                {"low": cascade_data[1]["monitor"].id, "up": cascade_data[2]["monitor"].id},
+                [cascade_data[2]["monitor"].id],
+            ),
+            # Get batch after all current monitors, testing upper bound
+            (
+                {"low": 0, "up": cascade_data[0]["monitor"].id - 1},
+                [],
+            ),
+            # Get batch with all 3 monitors
+            (
+                {"low": -1, "up": cascade_data[2]["monitor"].id + 1},
+                [
+                    cascade_data[0]["monitor"].id,
+                    cascade_data[1]["monitor"].id,
+                    cascade_data[2]["monitor"].id,
+                ],
+            ),
+            # Get batch preceeding all monitors
+            (
+                {"low": cascade_data[1]["monitor"].id, "up": cascade_data[2]["monitor"].id - 1},
+                [],
+            ),
+        ]
+
+        for bounds, bounds_with_expected_results in bounds_with_expected_results:
+            monitor_owner_field = Monitor._meta.get_field("owner_user_id")
+
+            ids, oldest_obj = get_ids_cross_db_for_row_watermark(
+                tombstone_cls=RegionTombstone,
+                model=Monitor,
+                field=monitor_owner_field,
+                row_watermark_batch=WatermarkBatch(
+                    low=bounds["low"],
+                    up=bounds["up"],
+                    has_more=False,
+                    transaction_id="foobar",
+                ),
+            )
+            assert (
+                ids == bounds_with_expected_results
+            ), f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
+
+    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self):
+        data = setup_cross_db_deletion_data()
+        unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
+
+        # Similar to the test in the tombstone watermarking code, we pollute
+        # the data with same user IDs, but different table to ensure we only
+        # select the intersection of IDs from the monitor tombstones.
+        for udata in unaffected_data:
+            unaffected_user = udata["user"]
+            RegionTombstone.objects.create(
+                table_name="something_table", object_identifier=unaffected_user.id
+            )
+
+        user, monitor = itemgetter("user", "monitor")(data)
+        user_id = user.id
+        with assume_test_silo_mode_of(User), outbox_runner():
+            user.delete()
+
+        tombstone = RegionTombstone.objects.get(
+            object_identifier=user_id, table_name=User._meta.db_table
+        )
+
+        highest_model_id = Monitor.objects.aggregate(Max("id"))["id__max"]
+
+        ids, oldest_obj = get_ids_cross_db_for_row_watermark(
+            tombstone_cls=RegionTombstone,
+            model=Monitor,
+            field=Monitor._meta.get_field("owner_user_id"),
+            row_watermark_batch=WatermarkBatch(
+                low=0,
+                up=highest_model_id + 1,
+                has_more=False,
+                transaction_id="foobar",
+            ),
+        )
+        assert ids == [monitor.id]
+        assert oldest_obj == tombstone.created_at

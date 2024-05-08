@@ -52,9 +52,10 @@ def produce_occurrence_to_kafka(
     occurrence: IssueOccurrence | None = None,
     status_change: StatusChangeMessage | None = None,
     event_data: dict[str, Any] | None = None,
+    is_buffered_spans: bool | None = False,
 ) -> None:
     if payload_type == PayloadType.OCCURRENCE:
-        payload_data = _prepare_occurrence_message(occurrence, event_data)
+        payload_data = _prepare_occurrence_message(occurrence, event_data, is_buffered_spans)
     elif payload_type == PayloadType.STATUS_CHANGE:
         payload_data = _prepare_status_change_message(status_change)
     else:
@@ -63,7 +64,10 @@ def produce_occurrence_to_kafka(
     if payload_data is None:
         return
 
-    payload = KafkaPayload(None, json.dumps(payload_data).encode("utf-8"), [])
+    partition_key = None
+    if occurrence and occurrence.fingerprint:
+        partition_key = occurrence.fingerprint[0].encode()
+    payload = KafkaPayload(partition_key, json.dumps(payload_data).encode("utf-8"), [])
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev.
         # Skip producing to Kafka and just process the message directly
@@ -85,7 +89,9 @@ def produce_occurrence_to_kafka(
 
 
 def _prepare_occurrence_message(
-    occurrence: IssueOccurrence | None, event_data: dict[str, Any] | None
+    occurrence: IssueOccurrence | None,
+    event_data: dict[str, Any] | None,
+    is_buffered_spans: bool | None = False,
 ) -> MutableMapping[str, Any] | None:
     if not occurrence:
         raise ValueError("occurrence must be provided")
@@ -96,6 +102,9 @@ def _prepare_occurrence_message(
     payload_data["payload_type"] = PayloadType.OCCURRENCE.value
     if event_data:
         payload_data["event"] = event_data
+
+    if is_buffered_spans:
+        payload_data["is_buffered_spans"] = True
 
     return payload_data
 
