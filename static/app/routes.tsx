@@ -209,38 +209,16 @@ function buildRoutes() {
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/data-export/:dataExportId"
-          component={withDomainRequired(
-            make(() => import('sentry/views/dataExport/dataDownload'))
-          )}
-          key="orgless-data-export-route"
-        />
-      )}
       <Route
-        path="/organizations/:orgId/data-export/:dataExportId"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/dataExport/dataDownload'))
-        )}
-        key="org-data-export"
+        path="/data-export/:dataExportId"
+        component={make(() => import('sentry/views/dataExport/dataDownload'))}
+        withOrgPath
       />
       <Route component={errorHandler(OrganizationContainer)}>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            path="/disabled-member/"
-            component={withDomainRequired(
-              make(() => import('sentry/views/disabledMember'))
-            )}
-            key="orgless-disabled-member-route"
-          />
-        )}
         <Route
-          path="/organizations/:orgId/disabled-member/"
-          component={withDomainRedirect(
-            make(() => import('sentry/views/disabledMember'))
-          )}
-          key="org-disabled-member"
+          path="/disabled-member/"
+          component={make(() => import('sentry/views/disabledMember'))}
+          withOrgPath
         />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
@@ -298,17 +276,10 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/stories/"
-          component={make(() => import('sentry/views/stories/index'))}
-          key="orgless-stories"
-        />
-      )}
       <Route
-        path="/organizations/:orgId/stories/"
-        component={withDomainRedirect(make(() => import('sentry/views/stories/index')))}
-        key="org-stories"
+        path="/stories/"
+        component={make(() => import('sentry/views/stories/index'))}
+        withOrgPath
       />
     </Fragment>
   );
