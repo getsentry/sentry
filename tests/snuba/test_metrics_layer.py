@@ -26,9 +26,9 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
 from sentry.snuba.metrics_layer.query import (
+    _fetch_metric_mris_for_use_cases,
     bulk_run_query,
     fetch_metric_mris,
-    fetch_metric_mris_for_use_cases,
     fetch_metric_tag_keys,
     fetch_metric_tag_values,
     run_query,
@@ -934,7 +934,7 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
 
     def test_fetch_metric_mris_for_use_cases(self) -> None:
         use_case_ids = [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]
-        metric_mris = fetch_metric_mris_for_use_cases(self.org_id, [self.project.id], use_case_ids)
+        metric_mris = _fetch_metric_mris_for_use_cases(self.org_id, [self.project.id], use_case_ids)
         assert len(metric_mris) == 2
         assert len(metric_mris[UseCaseID.TRANSACTIONS][self.project.id]) == 4
         assert sorted(metric_mris[UseCaseID.TRANSACTIONS][self.project.id]) == [
