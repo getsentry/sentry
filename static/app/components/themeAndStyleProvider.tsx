@@ -5,7 +5,7 @@ import {CacheProvider, ThemeProvider} from '@emotion/react';
 
 import {loadPreferencesState} from 'sentry/actionCreators/preferences';
 import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {useSyncLegacyStore} from 'sentry/stores/useSyncLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
@@ -30,7 +30,7 @@ cache.compat = true;
 export function ThemeAndStyleProvider({children}: Props) {
   useEffect(() => void loadPreferencesState(), []);
 
-  const config = useLegacyStore(ConfigStore);
+  const config = useSyncLegacyStore(ConfigStore);
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
   return (

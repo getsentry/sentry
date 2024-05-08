@@ -3,7 +3,7 @@ import type {Store} from 'reflux';
 
 import type {CommonStoreDefinition} from './types';
 
-interface LegacyStoreShape extends Store, CommonStoreDefinition<any> {}
+export interface LegacyStoreShape extends Store, CommonStoreDefinition<any> {}
 
 /**
  * Returns the state of a reflux store. Automatically unsubscribes when destroyed
