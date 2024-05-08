@@ -503,7 +503,7 @@ def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -
         features.has("organizations:escalating-metrics-backend", event.project.organization)
         and not is_transaction_event
         and event.group is not None
-        and event.group.issue_type.should_detect_escalation(event.project.organization)
+        and event.group.issue_type.should_detect_escalation()
     )
 
 
@@ -867,7 +867,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         )
         return
 
-    if not group.issue_type.should_detect_escalation(group.organization):
+    if not group.issue_type.should_detect_escalation():
         return
 
     # groups less than a day old should use the new -> escalating logic
@@ -1397,8 +1397,11 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
     project = event.project
     group = event.group
 
-    if features.has(
-        "organizations:user-feedback-event-link-ingestion-changes", project.organization
+    if (
+        features.has(
+            "organizations:user-feedback-event-link-ingestion-changes", project.organization
+        )
+        and not job["is_reprocessed"]
     ):
         metrics.incr("event_manager.save._update_user_reports_with_event_link")
         event = job["event"]

@@ -9,8 +9,8 @@ from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils.actor import ActorTuple
 
 
 def generate_rule_label(project, rule, data):
@@ -132,9 +132,8 @@ class RuleSerializer(Serializer):
 
         for rule in rules.values():
             if rule.owner_team_id or rule.owner_user_id:
-                actor = ActorTuple.from_id(user_id=rule.owner_user_id, team_id=rule.owner_team_id)
-                if actor:
-                    result[rule]["owner"] = actor.identifier
+                actor = RpcActor.from_id(user_id=rule.owner_user_id, team_id=rule.owner_team_id)
+                result[rule]["owner"] = actor.identifier
 
             for action in rule.data.get("actions", []):
                 install = sentry_app_installations_by_uuid.get(
