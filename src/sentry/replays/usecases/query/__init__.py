@@ -165,26 +165,27 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    for i in range(len(search_filters)):
-        search_filter = search_filters[i]
-        if (
-            isinstance(search_filter, SearchFilter)
-            and search_filter.key.name in VIEWED_BY_ME_KEY_ALIASES
-        ):
-            # "viewed_by_me" is not a valid query field.
-            # It's a convenience alias for users without the admin access to lookup ids.
-            if search_filter.operator != "=":
-                # since the value is boolean, negations (!) are not allowed
-                raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
-            if not isinstance(search_filter.value, bool):
-                raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+    if request_user_id is not None:
+        for i in range(len(search_filters)):
+            search_filter = search_filters[i]
+            if (
+                isinstance(search_filter, SearchFilter)
+                and search_filter.key.name in VIEWED_BY_ME_KEY_ALIASES
+            ):
+                # "viewed_by_me" is not a valid query field.
+                # It's a convenience alias for users without the admin access to lookup ids.
+                if search_filter.operator != "=":
+                    # since the value is boolean, negations (!) are not allowed
+                    raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
+                if not isinstance(search_filter.value, bool):
+                    raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
 
-            operator = "=" if search_filter.value.value else "!="
-            search_filters[i] = SearchFilter(
-                SearchKey("viewed_by_id"),
-                operator,
-                SearchValue(request_user_id),
-            )
+                operator = "=" if search_filter.value.value else "!="
+                search_filters[i] = SearchFilter(
+                    SearchKey("viewed_by_id"),
+                    operator,
+                    SearchValue(request_user_id),
+                )
 
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
     can_scalar_search = can_scalar_search_subquery(search_filters)
