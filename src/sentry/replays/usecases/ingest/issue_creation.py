@@ -118,19 +118,19 @@ def _make_clicked_element(node):
         for key, value in node["attributes"].items():
             if key == "id":
                 element += f"#{value}"
-            if key == "class":
+            elif key == "class":
                 element = element + "." + ".".join(value.split(" "))
-            if key == "role":
+            elif key == "role":
                 element += f'[role="{value}"]'
-            if key == "alt":
+            elif key == "alt":
                 element += f'[alt="{value}"]'
-            if key == "data-test-id" or key == "data-testid":
+            elif key == "data-test-id" or key == "data-testid":
                 element += f'[data-test-id="{value}"]'
-            if key == "aria-label":
+            elif key == "aria-label":
                 element += f'[aria="{value}"]'
-            if key == "title":
+            elif key == "title":
                 element += f'[title="{value}"]'
-            if key == "data-sentry-component":
+            elif key == "data-sentry-component":
                 element += f'[data-sentry-component="{value}"]'
 
     return element
