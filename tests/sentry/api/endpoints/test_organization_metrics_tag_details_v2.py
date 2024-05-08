@@ -28,6 +28,7 @@ class OrganizationMetricsTagDetailsTestV2(MetricsAPIBaseTestCase):
             date_added=MetricsAPIBaseTestCase.MOCK_DATETIME + timedelta(minutes=5),
         )
 
+        # Use Case: TRANSACTIONS
         for value, transaction, platform, env, release, time in (
             (1, "/hello", "android", "prod", release_1.version, self.now()),
             (6, "/hello", "ios", "dev", release_2.version, self.now()),
@@ -54,9 +55,33 @@ class OrganizationMetricsTagDetailsTestV2(MetricsAPIBaseTestCase):
                     "environment": env,
                     "release": release,
                 },
-                self.ts(time),
+                self.now().timestamp(),
                 value,
                 UseCaseID.TRANSACTIONS,
+            )
+        # Use Case: CUSTOM
+        for value, release, tag_value, time in (
+            (1, release_1.version, "tag_value_1", self.now()),
+            (1, release_1.version, "tag_value_1", self.now()),
+            (1, release_1.version, "tag_value_2", self.now() - timedelta(days=40)),
+            (1, release_2.version, "tag_value_3", self.now() - timedelta(days=50)),
+            (1, release_2.version, "tag_value_4", self.now() - timedelta(days=60)),
+        ):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "distribution",
+                "d:custom/my_test_metric@percent",
+                {
+                    "transaction": "/hello",
+                    "platform": "platform",
+                    "environment": "prod",
+                    "release": release,
+                    "mytag": tag_value,
+                },
+                self.now().timestamp(),
+                value,
+                UseCaseID.CUSTOM,
             )
 
         self.prod_env = self.create_environment(name="prod", project=self.project)
@@ -65,35 +90,60 @@ class OrganizationMetricsTagDetailsTestV2(MetricsAPIBaseTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    def test_unknown_tag(self):
-        self.get_success_response(
-            self.organization.slug,
+    def test_tag_details_for_transactions_use_case(self):
+        response = self.get_success_response(
+            self.project.organization.slug,
             "transaction",
             metric=["d:transactions/duration@millisecond"],
             project=[self.project.id],
             useCase="transactions",
         )
+        assert response.data == [
+            {"key": "transaction", "value": "/hello"},
+            {"key": "transaction", "value": "/world"},
+        ]
 
-    def test_non_existing_tag(self):
-        assert False
+    def test_tag_details_for_custom_use_case(self):
+        response = self.get_success_response(
+            self.project.organization.slug,
+            "mytag",
+            metric=["d:custom/my_test_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
+        )
+        assert sorted(response.data, key=lambda x: x["value"]) == [
+            {"key": "mytag", "value": "tag_value_1"},
+            {"key": "mytag", "value": "tag_value_2"},
+            {"key": "mytag", "value": "tag_value_3"},
+            {"key": "mytag", "value": "tag_value_4"},
+        ]
 
-    def test_non_existing_filter(self):
-        assert False
+    def test_non_existing_tag_for_transactions_use_case(self):
+        response = self.get_error_response(
+            self.project.organization.slug,
+            "my_non_existent_tag",
+            metric=["d:transactions/duration@millisecond"],
+            project=[self.project.id],
+            useCase="transactions",
+        )
+        assert response.content == b'{"detail":"Unknown metric or tag key"}'
 
-    def test_metric_tag_details(self):
-        assert False
+    def test_non_existing_tag_for_custom_use_case(self):
+        response = self.get_error_response(
+            self.project.organization.slug,
+            "my_non_existent_tag",
+            metric=["d:custom/my_test_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
+        )
+        assert response.content == b'{"detail":"Unknown metric or tag key"}'
 
-    def test_tag_values_for_session_status_tag(self):
-        assert False
-
-    def test_tag_values_for_derived_metrics(self):
-        assert False
-
-    def test_metric_not_in_naming_layer(self):
-        assert False
-
-    def test_tag_values_for_composite_derived_metrics(self):
-        assert False
-
-    def test_metric_tag_details_with_date_range(self):
-        assert False
+    def test_tag_details_for_non_existent_metric(self):
+        response = self.get_error_response(
+            self.project.organization.slug,
+            "my_non_existent_tag",
+            metric=["d:custom/my_non_existent_test_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
+        )
+        assert response.content == b'{"detail":"Unknown metric or tag key"}'

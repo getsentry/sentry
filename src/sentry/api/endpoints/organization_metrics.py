@@ -37,7 +37,7 @@ from sentry.sentry_metrics.querying.errors import (
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
-from sentry.sentry_metrics.querying.metadata.tags import get_tag_keys, get_tag_values
+from sentry.sentry_metrics.querying.metadata.tags import get_tag_values
 from sentry.sentry_metrics.querying.metadata.utils import convert_metric_names_to_mris
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
@@ -49,6 +49,7 @@ from sentry.sentry_metrics.use_case_id_registry import (
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
+    get_all_tags,
     get_metrics_meta,
     get_series,
     get_single_metric_info,
@@ -219,13 +220,15 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         if not projects:
             raise InvalidParams("You must supply at least one project to see the tag names")
 
+        start, end = get_date_range_from_params(request.GET)
+
         try:
-            mris = convert_metric_names_to_mris(metric_names)
-            tags = get_tag_keys(
-                organization=organization,
+            tags = get_all_tags(
                 projects=projects,
-                use_case_ids=[get_use_case_id(request)],
-                mris=mris,
+                metric_names=metric_names,
+                use_case_id=get_use_case_id(request),
+                start=start,
+                end=end,
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
@@ -264,7 +267,9 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise ParseError(str(exc))
 
-        return Response(list(tag_values), status=200)
+        tag_values_formatted = [{"key": tag_name, "value": tag_value} for tag_value in tag_values]
+
+        return Response(tag_values_formatted, status=200)
 
 
 @region_silo_endpoint
