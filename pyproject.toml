@@ -650,6 +650,7 @@ module = [
     "tests.sentry.issues.test_issue_occurrence",
     "tests.sentry.issues.test_json_schemas",
     "tests.sentry.issues.test_merge",
+    "tests.sentry.issues.test_occurrence_consumer",
     "tests.sentry.issues.test_ongoing",
     "tests.sentry.issues.test_search_issues_dataset",
     "tests.sentry.issues.test_status_change",
