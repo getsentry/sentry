@@ -31,6 +31,7 @@ from sentry.rules.processing.processor import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
+from sentry.utils.iterators import chunked
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
@@ -202,10 +203,14 @@ def parse_rulegroup_to_event_data(
     return parsed_rulegroup_to_event_data
 
 
-def bulk_fetch_events(event_ids: list[str], project_id: int) -> set[Event]:
-    node_id_to_event_id = {
-        Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
-    }
+def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]:
+    event_limit = 100
+    node_id_to_event_id: dict[str, str] = {}
+
+    for event_id_chunk in chunked(event_ids, event_limit):
+        for event_id in event_id_chunk:
+            node_id = Event.generate_node_id(project_id, event_id=event_id)
+            node_id_to_event_id[node_id] = event_id
 
     try:
         bulk_data = nodestore.get_multi(list(node_id_to_event_id.keys()))
@@ -215,16 +220,14 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> set[Event]:
         except (ServiceUnavailable, DeadlineExceeded):
             bulk_data = nodestore.get_multi(list(node_id_to_event_id.keys()))
 
-    bulk_events = set()
+    bulk_event_id_to_events: dict[str, Event] = {}
     for node_id, data in bulk_data.items():
-        if node_id in node_id_to_event_id:
-            event_id = node_id_to_event_id[node_id]
-            if data is not None:
-                event = Event(event_id=event_id, project_id=project_id)
-                event.data = data
-            bulk_events.add(event)
+        event_id = node_id_to_event_id[node_id]
+        if data is not None:
+            event = Event(event_id=event_id, project_id=project_id, data=data)
+            bulk_event_id_to_events[event_id] = event
 
-    return bulk_events
+    return bulk_event_id_to_events
 
 
 def get_group_to_groupevent(
@@ -247,7 +250,7 @@ def get_group_to_groupevent(
         if occurrence_id:
             occurrence_ids.append(occurrence_id)
 
-    bulk_events = bulk_fetch_events(list(event_ids_to_group_ids.keys()), project_id)
+    bulk_event_id_to_events = bulk_fetch_events(list(event_ids_to_group_ids.keys()), project_id)
     bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
 
     for event_id, group_id in event_ids_to_group_ids.items():
@@ -255,9 +258,7 @@ def get_group_to_groupevent(
         group_event = None
         occurrence = None
 
-        for bulk_event in bulk_events:
-            if bulk_event.event_id == event_id:
-                event = bulk_event
+        event = bulk_event_id_to_events.get(event_id)
         group = group_id_to_group.get(group_id)
         if event and group:
             group_event = event.for_group(group)
