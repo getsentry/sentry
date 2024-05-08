@@ -223,13 +223,10 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             "project_id": [subscription.project_id],
         }
         skip_time_conditions = True
-        if subscription.timebox_start:
-            start = subscription.timebox_start.isoformat()
-            window = timedelta(seconds=snuba_query.time_window)
-            end = (subscription.timebox_start + window).isoformat()
+        if subscription.timebox_start and subscription.timebox_end:
             skip_time_conditions = False
-            params[start] = start
-            params[end] = end
+            params["start"] = subscription.timebox_start.isoformat()
+            params["end"] = subscription.timebox_end.isoformat()
 
         snql_query = build_query_builder(
             entity_subscription=entity_subscription,

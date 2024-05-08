@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -168,8 +169,10 @@ def create_snuba_subscription(
     :return: The QuerySubscription representing the subscription
     """
     timebox_start = None
+    timebox_end = None
     if timebox:
         timebox_start = timezone.now()
+        timebox_end = timebox_start + timedelta(seconds=snuba_query.time_window)
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,
         project=project,
@@ -177,10 +180,9 @@ def create_snuba_subscription(
         type=subscription_type,
         query_extra=query_extra,
         timebox_start=timebox_start,
+        timebox_end=timebox_end,
     )
 
-    # IF timebox_start exists on QuerySubscription
-    # Then skip_time_conditions set to false in query builder
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )
