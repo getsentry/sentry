@@ -49,6 +49,7 @@ VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
     search_filters: Sequence[SearchFilter | str | ParenExpression],
+    request_user_id: int | None,
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []
@@ -58,6 +59,22 @@ def handle_search_filters(
         # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
         # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
+
+            # "viewed_by_me" is not a valid Snuba query field, but a convenience alias for the frontend
+            if search_filter.key.name in VIEWED_BY_ME_KEY_ALIASES:
+                if search_filter.operator != "=":
+                    # since the value is boolean, negations (!) are not allowed
+                    raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
+                if not isinstance(search_filter.value.value, bool):
+                    raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+
+                operator = "=" if search_filter.value.value else "!="
+                search_filter = SearchFilter(
+                    SearchKey("viewed_by_id"),
+                    operator,
+                    SearchValue(request_user_id),
+                )
+
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
                 if condition is None:
@@ -78,7 +95,9 @@ def handle_search_filters(
         # ParenExpressions are recursively computed.  If more than one condition is returned then
         # those conditions are AND'ed.
         elif isinstance(search_filter, ParenExpression):
-            conditions = handle_search_filters(search_config, search_filter.children)
+            conditions = handle_search_filters(
+                search_config, search_filter.children, request_user_id
+            )
             if len(conditions) < 2:
                 result.extend(conditions)
             else:
@@ -165,28 +184,6 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    if request_user_id is not None:
-        for i in range(len(search_filters)):
-            search_filter = search_filters[i]
-            if (
-                isinstance(search_filter, SearchFilter)
-                and search_filter.key.name in VIEWED_BY_ME_KEY_ALIASES
-            ):
-                # "viewed_by_me" is not a valid query field.
-                # It's a convenience alias for users without the admin access to lookup ids.
-                if search_filter.operator != "=":
-                    # since the value is boolean, negations (!) are not allowed
-                    raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
-                if not isinstance(search_filter.value, bool):
-                    raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
-
-                operator = "=" if search_filter.value.value else "!="
-                search_filters[i] = SearchFilter(
-                    SearchKey("viewed_by_id"),
-                    operator,
-                    SearchValue(request_user_id),
-                )
-
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
     can_scalar_search = can_scalar_search_subquery(search_filters)
 
@@ -197,6 +194,7 @@ def query_using_optimized_search(
             project_ids=project_ids,
             period_start=period_start,
             period_stop=period_stop,
+            request_user_id=request_user_id,
         )
         referrer = "replays.query.browse_scalar_conditions_subquery"
     else:
@@ -206,6 +204,7 @@ def query_using_optimized_search(
             project_ids=project_ids,
             period_start=period_start,
             period_stop=period_stop,
+            request_user_id=request_user_id,
         )
         referrer = "replays.query.browse_aggregated_conditions_subquery"
 
@@ -252,6 +251,7 @@ def make_scalar_search_conditions_query(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    request_user_id: int | None,
 ) -> Query:
     # NOTE: This query may return replay-ids which do not have a segment_id 0 row. These replays
     # will be removed from the final output and could lead to pagination peculiarities. In
@@ -260,7 +260,7 @@ def make_scalar_search_conditions_query(
     # To fix this issue remove the ability to search against "varying" columns and apply a
     # "segment_id = 0" condition to the WHERE clause.
 
-    where = handle_search_filters(scalar_search_config, search_filters)
+    where = handle_search_filters(scalar_search_config, search_filters, request_user_id)
     orderby = handle_ordering(agg_sort_config, sort or "-started_at")
 
     return Query(
@@ -284,10 +284,13 @@ def make_aggregate_search_conditions_query(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    request_user_id: int | None,
 ) -> Query:
     orderby = handle_ordering(agg_sort_config, sort or "-started_at")
 
-    having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
+    having: list[Condition] = handle_search_filters(
+        agg_search_config, search_filters, request_user_id
+    )
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
 
     return Query(
