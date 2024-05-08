@@ -1,10 +1,13 @@
+import {Fragment} from 'react';
+
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import storyBook from 'sentry/stories/storyBook';
 import type {Actor} from 'sentry/types';
 import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 export default storyBook(AssigneeBadge, story => {
-  story('Assignee Exists (no label)', () => {
+  story('User Assignee Exists (no label)', () => {
     const user = useUser();
 
     const userActor: Actor = {
@@ -14,10 +17,10 @@ export default storyBook(AssigneeBadge, story => {
       email: user.email,
     };
 
-    return <AssigneeBadge assignedTo={userActor} />;
+    return <AssigneeBadge assignedTo={userActor} chevronDirection="down" />;
   });
 
-  story('Assignee Exists (with label)', () => {
+  story('User Assignee Exists (with label)', () => {
     const user = useUser();
 
     const userActor: Actor = {
@@ -27,14 +30,35 @@ export default storyBook(AssigneeBadge, story => {
       email: user.email,
     };
 
-    return <AssigneeBadge assignedTo={userActor} showLabel />;
+    return <AssigneeBadge assignedTo={userActor} showLabel chevronDirection="down" />;
+  });
+
+  story('Team Assignee', () => {
+    const {teams} = useUserTeams();
+
+    const teamActor: Actor = {
+      type: 'team',
+      id: teams[0].id,
+      name: teams[0].name,
+    };
+
+    return (
+      <Fragment>
+        <p>
+          <AssigneeBadge assignedTo={teamActor} chevronDirection="down" />
+        </p>
+        <p>
+          <AssigneeBadge assignedTo={teamActor} showLabel chevronDirection="down" />
+        </p>
+      </Fragment>
+    );
   });
 
   story('Assignee Does Not Exist (no label)', () => {
-    return <AssigneeBadge assignedTo={undefined} />;
+    return <AssigneeBadge assignedTo={undefined} chevronDirection="down" />;
   });
 
   story('Assignee Does Not Exist (with label)', () => {
-    return <AssigneeBadge assignedTo={undefined} showLabel />;
+    return <AssigneeBadge assignedTo={undefined} showLabel chevronDirection="down" />;
   });
 });

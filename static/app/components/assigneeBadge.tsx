@@ -1,5 +1,6 @@
 // import {Fragment} from 'react';
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -86,7 +87,14 @@ export function AssigneeBadge({
 
   return assignedTo ? (
     <Tooltip title={makeAssignedTooltipText(assignedTo)}>
-      <StyledTag icon={makeAssignedIcon(assignedTo)} />
+      <StyledTag
+        data-is-team={assignedTo.type === 'team'}
+        css={css`
+          --avatar-spacing: ${space(0.5)} ${space(0.25)} ${space(0.5)}
+            ${assignedTo.type === 'team' ? space(0.75) : space(0.5)};
+        `}
+        icon={makeAssignedIcon(assignedTo)}
+      />
     </Tooltip>
   ) : (
     <Tooltip title={makeUnAssignedTooltipText()}>
@@ -107,8 +115,9 @@ const StyledTag = styled(Tag)`
   }
   & > div {
     height: 24px;
-    padding: ${space(0.5)};
+    padding: var(--avatar-spacing, ${space(0.5)});
   }
+  cursor: pointer;
 `;
 
 const TooltipSubtext = styled('div')`
