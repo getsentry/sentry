@@ -15,6 +15,7 @@ import type {
   ReplayPrefs,
 } from 'sentry/components/replays/preferences/replayPreferences';
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
+import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -26,7 +27,6 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
-import {VideoReplayer} from './videoReplayer';
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -474,16 +474,19 @@ function ProviderNonMemo({
         return null;
       }
 
-      // check if this is a video replay and if we can use the video replayer
+      // check if this is a video replay and if we can use the video (wrapper) replayer
       if (!isVideoReplay || !videoEvents || !startTimestampMs) {
         return null;
       }
 
-      const inst = new VideoReplayer(videoEvents, {
+      // This is a wrapper class that wraps both the VideoReplayer
+      // and the rrweb Replayer
+      const inst = new VideoReplayerWithInteractions({
+        // video specific
+        videoEvents,
         videoApiPrefix: `/api/0/projects/${
           organization.slug
         }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
-        root,
         start: startTimestampMs,
         onFinished: setReplayFinished,
         onLoaded: event => {
@@ -501,6 +504,11 @@ function ProviderNonMemo({
         },
         clipWindow,
         durationMs,
+        // rrweb specific
+        theme,
+        events: events ?? [],
+        // common to both
+        root,
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
@@ -520,6 +528,7 @@ function ProviderNonMemo({
       isFetching,
       isVideoReplay,
       videoEvents,
+      events,
       organization.slug,
       projectSlug,
       replay,
@@ -528,6 +537,7 @@ function ProviderNonMemo({
       startTimeOffsetMs,
       clipWindow,
       durationMs,
+      theme,
     ]
   );
 

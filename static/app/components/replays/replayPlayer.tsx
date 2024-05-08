@@ -282,6 +282,20 @@ const SentryPlayerRoot = styled(PlayerRoot)`
       height: 10px;
     }
   }
+
+  /* Correctly positions the canvas for video replays and shows the purple "mousetails" */
+  &.video-replayer {
+    .replayer-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .replayer-wrapper > iframe {
+      opacity: 0;
+    }
+  }
 `;
 
 const Overlay = styled('div')`
