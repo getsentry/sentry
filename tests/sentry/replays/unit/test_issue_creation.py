@@ -23,36 +23,48 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
     report_rage_click_issue_with_replay_event(
         project_id=default_project.id,
         replay_id=replay_id,
-        selector="div.xyz > a",
+        selector="div.xyz > SmartSearchBar",
         timestamp=seq1_timestamp.timestamp(),
         url="https://www.sentry.io",
-        node={"tagName": "a"},
+        node={
+            "tagName": "a",
+            "attributes": {"class": "class1 class2", "role": "button", "aria-label": "test"},
+        },
         component_name="SmartSearchBar",
         replay_event=mock_replay_event(),
     )
     issue_occurence_call = mock_new_issue_occurrence.call_args[1]
     assert issue_occurence_call["culprit"] == "https://www.sentry.io"
     assert issue_occurence_call["environment"] == "production"
-    assert issue_occurence_call["fingerprint"] == ["div.xyz > a"]
+    assert issue_occurence_call["fingerprint"] == ["div.xyz > SmartSearchBar"]
     assert issue_occurence_call["issue_type"].type_id == 5002
     assert issue_occurence_call["level"] == "error"
     assert issue_occurence_call["platform"] == "javascript"
     assert issue_occurence_call["project_id"] == default_project.id
-    assert issue_occurence_call["subtitle"] == "div.xyz > a"
+    assert issue_occurence_call["subtitle"] == "div.xyz > SmartSearchBar"
     assert issue_occurence_call["title"] == "Rage Click"
     assert issue_occurence_call["evidence_data"] == {
-        "node": {"tagName": "a"},
-        "selector": "div.xyz > a",
+        "node": {
+            "tagName": "a",
+            "attributes": {"class": "class1 class2", "role": "button", "aria-label": "test"},
+        },
+        "selector": "div.xyz > SmartSearchBar",
         "component_name": "SmartSearchBar",
     }
 
     assert (
         issue_occurence_call["evidence_display"][0].to_dict()
-        == IssueEvidence(name="Clicked Element", value="a", important=False).to_dict()
+        == IssueEvidence(
+            name="Clicked Element",
+            value="a[class=class1 class2][role=button][aria-label=test]",
+            important=False,
+        ).to_dict()
     )
     assert (
         issue_occurence_call["evidence_display"][1].to_dict()
-        == IssueEvidence(name="Selector Path", value="div.xyz > a", important=False).to_dict()
+        == IssueEvidence(
+            name="Selector Path", value="div.xyz > SmartSearchBar", important=False
+        ).to_dict()
     )
     assert (
         issue_occurence_call["evidence_display"][2].to_dict()

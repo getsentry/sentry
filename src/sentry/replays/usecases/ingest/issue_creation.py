@@ -32,7 +32,7 @@ def report_rage_click_issue_with_replay_event(
     timestamp_utc = date.replace(tzinfo=datetime.UTC)
 
     selector = selector
-    clicked_element = selector.split(" > ")[-1]
+    clicked_element = _make_clicked_element(node)
     component_name = component_name
     evidence = [
         IssueEvidence(name="Clicked Element", value=clicked_element, important=False),
@@ -110,3 +110,12 @@ def _make_tags(replay_id, url, replay_event):
         tags.update(replay_event["tags"])
 
     return tags
+
+
+def _make_clicked_element(node):
+    element = node.get("tagName", "")
+    if "attributes" in node:
+        for key, value in node["attributes"].items():
+            element += "[" + key + "=" + value + "]"
+
+    return element
