@@ -11,6 +11,7 @@ from sentry.replays.testutils import (
     mock_replay_click,
     mock_replay_viewed,
 )
+from sentry.replays.usecases.query import VIEWED_BY_ME_KEY_ALIASES
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import QueryMemoryLimitExceeded
@@ -632,7 +633,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
         )
         self.store_replays(
-            mock_replay_viewed(seq1_timestamp.timestamp(), project.id, replay1_id, viewed_by_id=1)
+            mock_replay_viewed(
+                seq1_timestamp.timestamp(), project.id, replay1_id, viewed_by_id=self.user.id
+            )
         )
 
         with self.feature(REPLAYS_FEATURES):
@@ -715,7 +718,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "seen_by_id:[1,2]",
             ]
 
+            for key in VIEWED_BY_ME_KEY_ALIASES:
+                queries.append(f"{key}:true")
+                queries.append(f"{key}:false")
+                # since the value is boolean, negations (!) are not allowed
+
             for query in queries:
+                # print(query)
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()
