@@ -317,12 +317,19 @@ class AlertRule(Model):
         created_subscriptions = []
         if self.monitor_type == monitor_type.value:
             # NOTE: QuerySubscriptions hold reference to Projects which should match the AlertRule's project reference
+            timebox_start = None
+            timebox_end = None
+            if timebox:
+                timebox_start = timezone.now()
+                timebox_end = timebox_start + timedelta(seconds=self.snuba_query.time_window)
+
             created_subscriptions = bulk_create_snuba_subscriptions(
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 self.snuba_query,
                 query_extra,
-                timebox=timebox,
+                timebox_start=timebox_start,
+                timebox_end=timebox_end,
             )
             if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
                 # NOTE: Activated Alert Rules are conditionally subscribed

@@ -1,8 +1,7 @@
 import logging
-from datetime import timedelta
+from datetime import datetime
 
 from django.db import router, transaction
-from django.utils import timezone
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -130,7 +129,8 @@ def bulk_create_snuba_subscriptions(
     subscription_type,
     snuba_query,
     query_extra: str | None = None,
-    timebox: bool = False,
+    timebox_start: datetime | None = None,
+    timebox_end: datetime | None = None,
 ) -> list[QuerySubscription]:
     """
     Creates a subscription to a snuba query for each project.
@@ -146,7 +146,12 @@ def bulk_create_snuba_subscriptions(
     for project in projects:
         subscriptions.append(
             create_snuba_subscription(
-                project, subscription_type, snuba_query, query_extra, timebox=timebox
+                project,
+                subscription_type,
+                snuba_query,
+                query_extra,
+                timebox_start=timebox_start,
+                timebox_end=timebox_end,
             )
         )
     return subscriptions
@@ -157,7 +162,8 @@ def create_snuba_subscription(
     subscription_type,
     snuba_query,
     query_extra: str | None = None,
-    timebox: bool = False,
+    timebox_start: datetime | None = None,
+    timebox_end: datetime | None = None,
 ) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
@@ -168,11 +174,6 @@ def create_snuba_subscription(
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
     :return: The QuerySubscription representing the subscription
     """
-    timebox_start = None
-    timebox_end = None
-    if timebox:
-        timebox_start = timezone.now()
-        timebox_end = timebox_start + timedelta(seconds=snuba_query.time_window)
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,
         project=project,
