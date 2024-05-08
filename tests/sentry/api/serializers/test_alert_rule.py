@@ -14,7 +14,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
@@ -106,9 +106,9 @@ class BaseAlertRuleSerializerTest:
             rule.date_added = data["date_added"]
         if data.get("owner"):
             actor = RpcActor.from_identifier(data["owner"])
-            if actor.actor_type == ActorType.USER:
+            if actor.is_user:
                 rule.owner_user_id = actor.id
-            if actor.actor_type == ActorType.TEAM:
+            if actor.is_team:
                 rule.owner_team_id = actor.id
 
         rule.save()

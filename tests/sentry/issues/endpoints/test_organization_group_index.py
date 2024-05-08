@@ -3076,6 +3076,62 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert any(int(issue["id"]) == event.group.id for issue in issues)
         assert any(int(issue["id"]) == event2.group.id for issue in issues)
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_first_seen_and_last_seen_filters(self):
+        self.login_as(user=self.user)
+        project = self.project
+        # Create 4 issues at different times
+        times = [
+            (before_now(hours=1), before_now(hours=1)),  # Two events for issue 0
+            (before_now(hours=6), before_now(hours=3)),  # Two events for issue 1
+            (before_now(hours=11), before_now(hours=10)),  # Two events for issue 2
+            (before_now(hours=23), before_now(minutes=30)),  # Two events for issue 3
+        ]
+        for i, (time1, time2) in enumerate(times):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(time1),
+                    "message": f"Error {i}",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(time2),
+                    "message": f"Error {i} - additional event",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=project.id,
+            )
+
+        # Test firstSeen filter
+        twenty_four_hours_ago = iso_format(before_now(hours=24))
+        response = self.get_success_response(
+            query=f"firstSeen:<{twenty_four_hours_ago}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
+        response = self.get_success_response(query="firstSeen:-24h", useGroupSnubaDataset=1)
+        assert len(response.data) == 4
+
+        # Test lastSeen filter
+        response = self.get_success_response(query="lastSeen:-6h", useGroupSnubaDataset=1)
+        assert len(response.data) == 3
+
+        response = self.get_success_response(query="lastSeen:-12h", useGroupSnubaDataset=1)
+        assert len(response.data) == 4
+
+        # Test lastSeen filter with an absolute date using before_now
+        absolute_date = iso_format(before_now(days=1))  # Assuming 365 days before now as an example
+        response = self.get_success_response(
+            query=f"lastSeen:>{absolute_date}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 4
+        response = self.get_success_response(
+            query=f"lastSeen:<{absolute_date}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
