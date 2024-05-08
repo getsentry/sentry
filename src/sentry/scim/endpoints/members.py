@@ -226,7 +226,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Query an Individual Organization Member",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to query."),
         ],
         request=None,
@@ -253,7 +253,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=SCIMPatchRequestSerializer,
@@ -305,7 +305,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member via SCIM",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
@@ -334,7 +334,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
@@ -443,7 +443,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's SCIM Members",
-        parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMQueryParamSerializer],
         responses={
             200: inline_sentry_response_serializer(
                 "SCIMListResponseEnvelopeSCIMMemberIndexResponse", SCIMListMembersResponse
@@ -500,7 +500,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="Provision a New Organization Member",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="SCIMMemberProvision",
             fields={

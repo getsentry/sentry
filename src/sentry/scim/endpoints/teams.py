@@ -165,7 +165,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Paginated Teams",
-        parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -212,7 +212,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="Provision a New Team",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="SCIMTeamRequestBody",
             fields={
@@ -322,7 +322,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Team",
-        parameters=[SCIMParams.TEAM_ID, GlobalParams.ORG_SLUG],
+        parameters=[SCIMParams.TEAM_ID, GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
             200: TeamSCIMSerializer,
@@ -403,7 +403,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Update a Team's Attributes",
-        parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMParams.TEAM_ID],
         request=SCIMTeamPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
@@ -474,7 +474,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Delete an Individual Team",
-        parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMParams.TEAM_ID],
         responses={
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,

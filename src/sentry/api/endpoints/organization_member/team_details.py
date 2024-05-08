@@ -229,7 +229,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Add an Organization Member to a Team",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to add to the team"),
             GlobalParams.TEAM_ID_OR_SLUG,
         ],
@@ -419,7 +419,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member from a Team",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to delete from the team"),
             GlobalParams.TEAM_ID_OR_SLUG,
         ],

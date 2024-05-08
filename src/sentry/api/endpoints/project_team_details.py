@@ -72,7 +72,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Add a Team to a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
         ],
@@ -103,7 +103,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Delete a Team from a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
         ],

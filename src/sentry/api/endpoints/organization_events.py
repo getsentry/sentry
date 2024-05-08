@@ -230,7 +230,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,
