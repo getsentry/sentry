@@ -16,22 +16,13 @@ export function getStylingSliceName(
   sliceSecondaryName: string | null
 ) {
   if (sliceSecondaryName) {
-    return sliceSecondaryName.slice(-2) + (sliceName ? sliceName.slice(0, 3) : '');
+    // Our color picking relies on the first 4 letters. Since we want to differentiate sdknames and project names we have to include part of the sdk name.
+    return sliceSecondaryName.slice(-2) + (sliceName ?? '');
   }
 
   return sliceName;
 }
 
-const PRIORITIZED_BREAKDOWN_OPS = ['db'];
-
 export function getSecondaryNameFromSpan(span: SpanResult<Field>) {
   return span['sdk.name'];
-}
-
-export function getModifiedZIndex(stylingSliceName: string | null) {
-  if (PRIORITIZED_BREAKDOWN_OPS.includes(stylingSliceName ?? '')) {
-    return 1;
-  }
-
-  return null;
 }

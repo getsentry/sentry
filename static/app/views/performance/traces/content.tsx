@@ -33,6 +33,7 @@ import {
   ProjectRenderer,
   SpanBreakdownSliceRenderer,
   SpanIdRenderer,
+  SpanTimeRenderer,
   TraceBreakdownContainer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
@@ -141,9 +142,11 @@ export function Content() {
             {t('Duration')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
+            {t('Timestamp')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
             {t('Issues')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText style={{padding: '5px'}} />
           {isLoading && (
             <StyledPanelItem span={7} overflow>
               <LoadingIndicator />
@@ -221,9 +224,11 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
       </StyledPanelItem>
       <StyledPanelItem align="right">
+        <SpanTimeRenderer timestamp={trace.start} tooltipShowSeconds />
+      </StyledPanelItem>
+      <StyledPanelItem align="right">
         <TraceIssuesRenderer trace={trace} />
       </StyledPanelItem>
-      <StyledPanelItem style={{padding: '5px'}} />
       {expanded && (
         <SpanTable
           spans={trace.spans}
@@ -258,7 +263,9 @@ function SpanTable({
           <StyledPanelHeader align="right" lightText>
             {t('Span Duration')}
           </StyledPanelHeader>
-
+          <StyledPanelHeader align="right" lightText>
+            {t('Timestamp')}
+          </StyledPanelHeader>
           {spans.map(span => (
             <SpanRow
               key={span.id}
@@ -322,6 +329,13 @@ function SpanRow({
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right">
         <PerformanceDuration milliseconds={span['span.duration']} abbreviation />
+      </StyledSpanPanelItem>
+
+      <StyledSpanPanelItem align="right">
+        <SpanTimeRenderer
+          timestamp={span['precise.start_ts'] * 1000}
+          tooltipShowSeconds
+        />
       </StyledSpanPanelItem>
     </Fragment>
   );
@@ -402,10 +416,6 @@ function useTraces<F extends string>({
       sort,
       per_page: limit,
       maxSpansPerTrace: 10,
-      // breakdownCategory: ['db'],
-      breakdownCategory: [],
-      minBreakdownDuration: 2,
-      minBreakdownPercentage: 1 / 40,
     },
   };
 
@@ -430,13 +440,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 66px 10px;
+  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 85px 66px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 151px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 141px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
@@ -474,10 +484,11 @@ const StyledPanelItem = styled(PanelItem)<{
 `;
 
 const StyledSpanPanelItem = styled(StyledPanelItem)`
-  &:nth-child(8n + 1),
-  &:nth-child(8n + 2),
-  &:nth-child(8n + 3),
-  &:nth-child(8n + 4) {
+  &:nth-child(10n + 1),
+  &:nth-child(10n + 2),
+  &:nth-child(10n + 3),
+  &:nth-child(10n + 4),
+  &:nth-child(10n + 5) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
 `;

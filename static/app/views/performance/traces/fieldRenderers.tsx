@@ -7,6 +7,7 @@ import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,7 +26,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceResult} from './content';
 import type {Field} from './data';
-import {getModifiedZIndex, getStylingSliceName} from './utils';
+import {getStylingSliceName} from './utils';
 
 interface ProjectRendererProps {
   projectSlug: string;
@@ -74,11 +75,6 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
     transform: var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0));
   `}
   transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  /**
-  ${p =>
-    getModifiedZIndex(p.sliceName) ? `z-index: ${getModifiedZIndex(p.sliceName)}` : null};
-*/
 `;
 
 export function TraceBreakdownRenderer({
@@ -172,12 +168,13 @@ export function SpanBreakdownSliceRenderer({
           <div>
             <FlexContainer>
               {sliceName ? <ProjectRenderer projectSlug={sliceName} hideName /> : null}
-              <div>{sliceName}</div>
+              <strong>{sliceName}</strong>
 
               {sliceSecondaryName ? (
                 <span>
                   {'\u2014'}
-                  <strong>&nbsp;{sliceSecondaryName}</strong>
+                  &nbsp;
+                  {sliceSecondaryName}
                 </span>
               ) : null}
             </FlexContainer>
@@ -327,5 +324,22 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
     >
       {issueText}
     </LinkButton>
+  );
+}
+
+export function SpanTimeRenderer({
+  timestamp,
+  tooltipShowSeconds,
+}: {
+  timestamp: number;
+  tooltipShowSeconds?: boolean;
+}) {
+  const date = new Date(timestamp);
+  return (
+    <TimeSince
+      unitStyle="extraShort"
+      date={date}
+      tooltipShowSeconds={tooltipShowSeconds}
+    />
   );
 }
