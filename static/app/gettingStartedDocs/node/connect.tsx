@@ -51,7 +51,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.ts/js].',
+            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
             {code: <code />}
           ),
           code: [
@@ -59,14 +59,14 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'instrument.(js|mjs|ts)',
+              filename: 'instrument.(js|mjs)',
               code: getSdkInitSnippet(params, 'node'),
             },
           ],
         },
         {
           description: tct(
-            'Modify the Node.js command to include the [code1:--require] option. This preloads [code2:instrument.(js|mjs|ts)] at startup.',
+            'Modify the Node.js command to include the [code1:--require] option. This preloads [code2:instrument.(js|mjs)] at startup.',
             {code1: <code />, code2: <code />}
           ),
           code: [

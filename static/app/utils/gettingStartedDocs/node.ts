@@ -89,7 +89,7 @@ function getImports(
   sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless'
 ): string[] {
   return [
-    `// You can also use ESM \`import * as Sentry from "@sentry/${sdkPackage}"\` instead of \`require\``,
+    `// Import with \`import * as Sentry from "@sentry/${sdkPackage}"\` if you are using ESM`,
     `const Sentry = require("@sentry/${sdkPackage}");`,
   ];
 }
@@ -138,7 +138,7 @@ export function getDefaultServerlessImports({
 
 export function getNodeRunCommandSnippet(): string {
   return `# If you are using CommonJS (CJS)
-node --require ./instrumentation.js app.js
+node --require ./instrument.js app.js
 
 # If you are using ECMAScript Modules (ESM) - Note that this is only available from Node 18.19.0 onwards.
 node --import ./instrument.mjs app.mjs`;
