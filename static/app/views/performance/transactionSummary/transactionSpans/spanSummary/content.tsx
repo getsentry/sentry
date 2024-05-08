@@ -111,14 +111,15 @@ function SpanSummaryContent(props: ContentProps) {
 
   const {data: spanHeaderData} = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
-    fields: ['span.description', 'avg(span.duration)', 'sum(span.self_time)', 'count()'],
+    // TODO: query average duration instead of self time before releasing this
+    fields: ['span.description', 'avg(span.self_time)', 'sum(span.self_time)', 'count()'],
     enabled: Boolean(groupId),
     referrer: SpanSummaryReferrer.SPAN_SUMMARY_HEADER_DATA,
   });
 
   const description = spanHeaderData[0]?.['span.description'] ?? t('unknown');
   const timeSpent = spanHeaderData[0]?.['sum(span.self_time)'];
-  const avgDuration = spanHeaderData[0]?.['avg(span.duration)'];
+  const avgDuration = spanHeaderData[0]?.['avg(span.self_time)'];
   const spanCount = spanHeaderData[0]?.['count()'];
 
   return (
