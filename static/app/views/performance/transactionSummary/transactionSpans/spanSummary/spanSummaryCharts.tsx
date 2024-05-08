@@ -56,7 +56,7 @@ function SpanSummaryCharts() {
     error: avgDurationError,
   } = useSpanMetricsSeries({
     search: MutableSearch.fromQueryObject(filters),
-    yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+    yAxis: [`avg(${SpanMetricsField.SPAN_DURATION})`],
     enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-charts',
   });
@@ -119,7 +119,7 @@ function SpanSummaryCharts() {
         <ChartPanel title={t('Average Duration')}>
           <Chart
             height={160}
-            data={[avgDurationData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
+            data={[avgDurationData?.[`avg(${SpanMetricsField.SPAN_DURATION})`]]}
             loading={isAvgDurationDataLoading}
             type={ChartType.LINE}
             definedAxisTicks={4}
