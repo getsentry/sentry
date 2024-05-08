@@ -17,6 +17,7 @@ from sentry.monitors.models import (
     MonitorIncident,
     MonitorStatus,
 )
+from sentry.monitors.processing_errors import CheckinProcessingError, CheckinProcessingErrorData
 from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
 from sentry.types.actor import Actor
@@ -346,3 +347,11 @@ class MonitorCheckInSerializer(Serializer):
             return False
 
         return key in self.expand
+
+
+@register(CheckinProcessingError)
+class CheckinProcessingErrorSerializer(Serializer):
+    def serialize(
+        self, obj: CheckinProcessingError, attrs, user, **kwargs
+    ) -> CheckinProcessingErrorData:
+        return obj.to_dict()

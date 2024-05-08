@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import uuid
 from datetime import timedelta
 from enum import Enum
 from typing import Any, TypedDict
@@ -92,17 +93,20 @@ class ProcessingError:
 class CheckinProcessingErrorData(TypedDict):
     errors: list[ProcessingErrorData]
     checkin: CheckinItemData
+    id: str
 
 
 @dataclasses.dataclass(frozen=True)
 class CheckinProcessingError:
     errors: list[ProcessingError]
     checkin: CheckinItem
+    id: uuid.UUID = dataclasses.field(default_factory=uuid.uuid4)
 
     def to_dict(self) -> CheckinProcessingErrorData:
         return {
             "errors": [error.to_dict() for error in self.errors],
             "checkin": self.checkin.to_dict(),
+            "id": self.id.hex,
         }
 
     @classmethod
@@ -110,7 +114,16 @@ class CheckinProcessingError:
         return cls(
             errors=[ProcessingError.from_dict(error) for error in data["errors"]],
             checkin=CheckinItem.from_dict(data["checkin"]),
+            id=uuid.UUID(data["id"]),
         )
+
+    def __hash__(self):
+        return hash(self.id.hex)
+
+    def __eq__(self, other):
+        if isinstance(other, CheckinProcessingError):
+            return self.id.hex == other.id.hex
+        return False
 
 
 class CheckinProcessErrorsManager:
