@@ -425,6 +425,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         assert monitor.owner_user_id == user.id
 
         self.run_hybrid_cloud_fk_jobs()
+        reset_watermarks()
 
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
         self.assert_monitors_user_ids_null(monitors=affected_monitors)
