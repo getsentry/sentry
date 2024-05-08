@@ -177,9 +177,10 @@ def query_using_optimized_search(
                 search_filter.operator != "="
             ):  # since the value is boolean, negations (!) are not allowed
                 raise ParseError(f"Invalid operator specified for {search_filter.key.name}")
+            operator = "=" if search_filter.value.value else "!="
             search_filters[i] = SearchFilter(
                 SearchKey("viewed_by_id"),
-                "=" if search_filter.value.value else "!=",
+                operator,
                 SearchValue(request_user_id),
             )
 
