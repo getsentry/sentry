@@ -710,18 +710,18 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "count_infos:2",
                 "count_infos:>1",
                 "count_infos:<3",
-                "viewed_by_id:1",
-                "!viewed_by_id:2",
-                "viewed_by_id:[1,2]",
-                "seen_by_id:1",
-                "!seen_by_id:2",
-                "seen_by_id:[1,2]",
+                f"viewed_by_id:{self.user.id}",
+                f"!viewed_by_id:{self.user.id}",
+                "viewed_by_id:[34,214]",
+                f"seen_by_id:{self.user.id}",
+                f"!seen_by_id:{self.user.id}",
+                "seen_by_id:[34,214]",
             ]
 
             for key in VIEWED_BY_ME_KEY_ALIASES:
                 queries.append(f"{key}:true")
                 queries.append(f"{key}:false")
-                # since the value is boolean, negations (!) are not allowed
+                # since the value is boolean, negations (!) are not supported
 
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -769,8 +769,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*st",
                 "!activity:3",
                 "activity:<2",
-                "viewed_by_id:2",
-                "seen_by_id:2",
+                f"viewed_by_id:{self.user.id+1}",
+                f"seen_by_id:{self.user.id+1}",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
