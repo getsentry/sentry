@@ -33,13 +33,14 @@ import {
   ProjectRenderer,
   SpanBreakdownSliceRenderer,
   SpanIdRenderer,
+  SpanTimeRenderer,
   TraceBreakdownContainer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
   TraceIssuesRenderer,
 } from './fieldRenderers';
 import {TracesSearchBar} from './tracesSearchBar';
-import {normalizeTraces} from './utils';
+import {getSecondaryNameFromSpan, getStylingSliceName, normalizeTraces} from './utils';
 
 const DEFAULT_PER_PAGE = 20;
 
@@ -135,15 +136,17 @@ export function Content() {
             {t('Total Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Breakdown')}
+            {t('Timeline')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Trace Duration')}
+            {t('Duration')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
+            {t('Timestamp')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Issues')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText style={{padding: '5px'}} />
           {isLoading && (
             <StyledPanelItem span={7} overflow>
               <LoadingIndicator />
@@ -177,20 +180,22 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
       }),
     [_setHighlightedSliceName]
   );
+
+  const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+
   return (
     <Fragment>
-      <StyledPanelItem align="center" center>
+      <StyledPanelItem align="center" center onClick={onClickExpand}>
         <Button
           icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
           aria-label={t('Toggle trace details')}
           aria-expanded={expanded}
           size="zero"
           borderless
-          onClick={() => setExpanded(e => !e)}
         />
         <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
       </StyledPanelItem>
-      <StyledPanelItem align="left" overflow>
+      <StyledPanelItem align="left" overflow onClick={onClickExpand}>
         <Description>
           {trace.project ? (
             <ProjectRenderer projectSlug={trace.project} hideName />
@@ -219,9 +224,11 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
       </StyledPanelItem>
       <StyledPanelItem align="right">
+        <SpanTimeRenderer timestamp={trace.start} tooltipShowSeconds />
+      </StyledPanelItem>
+      <StyledPanelItem align="right">
         <TraceIssuesRenderer trace={trace} />
       </StyledPanelItem>
-      <StyledPanelItem style={{padding: '5px'}} />
       {expanded && (
         <SpanTable
           spans={trace.spans}
@@ -257,9 +264,8 @@ function SpanTable({
             {t('Span Duration')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Issues')}
+            {t('Timestamp')}
           </StyledPanelHeader>
-
           {spans.map(span => (
             <SpanRow
               key={span.id}
@@ -308,25 +314,34 @@ function SpanRow({
         <TraceBreakdownContainer>
           <SpanBreakdownSliceRenderer
             sliceName={span.project}
+            sliceSecondaryName={getSecondaryNameFromSpan(span)}
             sliceStart={Math.ceil(span['precise.start_ts'] * 1000)}
             sliceEnd={Math.floor(span['precise.finish_ts'] * 1000)}
             trace={trace}
             theme={theme}
-            onMouseEnter={() => setHighlightedSliceName(span.project)}
+            onMouseEnter={() =>
+              setHighlightedSliceName(
+                getStylingSliceName(span.project, getSecondaryNameFromSpan(span)) ?? ''
+              )
+            }
           />
         </TraceBreakdownContainer>
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right">
         <PerformanceDuration milliseconds={span['span.duration']} abbreviation />
       </StyledSpanPanelItem>
+
       <StyledSpanPanelItem align="right">
-        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
+        <SpanTimeRenderer
+          timestamp={span['precise.start_ts'] * 1000}
+          tooltipShowSeconds
+        />
       </StyledSpanPanelItem>
     </Fragment>
   );
 }
 
-type SpanResult<F extends string> = Record<F, any>;
+export type SpanResult<F extends string> = Record<F, any>;
 
 export interface TraceResult<F extends string> {
   breakdowns: TraceBreakdownResult[];
@@ -344,6 +359,8 @@ export interface TraceResult<F extends string> {
 
 interface TraceBreakdownBase {
   end: number;
+  opCategory: string | null;
+  sdkName: string | null;
   start: number;
 }
 
@@ -423,13 +440,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 120px 66px 10px;
+  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 85px 66px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 120px 66px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 141px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
@@ -484,7 +501,7 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
   ${p =>
     p.highlightedSliceName
       ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
-         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(-1px);
+         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(-2px);
        `
       : null}
   ${p =>

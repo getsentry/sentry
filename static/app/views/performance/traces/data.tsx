@@ -4,6 +4,7 @@ export const FIELDS = [
   'id',
   'timestamp',
   'span.op',
+  'sdk.name',
   'span.description',
   'span.duration',
   'span.self_time',
