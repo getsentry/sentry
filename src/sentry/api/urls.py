@@ -146,6 +146,9 @@ from sentry.monitors.endpoints.project_monitor_details import ProjectMonitorDeta
 from sentry.monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
+from sentry.monitors.endpoints.project_monitor_processing_errors import (
+    ProjectMonitorProcessingErrorsIndexEndpoint,
+)
 from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
@@ -645,9 +648,6 @@ from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
 
-from ..monitors.endpoints.project_monitor_processing_errors import (
-    ProjectMonitorProcessingErrorsIndexEndpoint,
-)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
