@@ -24,6 +24,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
@@ -117,7 +118,7 @@ export default function SpanSummaryTable(props: Props) {
     ],
     search: MutableSearch.fromQueryObject(filters),
     limit: LIMIT,
-    referrer: 'api.performance.span-summary-table',
+    referrer: SpanSummaryReferrer.SPAN_SUMMARY_TABLE,
     sorts: [sort],
     cursor: spansCursor,
   });
@@ -161,7 +162,7 @@ export default function SpanSummaryTable(props: Props) {
       refetchOnWindowFocus: false,
       enabled: Boolean(rowData),
     },
-    referrer: 'api.performance.span-summary-table',
+    referrer: SpanSummaryReferrer.SPAN_SUMMARY_TABLE,
   });
 
   // Restructure the transaction durations into a map for faster lookup

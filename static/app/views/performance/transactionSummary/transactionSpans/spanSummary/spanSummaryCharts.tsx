@@ -11,6 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {
   AVG_COLOR,
   THROUGHPUT_COLOR,
@@ -47,7 +48,7 @@ function SpanSummaryCharts() {
     search: MutableSearch.fromQueryObject(filters),
     yAxis: ['spm()'],
     enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-charts',
+    referrer: SpanSummaryReferrer.SPAN_SUMMARY_THROUGHPUT_CHART,
   });
 
   const {
@@ -58,7 +59,7 @@ function SpanSummaryCharts() {
     search: MutableSearch.fromQueryObject(filters),
     yAxis: [`avg(${SpanMetricsField.SPAN_DURATION})`],
     enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-charts',
+    referrer: SpanSummaryReferrer.SPAN_SUMMARY_DURATION_CHART,
   });
 
   const eventView = EventView.fromNewQueryWithLocation(
@@ -101,7 +102,7 @@ function SpanSummaryCharts() {
     options: {
       refetchOnWindowFocus: false,
     },
-    referrer: 'api.starfish.span-summary-page-charts',
+    referrer: SpanSummaryReferrer.SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART,
   });
 
   const transactionSeries: Series = {

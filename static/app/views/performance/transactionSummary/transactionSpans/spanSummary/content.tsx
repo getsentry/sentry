@@ -12,6 +12,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useParams} from 'sentry/utils/useParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
@@ -112,7 +113,7 @@ function SpanSummaryContent(props: ContentProps) {
     search: MutableSearch.fromQueryObject(filters),
     fields: ['span.description', 'avg(span.duration)', 'sum(span.self_time)', 'count()'],
     enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page',
+    referrer: SpanSummaryReferrer.SPAN_SUMMARY_HEADER_DATA,
   });
 
   const description = spanHeaderData[0]?.['span.description'] ?? t('unknown');
