@@ -205,8 +205,12 @@ export function CacheSamplePanel() {
 
               <MetricReadout
                 align="left"
-                title={DataTitles[`avg(${TRANSACTION_DURATION})`]}
-                value={transactionDurationData?.[0]?.[`avg(${TRANSACTION_DURATION})`]}
+                title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
+                value={
+                  transactionDurationData?.[0]?.[
+                    `avg(${MetricsFields.TRANSACTION_DURATION})`
+                  ]
+                }
                 unit={DurationUnit.MILLISECOND}
                 isLoading={isTransactionDurationLoading}
               />
