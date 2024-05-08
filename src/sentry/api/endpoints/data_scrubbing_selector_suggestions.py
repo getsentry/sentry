@@ -1,5 +1,6 @@
 from typing import Any
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import pii_selector_suggestions_from_event
@@ -10,7 +11,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.eventstore.models import Event
-from sentry.utils.json import methods_for_experiment
 
 
 @region_silo_endpoint
@@ -50,11 +50,10 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
             node_ids = [Event.generate_node_id(p, event_id) for p in project_ids]
             all_data = nodestore.backend.get_multi(node_ids)
 
-            json_loads, json_dumps = methods_for_experiment("relay.enable-orjson")
             data: dict[str, Any]
             for data in filter(None, all_data.values()):
                 for selector in pii_selector_suggestions_from_event(
-                    data, json_loads=json_loads, json_dumps=json_dumps
+                    data, json_loads=orjson.loads, json_dumps=orjson.dumps
                 ):
                     examples_ = suggestions.setdefault(selector["path"], [])
                     if selector["value"]:

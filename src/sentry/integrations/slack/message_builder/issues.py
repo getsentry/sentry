@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
+import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
@@ -172,8 +173,7 @@ def format_release_tag(value: str, event: GroupEvent | Group):
     """Format the release tag using the short version and make it a link"""
     path = f"/releases/{value}/"
     url = event.project.organization.absolute_url(path)
-    json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
-    release_description = parse_release(value, json_loads=json_loads).get("description")
+    release_description = parse_release(value, json_loads=orjson.loads).get("description")
     return f"<{url}|{release_description}>"
 
 

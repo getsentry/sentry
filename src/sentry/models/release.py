@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from time import time
 from typing import ClassVar
 
+import orjson
 import sentry_sdk
 from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Sum, When
@@ -48,7 +49,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
@@ -346,8 +347,7 @@ class Release(Model):
             return False
 
         try:
-            json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
-            version_info = parse_release(version, json_loads=json_loads)
+            version_info = parse_release(version, json_loads=orjson.loads)
             version_parsed = version_info.get("version_parsed")
             return version_parsed is not None and all(
                 validate_bigint(version_parsed[field])
@@ -489,8 +489,7 @@ class Release(Model):
     @cached_property
     def version_info(self):
         try:
-            json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
-            return parse_release(self.version, json_loads=json_loads)
+            return parse_release(self.version, json_loads=orjson.loads)
         except RelayError:
             # This can happen on invalid legacy releases
             return None

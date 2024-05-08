@@ -1,7 +1,7 @@
+import orjson
 from sentry_relay.processing import StoreNormalizer
 
 from sentry.db.models import NodeData
-from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 
 
@@ -23,11 +23,10 @@ class EventDict(CanonicalKeyDict):
         if not skip_renormalization and not is_renormalized:
             data = dict(data)
             pre_normalize_type = data.get("type")
-            json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
             normalizer = StoreNormalizer(
-                is_renormalize=True, enable_trimming=False, json_dumps=json_dumps
+                is_renormalize=True, enable_trimming=False, json_dumps=orjson.dumps
             )
-            data = normalizer.normalize_event(data, json_loads=json_loads)
+            data = normalizer.normalize_event(data, json_loads=orjson.loads)
             # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we
             # should include this in the rust normalizer, since we don't want people sending us
             # these via the sdk.
