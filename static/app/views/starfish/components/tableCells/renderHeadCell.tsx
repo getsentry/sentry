@@ -26,7 +26,6 @@ type Options = {
 const DEFAULT_SORT_PARAMETER_NAME = 'sort';
 
 const {SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH, CACHE_ITEM_SIZE} = SpanMetricsField;
-const {RESPONSE_CODE, MESSAGING_MESSAGE_BODY_SIZE} = SpanIndexedField;
 const {
   TIME_SPENT_PERCENTAGE,
   SPS,
@@ -58,12 +57,13 @@ export const SORTABLE_FIELDS = new Set([
 ]);
 
 const NUMERIC_FIELDS = new Set([
-  `${RESPONSE_CODE}`,
-  CACHE_ITEM_SIZE,
   'transaction.duration',
+  SpanMetricsField.CACHE_ITEM_SIZE,
+  SpanIndexedField.RESPONSE_CODE,
   SpanIndexedField.SPAN_SELF_TIME,
   SpanIndexedField.SPAN_DURATION,
-  MESSAGING_MESSAGE_BODY_SIZE,
+  SpanIndexedField.CACHE_ITEM_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
 ]);
 
 export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {

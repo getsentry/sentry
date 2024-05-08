@@ -4,6 +4,7 @@ from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import Any
 from urllib.parse import urlencode
 
+import orjson
 from sentry_relay.processing import parse_release
 
 from sentry.models.activity import Activity
@@ -21,10 +22,9 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.json import methods_for_experiment
 
 from .base import ActivityNotification
 
@@ -64,8 +64,7 @@ class ReleaseActivityNotification(ActivityNotification):
         self.group_counts_by_project = get_group_counts_by_project(self.release, self.projects)
 
         self.version = self.release.version
-        json_loads, _ = methods_for_experiment("relay.enable-orjson")
-        self.version_parsed = parse_release(self.version, json_loads=json_loads)["description"]
+        self.version_parsed = parse_release(self.version, json_loads=orjson.loads)["description"]
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         return get_participants_for_release(self.projects, self.organization, self.user_ids)
@@ -102,7 +101,7 @@ class ReleaseActivityNotification(ActivityNotification):
         if not self.release:
             return set()
 
-        if recipient.actor_type == ActorType.USER:
+        if recipient.is_user:
             if self.organization.flags.allow_joinleave:
                 return self.projects
             team_ids = self.get_users_by_teams()[recipient.id]

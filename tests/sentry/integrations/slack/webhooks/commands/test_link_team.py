@@ -1,3 +1,4 @@
+import orjson
 import responses
 from rest_framework import status
 
@@ -11,7 +12,6 @@ from sentry.integrations.slack.webhooks.command import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 OTHER_SLACK_ID = "UXXXXXXX2"
@@ -56,7 +56,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
                 "channel_id": self.channel_id,
             }
         )
-        data = json.loads(str(response.content.decode("utf-8")))
+        data = orjson.loads(response.content)
         assert CHANNEL_ALREADY_LINKED_MESSAGE in get_response_text(data)
 
     @responses.activate
@@ -73,7 +73,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
                 "channel_name": "directmessage",
             }
         )
-        data = json.loads(str(response.content.decode("utf-8")))
+        data = orjson.loads(response.content)
         assert LINK_FROM_CHANNEL_MESSAGE in get_response_text(data)
 
     @responses.activate
