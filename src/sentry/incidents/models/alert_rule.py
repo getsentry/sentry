@@ -327,7 +327,7 @@ class AlertRule(Model):
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 self.snuba_query,
-                query_extra,
+                query_extra=query_extra,
                 timebox_start=timebox_start,
                 timebox_end=timebox_end,
             )

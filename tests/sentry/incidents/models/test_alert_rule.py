@@ -159,6 +159,28 @@ class AlertRuleTest(TestCase):
         )
         assert mock_bulk_create_snuba_subscriptions.call_count == 1
 
+    @patch("sentry.incidents.models.alert_rule.bulk_create_snuba_subscriptions")
+    def test_subscribes_projects_to_alert_rule_constructs_timebox(
+        self, mock_bulk_create_snuba_subscriptions
+    ):
+        # eg. creates QuerySubscription's/SnubaQuery's for AlertRule + Project
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        assert mock_bulk_create_snuba_subscriptions.call_count == 0
+        query_extra = "foobar"
+        alert_rule.subscribe_projects(
+            projects=[self.project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            query_extra=query_extra,
+            activator="testing",
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+            timebox=True,
+        )
+        assert mock_bulk_create_snuba_subscriptions.call_count == 1
+        (args, kwargs) = mock_bulk_create_snuba_subscriptions.call_args_list[0]
+        assert kwargs["query_extra"] == query_extra
+        assert kwargs["timebox_start"]
+        assert kwargs["timebox_end"]
+
     def test_conditionally_subscribe_project_to_alert_rules(self):
         query_extra = "foo:bar"
         project = self.create_project(name="foo")

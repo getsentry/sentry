@@ -90,6 +90,8 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
         aggregate=None,
         time_window=None,
         query_extra=None,
+        timebox_start=None,
+        timebox_end=None,
     ):
         if status is None:
             status = self.expected_status
@@ -118,6 +120,8 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             project=self.project,
             type="something",
             query_extra=query_extra,
+            timebox_start=timebox_start,
+            timebox_end=timebox_end,
         )
 
     def test_no_subscription(self):
@@ -193,7 +197,21 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
-        assert sub.subscription_id is not None
+        assert sub.subscription_id is not None  # it has succeeded in created a query in snuba
+
+    def test_subscription_with_timebox(self):
+        now = timezone.now()
+        then = now + timedelta(minutes=5)
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query_extra="foo:bar",
+            timebox_start=now,
+            timebox_end=then,
+        )
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None  # it has succeeded in created a query in snuba
 
     @responses.activate
     def test_adds_type(self):

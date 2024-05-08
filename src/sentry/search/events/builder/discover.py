@@ -201,6 +201,7 @@ class BaseQueryBuilder:
         array_join: str | None = None,
         entity: Entity | None = None,
     ):
+        # config skip_time_conditions
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:

@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -123,8 +124,15 @@ class CreateSnubaSubscriptionTest(TestCase):
             query_type, dataset, query, "count()", time_window, resolution, self.environment
         )
         subscription = create_snuba_subscription(self.project, type, snuba_query)
+        now = timezone.now()
+        then = now + timedelta(minutes=5)
         subscription_with_query_extra = create_snuba_subscription(
-            self.project, type, snuba_query, query_extra="foo:bar"
+            self.project,
+            type,
+            snuba_query,
+            query_extra="foo:bar",
+            timebox_start=now,
+            timebox_end=then,
         )
 
         assert subscription.status == QuerySubscription.Status.CREATING.value
@@ -132,6 +140,8 @@ class CreateSnubaSubscriptionTest(TestCase):
         assert subscription.type == type
         assert subscription.subscription_id is None
         assert subscription_with_query_extra.query_extra == "foo:bar"
+        assert subscription_with_query_extra.timebox_start == now
+        assert subscription_with_query_extra.timebox_end == then
 
     def test_with_task(self):
         with self.tasks():
