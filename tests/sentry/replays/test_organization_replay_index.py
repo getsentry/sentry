@@ -785,6 +785,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?field=id&query=transaction.duration:>0")
             assert response.status_code == 400
 
+    def test_get_replays_user_filters_invalid_value(self):
+        self.create_project(teams=[self.team])
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=id&query=viewed_by_me:potato")
+            assert response.status_code == 400
+
     def test_get_replays_user_sorts(self):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
