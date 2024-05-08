@@ -172,8 +172,9 @@ def query_using_optimized_search(
             # It's a convenience alias for users without the admin access to lookup ids.
             if sf.operator not in ["=", "!="]:
                 raise ParseError("Invalid operator specified for viewed_by_me")
+            is_me = not ((sf.operator == "=") ^ sf.value.value)
             search_filters[i] = SearchFilter(
-                SearchKey("viewed_by_id"), sf.operator, SearchValue(request_user_id)
+                SearchKey("viewed_by_id"), "=" if is_me else "!=", SearchValue(request_user_id)
             )
 
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
