@@ -152,7 +152,10 @@ def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = F
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        return orjson.loads(data, skip_trace)
+        with contextlib.ExitStack() as ctx:
+            if not skip_trace:
+                ctx.enter_context(sentry_sdk.start_span(op="sentry.utils.json.loads"))
+            return orjson.loads(data)
     else:
         return loads(data, skip_trace)
 
@@ -173,7 +176,7 @@ def dumps_experimental(option_name: str, data: JSONData) -> str:
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
-        return orjson.dumps(data)
+        return orjson.dumps(data).decode()
     else:
         return dumps(data)
 
