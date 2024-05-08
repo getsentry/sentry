@@ -69,7 +69,10 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       </CheckIns>
       <SectionHeading>{t('Schedule')}</SectionHeading>
       <Schedule>
-        <Text>{scheduleAsText(monitor.config)}</Text>
+        <Text>
+          {scheduleAsText(monitor.config)}{' '}
+          {schedule_type === ScheduleType.CRONTAB && `(${timezone})`}
+        </Text>
         {schedule_type === ScheduleType.CRONTAB && (
           <CrontabText>({schedule})</CrontabText>
         )}
@@ -96,9 +99,6 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <KeyValueTable>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
-        {schedule_type === ScheduleType.CRONTAB && (
-          <KeyValueTableRow keyName={t('Timezone')} value={timezone} />
-        )}
         <KeyValueTableRow
           keyName={t('Owner')}
           value={
