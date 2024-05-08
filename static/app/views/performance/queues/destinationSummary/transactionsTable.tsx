@@ -27,8 +27,7 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 type Row = Pick<
   SpanMetricsResponse,
   | 'sum(span.duration)'
-  | 'messaging.destination.name'
-  | 'avg(messaging.message.receive.latency)'
+  | 'transaction'
   | `avg_if(${string},${string},${string})`
   | `count_op(${string})`
 >;
