@@ -303,7 +303,7 @@ class RedisBuffer(Buffer):
 
         return decoded_hash
 
-    def process_batch(self, partition: int | None = None) -> None:
+    def process_batch(self) -> None:
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
         lock_key = self._lock_key(client, self.pending_key, ex=10)
         if not lock_key:
@@ -371,9 +371,7 @@ class RedisBuffer(Buffer):
             tags={"module": model.__module__, "model": model.__name__},
         )
 
-    # TODO: `partition` is unused, remove after a deploy
-
-    def process_pending(self, partition: int | None = None) -> None:
+    def process_pending(self) -> None:
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
         lock_key = self._lock_key(client, self.pending_key, ex=60)
         if not lock_key:
