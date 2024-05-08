@@ -90,14 +90,16 @@ describe('useSpanMetrics', () => {
 
     const {result} = renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
-        useSpanMetrics({
-          search: MutableSearch.fromQueryObject(filters),
-          fields,
-          sorts,
-          limit,
-          cursor,
-          referrer,
-        }),
+        useSpanMetrics(
+          {
+            search: MutableSearch.fromQueryObject(filters),
+            fields,
+            sorts,
+            limit,
+            cursor,
+          },
+          referrer
+        ),
       {
         wrapper: Wrapper,
         initialProps: {

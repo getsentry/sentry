@@ -75,11 +75,14 @@ export function MessageConsumerSamplesPanel() {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search,
-    yAxis: [`avg(span.self_time)`],
-    enabled: isPanelOpen,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search,
+      yAxis: [`avg(span.self_time)`],
+      enabled: isPanelOpen,
+    },
+    'use-span-metrics-series-default-please-update' // TODO - update this referrer
+  );
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 

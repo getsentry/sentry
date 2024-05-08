@@ -22,11 +22,13 @@ export function TransactionDurationChart() {
     transaction,
   };
 
-  const {data, isLoading} = useMetricsSeries({
-    yAxis: ['avg(transaction.duration)'],
-    search: MutableSearch.fromQueryObject(search),
-    referrer: Referrer.SAMPLES_CACHE_TRANSACTION_DURATION,
-  });
+  const {data, isLoading} = useMetricsSeries(
+    {
+      yAxis: ['avg(transaction.duration)'],
+      search: MutableSearch.fromQueryObject(search),
+    },
+    Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART
+  );
 
   return (
     <ChartPanel title={DataTitles.transactionDuration}>

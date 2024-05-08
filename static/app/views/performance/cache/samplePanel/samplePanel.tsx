@@ -65,27 +65,32 @@ export function CacheSamplePanel() {
   };
 
   const {data: cacheTransactionMetrics, isFetching: areCacheTransactionMetricsFetching} =
-    useSpanMetrics({
-      search: MutableSearch.fromQueryObject(filters),
-      fields: [
-        `${SpanFunction.SPM}()`,
-        `${SpanFunction.CACHE_MISS_RATE}()`,
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
-      ],
-      enabled: isPanelOpen,
-      referrer: Referrer.SAMPLES_CACHE_METRICS_RIBBON,
-    });
+    useSpanMetrics(
+      {
+        search: MutableSearch.fromQueryObject(filters),
+        fields: [
+          `${SpanFunction.SPM}()`,
+          `${SpanFunction.CACHE_MISS_RATE}()`,
+          `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+          `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+          `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
+        ],
+        enabled: isPanelOpen,
+      },
+      Referrer.SAMPLES_CACHE_METRICS_RIBBON
+    );
 
   const {data: transactionDurationData, isLoading: isTransactionDurationLoading} =
-    useMetrics({
-      search: MutableSearch.fromQueryObject({
-        transaction: query.transaction,
-      } satisfies MetricsQueryFilters),
-      fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
-      enabled: isPanelOpen && Boolean(query.transaction),
-    });
+    useMetrics(
+      {
+        search: MutableSearch.fromQueryObject({
+          transaction: query.transaction,
+        } satisfies MetricsQueryFilters),
+        fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
+        enabled: isPanelOpen && Boolean(query.transaction),
+      },
+      Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
+    );
 
   const sampleFilters: SpanIndexedQueryFilters = {
     ...BASE_FILTERS,
