@@ -56,7 +56,7 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
         issue_occurence_call["evidence_display"][0].to_dict()
         == IssueEvidence(
             name="Clicked Element",
-            value="a[class=class1 class2][role=button][aria-label=test]",
+            value='a[class="class1 class2"][role="button"][aria-label="test"]',
             important=False,
         ).to_dict()
     )

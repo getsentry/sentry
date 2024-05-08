@@ -116,6 +116,6 @@ def _make_clicked_element(node):
     element = node.get("tagName", "")
     if "attributes" in node:
         for key, value in node["attributes"].items():
-            element += "[" + key + "=" + value + "]"
+            element += "[" + key + '="' + value + '"]'
 
     return element
