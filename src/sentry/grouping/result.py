@@ -100,6 +100,14 @@ class CalculatedHashes:
     hashes: list[str]
     hierarchical_hashes: list[str]
     tree_labels: list[TreeLabel | None]
+    # `variants` will never be `None` when the `CalculatedHashes` instance is created as part of
+    # event grouping, but it has to be typed including `None` because we use the `CalculatedHashes`
+    # container in other places where we don't have the variants data
+    #
+    # TODO: Once we get rid of hierarchical hashing, those other places will just be using
+    # `CalculatedHashes` to wrap `hashes` - meaning we don't need a wrapper at all, and can save use
+    # of `CalculatedHashes` for times when we know the variants are there (so we can make them
+    # required in the type)
     variants: dict[str, BaseVariant] | None = None
 
     def write_to_event(self, event_data: NodeData) -> None:
