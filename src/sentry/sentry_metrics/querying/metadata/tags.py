@@ -27,9 +27,9 @@ def get_tag_keys(
     Returns list of strings representing tag keys for a list of MRIs
     """
     all_tag_keys: set[str] = set()
+    project_ids = [project.id for project in projects]
     for mri in mris:
         for use_case_id in use_case_ids:
-            project_ids = [project.id for project in projects]
             tag_keys_per_project = fetch_metric_tag_keys(
                 organization.id, project_ids, use_case_id, mri
             )

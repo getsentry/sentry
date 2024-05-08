@@ -1,6 +1,5 @@
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import Any
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -82,22 +81,17 @@ def get_available_mris(
     """
     project_ids = [project.id for project in projects]
     project_id_to_mris = fetch_metric_mris(organization.id, project_ids, use_case_id)
-    mris_to_project_ids = _reverse_mapping(project_id_to_mris)
+    mris_to_project_ids = _convert_to_mris_to_project_ids_mapping(project_id_to_mris)
 
     return mris_to_project_ids
 
 
-def _reverse_mapping(project_id_to_mris: dict[int, list[str]]):
+def _convert_to_mris_to_project_ids_mapping(project_id_to_mris: dict[int, list[str]]):
     mris_to_project_ids: dict[str, list[int]] = defaultdict(list)
 
-    mris = set(_flatten([mri for mri in project_id_to_mris.values()]))
-    for mri in mris:
-        for project_id in project_id_to_mris.keys():
-            if mri in project_id_to_mris[project_id]:
-                mris_to_project_ids[mri].append(project_id)
+    mris_to_project_ids = {}
+    for project_id, mris in project_id_to_mris.items():
+        for mri in mris:
+            mris_to_project_ids.setdefault(mri, []).append(project_id)
 
     return mris_to_project_ids
-
-
-def _flatten(list_of_lists: list[list[Any]]) -> list[Any]:
-    return [element for sublist in list_of_lists for element in sublist]

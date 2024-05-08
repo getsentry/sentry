@@ -1,7 +1,7 @@
-from sentry.sentry_metrics.querying.metadata.metrics import _flatten, _reverse_mapping
+from sentry.sentry_metrics.querying.metadata.metrics import _convert_to_mris_to_project_ids_mapping
 
 
-def test_reverse_mapping():
+def test_convert_to_mris_to_project_ids_mapping():
     project_id_to_mris = {
         1: ["metric1", "metric2", "metric3"],
         2: ["metric1", "metric4", "metric5", "metric6"],
@@ -16,10 +16,4 @@ def test_reverse_mapping():
         "metric6": [2, 3],
     }
 
-    assert _reverse_mapping(project_id_to_mris) == expected
-
-
-def test_flatten():
-    list_of_lists = [[1, 2, 3], [4, 5, 6], [3, 6, 8]]
-    expected = [1, 2, 3, 4, 5, 6, 3, 6, 8]
-    assert _flatten(list_of_lists) == expected
+    assert _convert_to_mris_to_project_ids_mapping(project_id_to_mris) == expected

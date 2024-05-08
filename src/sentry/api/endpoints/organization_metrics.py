@@ -243,6 +243,10 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, tag_name) -> Response:
         metric_names = request.GET.getlist("metric") or []
+        if len(metric_names) > 1:
+            raise InvalidParams(
+                "Please supply only a single metric name. More than one metric name is not supported for this endpoint."
+            )
         projects = self.get_projects(request, organization)
         if not projects:
             raise InvalidParams("You must supply at least one project to see the tag values")
