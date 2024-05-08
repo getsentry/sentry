@@ -229,6 +229,17 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     const transactionName = event.title;
+    const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
+
+    // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
+    const groupHash = hasNewSpansUIFlag
+      ? props.node.value.sentry_tags?.group ?? ''
+      : props.node.value.hash;
+
+    // Do not render a button if there is no group hash, since this can result in broken links
+    if (hasNewSpansUIFlag && !groupHash) {
+      return null;
+    }
 
     return (
       <ButtonGroup>
@@ -243,11 +254,11 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
             orgSlug: organization.slug,
             transaction: transactionName,
             query: location.query,
-            spanSlug: {op: props.node.value.op, group: props.node.value.hash},
+            spanSlug: {op: props.node.value.op, group: groupHash},
             projectID: event.projectID,
           })}
         >
-          {t('View Similar Spans')}
+          {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
         </StyledButton>
       </ButtonGroup>
     );

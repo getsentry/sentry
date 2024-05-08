@@ -40,6 +40,11 @@ export function SpanDescription({
     return null;
   }
 
+  const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
+
+  // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
+  const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+
   const actions =
     !span.op || !span.hash ? null : (
       <ButtonGroup>
@@ -50,11 +55,11 @@ export function SpanDescription({
             orgSlug: organization.slug,
             transaction: event.title,
             query: location.query,
-            spanSlug: {op: span.op, group: span.hash},
+            spanSlug: {op: span.op, group: groupHash},
             projectID: event.projectID,
           })}
         >
-          {t('View Similar Spans')}
+          {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
         </Button>
       </ButtonGroup>
     );

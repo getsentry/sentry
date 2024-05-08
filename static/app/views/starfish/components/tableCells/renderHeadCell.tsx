@@ -53,6 +53,8 @@ export const SORTABLE_FIELDS = new Set([
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
   `${CACHE_HIT_RATE}()`,
   `${CACHE_MISS_RATE}()`,
+  SpanIndexedField.TIMESTAMP,
+  SpanIndexedField.SPAN_DURATION,
   `avg(${CACHE_ITEM_SIZE})`,
 ]);
 

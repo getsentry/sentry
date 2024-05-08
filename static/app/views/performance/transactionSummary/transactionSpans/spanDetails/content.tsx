@@ -18,6 +18,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
@@ -52,6 +53,13 @@ export default function SpanDetailsContentWrapper(props: Props) {
   useRouteAnalyticsParams({
     project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
   });
+
+  const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
+
+  // TODO: When this feature is rolled out to GA, we will no longer need the entire `spanDetails` directory and can switch to `spanSummary`
+  if (hasNewSpansUIFlag) {
+    return <SpanSummary {...props} />;
+  }
 
   return (
     <Fragment>
