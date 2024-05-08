@@ -442,7 +442,9 @@ function UsageChartBody({
 
     if (chartSeries) {
       chartSeries.forEach(chartOption => {
-        legend.push({name: `${chartOption.name}`});
+        if (chartOption.name) {
+          legend.push({name: `${chartOption.name}`});
+        }
       });
     }
 
