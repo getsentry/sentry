@@ -2777,10 +2777,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_snuba_unsupported_filters(self):
         self.login_as(user=self.user)
         for query in [
-            "bookmarks:me",
-            "is:linked",
-            "is:unlinked",
-            "subscribed:me",
             "regressed_in_release:latest",
             "issue.priority:high",
         ]:
