@@ -1,15 +1,18 @@
 import styled from '@emotion/styled';
 
+import {CheckInStatus} from 'sentry/views/monitors/types';
+import {getTickStyle} from 'sentry/views/monitors/utils';
+
 const MonitorIndicator = styled('div')<{
   size: number;
-  status: 'success' | 'warning' | 'error' | 'disabled';
+  status: CheckInStatus;
 }>`
   display: inline-block;
   position: relative;
   border-radius: 50%;
   height: ${p => p.size}px;
   width: ${p => p.size}px;
-  background: ${p => p.theme[p.status]};
+  ${p => getTickStyle(p.status, p.theme)}
 `;
 
 export {MonitorIndicator};

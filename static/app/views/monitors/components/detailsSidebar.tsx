@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/monitors/components/monitorForm';
 import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
-import {ScheduleType} from 'sentry/views/monitors/types';
+import {CheckInStatus, ScheduleType} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 interface Props {
@@ -74,21 +74,23 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
           <CrontabText>({schedule})</CrontabText>
         )}
       </Schedule>
-      <SectionHeading>{t('Margins')}</SectionHeading>
+      <SectionHeading>{t('Legend')}</SectionHeading>
       <Thresholds>
-        <MonitorIndicator status="warning" size={12} />
+        <MonitorIndicator status={CheckInStatus.MISSED} size={12} />
         <Text>
           {tn(
-            'Check-ins missed after %s min',
-            'Check-ins missed after %s mins',
+            'Check-in missed after %s min',
+            'Check-in missed after %s mins',
             checkin_margin ?? DEFAULT_CHECKIN_MARGIN
           )}
         </Text>
-        <MonitorIndicator status="error" size={12} />
+        <MonitorIndicator status={CheckInStatus.ERROR} size={12} />
+        <Text>{t('Check-in reported as failed')}</Text>
+        <MonitorIndicator status={CheckInStatus.TIMEOUT} size={12} />
         <Text>
           {tn(
-            'Check-ins longer than %s min or errors',
-            'Check-ins longer than %s mins or errors',
+            'Check-in timed out after %s min',
+            'Check-in timed out after %s mins',
             max_runtime ?? DEFAULT_MAX_RUNTIME
           )}
         </Text>
