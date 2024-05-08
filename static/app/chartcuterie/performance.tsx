@@ -14,6 +14,8 @@ export const performanceCharts: RenderDescriptor<ChartType>[] = [];
 function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
   options.legend = options.legend || {};
   options.legend.icon = 'none';
+  options.legend.left = '25';
+  options.legend.top = '20';
 
   return {
     ...options,
