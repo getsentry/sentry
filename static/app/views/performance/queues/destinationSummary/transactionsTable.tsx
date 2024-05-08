@@ -26,11 +26,11 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
   SpanMetricsResponse,
-  | 'avg_if(span.self_time,span.op,queue.process)'
-  | 'count_op(queue.publish)'
-  | 'count_op(queue.process)'
   | 'sum(span.self_time)'
-  | 'transaction'
+  | 'messaging.destination.name'
+  | 'avg(messaging.message.receive.latency)'
+  | `avg_if(${string},${string},${string})`
+  | `count_op(${string})`
 >;
 
 type Column = GridColumnHeader<string>;
