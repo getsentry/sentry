@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -20,14 +19,11 @@ import {
 import type {InputProps} from 'sentry/components/input';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
+import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export interface EditHighlightsModalProps extends ModalRenderProps {
@@ -105,7 +101,7 @@ function EditPreviewHighlightSection({
         content={content}
         event={event}
         tagKey={content.originalTag.key}
-        projectSlug={project.slug}
+        project={project}
         config={{disableActions: true, disableRichValue: true}}
         data-test-id="highlights-preview-tag"
       />
@@ -322,47 +318,11 @@ export default function EditHighlightsModal({
   const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
 
   const organization = useOrganization();
-  const api = useApi();
-  const queryClient = useQueryClient();
 
-  const {mutate: saveHighlights, isLoading} = useMutation<
-    Project,
-    RequestError,
-    {
-      highlightContext: HighlightContext;
-      highlightTags: HighlightTags;
-    }
-  >({
-    mutationFn: data => {
-      return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-        method: 'PUT',
-        data,
-      });
-    },
-    onSuccess: (updatedProject: Project) => {
-      addSuccessMessage(
-        tct(`Successfully updated highlights for '[projectName]' project`, {
-          projectName: project.name,
-        })
-      );
-      setApiQueryData<Project>(
-        queryClient,
-        makeDetailedProjectQueryKey({
-          orgSlug: organization.slug,
-          projectSlug: project.slug,
-        }),
-        data =>
-          updatedProject ? updatedProject : {...data, highlightTags, highlightContext}
-      );
-      closeModal();
-    },
-    onError: _error => {
-      addErrorMessage(
-        tct(`Failed to update highlights for '[projectName]' project`, {
-          projectName: project.name,
-        })
-      );
-    },
+  const {mutate: saveHighlights, isLoading} = useMutateProject({
+    organization,
+    project,
+    onSuccess: closeModal,
   });
 
   const columnCount = 3;
