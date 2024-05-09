@@ -17,7 +17,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
 
     @receivers_raise_on_send()
-    @patch.object(ReleaseProjectModelManager, "_subscribe_project_to_alert_rule")
+    @patch.object(ReleaseProjectModelManager, "subscribe_project_to_alert_rule")
     def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self, _):
         project = self.create_project(name="foo")
         release = Release.objects.create(organization_id=project.organization_id, version="42")
@@ -29,7 +29,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
             assert mock_task.mock_calls == []
 
     @receivers_raise_on_send()
-    @patch.object(ReleaseProjectModelManager, "_subscribe_project_to_alert_rule")
+    @patch.object(ReleaseProjectModelManager, "subscribe_project_to_alert_rule")
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_does_not_exist(
         self,
         _,
@@ -49,7 +49,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
                 assert mock_task.mock_calls == []
 
     @receivers_raise_on_send()
-    @patch.object(ReleaseProjectModelManager, "_subscribe_project_to_alert_rule")
+    @patch.object(ReleaseProjectModelManager, "subscribe_project_to_alert_rule")
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_exists(
         self,
         _,
@@ -76,7 +76,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
 
     @receivers_raise_on_send()
     @patch("sentry.models.releases.release_project.schedule_invalidate_project_config")
-    @patch.object(ReleaseProjectModelManager, "_subscribe_project_to_alert_rule")
+    @patch.object(ReleaseProjectModelManager, "subscribe_project_to_alert_rule")
     def test_post_save_subscribes_project_to_alert_rule_if_created(
         self, mock_subscribe_project_to_alert_rule, _
     ):
