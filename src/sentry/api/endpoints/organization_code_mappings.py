@@ -141,7 +141,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         """
         Get the list of repository project path configs
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           team should be created for.
         :qparam int integrationId: the optional integration id.
         :qparam int project: Optional. Pass "-1" to filter to 'all projects user has access to'. Omit to filter for 'all projects user is a member of'.
@@ -175,7 +175,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         Create a new repository project path config
         ``````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           team should be created for.
         :param int repositoryId:
         :param int projectId:

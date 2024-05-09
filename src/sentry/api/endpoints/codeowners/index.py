@@ -88,7 +88,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         Upload a CODEOWNERS for project
         `````````````
 
-        :pparam string organization_slug: the slug of the organization.
+        :pparam string organization_slug: the id or slug of the organization.
         :pparam string project_id_or_slug: the id or slug of the project to get.
         :param string raw: the raw CODEOWNERS text
         :param string codeMappingId: id of the RepositoryProjectPathConfig object

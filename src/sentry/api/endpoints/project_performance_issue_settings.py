@@ -184,7 +184,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
 
         Return settings for performance issues
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           project belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to configure.
         :auth: required

@@ -27,7 +27,7 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
         Return a list of users that belong to a given organization and are part of a project.
 
         :qparam string project: restrict results to users who have access to a given project ID
-        :pparam string organization_slug: the slug of the organization for which the users
+        :pparam string organization_slug: the id or slug of the organization for which the users
                                           should be listed.
         :auth: required
         """

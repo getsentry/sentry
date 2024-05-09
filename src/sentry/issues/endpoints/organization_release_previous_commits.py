@@ -26,7 +26,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         Retrieve an Organization's Most Recent Release with Commits
         ````````````````````````````````````````````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :auth: required

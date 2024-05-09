@@ -157,7 +157,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
         Retrieve a list of associated releases for a given Proguard File.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           file belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to list the
                                      DIFs of.
@@ -227,7 +227,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         Retrieve a list of debug information files for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           file belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to list the
                                      DIFs of.
@@ -312,7 +312,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         Delete a debug information file for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           file belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to delete the
                                      DIF.
@@ -346,7 +346,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         contains the individual debug images.  Uploading through this endpoint
         will create different files for the contained images.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.
@@ -521,7 +521,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         Retrieve a list of source map archives (releases, later bundles) for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           source map archive belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to list the
                                      source map archives of.
@@ -585,7 +585,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         Delete all artifacts inside given archive.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                             archive belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to delete the
                                         archive of.
