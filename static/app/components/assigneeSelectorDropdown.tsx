@@ -387,7 +387,7 @@ export default function AssigneeSelectorDropdown({
         assignedUser = currentMemberList.find(user => user.id === group.assignedTo?.id);
         if (assignedUser) {
           options.push(makeMemberOption(assignedUser));
-          memList = memList?.filter(member => member.id !== group.assignedTo?.id);
+          memList = memList.filter(member => member.id !== group.assignedTo?.id);
           suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
             return suggestedAssignee.id !== group.assignedTo?.id;
           });
@@ -402,19 +402,19 @@ export default function AssigneeSelectorDropdown({
         suggestedAssignee => suggestedAssignee.id === sessionUser.id
       );
     if (!isUserAssignedOrSuggested) {
-      const currentUser = memList?.find(user => user.id === sessionUser.id);
+      const currentUser = memList.find(user => user.id === sessionUser.id);
       if (currentUser) {
-        memList = memList?.filter(user => user.id !== sessionUser.id);
+        memList = memList.filter(user => user.id !== sessionUser.id);
         // This can't be sessionUser even though they're the same thing
         // because it would bork the tests
-        memList?.unshift(currentUser);
+        memList.unshift(currentUser);
       }
     }
 
     const memberOptions = {
       value: '_members',
       label: t('Members'),
-      options: memList?.map(member => makeMemberOption(member)) ?? [],
+      options: memList.map(member => makeMemberOption(member)) ?? [],
     };
 
     const teamOptions = {

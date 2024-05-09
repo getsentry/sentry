@@ -1,5 +1,4 @@
 import {memo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
@@ -44,12 +43,7 @@ export const BaseBadge = memo(
     const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
     return (
-      <Wrapper
-        className={className}
-        css={css`
-          --wrapper-gap: ${space(wrapperGap)};
-        `}
-      >
+      <Wrapper className={className} style={{gap: space(wrapperGap)}}>
         {!hideAvatar && (
           <Avatar
             {...avatarProps}
@@ -77,7 +71,6 @@ export const BaseBadge = memo(
 
 const Wrapper = styled('div')`
   display: flex;
-  gap: var(--wrapper-gap, 0);
   align-items: center;
   flex-shrink: 0;
 `;
