@@ -21,7 +21,7 @@ from sentry.tasks.base import instrumented_task, load_model_from_db, retry
 )
 @retry
 def update_code_owners_schema(
-    organization: Organization | int,
+    org: Organization | int,
     integration: Integration | RpcIntegration | int | None = None,
     projects: Iterable[Project | int] | None = None,
     **kwargs: Any,
@@ -31,7 +31,7 @@ def update_code_owners_schema(
     )
     from sentry.models.projectcodeowners import ProjectCodeOwners
 
-    organization = load_model_from_db(Organization, organization)
+    organization: Organization = load_model_from_db(Organization, org)
 
     if not features.has("organizations:integrations-codeowners", organization):
         return

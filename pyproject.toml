@@ -433,7 +433,6 @@ module = [
     "sentry.tagstore.types",
     "sentry.tasks.auth",
     "sentry.tasks.base",
-    "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.integrations",
     "sentry.tasks.integrations.migrate_issues",
     "sentry.tasks.integrations.migrate_repo",
