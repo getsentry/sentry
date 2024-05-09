@@ -1,6 +1,9 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
+import Feature from 'sentry/components/acl/feature';
+import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   type Field,
@@ -21,11 +24,13 @@ import type {
 } from 'sentry/utils/metrics/types';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
+import {generateTracesRouteWithQuery} from 'sentry/views/performance/traces/utils';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -91,6 +96,7 @@ export function MetricDetails({
   focusArea,
   setMetricsSamples,
 }: MetricDetailsProps) {
+  const location = useLocation();
   const organization = useOrganization();
 
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
@@ -122,6 +128,19 @@ export function MetricDetails({
     },
     [organization]
   );
+
+  const tracesTarget = generateTracesRouteWithQuery({
+    orgSlug: organization.slug,
+    metric:
+      op && mri
+        ? {
+            metricsOp: op,
+            mri,
+            metricsQuery: queryWithFocusedSeries,
+          }
+        : undefined,
+    query: omit(location.query, ['widgets', 'interval']),
+  });
 
   return (
     <TrayWrapper>
@@ -167,6 +186,11 @@ export function MetricDetails({
                   />
                 )}
               </MetricSampleTableWrapper>
+              <Feature features="performance-trace-explorer-with-metrics">
+                <OpenInTracesWrapper>
+                  <Button to={tracesTarget}>{t('Open in Traces')}</Button>
+                </OpenInTracesWrapper>
+              </Feature>
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
               <CodeLocations mri={mri} {...focusArea?.selection?.range} />
@@ -192,4 +216,9 @@ const TrayWrapper = styled('div')`
 const ContentWrapper = styled('div')`
   position: relative;
   padding-top: ${space(2)};
+`;
+
+const OpenInTracesWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
