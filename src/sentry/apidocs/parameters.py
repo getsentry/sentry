@@ -116,22 +116,22 @@ For example the following are valid parameters:
         location="query",
         required=False,
         type=bool,
-        description="""Specify `true` to restricts results to organizations in which you are an owner.""",
+        description="""Specify `true` to restrict results to organizations in which you are an owner.""",
     )
     QUERY = OpenApiParameter(
         name="query",
         location="query",
         required=False,
         type=str,
-        description="""The search filter for your query, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/).
+        description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
 Valid query fields include:
 - `id`: The organization ID
 - `slug`: The organization slug
 - `status`: The organization's current status (one of `active`, `pending_deletion`, or `deletion_in_progress`)
-- `email` or `member_id`: Filter your organizations by specific members included
-- `platform`: Filter your organizations for those with a project that uses this platform
-- `query`: Filtering your organizations by name, slug, and members that contain this substring
+- `email` or `member_id`: Filter your organizations by the emails or [organization member IDs](/api/organizations/list-an-organizations-members/) of specific members included
+- `platform`: Filter your organizations to those with at least one project using this platform
+- `query`: Filter your organizations by name, slug, and members that contain this substring
 
 Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,thing-two@example.com] AND query:bar)`
 """,
@@ -141,7 +141,7 @@ Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,th
         location="query",
         required=False,
         type=str,
-        description="""The field to sort results by, in descending order. If not specified, results are sorted by the date they were created.
+        description="""The field to sort results by, in descending order. If not specified the results are sorted by the date they were created.
 
 Valid fields include:
 - `members`: By number of members
@@ -187,7 +187,7 @@ class VisibilityParams:
         location="query",
         required=False,
         type=str,
-        description="""The search filter for your query, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/).
+        description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
 example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 """,
@@ -206,7 +206,7 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
 - A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
     - when a function is included, Discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
-- An equation when prefixed with `equation|`. Read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/).
+- An equation when prefixed with `equation|`. Read more about [equations here](/product/discover-queries/query-builder/query-equations/).
     - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
 """,
     )
