@@ -1042,6 +1042,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             self.parallel_executor.shutdown()
 
     def create_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        assert self.parallel_executor is not None
         batch_processor = RunTask(
             function=partial(process_batch, self.parallel_executor),
             next_step=CommitOffsets(commit),
