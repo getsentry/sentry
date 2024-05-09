@@ -6,7 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
-from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
+from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VERSION
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
@@ -125,6 +125,7 @@ class SeerSimilarIssueData:
     message_distance: float
     should_group: bool
     parent_group_id: int
+    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
     # TODO: See if we end up needing the hash here
     parent_hash: str | None = None
 
