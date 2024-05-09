@@ -184,10 +184,14 @@ class MonitorSerializer(Serializer):
         actors.extend(
             [RpcActor.from_id(team_id=m.owner_team_id) for m in item_list if m.owner_team_id]
         )
+        filtered_actors = list(filter(None, actors))
 
-        actors_serialized = serialize(RpcActor.resolve_many(actors), user, ActorSerializer())
+        actors_serialized = serialize(
+            RpcActor.resolve_many(filtered_actors), user, ActorSerializer()
+        )
         actor_data = {
-            actor: serialized_actor for actor, serialized_actor in zip(actors, actors_serialized)
+            actor: serialized_actor
+            for actor, serialized_actor in zip(filtered_actors, actors_serialized)
         }
 
         monitor_environments = (

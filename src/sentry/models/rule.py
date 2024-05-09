@@ -18,6 +18,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.types.actor import Actor
 from sentry.utils.cache import cache
 
 
@@ -104,6 +105,24 @@ class Rule(Model):
             pass
 
         return None
+
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned Protocol"""
+        return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned Protocol"""
+        if actor is None:
+            self.owner_team_id = None
+            self.owner_user_id = None
+        if actor and actor.is_user:
+            self.owner_team_id = None
+            self.owner_user_id = actor.id
+        if actor and actor.is_team:
+            self.owner_team_id = actor.id
+            self.owner_user_id = None
 
     def delete(self, *args, **kwargs):
         rv = super().delete(*args, **kwargs)

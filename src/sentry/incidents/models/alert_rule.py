@@ -36,6 +36,7 @@ from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -286,6 +287,24 @@ class AlertRule(Model):
         except AlertRuleActivity.DoesNotExist:
             pass
         return None
+
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned Protocol"""
+        return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned Protocol"""
+        if actor is None:
+            self.team_id = None
+            self.user_id = None
+        if actor and actor.is_user:
+            self.team_id = None
+            self.user_id = actor.id
+        if actor and actor.is_team:
+            self.team_id = actor.id
+            self.user_id = None
 
     def get_audit_log_data(self):
         return {"label": self.name}
