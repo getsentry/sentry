@@ -1384,7 +1384,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/events/(?P<project_id_or_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/events/(?P<project_id_or_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationEventDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-event-details",
     ),
@@ -2551,7 +2551,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-teams",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
         ProjectTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-project-team-details",
     ),
