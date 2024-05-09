@@ -205,16 +205,14 @@ def parse_rulegroup_to_event_data(
 
 def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]:
     event_limit = 100
-    node_id_to_event_id: dict[str, str] = {}
-
-    for event_id_chunk in chunked(event_ids, event_limit):
-        for event_id in event_id_chunk:
-            node_id = Event.generate_node_id(project_id, event_id=event_id)
-            node_id_to_event_id[node_id] = event_id
-
+    node_id_to_event_id: dict[str, str] = {
+        Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
+    }
     node_ids = list(node_id_to_event_id.keys())
     fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
-    bulk_data = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_ids))
+
+    for node_id_chunk in chunked(node_ids, event_limit):
+        bulk_data = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
 
     bulk_event_id_to_events: dict[str, Event] = {}
     for node_id, data in bulk_data.items():
@@ -229,7 +227,7 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
 def build_group_to_groupevent(
     parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
     bulk_event_id_to_events: dict[str, Event],
-    bulk_occurrence_id_to_occurrence: dict[int, IssueOccurrence],
+    bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
     group_id_to_group: dict[int, Group],
 ) -> dict[Group, GroupEvent]:
     group_to_groupevent: dict[Group, GroupEvent] = {}
@@ -238,7 +236,6 @@ def build_group_to_groupevent(
         event_id = instance_data.get("event_id")
         occurrence_id = instance_data.get("occurrence_id")
         group_id = rule_group[1]
-        group_event = None
         occurrence = None
 
         if event_id:
@@ -250,10 +247,8 @@ def build_group_to_groupevent(
         group_event = event.for_group(group)
         if occurrence_id:
             occurrence = bulk_occurrence_id_to_occurrence.get(occurrence_id)
-        if occurrence and group_event:
-            group_event.occurrence = occurrence
-        if group_event:
-            group_to_groupevent[group] = group_event
+        group_event.occurrence = occurrence
+        group_to_groupevent[group] = group_event
 
     return group_to_groupevent
 
@@ -268,7 +263,7 @@ def get_group_to_groupevent(
     event_ids: set[str] = set()
     occurrence_ids: list[str] = []
 
-    for _, instance_data in parsed_rulegroup_to_event_data.items():
+    for instance_data in parsed_rulegroup_to_event_data.values():
         event_id = instance_data.get("event_id")
         if event_id:
             event_ids.add(event_id)
