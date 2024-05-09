@@ -272,7 +272,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rulegroup_to_event_data = buffer.get_hash(model=Project, field={"project_id": project.id})
     logger.info(
         "delayed_processing.rulegroupeventdata",
-        extra={"rulegroupdata": json.loads(rulegroup_to_event_data)},
+        extra={"rulegroupdata": rulegroup_to_event_data},
     )
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
@@ -300,7 +300,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
         logger.info(
-            "delayed_processing.rule_to_fire", extra={"rules_to_fire": json.loads(rules_to_fire)}
+            "delayed_processing.rule_to_fire", extra={"rules_to_fire": json.dumps(rules_to_fire)}
         )
     # Step 7: Fire the rule's actions
     now = datetime.now(tz=timezone.utc)
