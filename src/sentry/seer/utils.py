@@ -177,7 +177,7 @@ class SeerSimilarIssueData:
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
-    """Call /v0/issues/similar-issues endpoint from seer."""
+    """Request similar issues data from seer and normalize the results."""
     response = seer_staging_connection_pool.urlopen(
         "POST",
         SEER_SIMILAR_ISSUES_URL,
