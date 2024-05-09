@@ -38,11 +38,8 @@ class RelatedIssuesEndpoint(GroupEndpoint):
         related_type = request.query_params.get("type")
         related_issues: list[dict[str, str | list[int] | dict[str, str]]] = []
 
-        if related_type == "same_root_cause":
-            data, meta = same_root_cause_analysis(group)
-            related_issues = [{"type": related_type, "data": data, "meta": meta}]
-        elif related_type == "trace_connected":
-            data, meta = trace_connected_analysis(group)
+        if related_type in RELATED_ISSUES_ALGORITHMS:
+            data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group)
             related_issues = [{"type": related_type, "data": data, "meta": meta}]
         else:
             # XXX: We will be deprecating this approach soon
