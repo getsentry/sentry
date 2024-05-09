@@ -25,7 +25,7 @@ class ProjectMonitorProcessingErrorsIndexEndpoint(ProjectMonitorEndpoint):
     owner = ApiOwner.CRONS
 
     @extend_schema(
-        operation_id="Retrieve a Monitor for a Project",
+        operation_id="Retrieve checkin processing errors for a monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
