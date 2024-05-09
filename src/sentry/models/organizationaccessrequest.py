@@ -52,7 +52,8 @@ class OrganizationAccessRequest(Model):
 
         if self.requester_id:
             requester = user_service.get_user(user_id=self.requester_id)
-            context.update({"requester": requester.get_display_name()})
+            if not requester:
+                return
 
         msg = MessageBuilder(
             subject="Sentry Access Request",
@@ -79,6 +80,8 @@ class OrganizationAccessRequest(Model):
         from sentry.utils.email import MessageBuilder
 
         user = user_service.get_user(user_id=self.member.user_id)
+        if not user:
+            return
         email = user.email
         organization = self.team.organization
 

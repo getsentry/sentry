@@ -357,7 +357,6 @@ module = [
     "sentry.models.auditlogentry",
     "sentry.models.integrations.external_issue",
     "sentry.models.integrations.sentry_app_installation",
-    "sentry.models.organizationaccessrequest",
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monitors.endpoints.base",
     "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",
