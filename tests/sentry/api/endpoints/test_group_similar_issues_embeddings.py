@@ -3,6 +3,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from unittest import mock
 
+import orjson
 from urllib3.response import HTTPResponse
 
 from sentry.api.endpoints.group_similar_issues_embeddings import (
@@ -15,7 +16,6 @@ from sentry.seer.utils import SeerSimilarIssueData, SimilarIssuesEmbeddingsRespo
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils import json
 from sentry.utils.types import NonNone
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
@@ -707,7 +707,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 }
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
 
         response = self.client.get(
             self.path,
@@ -731,7 +731,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
-            body=json.dumps(expected_seer_request_params),
+            body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
@@ -754,7 +754,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 }
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
 
         response = self.client.get(
             self.path,
@@ -778,7 +778,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
-            body=json.dumps(expected_seer_request_params),
+            body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
@@ -803,7 +803,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 }
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
 
         response = self.client.get(
             self.path,
@@ -827,7 +827,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
-            body=json.dumps(expected_seer_request_params),
+            body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
@@ -868,7 +868,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 },
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
 
         response = self.client.get(
             self.path,
@@ -919,7 +919,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 },
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
         response = self.client.get(self.path)
 
         mock_logger.exception.assert_called_with(
@@ -971,7 +971,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 },
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
         response = self.client.get(self.path)
 
         mock_logger.exception.assert_called_with(
@@ -1086,7 +1086,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             ]
         }
 
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
 
         # Include no optional parameters
         response = self.client.get(self.path)
@@ -1097,7 +1097,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
@@ -1105,7 +1105,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                 },
-            ),
+            ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
@@ -1121,7 +1121,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
@@ -1130,7 +1130,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "message": self.group.message,
                     "k": 1,
                 },
-            ),
+            ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
@@ -1146,7 +1146,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
@@ -1155,6 +1155,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "message": self.group.message,
                     "threshold": 0.98,
                 },
-            ),
+            ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
