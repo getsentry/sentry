@@ -5,20 +5,14 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
+from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
 
 
 class OrgLevelOrganizationSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
 
-    @cached_property
-    def user(self):
-        return self.create_user("test@test.com")
-
-    def get_response(self, *args, **params):
-        return super().get_response(*args, **params)
-
-    def create_base_data(self):
+    def create_base_data(self) -> dict[str, SavedSearch]:
         user_1 = self.user
         user_2 = self.create_user()
 
@@ -103,14 +97,12 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
             "savedsearch_other_pinned": savedsearch_other_pinned,
         }
 
-    def check_results(self, expected):
+    def test_simple(self) -> None:
+        objs = self.create_base_data()
+
         self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug)
-        assert response.data == serialize(expected)
-
-    def test_simple(self):
-        objs = self.create_base_data()
-        self.check_results(
+        assert response.data == serialize(
             [
                 objs["savedsearch_global"],
                 objs["savedsearch_org"],
@@ -126,18 +118,18 @@ class CreateOrganizationSearchesTest(APITestCase):
     method = "post"
 
     @cached_property
-    def manager(self):
+    def manager(self) -> User:
         user = self.create_user("test@test.com")
         self.create_member(organization=self.organization, user=user, role="manager")
         return user
 
     @cached_property
-    def member(self):
+    def member(self) -> User:
         user = self.create_user("test@test.com")
         self.create_member(organization=self.organization, user=user)
         return user
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         search_type = SearchType.ISSUE.value
         name = "test"
         query = "hello"
@@ -157,7 +149,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.data["visibility"] == visibility
         assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
-    def test_member_cannot_create_org_search(self):
+    def test_member_cannot_create_org_search(self) -> None:
         self.login_as(user=self.member)
         resp = self.get_response(
             self.organization.slug,
@@ -168,7 +160,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         )
         assert resp.status_code == 400
 
-    def test_member_can_create_owner_search(self):
+    def test_member_can_create_owner_search(self) -> None:
         self.login_as(user=self.member)
         resp = self.get_response(
             self.organization.slug,
@@ -180,7 +172,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.status_code == 200
         assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
-    def test_org_global_search_conflict(self):
+    def test_org_global_search_conflict(self) -> None:
         global_search = SavedSearch.objects.create(
             type=SearchType.ISSUE.value,
             name="Some global search",
@@ -200,7 +192,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.status_code == 200
         assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
-    def test_org_org_search_conflict(self):
+    def test_org_org_search_conflict(self) -> None:
         org_search = SavedSearch.objects.create(
             organization=self.organization,
             type=SearchType.ISSUE.value,
@@ -219,7 +211,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.status_code == 400
         assert "already exists" in resp.data["detail"]
 
-    def test_owner_global_search_conflict(self):
+    def test_owner_global_search_conflict(self) -> None:
         global_search = SavedSearch.objects.create(
             type=SearchType.ISSUE.value,
             name="Some global search",
@@ -240,7 +232,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.status_code == 200
         assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
-    def test_owner_org_search_conflict(self):
+    def test_owner_org_search_conflict(self) -> None:
         org_search = SavedSearch.objects.create(
             organization=self.organization,
             type=SearchType.ISSUE.value,
@@ -261,7 +253,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.status_code == 200
         assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
-    def test_owner_owner_search_conflict(self):
+    def test_owner_owner_search_conflict(self) -> None:
         user_search = SavedSearch.objects.create(
             organization=self.organization,
             type=SearchType.ISSUE.value,
@@ -281,7 +273,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.status_code == 400
         assert "already exists" in resp.data["detail"]
 
-    def test_owner1_owner2_search_conflict(self):
+    def test_owner1_owner2_search_conflict(self) -> None:
         # User 1 has a saved search in org
         other_user_search = SavedSearch.objects.create(
             organization=self.organization,
@@ -307,7 +299,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert SavedSearch.objects.filter(id=other_user_search.id).exists()
         assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
-    def test_owner_pinned_search_conflict(self):
+    def test_owner_pinned_search_conflict(self) -> None:
         # Member has a pinned search
         pinned_search = SavedSearch.objects.create(
             organization=self.organization,
@@ -331,7 +323,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         assert resp.status_code == 200
         assert SavedSearch.objects.filter(id=resp.data["id"]).exists()
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         self.login_as(user=self.manager)
         resp = self.get_response(
             self.organization.slug,
@@ -349,18 +341,18 @@ class OrganizationSearchesGetTest(APITestCase):
     method = "get"
 
     @cached_property
-    def manager(self):
+    def manager(self) -> User:
         user = self.create_user("manager@test.com")
         self.create_member(organization=self.organization, user=user, role="manager")
         return user
 
     @cached_property
-    def member(self):
+    def member(self) -> User:
         user = self.create_user("member@test.com")
         self.create_member(organization=self.organization, user=user)
         return user
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.issue_search_manager_1 = SavedSearch.objects.create(
             organization=self.organization,
@@ -395,7 +387,7 @@ class OrganizationSearchesGetTest(APITestCase):
             owner_id=self.manager.id,
         )
 
-    def test_manager_filters_by_issue_type(self):
+    def test_manager_filters_by_issue_type(self) -> None:
         self.login_as(user=self.manager)
         response = self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
         assert len(response.data) == 2
@@ -405,19 +397,19 @@ class OrganizationSearchesGetTest(APITestCase):
             str(self.issue_search_manager_2.id),
         }
 
-    def test_member_filters_by_issue_type(self):
+    def test_member_filters_by_issue_type(self) -> None:
         self.login_as(user=self.member)
         response = self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.issue_search_member.id)
 
-    def test_manager_sees_global_searches(self):
+    def test_manager_sees_global_searches(self) -> None:
         self.login_as(user=self.manager)
         response = self.get_success_response(self.organization.slug, type=SearchType.EVENT.value)
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.event_search_global.id)
 
-    def test_member_sees_global_searches(self):
+    def test_member_sees_global_searches(self) -> None:
         self.login_as(user=self.member)
         response = self.get_success_response(self.organization.slug, type=SearchType.EVENT.value)
         assert len(response.data) == 1

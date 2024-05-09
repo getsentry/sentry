@@ -34,7 +34,7 @@ def get_test_message_status_change(
 
 class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
     @django_db_all
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
@@ -47,8 +47,13 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         self.fingerprint = ["touch-id"]
 
     def _assert_statuses_set(
-        self, status, substatus, group_history_status, activity_type, priority=None
-    ):
+        self,
+        status: int,
+        substatus: int | None,
+        group_history_status: int,
+        activity_type: ActivityType,
+        priority: int | None = None,
+    ) -> None:
         self.group.refresh_from_db()
         assert self.group.status == status
         assert self.group.substatus == substatus
@@ -159,7 +164,7 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
 
 class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
     @django_db_all
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
