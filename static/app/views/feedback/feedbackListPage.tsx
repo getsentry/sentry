@@ -72,31 +72,35 @@ export default function FeedbackListPage({}: Props) {
             </Layout.HeaderContent>
           </Layout.Header>
           <PageFiltersContainer>
-            <ErrorBoundary>
-              <LayoutGrid data-banner={showWhatsNewBanner}>
-                {showWidgetBanner ? (
-                  <FeedbackWidgetBanner style={{gridArea: 'banner'}} />
-                ) : showWhatsNewBanner ? (
-                  <FeedbackWhatsNewBanner style={{gridArea: 'banner'}} />
-                ) : null}
-                <FeedbackFilters style={{gridArea: 'filters'}} />
-                {hasSetupOneFeedback || hasSlug ? (
-                  <Fragment>
-                    <Container style={{gridArea: 'list'}}>
-                      <FeedbackList />
-                    </Container>
-                    <FeedbackSearch style={{gridArea: 'search'}} />
-                    <Container style={{gridArea: 'details'}}>
-                      <FeedbackItemLoader />
-                    </Container>
-                  </Fragment>
-                ) : (
-                  <SetupContainer>
-                    <FeedbackSetupPanel />
-                  </SetupContainer>
-                )}
-              </LayoutGrid>
-            </ErrorBoundary>
+            <Layout.Body>
+              <Layout.Main fullWidth>
+                <ErrorBoundary>
+                  <LayoutGrid data-banner={showWhatsNewBanner}>
+                    {showWidgetBanner ? (
+                      <FeedbackWidgetBanner style={{gridArea: 'banner'}} />
+                    ) : showWhatsNewBanner ? (
+                      <FeedbackWhatsNewBanner style={{gridArea: 'banner'}} />
+                    ) : null}
+                    <FeedbackFilters style={{gridArea: 'filters'}} />
+                    {hasSetupOneFeedback || hasSlug ? (
+                      <Fragment>
+                        <Container style={{gridArea: 'list'}}>
+                          <FeedbackList />
+                        </Container>
+                        <FeedbackSearch style={{gridArea: 'search'}} />
+                        <Container style={{gridArea: 'details'}}>
+                          <FeedbackItemLoader />
+                        </Container>
+                      </Fragment>
+                    ) : (
+                      <SetupContainer>
+                        <FeedbackSetupPanel />
+                      </SetupContainer>
+                    )}
+                  </LayoutGrid>
+                </ErrorBoundary>
+              </Layout.Main>
+            </Layout.Body>
           </PageFiltersContainer>
         </FeedbackQueryKeys>
       </FullViewport>
@@ -105,9 +109,6 @@ export default function FeedbackListPage({}: Props) {
 }
 
 const LayoutGrid = styled('div')`
-  background: ${p => p.theme.background};
-  overflow: hidden;
-
   flex-grow: 1;
 
   display: grid;
@@ -128,7 +129,6 @@ const LayoutGrid = styled('div')`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
     grid-template-columns: 1fr;
     grid-template-areas:
       'filters'
@@ -147,12 +147,10 @@ const LayoutGrid = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
     grid-template-columns: minmax(1fr, 195px) 1fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
     grid-template-columns: 390px 1fr;
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
