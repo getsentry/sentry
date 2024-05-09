@@ -1113,7 +1113,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
     ),
     # Alert Rules
@@ -1870,7 +1870,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-user-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/sentry-app-installations/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/sentry-app-installations/$",
         SentryAppInstallationsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installations",
     ),
@@ -2766,72 +2766,72 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
 
 TEAM_URLS = [
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/$",
         TeamDetailsEndpoint.as_view(),
         name="sentry-api-0-team-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issues/old/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issues/old/$",
         TeamGroupsOldEndpoint.as_view(),
         name="sentry-api-0-team-oldest-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/release-count/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/release-count/$",
         TeamReleaseCountEndpoint.as_view(),
         name="sentry-api-0-team-release-count",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/time-to-resolution/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/time-to-resolution/$",
         TeamTimeToResolutionEndpoint.as_view(),
         name="sentry-api-0-team-time-to-resolution",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/unresolved-issue-age/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/unresolved-issue-age/$",
         TeamUnresolvedIssueAgeEndpoint.as_view(),
         name="sentry-api-0-team-unresolved-issue-age",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered/$",
         TeamAlertsTriggeredTotalsEndpoint.as_view(),
         name="sentry-api-0-team-alerts-triggered",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered-index/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered-index/$",
         TeamAlertsTriggeredIndexEndpoint.as_view(),
         name="sentry-api-0-team-alerts-triggered-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issue-breakdown/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issue-breakdown/$",
         TeamIssueBreakdownEndpoint.as_view(),
         name="sentry-api-0-team-issue-breakdown",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/all-unresolved-issues/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/all-unresolved-issues/$",
         TeamAllUnresolvedIssuesEndpoint.as_view(),
         name="sentry-api-0-team-all-unresolved-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/members/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/members/$",
         TeamMembersEndpoint.as_view(),
         name="sentry-api-0-team-members",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/projects/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/projects/$",
         TeamProjectsEndpoint.as_view(),
         name="sentry-api-0-team-project-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/stats/$",
         TeamStatsEndpoint.as_view(),
         name="sentry-api-0-team-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/$",
         ExternalTeamEndpoint.as_view(),
         name="sentry-api-0-external-team",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/(?P<external_team_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/(?P<external_team_id>[^\/]+)/$",
         ExternalTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-external-team-details",
     ),
