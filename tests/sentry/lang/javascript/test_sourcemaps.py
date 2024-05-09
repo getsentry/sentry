@@ -1,8 +1,7 @@
 from unittest import TestCase
 
+import orjson
 from symbolic.sourcemap import SourceMapTokenMatch, SourceMapView
-
-from sentry.utils import json
 
 sourcemap = b"""{
     "version":3,
@@ -13,7 +12,7 @@ sourcemap = b"""{
     "sourceRoot": "foo"
 }"""
 
-indexed_sourcemap_example = json.dumps(
+indexed_sourcemap_example = orjson.dumps(
     {
         "version": 3,
         "file": "min.js",
@@ -48,7 +47,7 @@ indexed_sourcemap_example = json.dumps(
             },
         ],
     }
-).encode("utf-8")
+)
 
 
 class FindSourceTest(TestCase):

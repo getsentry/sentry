@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+import orjson
 import sentry_sdk
 
 from sentry import options
@@ -13,7 +14,6 @@ from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.stacktraces.processing import StacktraceInfo
-from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
@@ -115,7 +115,7 @@ def deobfuscation_template(data, map_type, deobfuscation_fn):
     new_attachments = []
     for attachment in attachments:
         if attachment.type == "event.view_hierarchy":
-            view_hierarchy = json.loads(attachment_cache.get_data(attachment))
+            view_hierarchy = orjson.loads(attachment_cache.get_data(attachment))
             deobfuscation_fn(data, project, view_hierarchy)
 
             # Reupload to cache as a unchunked data
@@ -125,7 +125,7 @@ def deobfuscation_template(data, map_type, deobfuscation_fn):
                     id=attachment.id,
                     name=attachment.name,
                     content_type=attachment.content_type,
-                    data=json.dumps_htmlsafe(view_hierarchy).encode(),
+                    data=orjson.dumps(view_hierarchy),
                     chunks=None,
                 )
             )
