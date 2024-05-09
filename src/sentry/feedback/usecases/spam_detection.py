@@ -5,18 +5,25 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-PROMPT = """
-Please analyze the following input and output `spam` if the input is not coherent, and `not spam` if it is coherent.
-Some example responses:
-  asdfasdf,spam
-  It doesn't work,not spam
-  es funktioniert nicht, not spam
-  لا يعمل,not spam,
-  Nothing,spam
-  ..,spam
-  hey,spam
-Complete the following:
-"""
+
+def make_input_prompt(input):
+    return f"""**Classification Task**
+**Instructions: Please analyze the following input and output `spam` if the input is not coherent, and `notspam` if it is coherent.**
+**Label Options:** spam, notspam
+
+**Few-shot Examples:**
+* **Example 1:** "asdasdfasd" -> spam
+* **Example 2:** "It doesn't work," -> notspam
+* **Example 3:** "es funktioniert nicht" -> notspam
+* **Example 4:** "is there another way to do payment?" -> notspam
+* **Example 5:** "this thing does not function how it should" -> notspam
+* **Example 6:** "i was playing a great game now it crashed" -> notspam
+* **Example 7:** "i can't login to my account wtf??!" -> notspam
+* **Example 8:** "ฉันไม่สามารถเข้าสู่ระบบและไม่มีอะไรทำงาน " -> notspam
+
+**Input Text:** "{input}"
+
+**Classify:** """
 
 
 @metrics.wraps("feedback.spam_detection", sample_rate=1.0)
@@ -25,8 +32,7 @@ def is_spam(message):
     trimmed_response = ""
     response = complete_prompt(
         usecase=LLMUseCase.SPAM_DETECTION,
-        prompt=PROMPT,
-        message=message + ",",  # add a comma so it knows to complete the csv
+        message=make_input_prompt(message),
         temperature=0,
         max_output_tokens=20,
     )

@@ -118,7 +118,6 @@ const enum SeriesTypes {
   ACCEPTED = 'Accepted',
   DROPPED = 'Dropped',
   PROJECTED = 'Projected',
-  RESERVED = 'Reserved',
   FILTERED = 'Filtered',
 }
 
@@ -413,13 +412,13 @@ function UsageChartBody({
 
   function chartLegendData() {
     const legend: LegendComponentOption['data'] = [
-      chartData.reserved && chartData.reserved.length > 0
-        ? {
-            name: SeriesTypes.RESERVED,
-          }
-        : {
-            name: SeriesTypes.ACCEPTED,
-          },
+      ...(chartData.reserved && chartData.reserved.length > 0
+        ? []
+        : [
+            {
+              name: SeriesTypes.ACCEPTED,
+            },
+          ]),
     ];
 
     if (chartData.filtered && chartData.filtered.length > 0) {
