@@ -101,9 +101,17 @@ export function SamplesTables({
           )}
           <DeviceClassSelector size="md" clearSpansTableCursor />
         </FiltersContainer>
-        <SegmentedControl onChange={value => setSampleType(value)} defaultValue={SPANS}>
-          <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
-          <SegmentedControl.Item key={EVENT}>{t('By Event')}</SegmentedControl.Item>
+        <SegmentedControl
+          onChange={value => setSampleType(value)}
+          defaultValue={SPANS}
+          label={t('Sample Type Selection')}
+        >
+          <SegmentedControl.Item key={SPANS} aria-label={t('By Spans')}>
+            {t('By Spans')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key={EVENT} aria-label={t('By Event')}>
+            {t('By Event')}
+          </SegmentedControl.Item>
         </SegmentedControl>
       </Controls>
       {content}
