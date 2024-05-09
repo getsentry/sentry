@@ -114,12 +114,11 @@ class DatadogMetricsBackend(MetricsBackend):
 
     def event(
         self,
-        key: str,
-        value: str,
+        title: str,
+        message: str,
         alert_type: str | None = None,
         aggregation_key: str | None = None,
         source_type_name: str | None = None,
-        date_happened: int | None = None,
         priority: str | None = None,
         instance: str | None = None,
         tags: Tags | None = None,
@@ -134,12 +133,11 @@ class DatadogMetricsBackend(MetricsBackend):
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
         self.stats.event(
-            title=self._get_key(key),
-            message=value,
+            title=title,
+            message=message,
             alert_type=alert_type,
             aggregation_key=aggregation_key,
             source_type_name=source_type_name,
-            date_happened=date_happened,
             priority=priority,
             tags=tags_list,
             hostname=self.host,
