@@ -56,7 +56,7 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
-from sentry.services.hybrid_cloud.actor import parse_and_validate_actor
+from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome

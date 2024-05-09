@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.fields import ActorField
 from sentry.models.group import STATUS_UPDATE_CHOICES
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 
 from . import InboxDetailsValidator, StatusDetailsValidator
@@ -49,7 +49,7 @@ class GroupValidator(serializers.Serializer):
     # for the moment, the CLI sends this for any issue update, so allow nulls
     snoozeDuration = serializers.IntegerField(allow_null=True)
 
-    def validate_assignedTo(self, value: RpcActor) -> RpcActor:
+    def validate_assignedTo(self, value: Actor) -> Actor:
         if (
             value
             and value.is_user

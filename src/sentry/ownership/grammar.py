@@ -13,8 +13,8 @@ from rest_framework.serializers import ValidationError
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.actor import Actor, ActorType
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
@@ -412,7 +412,7 @@ def convert_codeowners_syntax(
     return result
 
 
-def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, RpcActor]:
+def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, Actor]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
@@ -455,7 +455,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, R
 
         actors.update(
             {
-                ("user", email.lower()): RpcActor(id=u_id, actor_type=ActorType.USER)
+                ("user", email.lower()): Actor(id=u_id, actor_type=ActorType.USER)
                 # This will need to be broken in hybrid cloud world, querying users from region silo won't be possible
                 # without an explicit service call.
                 for u_id, email in user_id_email_tuples
@@ -465,7 +465,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, R
     if teams:
         actors.update(
             {
-                ("team", slug): RpcActor(id=t_id, actor_type=ActorType.TEAM, slug=slug)
+                ("team", slug): Actor(id=t_id, actor_type=ActorType.TEAM, slug=slug)
                 for t_id, slug in Team.objects.filter(
                     slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
                 ).values_list("id", "slug")

@@ -9,7 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.models.projectownership import ProjectOwnership
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 
 
 @region_silo_endpoint
@@ -40,9 +40,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
         if owners == ProjectOwnership.Everyone:
             owners = []
 
-        serialized_owners = serialize(
-            RpcActor.resolve_many(owners), request.user, ActorSerializer()
-        )
+        serialized_owners = serialize(Actor.resolve_many(owners), request.user, ActorSerializer())
 
         # Make sure the serialized owners are in the correct order
         ordered_owners = []
