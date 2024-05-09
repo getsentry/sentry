@@ -36,6 +36,7 @@ export function AssigneeBadge({
           className="avatar"
           size={AVATAR_SIZE}
           hasTooltip={false}
+          style={{paddingLeft: space(1)}}
         />
         {showLabel && <Fragment>{actor.name}</Fragment>}
         <Chevron direction={chevronDirection} size="small" />
@@ -59,12 +60,10 @@ export function AssigneeBadge({
 
   const makeAssignedTooltipText = (actor: Actor) => {
     // Cant use StyledTag's tooltipText prop because
-    // it screws with the nested div style ()
+    // it screws with the nested div style
     return (
       <TooltipWrapper>
-        {tct('Assigned to [name]', {
-          name: actor.type === 'team' ? `#${actor.name}` : actor.name,
-        })}
+        {t('Assigned to')} {actor.type === 'team' ? `#${actor.name}` : actor.name}
         {assignmentReason && <TooltipSubtext>{assignmentReason}</TooltipSubtext>}
       </TooltipWrapper>
     );
