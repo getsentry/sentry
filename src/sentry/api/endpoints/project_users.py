@@ -31,7 +31,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
 
         Return a list of users seen within this project.
 
-        :pparam string organization_slug: the id or slug of the organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string project_id_or_slug: the id or slug of the project.
         :pparam string key: the tag key to look up.
         :auth: required
