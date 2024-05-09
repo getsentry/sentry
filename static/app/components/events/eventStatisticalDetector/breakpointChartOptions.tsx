@@ -1,5 +1,6 @@
 import type {Theme} from '@emotion/react';
 
+import type {FunctionRegressionPercentileData} from 'sentry/chartcuterie/performance';
 import {ChartType} from 'sentry/chartcuterie/types';
 import VisualMap from 'sentry/components/charts/components/visualMap';
 import type {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
@@ -21,7 +22,7 @@ import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 export type EventBreakpointChartData = {
   chartType: ChartType;
   evidenceData: NormalizedTrendsTransaction;
-  percentileData: EventsStatsData;
+  percentileData: EventsStatsData | FunctionRegressionPercentileData;
 };
 
 function getBreakpointChartOptionsFromData(

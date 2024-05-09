@@ -3,6 +3,7 @@ import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData, {
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
+import type {EventsStatsSeries} from 'sentry/types';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
@@ -13,6 +14,10 @@ import {ChartType} from './types';
 export const performanceCharts: RenderDescriptor<ChartType>[] = [];
 
 type EndpointRegressionChartData = Omit<EventBreakpointChartData, 'chartType'>;
+
+export type FunctionRegressionPercentileData = {
+  data: EventsStatsSeries<'p95()'>;
+};
 
 function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
   options.legend = options.legend || {};
@@ -69,7 +74,7 @@ performanceCharts.push({
     };
 
     const param = {
-      percentileData: percentileData as any,
+      percentileData: percentileData as FunctionRegressionPercentileData,
       evidenceData: data.evidenceData,
       chartType: ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
     };
