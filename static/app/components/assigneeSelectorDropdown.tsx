@@ -492,6 +492,7 @@ export default function AssigneeSelectorDropdown({
       <CompactSelect
         searchable
         clearable
+        menuWidth={275}
         disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
         value={
