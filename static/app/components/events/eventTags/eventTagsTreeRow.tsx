@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
@@ -130,6 +131,10 @@ function EventTagsTreeRowDropdown({
     highlightTagSet.has(originalTag.key);
   const query = generateQueryWithTag({referrer}, originalTag);
   const searchQuery = `?${qs.stringify(query)}`;
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {
+    organization,
+    project,
+  });
 
   return (
     <TreeValueDropdown
@@ -169,7 +174,7 @@ function EventTagsTreeRowDropdown({
         {
           key: 'add-to-highlights',
           label: t('Add to event highlights'),
-          hidden: hideAddHighlightsOption,
+          hidden: !isProjectAdmin || hideAddHighlightsOption,
           onAction: () => {
             saveTag({
               highlightTags: [...(project?.highlightTags ?? []), originalTag.key],

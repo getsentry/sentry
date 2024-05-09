@@ -11,6 +11,8 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -125,9 +127,15 @@ function TagTreeColumns({
   meta,
   tags,
   columnCount,
+  projectSlug,
   ...props
 }: EventTagsTreeProps & {columnCount: number}) {
+  const organization = useOrganization();
+  const {data: project} = useDetailedProject({orgSlug: organization.slug, projectSlug});
   const assembledColumns = useMemo(() => {
+    if (!project) {
+      return [];
+    }
     // Create the TagTree data structure using all the given tags
     const tagTree = tags.reduce<TagTree>(
       (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
@@ -137,7 +145,7 @@ function TagTreeColumns({
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
       ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, ...props})
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project: project, ...props})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
@@ -174,7 +182,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [meta, tags, props, columnCount]);
+  }, [meta, tags, props, columnCount, project]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
