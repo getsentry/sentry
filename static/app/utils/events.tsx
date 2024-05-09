@@ -178,7 +178,7 @@ export function getTitle(
       };
     case EventOrGroupType.DEFAULT:
       return {
-        title: customTitle ?? metadata.title ?? '',
+        title: customTitle ?? title,
         subtitle: '',
         treeLabel: undefined,
       };
