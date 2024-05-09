@@ -211,8 +211,10 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
     node_ids = list(node_id_to_event_id.keys())
     fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
+    bulk_data = {}
     for node_id_chunk in chunked(node_ids, event_limit):
-        bulk_data = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
+        bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
+        bulk_data.update(bulk_results)
 
     bulk_event_id_to_events: dict[str, Event] = {}
     for node_id, data in bulk_data.items():
