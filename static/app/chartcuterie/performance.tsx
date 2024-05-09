@@ -3,7 +3,7 @@ import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData, {
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import {transformStatsResponse} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
 import {slackChartDefaults, slackChartSize} from './slack';
@@ -12,7 +12,7 @@ import {ChartType} from './types';
 
 export const performanceCharts: RenderDescriptor<ChartType>[] = [];
 
-type PerformanceChartData = Omit<EventBreakpointChartData, 'chartType'>;
+type EndpointRegressionChartData = Omit<EventBreakpointChartData, 'chartType'>;
 
 function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
   options.legend = options.legend || {};
@@ -26,10 +26,14 @@ function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
     visualMap: options.options?.visualMap,
   };
 }
+type FunctionRegressionChartData = Omit<
+  EventBreakpointChartData,
+  'chartType' | 'percentileData'
+> & {rawResponse: any};
 
 performanceCharts.push({
   key: ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
-  getOption: (data: PerformanceChartData) => {
+  getOption: (data: EndpointRegressionChartData) => {
     const param = {
       ...data,
       chartType: ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
@@ -37,6 +41,7 @@ performanceCharts.push({
 
     const {chartOptions, series} = getBreakpointChartOptionsFromData(param, theme);
     const transformedSeries = transformToLineSeries({series});
+    const modifiedOptions = modifyOptionsForSlack(chartOptions);
 
     return {
       ...modifiedOptions,
@@ -52,9 +57,20 @@ performanceCharts.push({
 
 performanceCharts.push({
   key: ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
-  getOption: (data: PerformanceChartData) => {
+  getOption: (data: FunctionRegressionChartData) => {
+    const transformed = transformStatsResponse(
+      'profileFunctions',
+      ['p95()'],
+      data.rawResponse
+    );
+
+    const percentileData = {
+      data: transformed,
+    };
+
     const param = {
-      ...transformStatsResponse('profileFunctions', ['p95()'], data),
+      percentileData: percentileData as any,
+      evidenceData: data.evidenceData,
       chartType: ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
     };
 
