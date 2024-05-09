@@ -81,7 +81,7 @@ export function MessageConsumerSamplesPanel() {
       yAxis: [`avg(span.self_time)`],
       enabled: isPanelOpen,
     },
-    'use-span-metrics-series-default-please-update' // TODO - update this referrer
+    'api.performance.queues.avg-duration-chart'
   );
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);

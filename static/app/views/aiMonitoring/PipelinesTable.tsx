@@ -132,7 +132,7 @@ export function PipelinesTable() {
         'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
       ],
     },
-    'use-span-metrics-default-please-update' // TODO - update this reff
+    'api.performance.ai-analytics.token-usage-chart'
   );
 
   const rows: Row[] = (data as Row[]).map(baseRow => {
