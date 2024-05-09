@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {EChartHighlightHandler} from 'sentry/types/echarts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -73,7 +74,7 @@ export function TransactionDurationChart({
   };
 
   return (
-    <ChartPanel title={DataTitles.transactionDuration}>
+    <ChartPanel title={DataTitles['transaction.duration']}>
       <Chart
         height={CHART_HEIGHT}
         grid={{
@@ -83,7 +84,13 @@ export function TransactionDurationChart({
           bottom: '0',
         }}
         scatterPlot={sampledSpanDataSeries}
-        data={[data['avg(transaction.duration)']]}
+        data={[
+          {
+            seriesName: t('Average Transaction Duration'),
+            data: data['avg(transaction.duration)'].data,
+          },
+        ]}
+        aggregateOutputFormat="duration"
         loading={isLoading}
         onHighlight={handleChartHighlight}
         chartColors={[AVG_COLOR]}
