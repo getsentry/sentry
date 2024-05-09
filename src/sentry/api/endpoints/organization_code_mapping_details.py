@@ -50,7 +50,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         Update a repository project path config
         ``````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param int repository_id:
         :param int project_id:

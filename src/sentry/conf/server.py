@@ -135,6 +135,7 @@ SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
+SENTRY_ASSEMBLE_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -731,8 +732,6 @@ CELERY_IMPORTS = (
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
-    "sentry.monitors.tasks.check_missed",
-    "sentry.monitors.tasks.check_timeout",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -1111,12 +1110,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-daily-organization-reports": {
-        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-        # Run every 1 hour on business days
-        "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-        "options": {"expires": 60 * 60 * 3},
-    },
+    # "schedule-daily-organization-reports": {
+    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+    #     # Run every 1 hour on business days
+    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
+    #     "options": {"expires": 60 * 60 * 3},
+    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1497,6 +1496,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
+    # Disables legacy cron ingest endpoints
+    "organizations:crons-write-user-feedback": False,
     # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1532,8 +1533,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
-    # Enables automatically deriving of code mappings for Go Projects
-    "organizations:derive-code-mappings-go": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
@@ -1638,6 +1637,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-group-attributes-side-query": False,
     # Enable the updated empty state for issues
     "organizations:issue-stream-empty-state": False,
+    # Enable new events graph design for issue stream
+    "organizations:issue-stream-new-events-graph": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
     # Enabled latest adopted release filter for issue alerts
@@ -1663,7 +1664,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
-    "organizations:multi-region-selector": False,
+    "organizations:multi-region-selector": True,
     # Enable new page filter UI
     "organizations:new-page-filter": True,
     # Display warning banner for every event issue alerts
@@ -3706,7 +3707,7 @@ LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 # We should not run access logging middleware on some endpoints as
 # it is very noisy, and these views are hit by internal services.
-ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/",)
+ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False

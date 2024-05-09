@@ -30,10 +30,10 @@ describe('transactionsTable', () => {
             'count()': 2,
             'count_op(queue.publish)': 0,
             'count_op(queue.process)': 2,
-            'sum(span.self_time)': 6,
-            'avg(span.self_time)': 3,
-            'avg_if(span.self_time,span.op,queue.publish)': 0,
-            'avg_if(span.self_time,span.op,queue.process)': 3,
+            'sum(span.duration)': 6,
+            'avg(span.duration)': 3,
+            'avg_if(span.duration,span.op,queue.publish)': 0,
+            'avg_if(span.duration,span.op,queue.process)': 3,
             'avg(messaging.message.receive.latency)': 20,
           },
         ],
@@ -42,10 +42,10 @@ describe('transactionsTable', () => {
             'count()': 'integer',
             'count_op(queue.publish)': 'integer',
             'count_op(queue.process)': 'integer',
-            'sum(span.self_time)': 'duration',
-            'avg(span.self_time)': 'duration',
-            'avg_if(span.self_time,span.op,queue.publish)': 'duration',
-            'avg_if(span.self_time,span.op,queue.process)': 'duration',
+            'sum(span.duration)': 'duration',
+            'avg(span.duration)': 'duration',
+            'avg_if(span.duration,span.op,queue.publish)': 'duration',
+            'avg_if(span.duration,span.op,queue.process)': 'duration',
             'avg(messaging.message.receive.latency)': 'duration',
           },
         },
@@ -79,10 +79,10 @@ describe('transactionsTable', () => {
             'count()',
             'count_op(queue.publish)',
             'count_op(queue.process)',
-            'sum(span.self_time)',
-            'avg(span.self_time)',
-            'avg_if(span.self_time,span.op,queue.publish)',
-            'avg_if(span.self_time,span.op,queue.process)',
+            'sum(span.duration)',
+            'avg(span.duration)',
+            'avg_if(span.duration,span.op,queue.publish)',
+            'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
           ],
           dataset: 'spansMetrics',
@@ -94,6 +94,7 @@ describe('transactionsTable', () => {
     expect(screen.getByRole('cell', {name: '2'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '6.00ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '20.00ms'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Consumer'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
   });
 });

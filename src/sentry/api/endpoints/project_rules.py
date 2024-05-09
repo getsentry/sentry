@@ -827,9 +827,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             try:
                 kwargs["owner_user_id"] = None
                 kwargs["owner_team_id"] = None
-                if owner.type == User:
+                if owner.is_user:
                     kwargs["owner_user_id"] = owner.id
-                if owner.type == Team:
+                if owner.is_team:
                     kwargs["owner_team_id"] = owner.id
             except (User.DoesNotExist, Team.DoesNotExist):
                 return Response(

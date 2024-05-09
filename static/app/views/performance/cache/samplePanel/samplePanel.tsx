@@ -21,20 +21,24 @@ import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
 import {BASE_FILTERS} from 'sentry/views/performance/cache/settings';
 import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSamplesTable';
+import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
+  MetricsFields,
+  type MetricsQueryFilters,
   SpanFunction,
   SpanIndexedField,
   type SpanIndexedQueryFilters,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
+import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDataPoint';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
@@ -48,6 +52,12 @@ export function CacheSamplePanel() {
       transaction: decodeScalar,
     },
   });
+
+  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
+    undefined,
+    [],
+    10
+  );
 
   // `detailKey` controls whether the panel is open. If all required properties are ailable, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey = query.transaction
@@ -63,18 +73,32 @@ export function CacheSamplePanel() {
   };
 
   const {data: cacheTransactionMetrics, isFetching: areCacheTransactionMetricsFetching} =
-    useSpanMetrics({
-      search: MutableSearch.fromQueryObject(filters),
-      fields: [
-        `${SpanFunction.SPM}()`,
-        `${SpanFunction.CACHE_MISS_RATE}()`,
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
-      ],
-      enabled: isPanelOpen,
-      referrer: Referrer.SAMPLES_CACHE_METRICS_RIBBON,
-    });
+    useSpanMetrics(
+      {
+        search: MutableSearch.fromQueryObject(filters),
+        fields: [
+          `${SpanFunction.SPM}()`,
+          `${SpanFunction.CACHE_MISS_RATE}()`,
+          `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+          `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+          `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
+        ],
+        enabled: isPanelOpen,
+      },
+      Referrer.SAMPLES_CACHE_METRICS_RIBBON
+    );
+
+  const {data: transactionDurationData, isLoading: isTransactionDurationLoading} =
+    useMetrics(
+      {
+        search: MutableSearch.fromQueryObject({
+          transaction: query.transaction,
+        } satisfies MetricsQueryFilters),
+        fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
+        enabled: isPanelOpen && Boolean(query.transaction),
+      },
+      Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
+    );
 
   const sampleFilters: SpanIndexedQueryFilters = {
     ...BASE_FILTERS,
@@ -194,6 +218,18 @@ export function CacheSamplePanel() {
 
               <MetricReadout
                 align="left"
+                title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
+                value={
+                  transactionDurationData?.[0]?.[
+                    `avg(${MetricsFields.TRANSACTION_DURATION})`
+                  ]
+                }
+                unit={DurationUnit.MILLISECOND}
+                isLoading={isTransactionDurationLoading}
+              />
+
+              <MetricReadout
+                align="left"
                 title={DataTitles.cacheMissRate}
                 value={
                   cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
@@ -217,7 +253,30 @@ export function CacheSamplePanel() {
 
           <Fragment>
             <ModuleLayout.Full>
-              <TransactionDurationChart />
+              <TransactionDurationChart
+                samples={spansWithDuration}
+                averageTransactionDuration={
+                  transactionDurationData?.[0]?.[
+                    `avg(${MetricsFields.TRANSACTION_DURATION})`
+                  ]
+                }
+                highlightedSpanId={highlightedSpanId}
+                onHighlight={highlights => {
+                  const firstHighlight = highlights[0];
+
+                  if (!firstHighlight) {
+                    setHighlightedSpanId(undefined);
+                    return;
+                  }
+
+                  const sample = findSampleFromDataPoint<(typeof spansWithDuration)[0]>(
+                    firstHighlight.dataPoint,
+                    spansWithDuration,
+                    'transaction.duration'
+                  );
+                  setHighlightedSpanId(sample?.span_id);
+                }}
+              />
             </ModuleLayout.Full>
           </Fragment>
           <Fragment>
@@ -232,6 +291,9 @@ export function CacheSamplePanel() {
                   units: {[SpanIndexedField.CACHE_ITEM_SIZE]: 'byte'},
                 }}
                 isLoading={isCacheSpanSamplesFetching || isFetchingTransactions}
+                highlightedSpanId={highlightedSpanId}
+                onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+                onSampleMouseOut={() => setHighlightedSpanId(undefined)}
                 error={transactionError}
               />
             </ModuleLayout.Full>

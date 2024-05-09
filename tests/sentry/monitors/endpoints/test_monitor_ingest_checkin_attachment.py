@@ -7,14 +7,7 @@ from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
-from sentry.monitors.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment
 from sentry.testutils.cases import MonitorIngestTestCase
 
 
@@ -25,18 +18,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
         return reverse(self.endpoint, args=[self.organization.slug, monitor.slug, checkin.guid])
 
     def _create_monitor(self):
-        return Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule_type": ScheduleType.CRONTAB,
-                "schedule": "* * * * *",
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-            date_added=timezone.now() - timedelta(minutes=1),
-        )
+        return self.create_monitor()
 
     def _create_monitor_environment(self, monitor, name="production", **kwargs):
         environment = Environment.get_or_create(project=self.project, name=name)

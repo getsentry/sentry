@@ -44,10 +44,6 @@
     "sentry.project",
     "sentry.user"
   ],
-  "sentry.actor": [
-    "sentry.team",
-    "sentry.user"
-  ],
   "sentry.alertrule": [
     "sentry.organization",
     "sentry.snubaquery",

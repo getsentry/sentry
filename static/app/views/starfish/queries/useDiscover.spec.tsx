@@ -10,7 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
@@ -59,7 +59,7 @@ describe('useSpanMetrics', () => {
     });
 
     const {result} = renderHook(
-      ({fields, enabled}) => useSpanMetrics({fields, enabled}),
+      ({fields, enabled}) => useSpanMetrics({fields, enabled}, 'span-metrics-series'),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -90,14 +90,16 @@ describe('useSpanMetrics', () => {
 
     const {result} = renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
-        useSpanMetrics({
-          search: MutableSearch.fromQueryObject(filters),
-          fields,
-          sorts,
-          limit,
-          cursor,
-          referrer,
-        }),
+        useSpanMetrics(
+          {
+            search: MutableSearch.fromQueryObject(filters),
+            fields,
+            sorts,
+            limit,
+            cursor,
+          },
+          referrer
+        ),
       {
         wrapper: Wrapper,
         initialProps: {

@@ -20,8 +20,8 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications.service import notifications_service
+from sentry.types.actor import Actor, ActorType
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -103,7 +103,7 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
 
     def unsubscribe(self, request: Request, instance: Project):
         notifications_service.update_notification_options(
-            actor=RpcActor(id=request.user.pk, actor_type=ActorType.USER),
+            actor=Actor(id=request.user.pk, actor_type=ActorType.USER),
             type=NotificationSettingEnum.ISSUE_ALERTS,
             scope_type=NotificationScopeEnum.PROJECT,
             scope_identifier=instance.id,
