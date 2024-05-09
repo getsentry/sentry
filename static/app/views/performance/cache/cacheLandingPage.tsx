@@ -1,4 +1,5 @@
 import React from 'react';
+import keyBy from 'lodash/keyBy';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -32,7 +33,7 @@ import {
 } from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -99,7 +100,32 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_TRANSACTION_LIST
   );
 
-  addCustomMeta(transactionsListMeta);
+  const {
+    data: transactionDurationData,
+    error: transactionDurationError,
+    meta: transactionDurationMeta,
+    isLoading: isTransactionDurationLoading,
+  } = useMetrics(
+    {
+      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
+      fields: [`avg(transaction.duration)`, 'transaction'],
+      enabled: !isTransactionsListLoading && transactionsList.length > 0,
+    },
+    Referrer.LANDING_CACHE_TRANSACTION_DURATION
+  );
+
+  const transactionDurationsMap = keyBy(transactionDurationData, 'transaction');
+
+  const transactionsListWithDuration =
+    transactionsList?.map(transaction => ({
+      ...transaction,
+      'avg(transaction.duration)':
+        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)'],
+    })) || [];
+
+  const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
+
+  addCustomMeta(meta);
 
   return (
     <React.Fragment>
@@ -156,11 +182,11 @@ export function CacheLandingPage() {
             </ModuleLayout.Half>
             <ModuleLayout.Full>
               <TransactionsTable
-                data={transactionsList}
-                isLoading={isTransactionsListLoading}
+                data={transactionsListWithDuration}
+                isLoading={isTransactionsListLoading || isTransactionDurationLoading}
                 sort={sort}
-                error={transactionsListError}
-                meta={transactionsListMeta}
+                error={transactionsListError || transactionDurationError}
+                meta={meta}
                 pageLinks={transactionsListPageLinks}
               />
             </ModuleLayout.Full>
@@ -183,6 +209,25 @@ export function LandingPageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+const combineMeta = (
+  meta1?: EventsMetaType,
+  meta2?: EventsMetaType
+): EventsMetaType | undefined => {
+  if (!meta1 && !meta2) {
+    return undefined;
+  }
+  if (!meta1) {
+    return meta2;
+  }
+  if (!meta2) {
+    return meta1;
+  }
+  return {
+    fields: {...meta1.fields, ...meta2.fields},
+    units: {...meta1.units, ...meta2.units},
+  };
+};
 
 // TODO - this should come from the backend
 const addCustomMeta = (meta?: EventsMetaType) => {
