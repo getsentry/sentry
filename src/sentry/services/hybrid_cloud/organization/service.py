@@ -94,8 +94,8 @@ class OrganizationService(RpcService):
         When user_id is provided, membership data related to that user from the organization
         is also given in the response.  See RpcUserOrganizationContext for more info.
 
-        :param id: The organization to fetch
-        :param user_id: The user to fetch membership for.
+        :param id: The id of the organization to fetch
+        :param user_id: The id of the user to fetch membership for.
         :param slug: The slug of the organization to fetch (alternative to id)
         :param include_projects: Whether you want projects in the response.
         :param include_teams: Whether you want teams in the response.
@@ -350,9 +350,9 @@ class OrganizationService(RpcService):
         """
         Add an organization member
 
-        :param organization_id: The organization to add a member to
+        :param organization_id: The id of the organization to add a member to
         :param default_org_role: The fallback role the member should have.
-        :param user_id: The user to create a membership for
+        :param user_id: The id of the user to create a membership for
         :param email: The email to create a membership invite for.
         :param flags: The membership flags to use.
         :param role: The member's role, overrides default_org_role
@@ -447,7 +447,7 @@ class OrganizationService(RpcService):
 
         :param organization_id: The organization to operate on
         :param from_user_id: The user id of the membership to merge
-        :param to_user_id: The user id of the j
+        :param to_user_id: The user id of the user to merge into
         """
         pass
 

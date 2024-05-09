@@ -204,7 +204,7 @@ class UserService(RpcService):
         Get a user for a given organization, social auth provider and public id
 
         :param organization_id: The organization to search in.
-        :param provdier: the authentication provider to search in.
+        :param provider: the authentication provider to search in.
         :param uid: The external id to search with.
         """
         pass
