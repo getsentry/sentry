@@ -218,7 +218,6 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
-        # TODO: determine whether concatenating query_extra is proper
         snql_query = build_query_builder(
             entity_subscription=entity_subscription,
             query=f'{snuba_query.query}{f" and {subscription.query_extra}" if subscription.query_extra else ""}',

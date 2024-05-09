@@ -117,6 +117,7 @@ class QuerySubscription(Model):
     query_extra = models.TextField(
         null=True
     )  # additional query filters to attach to the query created in Snuba such as datetime filters, or release/deploy tags
+    # TODO: timebox is not utilized. Subscription queries do not support timestamp restrictions
     # timebox_start/end is optional timebox restrictions to apply to the snuba query
     timebox_start = models.DateTimeField(null=True)
     timebox_end = models.DateTimeField(null=True)
