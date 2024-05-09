@@ -105,11 +105,14 @@ export function CacheLandingPage() {
     error: transactionDurationError,
     meta: transactionDurationMeta,
     isLoading: isTransactionDurationLoading,
-  } = useMetrics({
-    search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
-    fields: [`avg(transaction.duration)`, 'transaction'],
-    enabled: !isTransactionsListLoading && transactionsList.length > 0,
-  });
+  } = useMetrics(
+    {
+      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
+      fields: [`avg(transaction.duration)`, 'transaction'],
+      enabled: !isTransactionsListLoading && transactionsList.length > 0,
+    },
+    Referrer.LANDING_CACHE_TRANSACTION_DURATION
+  );
 
   const transactionDurationsMap = keyBy(transactionDurationData, 'transaction');
 
