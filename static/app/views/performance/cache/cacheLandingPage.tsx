@@ -37,6 +37,7 @@ import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDisco
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -168,7 +169,10 @@ export function CacheLandingPage() {
             </ModuleLayout.Full>
             <ModuleLayout.Half>
               <CacheHitMissChart
-                series={cacheHitRateData[`${CACHE_MISS_RATE}()`]}
+                series={{
+                  seriesName: DataTitles.cacheMissRate,
+                  data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
+                }}
                 isLoading={isCacheHitRateLoading}
                 error={cacheHitRateError}
               />
