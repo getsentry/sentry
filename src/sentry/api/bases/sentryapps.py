@@ -342,7 +342,7 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
             )
         else:
             organization = organization_service.get_org_by_slug(
-                slug=organization_id_or_slug, **extra_args
+                slug=str(organization_id_or_slug), **extra_args
             )
 
         if organization is None:
