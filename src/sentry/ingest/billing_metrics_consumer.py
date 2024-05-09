@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any, cast
 
+import orjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
@@ -27,7 +28,6 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
-from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -87,9 +87,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__next_step.submit(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> GenericMetric:
-        payload = json.loads(
-            message.payload.value.decode("utf-8"), use_rapid_json=True, skip_trace=True
-        )
+        payload = orjson.loads(message.payload.value)
         return cast(GenericMetric, payload)
 
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
