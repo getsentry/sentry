@@ -1,6 +1,4 @@
-// import {Fragment} from 'react';
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -38,9 +36,7 @@ export function AssigneeBadge({
           hasTooltip={false}
           // Team avatars need extra left margin since the
           // square team avatar is being fit into a rounded borders
-          css={css`
-            margin-left: ${actor.type === 'team' ? space(0.5) : space(0)};
-          `}
+          style={{marginLeft: actor.type === 'team' ? space(0.5) : space(0)}}
         />
         {showLabel && (
           <Fragment>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</Fragment>
