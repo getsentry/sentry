@@ -121,7 +121,7 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
 
         cleaned_flags_data = data.get(self._FLAGS_KEY, {})
         # ensure we add the default supported flags if they don't already exist
-        for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS:
+        for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS.items():
             flag_value = cleaned_flags_data.get(flag_name, None)
             if flag_value is None:
                 cleaned_flags_data[flag_name] = default_flag_value
