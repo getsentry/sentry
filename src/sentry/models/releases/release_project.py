@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
-from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
@@ -51,7 +50,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         """
         from sentry.incidents.models.alert_rule import AlertRule
 
-        query_extra = f"release:{release.version} AND event.timestamp:>{timezone.now().isoformat()}"
+        query_extra = f"release:{release.version}"
         return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
             project=project,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
