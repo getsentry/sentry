@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django.utils.translation import gettext_lazy as _
@@ -67,8 +68,18 @@ metadata = IntegrationMetadata(
     aspects={"alerts": [setup_alert]},
 )
 
+_default_logger = logging.getLogger(__name__)
+
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
+    _FLAGS_KEY: str = "TOGGLEABLE_FLAGS"
+    _ISSUE_ALERTS_THREAD_FLAG: str = "ISSUE_ALERTS_THREAD_FLAG"
+    _METRIC_ALERTS_THREAD_FLAG: str = "METRIC_ALERTS_THREAD_FLAG"
+    _SUPPORTED_FLAGS_WITH_DEFAULTS: dict[str, bool] = {
+        _ISSUE_ALERTS_THREAD_FLAG: True,
+        _METRIC_ALERTS_THREAD_FLAG: True,
+    }
+
     def get_client(self) -> SlackClient:
         return SlackClient(integration_id=self.model.id)
 
@@ -79,6 +90,61 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
             "classic_bot" if "user_access_token" in metadata_ else "workspace_app"
         )
         return {"installationType": metadata_.get("installation_type", default_installation)}
+
+    def get_organization_config(self) -> Sequence[tuple[str, bool]]:
+        """
+        Not sure why the base class is restricted to a sequence type, doesn't really make sense, however, it is
+        sufficient to our needs for now, and we can utilize it to return toggleable flags/feature on the integration
+        """
+
+        # Specifically using the parent method because the overwritten method on current class is hacked for another
+        # purpose at the integration/provider wide level, which is wrong/incorrect
+        base_data = super().get_config_data()
+
+        stored_flag_data = base_data.get(self._FLAGS_KEY, {})
+        flag_statuses = []
+        for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS.items():
+            flag_value = stored_flag_data.get(flag_name, default_flag_value)
+            flag_statuses.append((flag_name, flag_value))
+
+        return flag_statuses
+
+    def _update_and_clean_flags_in_organization_config(
+        self, data: MutableMapping[str, Any]
+    ) -> None:
+        """
+        Checks the new provided data for the flags key.
+        If the key does not exist, uses the default set values.
+        """
+
+        cleaned_flags_data = data.get(self._FLAGS_KEY, {})
+        # ensure we add the default supported flags if they don't already exist
+        for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS:
+            flag_value = cleaned_flags_data.get(flag_name, None)
+            if flag_value is None:
+                cleaned_flags_data[flag_name] = default_flag_value
+            else:
+                # if the type for the flag is not the same as the default, use the default value as an override
+                if type(flag_value) is not type(default_flag_value):
+                    _default_logger.info(
+                        "Flag value was not correct, overriding with default",
+                        extra={
+                            "flag_name": flag_name,
+                            "flag_value": flag_value,
+                            "default_flag_value": default_flag_value,
+                        },
+                    )
+                    cleaned_flags_data[flag_name] = default_flag_value
+
+        data[self._FLAGS_KEY] = cleaned_flags_data
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        """
+        Update the organization's configuration, but make sure to properly handle specific things for Slack installation
+        before passing it off to the parent method
+        """
+        self._update_and_clean_flags_in_organization_config(data=data)
+        super().update_organization_config(data=data)
 
 
 class SlackIntegrationProvider(IntegrationProvider):
