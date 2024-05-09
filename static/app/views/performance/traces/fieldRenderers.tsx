@@ -59,7 +59,6 @@ export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   min-width: 200px;
   height: 15px;
   background-color: ${p => p.theme.gray100};
-  overflow-x: hidden;
   ${p => `--hoveredSlice-${p.hoveredIndex ?? -1}-translateY: translateY(-3px)`};
 `;
 
