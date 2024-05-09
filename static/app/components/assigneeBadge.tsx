@@ -12,9 +12,9 @@ import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
 
 type AssigneeBadgeProps = {
-  chevronDirection: 'up' | 'down';
   assignedTo?: Actor | undefined;
   assignmentReason?: string;
+  chevronDirection?: 'up' | 'down';
   showLabel?: boolean;
 };
 
