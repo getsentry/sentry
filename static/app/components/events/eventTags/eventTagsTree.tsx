@@ -1,10 +1,12 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventTagsTreeRow, {
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
@@ -181,9 +183,11 @@ function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
-    <TreeContainer columnCount={columnCount} ref={containerRef}>
-      <TagTreeColumns columnCount={columnCount} {...props} />
-    </TreeContainer>
+    <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
+      <TreeContainer columnCount={columnCount} ref={containerRef}>
+        <TagTreeColumns columnCount={columnCount} {...props} />
+      </TreeContainer>
+    </ErrorBoundary>
   );
 }
 

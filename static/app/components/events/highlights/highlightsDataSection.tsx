@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,6 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -34,19 +35,20 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface HighlightsSectionProps {
+interface HighlightsDataSectionProps {
   event: Event;
   group: Group;
   project: Project;
   viewAllRef?: React.RefObject<HTMLElement>;
 }
 
-export default function HighlightsDataSection({
+function HighlightsData({
   event,
   project,
-  viewAllRef,
-}: HighlightsSectionProps) {
-  const hasNewTagsUI = useHasNewTagsUI();
+  createEditAction,
+}: Pick<HighlightsDataSectionProps, 'event' | 'project'> & {
+  createEditAction: (action: React.ReactNode) => void;
+}) {
   const organization = useOrganization();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
@@ -55,29 +57,19 @@ export default function HighlightsDataSection({
     projectSlug: project.slug,
   });
 
-  if (!hasNewTagsUI) {
-    return null;
-  }
-
-  const highlightContext = detailedProject?.highlightContext ?? {};
-  const highlightTags = detailedProject?.highlightTags ?? [];
+  const highlightContext = useMemo(
+    () => detailedProject?.highlightContext ?? project?.highlightContext ?? {},
+    [detailedProject, project]
+  );
+  const highlightTags = useMemo(
+    () => detailedProject?.highlightTags ?? project?.highlightTags ?? [],
+    [detailedProject, project]
+  );
 
   // The API will return default values for tags/context. The only way to have none is to set it to
   // empty yourself, meaning the user has disabled highlights
   const hasDisabledHighlights =
     Object.values(highlightContext).flat().length === 0 && highlightTags.length === 0;
-
-  const viewAllButton = viewAllRef ? (
-    <Button
-      onClick={() => {
-        trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
-        viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
-      }}
-      size="xs"
-    >
-      {t('View All')}
-    </Button>
-  ) : null;
 
   const highlightContextDataItems = getHighlightContextData({
     event,
@@ -130,12 +122,7 @@ export default function HighlightsDataSection({
     );
   }
 
-  const isProjectAdmin = hasEveryAccess(['project:admin'], {
-    organization: organization,
-    project: detailedProject,
-  });
-
-  function openEditHighlightsModal() {
+  const openEditHighlightsModal = useCallback(() => {
     trackAnalytics('highlights.issue_details.edit_clicked', {organization});
     openModal(
       deps => (
@@ -150,56 +137,57 @@ export default function HighlightsDataSection({
       ),
       {modalCss: highlightModalCss}
     );
-  }
+  }, [detailedProject, event, highlightContext, highlightTags, organization, project]);
 
-  const editProps = {
-    disabled: !isProjectAdmin,
-    title: !isProjectAdmin ? t('Only Project Admins can edit highlights.') : undefined,
-  };
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {
+    organization: organization,
+    project: detailedProject,
+  });
+
+  const editProps = useMemo(
+    () => ({
+      disabled: !isProjectAdmin,
+      title: !isProjectAdmin ? t('Only Project Admins can edit highlights.') : undefined,
+    }),
+    [isProjectAdmin]
+  );
+
+  useEffect(() => {
+    createEditAction(
+      <Button
+        size="xs"
+        icon={<IconEdit />}
+        onClick={openEditHighlightsModal}
+        {...editProps}
+      >
+        {t('Edit')}
+      </Button>
+    );
+  }, [createEditAction, editProps, openEditHighlightsModal]);
 
   return (
-    <EventDataSection
-      title={t('Event Highlights')}
-      data-test-id="event-highlights"
-      type="event-highlights"
-      actions={
-        <ButtonBar gap={1}>
-          <HighlightsFeedback />
-          {viewAllButton}
-          <Button
-            size="xs"
-            icon={<IconEdit />}
-            onClick={openEditHighlightsModal}
-            {...editProps}
-          >
-            {t('Edit')}
-          </Button>
-        </ButtonBar>
-      }
-    >
-      <HighlightContainer columnCount={columnCount} ref={containerRef}>
-        {isLoading ? (
-          <EmptyHighlights>
-            <HighlightsLoadingIndicator hideMessage size={50} />
-          </EmptyHighlights>
-        ) : hasDisabledHighlights ? (
-          <EmptyHighlights>
-            <EmptyHighlightsContent>
-              {t("There's nothing here...")}
-              <AddHighlightsButton
-                size="xs"
-                onClick={openEditHighlightsModal}
-                {...editProps}
-              >
-                {t('Add Highlights')}
-              </AddHighlightsButton>
-            </EmptyHighlightsContent>
-          </EmptyHighlights>
-        ) : (
-          columns
-        )}
-      </HighlightContainer>
-    </EventDataSection>
+    <HighlightContainer columnCount={columnCount} ref={containerRef}>
+      {isLoading ? (
+        <EmptyHighlights>
+          <HighlightsLoadingIndicator hideMessage size={50} />
+        </EmptyHighlights>
+      ) : hasDisabledHighlights ? (
+        <EmptyHighlights>
+          <EmptyHighlightsContent>
+            {t("There's nothing here...")}
+            <AddHighlightsButton
+              size="xs"
+              onClick={openEditHighlightsModal}
+              {...editProps}
+            >
+              {t('Add Highlights')}
+            </AddHighlightsButton>
+          </EmptyHighlightsContent>
+        </EmptyHighlights>
+      ) : (
+        columns
+      )}
+    </HighlightContainer>
   );
 }
 
@@ -225,6 +213,53 @@ function HighlightsFeedback() {
     >
       {t('Feedback')}
     </Button>
+  );
+}
+
+export default function HighlightDataSection({
+  viewAllRef,
+  ...props
+}: HighlightsDataSectionProps) {
+  const hasNewTagsUI = useHasNewTagsUI();
+  const organization = useOrganization();
+  // XXX: A bit convoluted to have the edit action created by the child component, but this allows
+  // us to wrap it with an Error Boundary and still display the EventDataSection header if something
+  // goes wrong
+  const [editAction, setEditAction] = useState<React.ReactNode>(null);
+
+  if (!hasNewTagsUI) {
+    return null;
+  }
+
+  const viewAllButton = viewAllRef ? (
+    <Button
+      onClick={() => {
+        trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
+        viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
+      }}
+      size="xs"
+    >
+      {t('View All')}
+    </Button>
+  ) : null;
+
+  return (
+    <EventDataSection
+      title={t('Event Highlights')}
+      data-test-id="event-highlights"
+      type="event-highlights"
+      actions={
+        <ButtonBar gap={1}>
+          <HighlightsFeedback />
+          {viewAllButton}
+          {editAction}
+        </ButtonBar>
+      }
+    >
+      <ErrorBoundary mini message={t('There was an error loading event highlights')}>
+        <HighlightsData {...props} createEditAction={setEditAction} />
+      </ErrorBoundary>
+    </EventDataSection>
   );
 }
 
