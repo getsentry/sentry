@@ -299,9 +299,10 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
-        logger.info(
-            "delayed_processing.rule_to_fire", extra={"rules_to_fire": json.dumps(rules_to_fire)}
-        )
+        log_str = ""
+        for rule in rules_to_fire.keys():
+            log_str += f"{str(rule.id)}, "
+        logger.info("delayed_processing.rule_to_fire", extra={"rules_to_fire": log_str})
     # Step 7: Fire the rule's actions
     now = datetime.now(tz=timezone.utc)
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
