@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -331,7 +332,7 @@ export default function EditHighlightsModal({
       <Header closeButton>
         <Title>{t('Edit Event Highlights')}</Title>
       </Header>
-      <Body>
+      <Body css={modalBodyCss}>
         <EditPreviewHighlightSection
           event={event}
           highlightTags={highlightTags}
@@ -439,6 +440,13 @@ function SectionFilterInput(props: InputProps) {
     </InputGroup>
   );
 }
+
+const modalBodyCss = css`
+  margin: 0 -${space(4)};
+  padding: 0 ${space(4)};
+  max-height: 75vh;
+  overflow-y: scroll;
+`;
 
 const Title = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
