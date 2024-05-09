@@ -171,20 +171,17 @@ export default function AssigneeSelectorDropdown({
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
 
-  const currentMemberList = (): User[] | undefined => {
-    return memberList ?? memberLists?.members;
-  };
+  const currentMemberList = memberList ?? memberLists?.members ?? [];
 
   const getSuggestedAssignees = (): SuggestedAssignee[] => {
     const currAssignableTeams = getAssignableTeams();
-    const currMembers = currentMemberList() ?? [];
 
     if (owners !== undefined) {
       // Add team or user from store
       return owners
         .map<SuggestedAssignee | null>(owner => {
           if (owner.type === 'user') {
-            const member = currMembers.find(user => user.id === owner.id);
+            const member = currentMemberList.find(user => user.id === owner.id);
             if (member) {
               return {
                 ...owner,
@@ -220,7 +217,7 @@ export default function AssigneeSelectorDropdown({
         const [suggestionType, suggestionId] = suggestion.owner.split(':');
         const suggestedReasonText = suggestedReasonTable[suggestion.type];
         if (suggestionType === 'user') {
-          const member = currMembers.find(user => user.id === suggestionId);
+          const member = currentMemberList.find(user => user.id === suggestionId);
           if (member) {
             return {
               id: suggestionId,
@@ -278,7 +275,7 @@ export default function AssigneeSelectorDropdown({
     let assignee: User | Actor;
 
     if (type === 'user') {
-      assignee = currentMemberList()?.find(member => member.id === assigneeId) as User;
+      assignee = currentMemberList.find(member => member.id === assigneeId) as User;
     } else {
       const assignedTeam = getAssignableTeams().find(
         assignableTeam => assignableTeam.team.id === assigneeId
@@ -365,7 +362,7 @@ export default function AssigneeSelectorDropdown({
   const makeAllOptions = (): SelectOptionOrSection<string>[] => {
     const options: SelectOptionOrSection<string>[] = [];
 
-    let memList = currentMemberList();
+    let memList = currentMemberList;
     let assignableTeamList = getAssignableTeams();
     let suggestedAssignees = getSuggestedAssignees();
     let assignedUser: User | undefined;
@@ -387,7 +384,7 @@ export default function AssigneeSelectorDropdown({
           });
         }
       } else {
-        assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
+        assignedUser = currentMemberList.find(user => user.id === group.assignedTo?.id);
         if (assignedUser) {
           options.push(makeMemberOption(assignedUser));
           memList = memList?.filter(member => member.id !== group.assignedTo?.id);
