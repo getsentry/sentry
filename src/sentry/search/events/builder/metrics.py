@@ -104,6 +104,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: set[int] = set()
         self._indexer_cache: dict[str, int | None] = {}
         self._use_default_tags: bool | None = None
+        self._has_nullable: bool = False
         # always true if this is being called
         config.has_metrics = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -596,6 +597,8 @@ class MetricsQueryBuilder(QueryBuilder):
         prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
         # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
         nullable = arguments.get("metric_id") == 0
+        if nullable:
+            self._has_nullable = True
 
         if snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
             resolved_function = snql_function.snql_distribution(arguments, alias)
@@ -1307,9 +1310,10 @@ class MetricsQueryBuilder(QueryBuilder):
         result["data"] = list(value_map.values())
         result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
         # Nullable columns won't be in the meta
-        for function in self.aggregates:
-            if function.alias not in [meta["name"] for meta in result["meta"]]:
-                result["meta"].append({"name": function.alias, "type": "Nullable"})
+        if self._has_nullable:
+            for function in self.aggregates:
+                if function.alias not in [meta["name"] for meta in result["meta"]]:
+                    result["meta"].append({"name": function.alias, "type": "Nullable"})
 
         # Data might be missing for fields after merging the requests, eg a transaction with no users
         for row in result["data"]:
