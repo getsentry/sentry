@@ -5,6 +5,7 @@ import logging
 import uuid
 from datetime import timedelta
 from enum import Enum
+from itertools import chain
 from typing import Any, TypedDict
 
 from django.conf import settings
@@ -159,19 +160,29 @@ class CheckinProcessErrorsManager:
         return f"monitor:{monitor.id}"
 
     def get_for_monitor(self, monitor: Monitor) -> list[CheckinProcessingError]:
-        return self._get_for_entity(self.build_monitor_identifier(monitor))
+        return self._get_for_entities([self.build_monitor_identifier(monitor)])
 
     def build_project_identifier(self, project_id: int) -> str:
         return f"project:{project_id}"
 
-    def get_for_project(self, project: Project) -> list[CheckinProcessingError]:
-        return self._get_for_entity(self.build_project_identifier(project.id))
+    def get_for_projects(self, projects: list[Project]) -> list[CheckinProcessingError]:
+        return self._get_for_entities(
+            [self.build_project_identifier(project.id) for project in projects]
+        )
 
-    def _get_for_entity(self, identifier: str) -> list[CheckinProcessingError]:
+    def _get_for_entities(self, identifiers: list[str]) -> list[CheckinProcessingError]:
         redis = self._get_cluster()
-        error_key = f"monitors.processing_errors.{identifier}"
-        raw_errors = redis.zrange(error_key, 0, MAX_ERRORS_PER_SET, desc=True)
-        return [CheckinProcessingError.from_dict(json.loads(raw_error)) for raw_error in raw_errors]
+        pipeline = redis.pipeline()
+        for identifier in identifiers:
+            pipeline.zrange(
+                f"monitors.processing_errors.{identifier}", 0, MAX_ERRORS_PER_SET, desc=True
+            )
+        errors = [
+            CheckinProcessingError.from_dict(json.loads(raw_error))
+            for raw_error in chain(*pipeline.execute())
+        ]
+        errors.sort(key=lambda error: error.checkin.ts.timestamp(), reverse=True)
+        return errors
 
 
 def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):
