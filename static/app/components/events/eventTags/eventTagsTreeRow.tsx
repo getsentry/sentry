@@ -15,8 +15,10 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
+import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -28,7 +30,7 @@ interface EventTagTreeRowConfig {
 export interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
-  projectSlug: string;
+  project: Project;
   tagKey: string;
   config?: EventTagTreeRowConfig;
   isLast?: boolean;
@@ -39,7 +41,7 @@ export default function EventTagsTreeRow({
   event,
   content,
   tagKey,
-  projectSlug,
+  project,
   spacerCount = 0,
   isLast = false,
   config = {},
@@ -72,7 +74,7 @@ export default function EventTagsTreeRow({
       <AnnotatedTextErrors errors={tagErrors} />
     </TreeValueErrors>
   ) : (
-    <EventTagsTreeRowDropdown content={content} event={event} />
+    <EventTagsTreeRowDropdown content={content} event={event} project={project} />
   );
 
   return (
@@ -95,7 +97,7 @@ export default function EventTagsTreeRow({
             config={config}
             content={content}
             event={event}
-            projectSlug={projectSlug}
+            project={project}
           />
         </TreeValue>
         {!config?.disableActions && tagActions}
@@ -105,11 +107,13 @@ export default function EventTagsTreeRow({
 }
 
 function EventTagsTreeRowDropdown({
-  event,
   content,
-}: Pick<EventTagsTreeRowProps, 'content' | 'event'>) {
+  event,
+  project,
+}: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
   const router = useRouter();
+  const {mutate: saveTag} = useMutateProject({organization, project});
   const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
 
@@ -118,6 +122,13 @@ function EventTagsTreeRowDropdown({
   }
 
   const referrer = 'event-tags-table';
+  const highlightTagSet = new Set(project?.highlightTags ?? []);
+  const hasAddHighlightOption =
+    // Check for highlight records to prevent replacing all with a single tag if we receive a project summary
+    project?.highlightContext &&
+    project?.highlightTags &&
+    // Skip tags already highlighted
+    !highlightTagSet.has(originalTag.key);
   const query = generateQueryWithTag({referrer}, originalTag);
   const searchQuery = `?${qs.stringify(query)}`;
 
@@ -154,6 +165,17 @@ function EventTagsTreeRowDropdown({
               `/organizations/${organization.slug}/issues/${searchQuery}`,
               router
             );
+          },
+        },
+        {
+          key: 'add-to-highlights',
+          label: t('Add to Event Highlights'),
+          hidden: hasAddHighlightOption,
+          onAction: () => {
+            saveTag({
+              highlightContext: project?.highlightContext ?? {},
+              highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
+            });
           },
         },
         {
@@ -214,8 +236,8 @@ function EventTagsTreeValue({
   config,
   content,
   event,
-  projectSlug,
-}: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'projectSlug'>) {
+  project,
+}: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
   const {originalTag} = content;
   const tagMeta = content.meta?.value?.[''];
@@ -238,7 +260,7 @@ function EventTagsTreeValue({
       tagValue = (
         <VersionHoverCard
           organization={organization}
-          projectSlug={projectSlug}
+          projectSlug={project.slug}
           releaseVersion={content.value}
           showUnderline
           underlineColor="linkUnderline"

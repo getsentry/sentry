@@ -110,7 +110,7 @@ export default function HighlightsDataSection({
       content={content}
       event={event}
       tagKey={content.originalTag.key}
-      projectSlug={project.slug}
+      project={project}
       config={{
         disableActions: content.value === EMPTY_HIGHLIGHT_DEFAULT,
         disableRichValue: content.value === EMPTY_HIGHLIGHT_DEFAULT,

@@ -148,13 +148,15 @@ export function TransactionNodeDetails({
           organization={organization}
         />
       ) : null}
-
-      <EventTags
-        node={node}
-        organization={organization}
-        event={event}
-        location={location}
-      />
+      {project ? (
+        <EventTags
+          node={node}
+          organization={organization}
+          event={event}
+          project={project}
+          location={location}
+        />
+      ) : null}
 
       <EventContexts event={event} />
 

@@ -22,10 +22,10 @@ import {EventTags} from '../eventTags';
 
 type Props = {
   event: Event;
-  projectSlug: Project['slug'];
+  project: Project;
 };
 
-function Tags({event, projectSlug}: Props) {
+function Tags({event, project}: Props) {
   const sentryTags = getSentryDefaultTags();
 
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
@@ -80,7 +80,7 @@ function Tags({event, projectSlug}: Props) {
       {!hasNewTagsUI && <EventContextSummary event={event} />}
       <EventTags
         event={event}
-        projectSlug={projectSlug}
+        project={project}
         tagFilter={tagFilter}
         filteredTags={tags ?? []}
       />

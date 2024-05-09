@@ -6,6 +6,7 @@ import EventTagsTreeRow, {
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
@@ -32,7 +33,7 @@ interface TagTreeColumnData {
 
 interface EventTagsTreeProps {
   event: Event;
-  projectSlug: string;
+  project: Project;
   tags: EventTag[];
   meta?: Record<any, any>;
 }
