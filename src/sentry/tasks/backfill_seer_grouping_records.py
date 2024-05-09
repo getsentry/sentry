@@ -60,8 +60,12 @@ class GroupStacktraceData(TypedDict):
 )
 @metrics.wraps(f"{BACKFILL_NAME}.task")
 def backfill_seer_grouping_records(
-    project_id: int, last_processed_id: int, *args: Any, **kwargs: Any
+    project_id: int, last_processed_id: int | None, *args: Any, **kwargs: Any
 ) -> None:
+    """
+    Task to backfill seer grouping_records table.
+    Pass in last_processed_id = 0 if running project for the first time, else None
+    """
     project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-grouping", project):
         return
@@ -159,7 +163,11 @@ def backfill_seer_grouping_records(
             Group.objects.bulk_update(groups, ["data"])
 
         last_processed_id = group_id_message_data_batch[batch_len - 1][0]
-        redis_client.set(f"{LAST_PROCESSED_REDIS_KEY}", last_processed_id, ex=60 * 60 * 24 * 7)
+        redis_client.set(
+            f"{LAST_PROCESSED_REDIS_KEY}",
+            last_processed_id if last_processed_id is not None else 0,
+            ex=60 * 60 * 24 * 7,
+        )  # needed for typing
         backfill_seer_grouping_records.apply_async(
             args=[project.id, last_processed_id],
             countdown=BATCH_SIZE * SEER_BACKFILL_DELAY_PER_RECORD,
