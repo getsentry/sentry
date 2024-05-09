@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -31,7 +32,6 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.silo import strip_silo_mode_test_suffix
 from sentry.utils import json
-from sentry.utils.json import JSONData
 from tests.sentry.backup import expect_models, verify_models_in_output
 
 FAKE_EMAIL = "test@fake.com"
@@ -76,7 +76,7 @@ class FakeSanitizableModel(DefaultFieldsModel):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)
@@ -89,7 +89,7 @@ class FakeSanitizableModel(DefaultFieldsModel):
 
 @patch("sentry.backup.dependencies.get_model", Mock(return_value=FakeSanitizableModel))
 class SanitizationUnitTests(TestCase):
-    def serialize_to_json_data(self, models: Sequence[FakeSanitizableModel]) -> JSONData:
+    def serialize_to_json_data(self, models: Sequence[FakeSanitizableModel]) -> Any:
         json_string = serialize(
             "json",
             models,
@@ -427,7 +427,7 @@ class SanitizationUnitTests(TestCase):
 
 
 class IntegrationTestCase(TestCase):
-    def sanitize_and_compare(self, unsanitized_json: JSONData) -> JSONData:
+    def sanitize_and_compare(self, unsanitized_json: Any) -> Any:
         root_dir = os.path.dirname(os.path.realpath(__file__))
 
         # Use the same data for monolith and region mode.

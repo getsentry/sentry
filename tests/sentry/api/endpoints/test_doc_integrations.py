@@ -11,7 +11,6 @@ from sentry.models.integrations.integration_feature import IntegrationFeature, I
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.json import JSONData
 
 
 class DocIntegrationsTest(APITestCase):
@@ -30,7 +29,7 @@ class DocIntegrationsTest(APITestCase):
             features=[2, 3, 4],
         )
 
-    def get_avatars(self, response: Response) -> list[JSONData]:
+    def get_avatars(self, response: Response) -> list[Any]:
         return [doc.get("avatar") for doc in response.data]
 
 

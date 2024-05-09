@@ -1,5 +1,5 @@
 import secrets
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
@@ -14,7 +14,6 @@ from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import OutboxCategory
 from sentry.services.hybrid_cloud.replica import region_replica_service
-from sentry.utils.json import JSONData
 
 
 # TODO(dcramer): pull in enum library
@@ -86,7 +85,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

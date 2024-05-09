@@ -55,7 +55,6 @@ from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
 from sentry.utils.cache import cache
-from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, raw_query
 
@@ -85,7 +84,7 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     inRelease: str
     inCommit: str
     pendingEvents: int
-    info: JSONData
+    info: Any
 
 
 class GroupStatusDetailsResponse(GroupStatusDetailsResponseOptional):

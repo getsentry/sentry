@@ -11,7 +11,6 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils.json import JSONData
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
@@ -20,9 +19,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
     name = "GitHub"
     repo_provider = "github"
 
-    def _validate_repo(
-        self, client: Any, installation: IntegrationInstallation, repo: str
-    ) -> JSONData:
+    def _validate_repo(self, client: Any, installation: IntegrationInstallation, repo: str) -> Any:
         try:
             repo_data = client.get_repo(repo)
         except Exception as e:
@@ -92,7 +89,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         self,
         client: Any,
         repo_name: str,
-        commit_list: JSONData,
+        commit_list: Any,
     ) -> Sequence[Mapping[str, Any]]:
         """Convert GitHub commits into our internal format
 

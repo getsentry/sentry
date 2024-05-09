@@ -8,7 +8,6 @@ from rest_framework import status
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.models.group import Group
 from sentry.utils import json
-from sentry.utils.json import JSONData
 
 
 class SlackActionRequest(SlackRequest):
@@ -25,7 +24,7 @@ class SlackActionRequest(SlackRequest):
         return str(self.data.get("type"))
 
     @cached_property
-    def callback_data(self) -> JSONData:
+    def callback_data(self) -> Any:
         """
         We store certain data in ``callback_id`` as JSON. It's a bit hacky, but
         it's the simplest way to store state without saving it on the Sentry

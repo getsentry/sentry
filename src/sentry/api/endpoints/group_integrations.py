@@ -19,7 +19,6 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs
-from sentry.utils.json import JSONData
 
 
 class IntegrationIssueSerializer(IntegrationSerializer):
@@ -63,7 +62,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data

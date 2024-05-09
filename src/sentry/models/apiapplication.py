@@ -1,5 +1,5 @@
 import secrets
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 from urllib.parse import urlparse
 
 import petname
@@ -20,7 +20,6 @@ from sentry.db.models import (
 )
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
-from sentry.utils.json import JSONData
 
 
 def generate_name():
@@ -134,7 +133,7 @@ class ApiApplication(Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

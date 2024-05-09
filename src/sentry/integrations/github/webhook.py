@@ -46,7 +46,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
 from sentry.utils import metrics
-from sentry.utils.json import JSONData
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
@@ -574,8 +573,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "installation": InstallationEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> Callable[[], Callable[[JSONData], Any]] | None:
-        handler: Callable[[], Callable[[JSONData], Any]] | None = self._handlers.get(event_type)
+    def get_handler(self, event_type: str) -> Callable[[], Callable[[Any], Any]] | None:
+        handler: Callable[[], Callable[[Any], Any]] | None = self._handlers.get(event_type)
         return handler
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:

@@ -17,7 +17,6 @@ from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, out
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
-from sentry.utils.json import JSONData
 
 if TYPE_CHECKING:
     from sentry.integrations import (
@@ -164,7 +163,7 @@ class Integration(DefaultFieldsModel):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

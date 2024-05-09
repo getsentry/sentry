@@ -25,18 +25,17 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils.json import JSONData
 from tests.sentry.backup import get_matching_exportable_models
 
 
 class ExportTestCase(BackupTestCase):
     @staticmethod
-    def count(data: JSONData, model: type[models.base.BaseModel]) -> int:
+    def count(data: Any, model: type[models.base.BaseModel]) -> int:
         return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
 
     @staticmethod
     def exists(
-        data: JSONData, model: type[models.base.BaseModel], key: str, value: Any | None = None
+        data: Any, model: type[models.base.BaseModel], key: str, value: Any | None = None
     ) -> bool:
         for d in data:
             if d["model"] == str(get_model_name(model)):
@@ -55,7 +54,7 @@ class ExportTestCase(BackupTestCase):
         *,
         scope: ExportScope,
         filter_by: set[str] | None = None,
-    ) -> JSONData:
+    ) -> Any:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
         return export_to_file(tmp_path, scope=scope, filter_by=filter_by)
 
@@ -65,7 +64,7 @@ class ExportTestCase(BackupTestCase):
         *,
         scope: ExportScope,
         filter_by: set[str] | None = None,
-    ) -> JSONData:
+    ) -> Any:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.enc.tar")
         return export_to_encrypted_tarball(tmp_path, scope=scope, filter_by=filter_by)
 
@@ -76,7 +75,7 @@ class ScopingTests(ExportTestCase):
     """
 
     @staticmethod
-    def verify_model_inclusion(data: JSONData, scope: ExportScope) -> None:
+    def verify_model_inclusion(data: Any, scope: ExportScope) -> None:
         """
         Ensure all in-scope models are included, and that no out-of-scope models are included.
         """
@@ -101,7 +100,7 @@ class ScopingTests(ExportTestCase):
             )
 
     def verify_encryption_equality(
-        self, tmp_dir: str, unencrypted: JSONData, scope: ExportScope
+        self, tmp_dir: str, unencrypted: Any, scope: ExportScope
     ) -> None:
         res = validate(
             unencrypted,

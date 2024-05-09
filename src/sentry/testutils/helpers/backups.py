@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -100,7 +101,6 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
 from sentry.utils import json
-from sentry.utils.json import JSONData
 
 __all__ = [
     "export_to_file",
@@ -131,7 +131,7 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
+def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> Any:
     """
     Helper function that exports the current state of the database to the specified file.
     """
@@ -178,7 +178,7 @@ def export_to_encrypted_tarball(
     scope: ExportScope,
     *,
     filter_by: set[str] | None = None,
-) -> JSONData:
+) -> Any:
     """
     Helper function that exports the current state of the database to the specified encrypted
     tarball.
@@ -276,7 +276,7 @@ def clear_database(*, reset_pks: bool = False):
             pass
 
 
-def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
+def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> Any:
     """
     Test helper that validates that data imported from an export of the current state of the test
     database correctly matches the actual outputted export data.
@@ -669,49 +669,49 @@ class BackupTestCase(TransactionTestCase):
         self.create_exhaustive_sentry_app("test app", owner, org)
         self.create_exhaustive_global_configs(owner)
 
-    def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> JSONData:
+    def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
 
     @cached_property
-    def _json_of_exhaustive_user_with_maximum_privileges(self) -> JSONData:
+    def _json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
         with open(get_fixture_path("backup", "user-with-maximum-privileges.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_maximum_privileges(self) -> JSONData:
+    def json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_maximum_privileges)
 
     @cached_property
-    def _json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
+    def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
+    def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
     @cached_property
-    def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+    def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> Any:
         with open(get_fixture_path("backup", "user-with-roles-no-superadmin.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+    def json_of_exhaustive_user_with_roles_no_superadmin(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_roles_no_superadmin)
 
     @cached_property
-    def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+    def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> Any:
         with open(get_fixture_path("backup", "user-with-superadmin-no-roles.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+    def json_of_exhaustive_user_with_superadmin_no_roles(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_superadmin_no_roles)
 
     @staticmethod
-    def sort_in_memory_json(json_data: JSONData) -> JSONData:
+    def sort_in_memory_json(json_data: Any) -> Any:
         """
         Helper function that takes an unordered set of JSON models and sorts them first in
         dependency order, and then, within each model, by ascending pk number.
         """
 
-        def sort_by_model_then_pk(a: JSONData, b: JSONData) -> int:
+        def sort_by_model_then_pk(a: Any, b: Any) -> int:
             sorted_deps = sorted_dependencies()
             a_model = get_model(NormalizedModelName(a["model"]))
             b_model = get_model(NormalizedModelName(b["model"]))
@@ -726,7 +726,7 @@ class BackupTestCase(TransactionTestCase):
             key=cmp_to_key(sort_by_model_then_pk),
         )
 
-    def generate_tmp_users_json(self) -> JSONData:
+    def generate_tmp_users_json(self) -> Any:
         """
         Generates an in-memory JSON array of users with different combinations of admin privileges.
         """
@@ -745,7 +745,7 @@ class BackupTestCase(TransactionTestCase):
 
         return self.sort_in_memory_json(max_user + min_user + roles_user + superadmin_user)
 
-    def generate_tmp_users_json_file(self, tmp_path: Path) -> JSONData:
+    def generate_tmp_users_json_file(self, tmp_path: Path) -> Any:
         """
         Generates a file filled with users with different combinations of admin privileges.
         """

@@ -15,7 +15,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.outbox import OutboxCategory
-from sentry.utils.json import JSONData
 
 
 @control_silo_model
@@ -62,7 +61,7 @@ class OrganizationIntegration(ReplicatedControlModel):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

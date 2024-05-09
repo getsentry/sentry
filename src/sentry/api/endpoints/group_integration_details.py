@@ -21,7 +21,6 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, integration
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
-from sentry.utils.json import JSONData
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -39,7 +38,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
 
         if self.action == "link":

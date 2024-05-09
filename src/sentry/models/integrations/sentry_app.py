@@ -2,7 +2,7 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import QuerySet
@@ -33,7 +33,6 @@ from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
 from sentry.utils import metrics
-from sentry.utils.json import JSONData
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
@@ -240,7 +239,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

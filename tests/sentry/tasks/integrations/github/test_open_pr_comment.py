@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -23,7 +24,6 @@ from sentry.tasks.integrations.github.utils import PullRequestFile, PullRequestI
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.json import JSONData
 from tests.sentry.tasks.integrations.github.test_pr_comment import GithubCommentTestCase
 
 pytestmark = [requires_snuba]
@@ -240,7 +240,7 @@ class TestGetFilenames(GithubCommentTestCase):
 
     @responses.activate
     def test_get_pr_files(self):
-        data: JSONData = [
+        data: Any = [
             {"filename": "bar.py", "status": "modified", "patch": "b"},
             {"filename": "baz.py", "status": "modified"},
         ]

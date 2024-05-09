@@ -9,7 +9,6 @@ from sentry.models.relocation import Relocation
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils.json import JSONData
 
 
 @dataclasses.dataclass(frozen=True)
@@ -48,7 +47,7 @@ class RelocationSerializer(Serializer):
         attrs: Any,
         user: User,
         **kwargs: Any,
-    ) -> Mapping[str, JSONData]:
+    ) -> Mapping[str, Any]:
         scheduled_at_pause_step = (
             Relocation.Step(obj.scheduled_pause_at_step).name
             if obj.scheduled_pause_at_step is not None

@@ -15,7 +15,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +136,7 @@ class ActionRegistration(metaclass=ABCMeta):
     @classmethod
     def serialize_available(
         cls, organization: Organization, integrations: list[RpcIntegration] | None = None
-    ) -> list[JSONData]:
+    ) -> list[Any]:
         """
         Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
 

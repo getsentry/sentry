@@ -1,7 +1,9 @@
+from typing import Any
+
 from sentry.utils import json
 
 
-def get_old_json_paths(filename: str) -> json.JSONData:
+def get_old_json_paths(filename: str) -> Any:
     try:
         with open(filename) as f:
             old_raw_paths = json.load(f)["paths"]
@@ -12,7 +14,7 @@ def get_old_json_paths(filename: str) -> json.JSONData:
     return old_raw_paths
 
 
-def get_old_json_components(filename: str) -> json.JSONData:
+def get_old_json_components(filename: str) -> Any:
     try:
         with open(filename) as f:
             old_raw_components = json.load(f)["components"]

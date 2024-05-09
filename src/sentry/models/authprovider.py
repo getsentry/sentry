@@ -23,7 +23,6 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.types.region import find_regions_for_orgs
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -228,7 +227,7 @@ class AuthProvider(ReplicatedControlModel):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

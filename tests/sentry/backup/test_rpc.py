@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -306,15 +307,15 @@ class RpcImportErrorTests(TestCase):
     """
 
     @staticmethod
-    def is_user_model(model: json.JSONData) -> bool:
+    def is_user_model(model: Any) -> bool:
         return NormalizedModelName(model["model"]) == USER_MODEL_NAME
 
     @cached_property
-    def _json_of_exhaustive_user_with_minimum_privileges(self) -> json.JSONData:
+    def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_minimum_privileges(self) -> json.JSONData:
+    def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
     def test_bad_invalid_min_ordinal(self):

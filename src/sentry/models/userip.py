@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
@@ -19,7 +21,6 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.log import UserIpEvent, log_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.geo import geo_by_addr
-from sentry.utils.json import JSONData
 
 
 @control_silo_model
@@ -112,7 +113,7 @@ class UserIP(Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)
