@@ -35,7 +35,9 @@ type ColumnKeys =
   | SpanIndexedField.CACHE_ITEM_SIZE
   | 'transaction.duration';
 
-type DataRow = Pick<IndexedResponse, DataRowKeys> & {'transaction.duration': number};
+export type DataRow = Pick<IndexedResponse, DataRowKeys> & {
+  'transaction.duration': number;
+};
 
 type Column = GridColumnHeader<ColumnKeys>;
 
