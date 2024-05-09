@@ -123,12 +123,11 @@ function EventTagsTreeRowDropdown({
 
   const referrer = 'event-tags-table';
   const highlightTagSet = new Set(project?.highlightTags ?? []);
-  const hasAddHighlightOption =
-    // Check for highlight records to prevent replacing all with a single tag if we receive a project summary
-    project?.highlightContext &&
+  const hideAddHighlightsOption =
+    // Check for existing highlight record to prevent replacing all with a single tag if we receive a project summary (instead of a detailed project)
     project?.highlightTags &&
     // Skip tags already highlighted
-    !highlightTagSet.has(originalTag.key);
+    highlightTagSet.has(originalTag.key);
   const query = generateQueryWithTag({referrer}, originalTag);
   const searchQuery = `?${qs.stringify(query)}`;
 
@@ -169,11 +168,10 @@ function EventTagsTreeRowDropdown({
         },
         {
           key: 'add-to-highlights',
-          label: t('Add to Event Highlights'),
-          hidden: hasAddHighlightOption,
+          label: t('Add to event highlights'),
+          hidden: hideAddHighlightsOption,
           onAction: () => {
             saveTag({
-              highlightContext: project?.highlightContext ?? {},
               highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
             });
           },

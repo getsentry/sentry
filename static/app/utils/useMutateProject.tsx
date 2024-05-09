@@ -12,8 +12,8 @@ import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
 
 interface MutateProjectPayload {
   // We can mutate more with this API call, but we'll keep this typed to the few places this is used
-  highlightContext: HighlightContext;
-  highlightTags: HighlightTags;
+  highlightContext?: HighlightContext;
+  highlightTags?: HighlightTags;
 }
 
 interface UseMutateProjectProps {
