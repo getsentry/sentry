@@ -214,7 +214,7 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
 
     node_ids = list(node_id_to_event_id.keys())
     fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
-    bulk_data = fetch_retry_policy(lambda: nodestore.get_multi(node_ids))
+    bulk_data = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_ids))
 
     bulk_event_id_to_events: dict[str, Event] = {}
     for node_id, data in bulk_data.items():
@@ -249,22 +249,24 @@ def get_group_to_groupevent(
     bulk_event_id_to_events = bulk_fetch_events(list(event_ids), project_id)
     bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
     bulk_occurrence_id_to_occurrence = {
-        occurrence.id: occurrence for occurrence in bulk_occurrences
+        occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
     }
 
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
         occurrence_id = instance_data.get("occurrence_id")
-        group_id = int(rule_group[1])
+        group_id = rule_group[1]
         group_event = None
 
-        event = bulk_event_id_to_events.get(event_id)
-        group = group_id_to_group.get(group_id)
+        if event_id:
+            event = bulk_event_id_to_events.get(event_id)
+        group = group_id_to_group.get(int(group_id))
         if not group or not event:
             continue
 
         group_event = event.for_group(group)
-        occurrence = bulk_occurrence_id_to_occurrence.get(occurrence_id)
+        if occurrence_id:
+            occurrence = bulk_occurrence_id_to_occurrence.get(occurrence_id)
         if occurrence and group_event:
             group_event.occurrence = occurrence
         if group_event:
