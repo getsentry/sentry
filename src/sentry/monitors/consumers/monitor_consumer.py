@@ -1028,6 +1028,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     ) -> None:
         if mode == "parallel":
             self.parallel = True
+            self.parallel_executor = ThreadPoolExecutor(max_workers=self.max_workers)
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
@@ -1041,8 +1042,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             self.parallel_executor.shutdown()
 
     def create_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
-        self.parallel_executor = ThreadPoolExecutor(max_workers=self.max_workers)
-
         batch_processor = RunTask(
             function=partial(process_batch, self.parallel_executor),
             next_step=CommitOffsets(commit),
