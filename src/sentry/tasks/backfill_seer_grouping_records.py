@@ -28,12 +28,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, redis
-from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
-ITERATOR_CHUNK = 20
+BATCH_SIZE = 20
 SEER_BACKFILL_DELAY_PER_RECORD = 0.1
 BACKFILL_NAME = "backfill_grouping_records"
 LAST_PROCESSED_REDIS_KEY = "grouping_record_backfill.last_processed_id"
@@ -59,42 +57,33 @@ class GroupStacktraceData(TypedDict):
     silo_mode=SiloMode.REGION,
 )
 @metrics.wraps(f"{BACKFILL_NAME}.task")
-def backfill_seer_grouping_records(project: Project, *args: Any, **kwargs: Any) -> None:
+def backfill_seer_grouping_records(
+    project_id: int, last_processed_id: int, *args: Any, **kwargs: Any
+) -> None:
+    project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-grouping", project):
         return
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-    last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+    if last_processed_id is None:
+        last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
 
-    for group_id_message_data_batch in chunked(
-        RangeQuerySetWrapper(
-            Group.objects.filter(
-                project_id=project.id, id__gt=last_processed_id, type=ErrorGroupType.type_id
-            ).values_list("id", "message", "data"),
-            result_value_getter=lambda item: item[0],
-        ),
-        ITERATOR_CHUNK,
-    ):
-        backfill_chunked_seer_grouping_records.apply_async(
-            args=[group_id_message_data_batch, project.id],
-            countdown=ITERATOR_CHUNK * SEER_BACKFILL_DELAY_PER_RECORD,
+    group_id_message_data_batch = (
+        Group.objects.filter(
+            project_id=project.id, id__gt=last_processed_id, type=ErrorGroupType.type_id
         )
-
-
-@instrumented_task(
-    name="sentry.tasks.backfill_chunked_seer_grouping_records",
-    queue="default",
-    max_retries=0,
-    silo_mode=SiloMode.REGION,
-)
-def backfill_chunked_seer_grouping_records(group_id_message_data_batch, project_id: int) -> int:
-    num_groups_records_created = 0
+        .values_list("id", "message", "data")
+        .order_by("id")[:BATCH_SIZE]
+    )
     group_id_message_batch = {
         group_id: message
         for (group_id, message, data) in group_id_message_data_batch
         if not get_path(data, "metadata", "embeddings_info", "nn_model_version")
     }
-    project = Project.objects.get(id=project_id)
+    batch_len = len(group_id_message_batch)
+    if batch_len == 0:
+        return
+
     group_id_batch = list(group_id_message_batch.keys())
     time_now = datetime.now()
     events_entity = Entity("events", alias="events")
@@ -151,24 +140,29 @@ def backfill_chunked_seer_grouping_records(group_id_message_data_batch, project_
             )
         )
         if response["success"]:
-            redis_client.set(f"{LAST_PROCESSED_REDIS_KEY}", group_id_batch[-1], ex=60 * 60 * 24 * 7)
             groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch)
             for group in groups:
                 if group.data.get("metadata"):
                     group.data["metadata"]["embeddings_info"] = {
-                        "nn_model_version": 1,
+                        "nn_model_version": 0,
                         "group_hash": json.dumps([group_hashes_dict[group.id]]),
                     }
                 else:
                     group.data["metadata"] = {
                         "embeddings_info": {
-                            "nn_model_version": 1,
+                            "nn_model_version": 0,
                             "group_hash": json.dumps([group_hashes_dict[group.id]]),
                         }
                     }
-            num_groups_records_created += Group.objects.bulk_update(groups, ["data"])
+            Group.objects.bulk_update(groups, ["data"])
 
-    return num_groups_records_created
+        last_processed_id = group_id_message_data_batch[batch_len - 1][0]
+        redis_client.set(f"{LAST_PROCESSED_REDIS_KEY}", last_processed_id, ex=60 * 60 * 24 * 7)
+        backfill_seer_grouping_records.apply_async(
+            args=[project.id, last_processed_id],
+            countdown=BATCH_SIZE * SEER_BACKFILL_DELAY_PER_RECORD,
+        )
+        return
 
 
 def lookup_group_data_stacktrace_bulk_with_fallback(
