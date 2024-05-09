@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import quote as urlquote
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
@@ -34,7 +35,6 @@ from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -343,8 +343,8 @@ class Endpoint(APIView):
             return
 
         try:
-            request.json_body = json.loads(request.body)
-        except json.JSONDecodeError:
+            request.json_body = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             return
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:

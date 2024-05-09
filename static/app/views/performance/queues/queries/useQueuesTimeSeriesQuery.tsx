@@ -16,14 +16,16 @@ const yAxis: SpanMetricsProperty[] = [
 ];
 
 export function useQueuesTimeSeriesQuery({enabled, destination}: Props) {
-  return useSpanMetricsSeries({
-    yAxis,
-    search: destination
-      ? MutableSearch.fromQueryObject({
-          'messaging.destination.name': destination,
-        })
-      : undefined,
-    referrer: 'api.performance.queues.module-chart',
-    enabled,
-  });
+  return useSpanMetricsSeries(
+    {
+      yAxis,
+      search: destination
+        ? MutableSearch.fromQueryObject({
+            'messaging.destination.name': destination,
+          })
+        : undefined,
+      enabled,
+    },
+    'api.performance.queues.module-chart'
+  );
 }

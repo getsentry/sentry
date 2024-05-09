@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
+import orjson
+
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
-from sentry.utils import json
 
 UNSET = object()
 
@@ -39,7 +40,7 @@ def build_test_block(link):
                     "type": "mrkdwn",
                     "text": f"<{link}/1|*wow an issue very cool*> \n",
                 },
-                "block_id": json.dumps({"issue": 1}),
+                "block_id": orjson.dumps({"issue": 1}).decode(),
             }
         ],
         "text": "[foo] wow an issue very cool",

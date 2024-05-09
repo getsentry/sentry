@@ -48,7 +48,7 @@ from sentry.monitors.serializers import (
 from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 
 from .base import OrganizationMonitorPermission
@@ -201,16 +201,16 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         if owners:
             owners = set(owners)
 
-            # Remove special values from owners, this can't be parsed as an RpcActor
+            # Remove special values from owners, this can't be parsed as an Actor
             include_myteams = "myteams" in owners
             owners.discard("myteams")
             include_unassigned = "unassigned" in owners
             owners.discard("unassigned")
 
-            actors = [RpcActor.from_identifier(identifier) for identifier in owners]
+            actors = [Actor.from_identifier(identifier) for identifier in owners]
 
-            user_ids = [actor.id for actor in actors if actor.actor_type == ActorType.USER]
-            team_ids = [actor.id for actor in actors if actor.actor_type == ActorType.TEAM]
+            user_ids = [actor.id for actor in actors if actor.is_user]
+            team_ids = [actor.id for actor in actors if actor.is_team]
 
             teams = get_teams(
                 request,
@@ -295,9 +295,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         owner = result.get("owner")
         owner_user_id = None
         owner_team_id = None
-        if owner and owner.actor_type == ActorType.USER:
+        if owner and owner.is_user:
             owner_user_id = owner.id
-        elif owner and owner.actor_type == ActorType.TEAM:
+        elif owner and owner.is_team:
             owner_team_id = owner.id
 
         try:

@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
+import orjson
 import sentry_sdk
 from requests import PreparedRequest
 
@@ -31,7 +32,7 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 
@@ -672,7 +673,7 @@ class GitHubClientMixin(GithubProxyClient):
         file_path_mapping = generate_file_path_mapping(files)
         query, variables = create_blame_query(file_path_mapping, extra=log_info)
         data = {"query": query, "variables": variables}
-        cache_key = self.get_cache_key("/graphql", "", json.dumps(data))
+        cache_key = self.get_cache_key("/graphql", "", orjson.dumps(data).decode())
         response = self.check_cache(cache_key)
         if response:
             metrics.incr("integrations.github.get_blame_for_files.got_cached")

@@ -100,39 +100,40 @@ export function PipelinesTable() {
     sort = {field: 'spm()', kind: 'desc'};
   }
 
-  const {data, isLoading, meta, pageLinks, error} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({
-      'span.category': 'ai.pipeline',
-      'span.description': spanDescription ? `*${spanDescription}*` : undefined,
-    }),
-    fields: [
-      'project.id',
-      'span.group',
-      'span.description',
-      'spm()',
-      'avg(span.duration)',
-      'sum(span.duration)',
-    ],
-    sorts: [sort],
-    limit: 25,
-    cursor,
-    referrer: 'api.ai-pipelines.view',
-  });
+  const {data, isLoading, meta, pageLinks, error} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({
+        'span.category': 'ai.pipeline',
+        'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+      }),
+      fields: [
+        'project.id',
+        'span.group',
+        'span.description',
+        'spm()',
+        'avg(span.duration)',
+        'sum(span.duration)',
+      ],
+      sorts: [sort],
+      limit: 25,
+      cursor,
+    },
+    'api.ai-pipelines.view'
+  );
 
-  const {
-    data: tokensUsedData,
-    error: tokensUsedError,
-    isLoading: tokensUsedLoading,
-  } = useSpanMetrics({
-    search: new MutableSearch(
-      `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
-    ),
-    fields: [
-      'span.ai.pipeline.group',
-      'ai_total_tokens_used()',
-      'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
-    ],
-  });
+  const {data: tokensUsedData, isLoading: tokensUsedLoading} = useSpanMetrics(
+    {
+      search: new MutableSearch(
+        `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
+      ),
+      fields: [
+        'span.ai.pipeline.group',
+        'ai_total_tokens_used()',
+        'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+      ],
+    },
+    'api.performance.ai-analytics.token-usage-chart'
+  );
 
   const rows: Row[] = (data as Row[]).map(baseRow => {
     const row: Row = {
@@ -185,7 +186,7 @@ export function PipelinesTable() {
         />
         <GridEditable
           isLoading={isLoading}
-          error={error ?? tokensUsedError}
+          error={error}
           data={rows}
           columnOrder={COLUMN_ORDER}
           columnSortBy={[

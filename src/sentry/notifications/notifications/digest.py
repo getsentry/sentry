@@ -31,7 +31,7 @@ from sentry.notifications.utils.digest import (
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -95,10 +95,10 @@ class DigestNotification(ProjectNotification):
             date="{date_pretty}",
         )
 
-    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return ""
 
     @property
@@ -157,10 +157,8 @@ class DigestNotification(ProjectNotification):
 
     def get_extra_context(
         self,
-        participants_by_provider_by_event: Mapping[
-            Event, Mapping[ExternalProviders, set[RpcActor]]
-        ],
-    ) -> Mapping[RpcActor, Mapping[str, Any]]:
+        participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]],
+    ) -> Mapping[Actor, Mapping[str, Any]]:
         personalized_digests = get_personalized_digests(
             self.digest, participants_by_provider_by_event
         )
@@ -192,9 +190,9 @@ class DigestNotification(ProjectNotification):
         for participants_by_provider in participants_by_provider_by_event.values():
             for provider, participants in participants_by_provider.items():
                 for participant in participants:
-                    if participant.actor_type == ActorType.TEAM:
+                    if participant.is_team:
                         team_ids.add(participant.id)
-                    elif participant.actor_type == ActorType.USER:
+                    elif participant.is_user:
                         user_ids.add(participant.id)
                     combined_participants_by_provider[provider].add(participant)
 
@@ -214,7 +212,7 @@ class DigestNotification(ProjectNotification):
         )
 
         # Calculate the per-participant context.
-        extra_context: Mapping[RpcActor, Mapping[str, Any]] = {}
+        extra_context: Mapping[Actor, Mapping[str, Any]] = {}
         personalized_digests = should_get_personalized_digests(self.target_type, self.project.id)
 
         if personalized_digests:
@@ -230,7 +228,7 @@ class DigestNotification(ProjectNotification):
                 participants -= participants_to_remove
             notify(provider, self, participants, shared_context, extra_context)
 
-    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         try:
             alert_id = list(self.digest.keys())[0].id
         except Exception:
@@ -243,7 +241,7 @@ class DigestNotification(ProjectNotification):
             **super().get_log_params(recipient),
         }
 
-    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
+    def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
         log_params = self.get_log_params(recipient)
         analytics.record(

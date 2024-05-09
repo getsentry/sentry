@@ -22,8 +22,8 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
@@ -97,11 +97,11 @@ class ReleaseActivityNotification(ActivityNotification):
             "version_parsed": self.version_parsed,
         }
 
-    def get_projects(self, recipient: RpcActor) -> set[Project]:
+    def get_projects(self, recipient: Actor) -> set[Project]:
         if not self.release:
             return set()
 
-        if recipient.actor_type == ActorType.USER:
+        if recipient.is_user:
             if self.organization.flags.allow_joinleave:
                 return self.projects
             team_ids = self.get_users_by_teams()[recipient.id]
@@ -114,7 +114,7 @@ class ReleaseActivityNotification(ActivityNotification):
         return projects
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         projects = self.get_projects(recipient)
         release_links = [
@@ -152,7 +152,7 @@ class ReleaseActivityNotification(ActivityNotification):
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
 
     def get_message_actions(
-        self, recipient: RpcActor, provider: ExternalProviders
+        self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         if self.release:
             release = get_release(self.activity, self.project.organization)
@@ -170,13 +170,13 @@ class ReleaseActivityNotification(ActivityNotification):
                 ]
         return []
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return ""
 
-    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         settings_url = self.get_settings_url(recipient, provider)
 
         # no environment related to a deploy

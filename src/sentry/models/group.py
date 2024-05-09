@@ -45,10 +45,10 @@ from sentry.issues.priority import (
 )
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
     UNRESOLVED_SUBSTATUS_CHOICES,
@@ -901,7 +901,7 @@ class Group(Model):
         except GroupAssignee.DoesNotExist:
             return None
 
-        assigned_actor: RpcActor = group_assignee.assigned_actor()
+        assigned_actor: Actor = group_assignee.assigned_actor()
 
         return assigned_actor.resolve()
 

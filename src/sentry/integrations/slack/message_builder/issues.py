@@ -53,10 +53,10 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.referrer import Referrer
+from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -102,16 +102,16 @@ logger = logging.getLogger(__name__)
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
-    actor = RpcActor.from_identifier(assignee)
+    actor = Actor.from_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
     except ObjectDoesNotExist:
         return None
 
-    if actor.actor_type == ActorType.TEAM:
+    if actor.is_team:
         assignee_text = f"#{assigned_actor.slug}"
-    elif actor.actor_type == ActorType.USER:
+    elif actor.is_user:
         assignee_identity = identity_service.get_identity(
             filter={
                 "provider_id": identity.idp_id,
@@ -292,7 +292,7 @@ def get_suggested_assignees(
     ):  # we don't want every user in the project to be a suggested assignee
         suggested_assignees = issue_owners
     try:
-        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
+        suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
         suggested_assignees.extend(suspect_commit_users)
     except (Release.DoesNotExist, Commit.DoesNotExist):
         logger.info("Skipping suspect committers because release does not exist.")
@@ -303,12 +303,12 @@ def get_suggested_assignees(
         assignee_texts = []
         for assignee in suggested_assignees:
             # skip over any suggested assignees that are the current assignee of the issue, if there is any
-            if assignee.actor_type == ActorType.USER and not (
+            if assignee.is_user and not (
                 isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
             ):
                 assignee_as_user = assignee.resolve()
                 assignee_texts.append(assignee_as_user.get_display_name())
-            elif assignee.actor_type == ActorType.TEAM and not (
+            elif assignee.is_team and not (
                 isinstance(current_assignee, Team) and assignee.id == current_assignee.id
             ):
                 assignee_texts.append(f"#{assignee.slug}")
@@ -454,7 +454,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
-        recipient: RpcActor | None = None,
+        recipient: Actor | None = None,
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
@@ -590,9 +590,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         obj = self.event if self.event is not None else self.group
         action_text = ""
 
-        if not self.issue_details or (
-            self.recipient and self.recipient.actor_type == ActorType.TEAM
-        ):
+        if not self.issue_details or (self.recipient and self.recipient.is_team):
             payload_actions, action_text, has_action = build_actions(
                 self.group, project, text, self.actions, self.identity
             )
