@@ -75,21 +75,25 @@ function DurationChart({
     isLoading,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
-    yAxis: [`avg(${SPAN_SELF_TIME})`],
-    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
-      Boolean(value)
-    ),
-    referrer: 'api.starfish.sidebar-span-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+      yAxis: [`avg(${SPAN_SELF_TIME})`],
+      enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+        Boolean(value)
+      ),
+    },
+    'api.starfish.sidebar-span-metrics-chart'
+  );
 
-  const {data, error: spanMetricsError} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    enabled: Object.values(filters).every(value => Boolean(value)),
-    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
-  });
+  const {data, error: spanMetricsError} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+      enabled: Object.values(filters).every(value => Boolean(value)),
+    },
+    'api.starfish.span-summary-panel-samples-table-avg'
+  );
 
   const spanMetrics = data[0] ?? {};
 

@@ -96,12 +96,14 @@ export function ScreenLoadSampleContainer({
     filters['span.op'] = spanOp;
   }
 
-  const {data} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
-    fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
-    enabled: Boolean(groupId) && Boolean(transactionName),
-    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
-  });
+  const {data} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+      fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
+      enabled: Boolean(groupId) && Boolean(transactionName),
+    },
+    'api.starfish.span-summary-panel-samples-table-avg'
+  );
 
   const spanMetrics = data[0] ?? {};
 

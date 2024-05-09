@@ -54,29 +54,36 @@ export default function AiMonitoringPage({params}: Props) {
     'span.category': 'ai.pipeline',
   };
 
-  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      SpanMetricsField.SPAN_OP,
-      SpanMetricsField.SPAN_DESCRIPTION,
-      'count()',
-      `${SpanFunction.SPM}()`,
-      `avg(${SpanMetricsField.SPAN_DURATION})`,
-    ],
-    enabled: Boolean(groupId),
-    referrer: 'api.ai-pipelines.view',
-  });
+  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        SpanMetricsField.SPAN_OP,
+        SpanMetricsField.SPAN_DESCRIPTION,
+        'count()',
+        `${SpanFunction.SPM}()`,
+        `avg(${SpanMetricsField.SPAN_DURATION})`,
+      ],
+      enabled: Boolean(groupId),
+    },
+    'api.ai-pipelines.view'
+  );
   const spanMetrics = data[0] ?? {};
 
-  const {data: totalTokenData, isLoading: isTotalTokenDataLoading} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({
-      'span.category': 'ai',
-      'span.ai.pipeline.group': groupId,
-    }),
-    fields: ['ai_total_tokens_used()', 'ai_total_tokens_used(c:spans/ai.total_cost@usd)'],
-    enabled: Boolean(groupId),
-    referrer: 'api.ai-pipelines.view',
-  });
+  const {data: totalTokenData, isLoading: isTotalTokenDataLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({
+        'span.category': 'ai',
+        'span.ai.pipeline.group': groupId,
+      }),
+      fields: [
+        'ai_total_tokens_used()',
+        'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+      ],
+      enabled: Boolean(groupId),
+    },
+    'api.ai-pipelines.view'
+  );
   const tokenUsedMetric = totalTokenData[0] ?? {};
 
   return (

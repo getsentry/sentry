@@ -65,23 +65,25 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      SpanMetricsField.SPAN_OP,
-      SpanMetricsField.SPAN_DESCRIPTION,
-      SpanMetricsField.SPAN_ACTION,
-      SpanMetricsField.SPAN_DOMAIN,
-      'count()',
-      `${SpanFunction.SPM}()`,
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-      `${SpanFunction.HTTP_ERROR_COUNT}()`,
-    ],
-    enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-metrics',
-  });
+  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        SpanMetricsField.SPAN_OP,
+        SpanMetricsField.SPAN_DESCRIPTION,
+        SpanMetricsField.SPAN_ACTION,
+        SpanMetricsField.SPAN_DOMAIN,
+        'count()',
+        `${SpanFunction.SPM}()`,
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+      ],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics'
+  );
 
   const spanMetrics = data[0] ?? {};
 
@@ -91,22 +93,24 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      'transaction',
-      'transaction.method',
-      'spm()',
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      'time_spent_percentage()',
-      `${SpanFunction.HTTP_ERROR_COUNT}()`,
-    ],
-    sorts: [sort],
-    limit: TRANSACTIONS_TABLE_ROW_COUNT,
-    cursor,
-    referrer: 'api.starfish.span-transaction-metrics',
-  });
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        'transaction',
+        'transaction.method',
+        'spm()',
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        'time_spent_percentage()',
+        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+      ],
+      sorts: [sort],
+      limit: TRANSACTIONS_TABLE_ROW_COUNT,
+      cursor,
+    },
+    'api.starfish.span-transaction-metrics'
+  );
 
   const span = {
     ...spanMetrics,
@@ -123,23 +127,27 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: ['spm()'],
-    enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: ['spm()'],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics-chart'
+  );
 
   const {
     isLoading: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics-chart'
+  );
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 

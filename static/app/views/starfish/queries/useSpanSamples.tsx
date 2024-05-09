@@ -77,14 +77,16 @@ export const useSpanSamples = (options: Options) => {
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
-  const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
-    yAxis: [`avg(${SPAN_SELF_TIME})`],
-    enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
-      Boolean(value)
-    ),
-    referrer: 'api.starfish.sidebar-span-metrics',
-  });
+  const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
+      yAxis: [`avg(${SPAN_SELF_TIME})`],
+      enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
+        Boolean(value)
+      ),
+    },
+    'api.starfish.sidebar-span-metrics'
+  );
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 

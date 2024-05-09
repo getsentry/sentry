@@ -21,22 +21,25 @@ interface UseMetricsSeriesOptions<Fields> {
 }
 
 export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
-  options: UseMetricsSeriesOptions<Fields> = {}
+  options: UseMetricsSeriesOptions<Fields> = {},
+  referrer: string
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_METRICS);
+  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_METRICS, referrer);
 };
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
-  options: UseMetricsSeriesOptions<Fields> = {}
+  options: UseMetricsSeriesOptions<Fields> = {},
+  referrer: string
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.METRICS);
+  return useDiscoverSeries<Fields>(options, DiscoverDatasets.METRICS, referrer);
 };
 
 const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
-  dataset: DiscoverDatasets
+  dataset: DiscoverDatasets,
+  referrer: string
 ) => {
-  const {search = undefined, yAxis = [], referrer = 'span-metrics-series'} = options;
+  const {search = undefined, yAxis = []} = options;
 
   const pageFilters = usePageFilters();
 

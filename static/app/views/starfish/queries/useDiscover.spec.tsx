@@ -59,7 +59,7 @@ describe('useSpanMetrics', () => {
     });
 
     const {result} = renderHook(
-      ({fields, enabled}) => useSpanMetrics({fields, enabled}),
+      ({fields, enabled}) => useSpanMetrics({fields, enabled}, 'span-metrics-series'),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -90,14 +90,16 @@ describe('useSpanMetrics', () => {
 
     const {result} = renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
-        useSpanMetrics({
-          search: MutableSearch.fromQueryObject(filters),
-          fields,
-          sorts,
-          limit,
-          cursor,
-          referrer,
-        }),
+        useSpanMetrics(
+          {
+            search: MutableSearch.fromQueryObject(filters),
+            fields,
+            sorts,
+            limit,
+            cursor,
+          },
+          referrer
+        ),
       {
         wrapper: Wrapper,
         initialProps: {
