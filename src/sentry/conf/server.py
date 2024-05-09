@@ -3950,6 +3950,9 @@ COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 # Disable DDM entirely
 SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
 
+SEER_SIMILARITY_MODEL_VERSION = "v0"
+SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
+
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
