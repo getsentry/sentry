@@ -146,7 +146,7 @@ from sentry.monitors.endpoints.project_monitor_details import ProjectMonitorDeta
 from sentry.monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
-from sentry.monitors.endpoints.project_monitor_processing_errors import (
+from sentry.monitors.endpoints.project_monitor_processing_errors_index import (
     ProjectMonitorProcessingErrorsIndexEndpoint,
 )
 from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
