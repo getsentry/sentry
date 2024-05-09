@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def make_input_prompt(input):
     return f"""**Classification Task**
-**Instructions: Please analyze the following input and output `spam` if the input is not coherent, and `notspam` if it is coherent.**
+**Instructions: Please analyze the following input and output `spam` if the input is not coherent, and `notspam` if it is coherent. If the user is frustrated but describing a problem, that is notspam**
 **Label Options:** spam, notspam
 
 **Few-shot Examples:**
@@ -20,6 +20,9 @@ def make_input_prompt(input):
 * **Example 6:** "i was playing a great game now it crashed" -> notspam
 * **Example 7:** "i can't login to my account wtf??!" -> notspam
 * **Example 8:** "ฉันไม่สามารถเข้าสู่ระบบและไม่มีอะไรทำงาน " -> notspam
+* **Example 9:** "crashed" -> notspam
+* **Example 9:** "MY GAME GLITCHED GRRRR!!!!" -> notspam
+* **Example 10:** "THIS PIECE OF JUNK DOES NOT WORK!!!" -> notspam
 
 **Input Text:** "{input}"
 
