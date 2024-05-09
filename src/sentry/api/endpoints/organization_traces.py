@@ -73,6 +73,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
     suggestedQuery = serializers.CharField(required=False)
     minBreakdownDuration = serializers.IntegerField(default=0, min_value=0)
     minBreakdownPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
+    minBreakdownBucketPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -114,6 +115,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             breakdown_categories=serialized.get("breakdownCategory", []),
             min_breakdown_duration=serialized["minBreakdownDuration"],
             min_breakdown_percentage=serialized["minBreakdownPercentage"],
+            min_breakdown_bucket_percentage=serialized["minBreakdownBucketPercentage"],
             get_all_projects=lambda: self.get_projects(
                 request,
                 organization,
@@ -155,6 +157,7 @@ class TraceSamplesExecutor:
         breakdown_categories: list[str],
         min_breakdown_duration: int,
         min_breakdown_percentage: float,
+        min_breakdown_bucket_percentage: float,
         get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
@@ -170,6 +173,7 @@ class TraceSamplesExecutor:
         self.breakdown_categories = breakdown_categories
         self.min_breakdown_duration = min_breakdown_duration
         self.min_breakdown_percentage = min_breakdown_percentage
+        self.min_breakdown_bucket_percentage = min_breakdown_bucket_percentage
         self.get_all_projects = get_all_projects
         self._all_projects: list[Project] | None = None
 
@@ -640,7 +644,9 @@ class TraceSamplesExecutor:
         ]
         spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
 
-        traces_breakdowns = process_breakdowns(spans, traces_range)
+        traces_breakdowns = process_breakdowns(
+            spans, traces_range, self.min_breakdown_bucket_percentage
+        )
 
         # mapping of trace id to a tuple of project slug + transaction name
         traces_names: MutableMapping[str, tuple[str, str]] = {}
@@ -966,7 +972,7 @@ class TraceSamplesExecutor:
         return suggested_spans_query
 
 
-def quantize_range(span_start, span_end, trace_range):
+def quantize_range(span_start, span_end, trace_range, min_breakdown_bucket_percentage):
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
 
@@ -978,9 +984,12 @@ def quantize_range(span_start, span_end, trace_range):
         rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
         rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
 
-        # if the span is at least the min duration, ensure it spans 1 bin
-        if rounded_start == rounded_end and span_duration >= (bin_size * 0.1):
-            rounded_end += bin_size
+        if min_breakdown_bucket_percentage > 0:
+            # if the span is at least the min duration, ensure it spans 1 bin
+            if rounded_start == rounded_end and span_duration >= (
+                bin_size * min_breakdown_bucket_percentage
+            ):
+                rounded_end += bin_size
     else:
         rounded_start = span_start
         rounded_end = span_end
@@ -996,7 +1005,7 @@ def quantize_range(span_start, span_end, trace_range):
     return int(rounded_start), int(rounded_end)
 
 
-def process_breakdowns(data, traces_range):
+def process_breakdowns(data, traces_range, min_breakdown_bucket_percentage=0.1):
     breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
     stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
 
@@ -1103,6 +1112,7 @@ def process_breakdowns(data, traces_range):
             precise_start,
             precise_end,
             traces_range[trace],
+            min_breakdown_bucket_percentage,
         )
         row["precise.start_ts"] = precise_start
         row["precise.finish_ts"] = precise_end
@@ -1150,13 +1160,15 @@ def process_breakdowns(data, traces_range):
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
 
+        other_start = trace_range["start"]
+        other_end = trace_range["end"]
         other: TraceInterval = {
             "kind": "other",
             "project": None,
             "sdkName": None,
             "opCategory": None,
-            "start": trace_range["start"],
-            "end": trace_range["end"],
+            "start": other_start,
+            "end": other_end,
             "duration": 0,
         }
 
@@ -1165,8 +1177,12 @@ def process_breakdowns(data, traces_range):
         # of the trace that was not covered by one of the intervals.
         while stacks[trace]:
             interval = stack_pop(trace)
-            # use the end time of the last component of the interval
-            other["start"] = max(other["start"], interval["components"][-1][1])
+            other["start"] = max(other["start"], interval["end"])
+            # other["start"] = max(other["start"], interval["components"][-1][1])
+            last_component = interval["components"][-1]
+            other_start = max(other_start, last_component[1])
+
+        other["components"] = [(other_start, other_end)]
 
         if other["start"] < other["end"]:
             breakdown_push(trace, other)
