@@ -9,6 +9,7 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.monitors.processing_errors import (
     CheckinProcessErrorsManager,
@@ -21,7 +22,7 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorProcessingErrorsIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.CRONS
 
@@ -32,7 +33,9 @@ class OrganizationMonitorProcessingErrorsIndexEndpoint(OrganizationEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         responses={
-            200: list[CheckinProcessingErrorData],
+            200: inline_sentry_response_serializer(
+                "CheckinProcessingError", list[CheckinProcessingErrorData]
+            ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
