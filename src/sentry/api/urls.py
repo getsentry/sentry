@@ -648,7 +648,7 @@ from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
 
-from ..monitors.endpoints.organization_monitor_processing_errors import (
+from ..monitors.endpoints.organization_monitor_processing_errors_index import (
     OrganizationMonitorProcessingErrorsIndexEndpoint,
 )
 
