@@ -202,8 +202,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     def test_regenerate_token(self):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        assert member.token is None
-        assert member.token_expires_at is None
+        assert (member.token, member.token_expires_at) == (None, None)
 
         member.regenerate_token()
         assert member.token
