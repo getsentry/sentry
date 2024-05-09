@@ -34,8 +34,6 @@ class RelatedIssuesEndpoint(GroupEndpoint):
         :pparam Group group: the group object
         """
         # The type of related issues to retrieve. Can be either `same_root_cause` or `trace_connected`.
-        related_type = request.query_params.get("type")
-
-        if related_type in RELATED_ISSUES_ALGORITHMS:
-            data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group)
-            return Response({"type": related_type, "data": data, "meta": meta})
+        related_type = request.query_params["type"]
+        data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group)
+        return Response({"type": related_type, "data": data, "meta": meta})
