@@ -6,6 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
+from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
@@ -178,7 +179,7 @@ def get_similar_issues_embeddings(
     """Call /v0/issues/similar-issues endpoint from seer."""
     response = seer_staging_connection_pool.urlopen(
         "POST",
-        "/v0/issues/similar-issues",
+        SEER_SIMILAR_ISSUES_URL,
         body=json.dumps(similar_issues_request),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
