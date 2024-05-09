@@ -180,7 +180,7 @@ export function getIntervalLine(
         transformedTransaction.aggregate_range_2
       )}`,
       position: 'insideEndBottom',
-      color: theme.red300,
+      color: theme.gray400,
     };
 
     additionalLineSeries.push({

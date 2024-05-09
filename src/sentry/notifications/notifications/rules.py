@@ -34,7 +34,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.services.hybrid_cloud.user_option.service import get_option_from_list
 from sentry.types.group import GroupSubStatus
@@ -121,7 +121,7 @@ class AlertRuleNotification(ProjectNotification):
         self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         tz = timezone.utc
-        if recipient.actor_type == ActorType.USER:
+        if recipient.is_user:
             user_options = user_option_service.get_many(
                 filter={"user_ids": [recipient.id], "keys": ["timezone"]}
             )

@@ -4,19 +4,20 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from collections import defaultdict
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Iterable, MutableMapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Union, overload
+
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import serializers
 
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.models.actor import Actor
     from sentry.models.team import Team
     from sentry.models.user import User
+    from sentry.services.hybrid_cloud.organization import RpcTeam
 
 
 class ActorType(str, Enum):
@@ -24,7 +25,7 @@ class ActorType(str, Enum):
     TEAM = "Team"
 
 
-ActorTarget = Union["Actor", "RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
+ActorTarget = Union["RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
 
 
 class RpcActor(RpcModel):
@@ -38,15 +39,13 @@ class RpcActor(RpcModel):
 
     slug: str | None = None
 
-    def __post_init__(self) -> None:
-        if (self.actor_type == ActorType.TEAM) == (self.slug is None):
-            raise ValueError("Slugs are expected for teams only")
+    class InvalidActor(ObjectDoesNotExist):
+        """Raised when an Actor fails to resolve or be found"""
 
-    def __hash__(self) -> int:
-        return hash((self.id, self.actor_type))
+        pass
 
     @classmethod
-    def resolve_many(cls, actors: Iterable["RpcActor"]) -> list["Team | RpcUser"]:
+    def resolve_many(cls, actors: Sequence["RpcActor"]) -> list["Team | RpcUser"]:
         """
         Resolve a list of actors in a batch to the Team/User the Actor references.
 
@@ -54,6 +53,7 @@ class RpcActor(RpcModel):
         RpcActor.resolve() individually will.
         """
         from sentry.models.team import Team
+        from sentry.services.hybrid_cloud.user.service import user_service
 
         if not actors:
             return []
@@ -82,6 +82,7 @@ class RpcActor(RpcModel):
         """
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.organization import RpcTeam
 
         result: list["RpcActor"] = []
         grouped_by_type: MutableMapping[str, list[int]] = defaultdict(list)
@@ -120,6 +121,7 @@ class RpcActor(RpcModel):
         """
         from sentry.models.team import Team
         from sentry.models.user import User
+        from sentry.services.hybrid_cloud.organization import RpcTeam
 
         if isinstance(obj, cls):
             return obj
@@ -152,8 +154,18 @@ class RpcActor(RpcModel):
         return cls(id=team.id, actor_type=ActorType.TEAM, slug=team.slug)
 
     @classmethod
-    def from_rpc_team(cls, team: RpcTeam) -> "RpcActor":
+    def from_rpc_team(cls, team: "RpcTeam") -> "RpcActor":
         return cls(id=team.id, actor_type=ActorType.TEAM, slug=team.slug)
+
+    @overload
+    @classmethod
+    def from_identifier(cls, id: None) -> None:
+        ...
+
+    @overload
+    @classmethod
+    def from_identifier(cls, id: int | str) -> "RpcActor":
+        ...
 
     @classmethod
     def from_identifier(cls, id: str | int | None) -> "RpcActor | None":
@@ -168,6 +180,8 @@ class RpcActor(RpcModel):
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
         """
+        from sentry.services.hybrid_cloud.user.service import user_service
+
         if not id:
             return None
         # If we have an integer, fall back to assuming it's a User
@@ -189,17 +203,24 @@ class RpcActor(RpcModel):
             user = user_service.get_by_username(username=id)[0]
             return cls(id=user.id, actor_type=ActorType.USER)
         except IndexError as e:
-            raise ValueError(f"Unable to resolve actor identifier: {e}")
+            raise cls.InvalidActor(f"Unable to resolve actor identifier: {e}")
 
     @classmethod
     def from_id(cls, user_id: int | None = None, team_id: int | None = None) -> "RpcActor":
         if user_id and team_id:
-            raise ValueError("You can only provide one of user_id and team_id")
+            raise cls.InvalidActor("You can only provide one of user_id and team_id")
         if user_id:
             return cls(id=user_id, actor_type=ActorType.USER)
         if team_id:
             return cls(id=team_id, actor_type=ActorType.TEAM)
-        raise ValueError("You must provide one of user_id and team_id")
+        raise cls.InvalidActor("You must provide one of user_id and team_id")
+
+    def __post_init__(self) -> None:
+        if not self.is_team and self.slug is not None:
+            raise ValueError("Slugs are expected for teams only")
+
+    def __hash__(self) -> int:
+        return hash((self.id, self.actor_type))
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -208,14 +229,66 @@ class RpcActor(RpcModel):
             and self.actor_type == other.actor_type
         )
 
-    def resolve(self) -> Union["Team", "RpcUser"] | None:
-        from sentry.models.team import Team
+    def resolve(self) -> "Team | RpcUser":
+        """
+        Resolve an Actor into the Team or RpcUser it represents.
 
-        if self.actor_type == ActorType.TEAM:
-            return Team.objects.filter(id=self.id).first()
-        if self.actor_type == ActorType.USER:
-            return user_service.get_user(user_id=self.id)
+        Will raise Team.DoesNotExist or User.DoesNotExist when the actor is invalid
+        """
+        from sentry.models.team import Team
+        from sentry.services.hybrid_cloud.user.service import user_service
+
+        if self.is_team:
+            team = Team.objects.filter(id=self.id).first()
+            if team:
+                return team
+            raise RpcActor.InvalidActor(f"Cannot find a team with id={self.id}")
+        if self.is_user:
+            user = user_service.get_user(user_id=self.id)
+            if user:
+                return user
+            raise RpcActor.InvalidActor(f"Cannot find a User with id={self.id}")
+        # This should be un-reachable
+        raise RpcActor.InvalidActor("Cannot resolve an actor with an unknown type")
 
     @property
     def identifier(self) -> str:
         return f"{self.actor_type.lower()}:{self.id}"
+
+    @property
+    def is_team(self) -> bool:
+        return self.actor_type == ActorType.TEAM
+
+    @property
+    def is_user(self) -> bool:
+        return self.actor_type == ActorType.USER
+
+
+def parse_and_validate_actor(actor_identifier: str | None, organization_id: int) -> RpcActor | None:
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.models.team import Team
+
+    if not actor_identifier:
+        return None
+
+    try:
+        actor = RpcActor.from_identifier(actor_identifier)
+    except Exception:
+        raise serializers.ValidationError(
+            "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
+        )
+    try:
+        obj = actor.resolve()
+    except RpcActor.InvalidActor:
+        raise serializers.ValidationError(f"{actor.actor_type} does not exist")
+
+    if isinstance(obj, Team):
+        if obj.organization_id != organization_id:
+            raise serializers.ValidationError("Team is not a member of this organization")
+    elif isinstance(obj, RpcUser):
+        if not OrganizationMember.objects.filter(
+            organization_id=organization_id, user_id=obj.id
+        ).exists():
+            raise serializers.ValidationError("User is not a member of this organization")
+
+    return actor

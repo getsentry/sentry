@@ -504,9 +504,9 @@ def test_create_feedback_spam_detection_adds_field(
                         index=0,
                         message=ChatCompletionMessage(
                             content=(
-                                "Junk"
-                                if kwargs["messages"][1]["content"] == "This is definitely spam"
-                                else "Not Junk"
+                                "spam"
+                                if kwargs["messages"][1]["content"] == "This is definitely spam,"
+                                else "not spam"
                             ),
                             role="assistant",
                         ),
@@ -602,9 +602,9 @@ def test_create_feedback_spam_detection_option_false(
                         index=0,
                         message=ChatCompletionMessage(
                             content=(
-                                "Junk"
+                                "spam"
                                 if kwargs["messages"][1]["content"] == "This is definitely spam"
-                                else "Not Junk"
+                                else "not spam"
                             ),
                             role="assistant",
                         ),

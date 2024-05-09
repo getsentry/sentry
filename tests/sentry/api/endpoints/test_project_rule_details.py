@@ -18,8 +18,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.models.team import Team
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -27,7 +26,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
-from sentry.utils.actor import ActorTuple
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -39,11 +37,11 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        actor = ActorTuple.from_actor_identifier(owner_id)
-        if actor.type == User:
+        actor = RpcActor.from_identifier(owner_id)
+        if actor.is_user:
             assert rule.owner_user_id == actor.id
             assert rule.owner_team_id is None
-        if actor.type == Team:
+        if actor.is_team:
             assert rule.owner_team_id == actor.id
             assert rule.owner_user_id is None
     else:

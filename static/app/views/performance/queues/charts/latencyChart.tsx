@@ -33,7 +33,11 @@ export function LatencyChart({error}: Props) {
         data={
           [
             {
-              seriesName: t('Average Processing Latency'),
+              seriesName: t('Average Time in Queue'),
+              data: data['avg(messaging.message.receive.latency)'].data,
+            },
+            {
+              seriesName: t('Average Processing Time'),
               data: data['avg_if(span.self_time,span.op,queue.process)'].data,
             },
           ] ?? []
@@ -42,6 +46,7 @@ export function LatencyChart({error}: Props) {
         error={error}
         chartColors={CHART_PALETTE[2].slice(1)}
         type={ChartType.AREA}
+        stacked
       />
     </ChartPanel>
   );

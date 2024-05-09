@@ -43,17 +43,18 @@ describe('StreamGroup', function () {
     GroupStore.reset();
   });
 
-  it('renders with anchors', function () {
+  it('renders with anchors', async function () {
     const {routerContext, organization} = initializeOrg();
     render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
       context: routerContext,
       organization,
     });
 
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
   });
 
-  it('marks as reviewed', function () {
+  it('marks as reviewed', async function () {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
@@ -64,7 +65,10 @@ describe('StreamGroup', function () {
       {context: routerContext, organization}
     );
 
-    expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'false');
+    expect(await screen.findByTestId('group')).toHaveAttribute(
+      'data-test-reviewed',
+      'false'
+    );
     const data: MarkReviewed = {inbox: false};
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
@@ -73,13 +77,14 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
 
-  it('marks as resolved', function () {
+  it('marks as resolved', async function () {
     const {routerContext, organization} = initializeOrg();
     render(<StreamGroup id="1337" query="is:unresolved" />, {
       context: routerContext,
       organization,
     });
 
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
     const data: GroupStatusResolution = {
       status: GroupStatus.RESOLVED,

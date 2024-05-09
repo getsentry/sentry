@@ -2777,10 +2777,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_snuba_unsupported_filters(self):
         self.login_as(user=self.user)
         for query in [
-            "bookmarks:me",
-            "is:linked",
-            "is:unlinked",
-            "subscribed:me",
             "regressed_in_release:latest",
             "issue.priority:high",
         ]:
@@ -3075,6 +3071,189 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) >= 2  # Expecting at least two issues: OutOfMemoryError and MemoryError
         assert any(int(issue["id"]) == event.group.id for issue in issues)
         assert any(int(issue["id"]) == event2.group.id for issue in issues)
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_first_seen_and_last_seen_filters(self):
+        self.login_as(user=self.user)
+        project = self.project
+        # Create 4 issues at different times
+        times = [
+            (before_now(hours=1), before_now(hours=1)),  # Two events for issue 0
+            (before_now(hours=6), before_now(hours=3)),  # Two events for issue 1
+            (before_now(hours=11), before_now(hours=10)),  # Two events for issue 2
+            (before_now(hours=23), before_now(minutes=30)),  # Two events for issue 3
+        ]
+        for i, (time1, time2) in enumerate(times):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(time1),
+                    "message": f"Error {i}",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(time2),
+                    "message": f"Error {i} - additional event",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=project.id,
+            )
+
+        # Test firstSeen filter
+        twenty_four_hours_ago = iso_format(before_now(hours=24))
+        response = self.get_success_response(
+            query=f"firstSeen:<{twenty_four_hours_ago}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
+        response = self.get_success_response(query="firstSeen:-24h", useGroupSnubaDataset=1)
+        assert len(response.data) == 4
+
+        # Test lastSeen filter
+        response = self.get_success_response(query="lastSeen:-6h", useGroupSnubaDataset=1)
+        assert len(response.data) == 3
+
+        response = self.get_success_response(query="lastSeen:-12h", useGroupSnubaDataset=1)
+        assert len(response.data) == 4
+
+        # Test lastSeen filter with an absolute date using before_now
+        absolute_date = iso_format(before_now(days=1))  # Assuming 365 days before now as an example
+        response = self.get_success_response(
+            query=f"lastSeen:>{absolute_date}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 4
+        response = self.get_success_response(
+            query=f"lastSeen:<{absolute_date}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_bookmarked_by(self):
+        self.login_as(user=self.user)
+        project = self.project
+        user2 = self.create_user(email="user2@example.com")
+
+        # Create two issues, one bookmarked by each user
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupBookmark.objects.create(user_id=self.user.id, group=group1, project_id=project.id)
+
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+        group2 = event2.group
+        GroupBookmark.objects.create(user_id=user2.id, group=group2, project_id=project.id)
+
+        # Filter by bookmarked_by the first user
+        response = self.get_success_response(
+            query=f"bookmarked_by:{self.user.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # Filter by bookmarked_by the second user
+        response = self.get_success_response(
+            query=f"bookmarked_by:{user2.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group2.id
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_linked(self):
+        self.login_as(user=self.user)
+        project = self.project
+
+        # Create two issues, one linked and one not linked
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupLink.objects.create(
+            group_id=group1.id,
+            project=project,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=1,
+        )
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+        group2 = event2.group
+
+        # Filter by linked issues
+        response = self.get_success_response(query="is:linked", useGroupSnubaDataset=1)
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # Ensure the unlinked issue is not returned
+        response = self.get_success_response(query="is:unlinked", useGroupSnubaDataset=1)
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group2.id
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_subscribed_by(self):
+        self.login_as(user=self.user)
+        project = self.project
+
+        # Create two issues, one subscribed by user1 and one not subscribed
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupSubscription.objects.create(
+            user_id=self.user.id,
+            group=group1,
+            project=project,
+            is_active=True,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+
+        # Filter by subscriptions
+        response = self.get_success_response(
+            query=f"subscribed:{self.user.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # ensure we don't return ny results
+        response = self.get_success_response(
+            query="subscribed:fake@fake.com", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
