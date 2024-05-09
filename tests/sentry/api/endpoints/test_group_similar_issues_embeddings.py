@@ -11,6 +11,7 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
     get_stacktrace_string,
 )
 from sentry.api.serializers.base import serialize
+from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.group import Group
 from sentry.seer.utils import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
@@ -730,7 +731,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
@@ -777,7 +778,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
@@ -826,7 +827,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
@@ -1096,7 +1097,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "group_id": self.group.id,
@@ -1120,7 +1121,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "group_id": self.group.id,
@@ -1145,7 +1146,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "group_id": self.group.id,
