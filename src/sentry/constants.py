@@ -228,6 +228,8 @@ DEFAULT_LOG_LEVEL = "error"
 DEFAULT_LOGGER_NAME = ""
 LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.items()}
 
+PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
+
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events

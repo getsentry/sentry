@@ -68,6 +68,9 @@ class SiloRouter:
     """
 
     historical_silo_assignments = {
+        "sentry_actor": SiloMode.REGION,
+        "sentry_teamavatar": SiloMode.REGION,
+        "sentry_projectavatar": SiloMode.REGION,
         "sentry_pagerdutyservice": SiloMode.REGION,
         "sentry_notificationsetting": SiloMode.CONTROL,
     }

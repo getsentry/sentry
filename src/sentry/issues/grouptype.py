@@ -183,11 +183,9 @@ class GroupType:
         return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
-    def should_detect_escalation(cls, organization: Organization) -> bool:
+    def should_detect_escalation(cls) -> bool:
         """
-        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
-
-        When the feature flag is removed, we can remove the organization parameter from this method.
+        If enable_escalation_detection=True, then escalation detection is enabled.
         """
         return cls.enable_escalation_detection
 
@@ -525,14 +523,19 @@ class MonitorIncidentType(GroupType):
     notification_config = NotificationConfig(context=[])
 
 
+# XXX(epurkhiser): We renamed this group type but we keep the alias since we
+# store group type in pickles
+MonitorCheckInFailure = MonitorIncidentType
+
+
 @dataclass(frozen=True)
-class MonitorCheckInTimeoutDeprecated(MonitorIncidentType, GroupType):
+class MonitorCheckInTimeout(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4002
 
 
 @dataclass(frozen=True)
-class MonitorCheckInMissedDeprecated(MonitorIncidentType, GroupType):
+class MonitorCheckInMissed(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4003
 

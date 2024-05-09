@@ -8,7 +8,7 @@ from sentry.models.activity import Activity
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues
 from sentry.notifications.utils.participants import ParticipantMap, get_notification_recipients
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
@@ -25,7 +25,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         participants_by_provider = None
         user_ids = list(self.project.member_set.values_list("user_id", flat=True))
-        actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
+        actors = [Actor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
         participants_by_provider = get_notification_recipients(
             recipients=actors,
             type=NotificationSettingEnum.WORKFLOW,
@@ -42,7 +42,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
                 )
         return result
 
-    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str:
         return f"Some events failed to process in your project {self.project.slug}"
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -77,8 +77,8 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         )
         return f"Processing issues on {self.format_url(text=self.project.slug, url=project_url, provider=provider)}"
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return self.get_subject()
 
-    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         return None

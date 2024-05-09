@@ -7,6 +7,7 @@ from collections.abc import Callable, Mapping, MutableMapping
 from datetime import timezone
 from typing import Any
 
+import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
@@ -44,8 +45,7 @@ from sentry.services.hybrid_cloud.repository.service import repository_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
-from sentry.utils import json, metrics
-from sentry.utils.json import JSONData
+from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
@@ -573,8 +573,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "installation": InstallationEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> Callable[[], Callable[[JSONData], Any]] | None:
-        handler: Callable[[], Callable[[JSONData], Any]] | None = self._handlers.get(event_type)
+    def get_handler(self, event_type: str) -> Callable[[], Callable[[Any], Any]] | None:
+        handler: Callable[[], Callable[[Any], Any]] | None = self._handlers.get(event_type)
         return handler
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
@@ -644,8 +644,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=401)
 
         try:
-            event = json.loads(body.decode("utf-8"))
-        except json.JSONDecodeError:
+            event = orjson.loads(body)
+        except orjson.JSONDecodeError:
             logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)

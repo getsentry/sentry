@@ -33,7 +33,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         not actually return the contents of the file, just the associated
         metadata.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to retrieve.
@@ -62,7 +62,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         Update metadata of an existing file.  Currently only the name of
         the file can be changed.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to update.
@@ -89,7 +89,7 @@ class OrganizationReleaseFileDetailsEndpoint(
 
         This will also remove the physical file from storage.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to delete.

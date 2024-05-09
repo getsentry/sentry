@@ -16,10 +16,10 @@ from sentry.models.integrations.integration import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.slack import post_message, post_message_control
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 
@@ -43,9 +43,9 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
 
 def _get_attachments(
     notification: BaseNotification,
-    recipient: RpcActor,
+    recipient: Actor,
     shared_context: Mapping[str, Any],
-    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
+    extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None,
 ) -> SlackBlock:
     extra_context = (
         extra_context_by_actor[recipient] if extra_context_by_actor and recipient else {}
@@ -58,7 +58,7 @@ def _get_attachments(
 
 def _notify_recipient(
     notification: BaseNotification,
-    recipient: RpcActor,
+    recipient: Actor,
     attachments: SlackBlock,
     channel: str,
     integration: Integration,
@@ -130,9 +130,9 @@ def _notify_recipient(
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Actor],
     shared_context: Mapping[str, Any],
-    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
+    extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None,
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
     Sending Slack notifications to a channel is in integrations/slack/actions/notification.py"""

@@ -41,7 +41,6 @@ from sentry.models.user import User
 from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -49,6 +48,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -693,7 +693,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)
         ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=RpcActor.from_object(self.team)
+            issue_alert_group, recipient=Actor.from_object(self.team)
         ).build()
         assert isinstance(ret, dict)
         has_actions = False
@@ -710,7 +710,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             project=self.project, group=issue_alert_group, user_id=self.user.id
         )
         ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=RpcActor.from_object(self.team)
+            issue_alert_group, recipient=Actor.from_object(self.team)
         ).build()
         assert isinstance(ret, dict)
         assert (
@@ -1155,7 +1155,7 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
         ) == ([], "", False)
 
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_identity_and_action_has_action(self):
         # returns True to indicate to use the white circle emoji
         group = self.create_group(project=self.project)

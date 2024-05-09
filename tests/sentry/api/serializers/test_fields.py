@@ -5,8 +5,8 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.serializers import ListField
 
 from sentry.api.fields.actor import ActorField
-from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.testutils.cases import TestCase
+from sentry.types.actor import ActorType
 
 
 class ChildSerializer(serializers.Serializer):
@@ -55,7 +55,7 @@ class TestActorField(TestCase):
         serializer = DummySerializer(data=data, context={"organization": self.organization})
         assert serializer.is_valid()
 
-        assert serializer.validated_data["actor_field"].actor_type == ActorType.USER
+        assert serializer.validated_data["actor_field"].is_user
         assert serializer.validated_data["actor_field"].id == self.user.id
 
     def test_legacy_user_fallback(self):
@@ -64,7 +64,7 @@ class TestActorField(TestCase):
         serializer = DummySerializer(data=data, context={"organization": self.organization})
         assert serializer.is_valid()
 
-        assert serializer.validated_data["actor_field"].actor_type == ActorType.USER
+        assert serializer.validated_data["actor_field"].is_user
         assert serializer.validated_data["actor_field"].id == self.user.id
 
     def test_team(self):

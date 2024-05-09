@@ -1,4 +1,5 @@
 import React from 'react';
+import keyBy from 'lodash/keyBy';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -32,10 +33,11 @@ import {
 } from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -53,21 +55,25 @@ export function CacheLandingPage() {
     isLoading: isCacheHitRateLoading,
     data: cacheHitRateData,
     error: cacheHitRateError,
-  } = useSpanMetricsSeries({
-    yAxis: [`${CACHE_MISS_RATE}()`],
-    search: MutableSearch.fromQueryObject(BASE_FILTERS),
-    referrer: Referrer.LANDING_CACHE_HIT_MISS_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      yAxis: [`${CACHE_MISS_RATE}()`],
+      search: MutableSearch.fromQueryObject(BASE_FILTERS),
+    },
+    Referrer.LANDING_CACHE_HIT_MISS_CHART
+  );
 
   const {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(BASE_FILTERS),
-    yAxis: ['spm()'],
-    referrer: Referrer.LANDING_CACHE_THROUGHPUT_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(BASE_FILTERS),
+      yAxis: ['spm()'],
+    },
+    Referrer.LANDING_CACHE_THROUGHPUT_CHART
+  );
 
   const {
     isLoading: isTransactionsListLoading,
@@ -75,25 +81,52 @@ export function CacheLandingPage() {
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(BASE_FILTERS),
-    fields: [
-      'project',
-      'project.id',
-      'transaction',
-      'spm()',
-      `${CACHE_MISS_RATE}()`,
-      'sum(span.self_time)',
-      'time_spent_percentage()',
-      `avg(${CACHE_ITEM_SIZE})`,
-    ],
-    sorts: [sort],
-    cursor,
-    limit: TRANSACTIONS_TABLE_ROW_COUNT,
-    referrer: Referrer.LANDING_CACHE_TRANSACTION_LIST,
-  });
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(BASE_FILTERS),
+      fields: [
+        'project',
+        'project.id',
+        'transaction',
+        'spm()',
+        `${CACHE_MISS_RATE}()`,
+        'sum(span.self_time)',
+        'time_spent_percentage()',
+        `avg(${CACHE_ITEM_SIZE})`,
+      ],
+      sorts: [sort],
+      cursor,
+      limit: TRANSACTIONS_TABLE_ROW_COUNT,
+    },
+    Referrer.LANDING_CACHE_TRANSACTION_LIST
+  );
 
-  addCustomMeta(transactionsListMeta);
+  const {
+    data: transactionDurationData,
+    error: transactionDurationError,
+    meta: transactionDurationMeta,
+    isLoading: isTransactionDurationLoading,
+  } = useMetrics(
+    {
+      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
+      fields: [`avg(transaction.duration)`, 'transaction'],
+      enabled: !isTransactionsListLoading && transactionsList.length > 0,
+    },
+    Referrer.LANDING_CACHE_TRANSACTION_DURATION
+  );
+
+  const transactionDurationsMap = keyBy(transactionDurationData, 'transaction');
+
+  const transactionsListWithDuration =
+    transactionsList?.map(transaction => ({
+      ...transaction,
+      'avg(transaction.duration)':
+        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)'],
+    })) || [];
+
+  const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
+
+  addCustomMeta(meta);
 
   return (
     <React.Fragment>
@@ -136,7 +169,10 @@ export function CacheLandingPage() {
             </ModuleLayout.Full>
             <ModuleLayout.Half>
               <CacheHitMissChart
-                series={cacheHitRateData[`${CACHE_MISS_RATE}()`]}
+                series={{
+                  seriesName: DataTitles.cacheMissRate,
+                  data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
+                }}
                 isLoading={isCacheHitRateLoading}
                 error={cacheHitRateError}
               />
@@ -150,11 +186,11 @@ export function CacheLandingPage() {
             </ModuleLayout.Half>
             <ModuleLayout.Full>
               <TransactionsTable
-                data={transactionsList}
-                isLoading={isTransactionsListLoading}
+                data={transactionsListWithDuration}
+                isLoading={isTransactionsListLoading || isTransactionDurationLoading}
                 sort={sort}
-                error={transactionsListError}
-                meta={transactionsListMeta}
+                error={transactionsListError || transactionDurationError}
+                meta={meta}
                 pageLinks={transactionsListPageLinks}
               />
             </ModuleLayout.Full>
@@ -177,6 +213,25 @@ export function LandingPageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+const combineMeta = (
+  meta1?: EventsMetaType,
+  meta2?: EventsMetaType
+): EventsMetaType | undefined => {
+  if (!meta1 && !meta2) {
+    return undefined;
+  }
+  if (!meta1) {
+    return meta2;
+  }
+  if (!meta2) {
+    return meta1;
+  }
+  return {
+    fields: {...meta1.fields, ...meta2.fields},
+    units: {...meta1.units, ...meta2.units},
+  };
+};
 
 // TODO - this should come from the backend
 const addCustomMeta = (meta?: EventsMetaType) => {

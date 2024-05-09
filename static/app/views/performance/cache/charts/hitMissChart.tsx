@@ -16,7 +16,6 @@ export function CacheHitMissChart({series, isLoading, error}: Props) {
   return (
     <ChartPanel title={DataTitles.cacheMissRate}>
       <Chart
-        showLegend
         height={CHART_HEIGHT}
         grid={{
           left: '4px',
