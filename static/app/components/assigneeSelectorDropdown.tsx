@@ -12,7 +12,8 @@ import {
   type SelectOption,
   type SelectOptionOrSection,
 } from 'sentry/components/compactSelect';
-import IdBadge from 'sentry/components/idBadge';
+import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -303,31 +304,29 @@ export default function AssigneeSelectorDropdown({
     }
   };
 
-  const makeMemberOption = (
-    userId: string,
-    userDisplay: string
-  ): SelectOption<string> => {
-    const isCurrentUser = userId === sessionUser?.id;
+  const makeMemberOption = (user: User): SelectOption<string> => {
+    const isCurrentUser = user.id === sessionUser?.id;
+    const userDisplay = user.name || user.email;
 
     return {
       label: (
-        <IdBadge
+        <UserBadge
           data-test-id="assignee-option"
-          actor={{
-            id: userId,
-            name: `${userDisplay}${isCurrentUser ? ' (You)' : ''}`,
-            type: 'user',
+          displayName={`${userDisplay}${isCurrentUser ? ' (You)' : ''}`}
+          hideEmail
+          user={{
+            ...user,
           }}
         />
       ),
       // Jank way to pass assignee type (team or user) into each row
-      value: `user:${userId}`,
+      value: `user:${user.id}`,
       textValue: userDisplay,
     };
   };
 
   const makeTeamOption = (assignableTeam: AssignableTeam): SelectOption<string> => ({
-    label: <IdBadge data-test-id="assignee-option" team={assignableTeam.team} />,
+    label: <TeamBadge data-test-id="assignee-option" team={assignableTeam.team} />,
     value: `team:${assignableTeam.team.id}`,
     textValue: assignableTeam.team.slug,
   });
@@ -339,12 +338,12 @@ export default function AssigneeSelectorDropdown({
       const isCurrentUser = assignee.id === sessionUser?.id;
       return {
         label: (
-          <IdBadge
+          <UserBadge
+            hideEmail
             data-test-id="assignee-option"
-            actor={{
-              id: assignee.id,
-              name: `${assignee.name}${isCurrentUser ? ' (You)' : ''}`,
-              type: 'user',
+            displayName={`${assignee.name}${isCurrentUser ? ' (You)' : ''}`}
+            user={{
+              ...(assignee.assignee as User),
             }}
             description={suggestedReasonTable[assignee.suggestedReason]}
           />
@@ -356,7 +355,8 @@ export default function AssigneeSelectorDropdown({
     const assignedTeam = assignee.assignee as AssignableTeam;
     return {
       label: (
-        <IdBadge
+        <TeamBadge
+          data-test-id="assignee-option"
           team={assignedTeam.team}
           description={suggestedReasonTable[assignee.suggestedReason]}
         />
@@ -393,9 +393,7 @@ export default function AssigneeSelectorDropdown({
       } else {
         assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
         if (assignedUser) {
-          options.push(
-            makeMemberOption(assignedUser.id, assignedUser.name || assignedUser.email)
-          );
+          options.push(makeMemberOption(assignedUser));
           memList = memList?.filter(member => member.id !== group.assignedTo?.id);
           suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
             return suggestedAssignee.id !== group.assignedTo?.id;
@@ -423,10 +421,7 @@ export default function AssigneeSelectorDropdown({
     const memberOptions = {
       value: '_members',
       label: t('Members'),
-      options:
-        memList?.map(member =>
-          makeMemberOption(member.id, member.name || member.email)
-        ) ?? [],
+      options: memList?.map(member => makeMemberOption(member)) ?? [],
     };
 
     const teamOptions = {
