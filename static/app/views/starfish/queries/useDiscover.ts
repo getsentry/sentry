@@ -17,7 +17,8 @@ interface UseMetricsOptions<Fields> {
   enabled?: boolean;
   fields?: Fields;
   limit?: number;
-  search?: MutableSearch;
+  referrer?: string;
+  search?: MutableSearch | string; // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
   sorts?: Sort[];
 }
 
@@ -75,16 +76,18 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
 };
 
 function getEventView(
-  search: MutableSearch | undefined,
+  search: MutableSearch | string | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],
   pageFilters: PageFilters,
   dataset: DiscoverDatasets
 ) {
+  const query = typeof search === 'string' ? search : search?.formatString() ?? '';
+
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: search?.formatString() ?? '',
+      query,
       fields,
       dataset,
       version: 2,
