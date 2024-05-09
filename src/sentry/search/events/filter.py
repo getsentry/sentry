@@ -585,7 +585,7 @@ key_conversion_map: Mapping[
 def convert_search_filter_to_snuba_query(
     search_filter: SearchFilter,
     key: str | None = None,
-    params: Mapping[str, int | str | datetime] | None = None,
+    params: Mapping[str, int | str | datetime | Sequence[Any]] | None = None,
 ) -> Sequence[Any] | None:
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value

@@ -81,15 +81,14 @@ def group_categories_from(
     # if its unspecified, we have to query all datasources
     for search_filter in search_filters or ():
         if search_filter.key.name in ("issue.category", "issue.type"):
+            if type(search_filter.value.raw_value) is not Sequence[int]:
+                return set()
+
             if search_filter.is_negation:
                 group_categories.update(
                     get_group_type_by_type_id(value).category
-                    for value in list(
-                        filter(
-                            lambda x: x not in get_all_group_type_ids(),
-                            search_filter.value.raw_value,
-                        )
-                    )
+                    for value in search_filter.value.raw_value
+                    if value not in get_all_group_type_ids()
                 )
             else:
                 group_categories.update(
@@ -114,6 +113,8 @@ def group_types_from(
     # start by including all group types
     include_group_types = set(get_all_group_type_ids())
     for search_filter in search_filters or ():
+        if type(search_filter.value.raw_value) is not Sequence[int]:
+            return None
         # note that for issue.category, the raw value becomes the full list of group type ids mapped from the category
         if search_filter.key.name in ("issue.category", "issue.type"):
             if search_filter.is_negation:
@@ -331,8 +332,7 @@ def _updated_conditions(
         params={
             "organization_id": organization_id,
             "project_id": project_ids,
-            "environment": environments,
-        },
+        }.update({"environment": environments} if environments else {}),
     )
     new_conditions = deepcopy(list(conditions))
     new_conditions.append(converted_filter)
