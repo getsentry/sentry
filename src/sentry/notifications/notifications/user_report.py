@@ -13,7 +13,7 @@ from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.participants import ParticipantMap
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -79,7 +79,7 @@ class UserReportNotification(ProjectNotification):
         }
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}

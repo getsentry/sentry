@@ -42,13 +42,13 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -505,9 +505,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         args, kwargs = mock_func.call_args
         notification = args[1]
 
-        recipient_context = notification.get_recipient_context(
-            RpcActor.from_orm_user(self.user), {}
-        )
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
         assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
 
         self.assertEqual(notification.project, self.project)
@@ -695,9 +693,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = AlertRuleNotification(
             Notification(event=event), ActionTargetType.ISSUE_OWNERS
         )
-        recipient_context = notification.get_recipient_context(
-            RpcActor.from_orm_user(self.user), {}
-        )
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
         assert recipient_context["timezone"] == UTC
 
     def test_context_invalid_timezone_empty_string(self):

@@ -96,12 +96,12 @@ class GroupOwner(Model):
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.services.hybrid_cloud.actor import RpcActor
+        from sentry.types.actor import Actor
 
         if not self.owner_id():
             return None
 
-        return RpcActor.from_identifier(self.owner_id())
+        return Actor.from_identifier(self.owner_id())
 
     @classmethod
     def get_autoassigned_owner(cls, group_id, project_id, autoassignment_types):

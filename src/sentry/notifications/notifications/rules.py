@@ -34,9 +34,9 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.services.hybrid_cloud.user_option.service import get_option_from_list
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -98,7 +98,7 @@ class AlertRuleNotification(ProjectNotification):
 
         self.template_path = f"sentry/emails/{email_template_name}"
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Actor]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -118,7 +118,7 @@ class AlertRuleNotification(ProjectNotification):
         return self.group
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         tz = timezone.utc
         if recipient.is_user:
@@ -294,7 +294,7 @@ class AlertRuleNotification(ProjectNotification):
         for provider, participants in participants_by_provider.items():
             notify(provider, self, participants, shared_context)
 
-    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
@@ -302,7 +302,7 @@ class AlertRuleNotification(ProjectNotification):
             **super().get_log_params(recipient),
         }
 
-    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
+    def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
         log_params = self.get_log_params(recipient)
         analytics.record(

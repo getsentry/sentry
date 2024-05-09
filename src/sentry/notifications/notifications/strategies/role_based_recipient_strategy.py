@@ -9,9 +9,9 @@ from django.db.models import QuerySet
 from sentry import roles
 from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.actor import Actor, ActorType
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -25,9 +25,9 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     def __init__(self, organization: Organization):
         self.organization = organization
 
-    def get_member(self, user: RpcUser | RpcActor) -> OrganizationMember:
+    def get_member(self, user: RpcUser | Actor) -> OrganizationMember:
         # cache the result
-        actor = RpcActor.from_object(user)
+        actor = Actor.from_object(user)
         if actor.actor_type != ActorType.USER:
             raise OrganizationMember.DoesNotExist()
         user_id = actor.id

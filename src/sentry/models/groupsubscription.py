@@ -22,9 +22,9 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -168,7 +168,7 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         from sentry import features
         from sentry.notifications.utils.participants import ParticipantMap
 
-        all_possible_actors = RpcActor.many_from_object(group.project.get_members_as_rpc_users())
+        all_possible_actors = Actor.many_from_object(group.project.get_members_as_rpc_users())
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_actors]
         )
@@ -229,14 +229,14 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                     result.add(provider, user, reason)
         return result
 
-    def get_possible_team_actors(self, group: Group) -> list[RpcActor]:
+    def get_possible_team_actors(self, group: Group) -> list[Actor]:
         from sentry.models.team import Team
 
         possible_teams_ids = Team.objects.filter(id__in=self.get_participating_team_ids(group))
-        return RpcActor.many_from_object(possible_teams_ids)
+        return Actor.many_from_object(possible_teams_ids)
 
     def get_subscriptions_by_team_id(
-        self, group: Group, possible_team_actors: list[RpcActor]
+        self, group: Group, possible_team_actors: list[Actor]
     ) -> Mapping[int, int]:
         active_and_disabled_team_subscriptions = self.filter(
             group=group, team_id__in=[t.id for t in possible_team_actors]

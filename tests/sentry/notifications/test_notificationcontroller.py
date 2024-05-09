@@ -9,12 +9,12 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
@@ -139,7 +139,7 @@ class NotificationControllerTest(TestCase):
         assert list(controller.get_all_setting_providers) == self.setting_providers
 
     def test_without_settings(self):
-        rpc_user = RpcActor.from_object(self.user)
+        rpc_user = Actor.from_object(self.user)
         NotificationSettingOption.objects.all().delete()
         NotificationSettingProvider.objects.all().delete()
         controller = NotificationController(
@@ -519,9 +519,9 @@ class NotificationControllerTest(TestCase):
             assert provider_settings == expected_setting
 
     def test_get_notification_recipients(self):
-        rpc_user = RpcActor.from_object(self.user)
+        rpc_user = Actor.from_object(self.user)
         new_user = self.create_user()
-        rpc_new_user = RpcActor.from_object(new_user)
+        rpc_new_user = Actor.from_object(new_user)
         self.create_member(
             organization=self.organization, user=new_user, role="member", teams=[self.team]
         )
@@ -608,7 +608,7 @@ class NotificationControllerTest(TestCase):
         }
 
     def test_get_participants(self):
-        rpc_user = RpcActor.from_object(self.user)
+        rpc_user = Actor.from_object(self.user)
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -639,7 +639,7 @@ class NotificationControllerTest(TestCase):
 
     @with_feature("organizations:team-workflow-notifications")
     def test_get_team_workflow_participants(self):
-        rpc_user = RpcActor.from_object(self.team)
+        rpc_user = Actor.from_object(self.team)
         with assume_test_silo_mode(SiloMode.REGION):
             link_team(self.team, self.integration, "#team-channel", "team_channel_id")
         controller = NotificationController(
@@ -657,7 +657,7 @@ class NotificationControllerTest(TestCase):
 
     @with_feature("organizations:team-workflow-notifications")
     def test_get_team_issue_alert_participants(self):
-        rpc_user = RpcActor.from_object(self.team)
+        rpc_user = Actor.from_object(self.team)
         with assume_test_silo_mode(SiloMode.REGION):
             link_team(self.team, self.integration, "#team-channel", "team_channel_id")
         controller = NotificationController(
@@ -865,7 +865,7 @@ class NotificationControllerTest(TestCase):
 
         assert len(controller.recipients) == 2
         for recipient in controller.recipients:
-            assert isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.USER
+            assert isinstance(recipient, Actor) and recipient.actor_type == ActorType.USER
 
     @with_feature("organizations:team-workflow-notifications")
     def test_keeps_team_as_recipient_if_valid(self):

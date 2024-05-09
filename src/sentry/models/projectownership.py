@@ -17,8 +17,8 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -106,7 +106,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_owners(
         cls, project_id: int, data: Mapping[str, Any]
-    ) -> tuple[_Everyone | list[RpcActor], Sequence[Rule] | None]:
+    ) -> tuple[_Everyone | list[Actor], Sequence[Rule] | None]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -156,7 +156,7 @@ class ProjectOwnership(Model):
         result = [
             (
                 rule,
-                RpcActor.resolve_many([actors[owner] for owner in rule.owners if owner in actors]),
+                Actor.resolve_many([actors[owner] for owner in rule.owners if owner in actors]),
                 type,
             )
             for rule in rules

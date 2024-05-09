@@ -29,11 +29,11 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
@@ -53,27 +53,25 @@ FALLTHROUGH_NOTIFICATION_LIMIT = 20
 
 
 class ParticipantMap:
-    _dict: MutableMapping[ExternalProviders, MutableMapping[RpcActor, int]]
+    _dict: MutableMapping[ExternalProviders, MutableMapping[Actor, int]]
 
     def __init__(self) -> None:
         self._dict = defaultdict(dict)
 
-    def get_participants_by_provider(
-        self, provider: ExternalProviders
-    ) -> set[tuple[RpcActor, int]]:
+    def get_participants_by_provider(self, provider: ExternalProviders) -> set[tuple[Actor, int]]:
         return {(k, v) for k, v in self._dict.get(provider, {}).items()}
 
-    def add(self, provider: ExternalProviders, participant: RpcActor, reason: int) -> None:
+    def add(self, provider: ExternalProviders, participant: Actor, reason: int) -> None:
         self._dict[provider][participant] = reason
 
-    def add_all(self, provider: ExternalProviders, actor_group: Mapping[RpcActor, int]) -> None:
+    def add_all(self, provider: ExternalProviders, actor_group: Mapping[Actor, int]) -> None:
         self._dict[provider].update(actor_group)
 
     def update(self, other: ParticipantMap) -> None:
         for provider, actor_group in other._dict.items():
             self.add_all(provider, actor_group)
 
-    def get_participant_sets(self) -> Iterable[tuple[ExternalProviders, Iterable[RpcActor]]]:
+    def get_participant_sets(self) -> Iterable[tuple[ExternalProviders, Iterable[Actor]]]:
         return ((provider, participants.keys()) for (provider, participants) in self._dict.items())
 
     def delete_participant_by_id(
@@ -93,9 +91,7 @@ class ParticipantMap:
 
     def split_participants_and_context(
         self,
-    ) -> Iterable[
-        tuple[ExternalProviders, Iterable[RpcActor], Mapping[RpcActor, Mapping[str, Any]]]
-    ]:
+    ) -> Iterable[tuple[ExternalProviders, Iterable[Actor], Mapping[Actor, Mapping[str, Any]]]]:
         for provider, participants_with_reasons in self._dict.items():
             extra_context = {
                 participant: {"reason": reason}
@@ -147,7 +143,7 @@ def get_participants_for_group(group: Group, user_id: int | None = None) -> Part
 
 
 def get_reason(
-    user: User | RpcActor,
+    user: User | Actor,
     value: NotificationSettingsOptionEnum,
     user_ids: set[int],
 ) -> int | None:
@@ -183,7 +179,7 @@ def get_participants_for_release(
         )
     )
 
-    actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
+    actors = Actor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
     # don't pass in projects since the settings are scoped to the organization only for now
     providers_by_recipient = notifications_service.get_participants(
         type=NotificationSettingEnum.DEPLOY,
@@ -207,7 +203,7 @@ def get_owners(
     project: Project,
     event: Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> tuple[list[RpcActor], str]:
+) -> tuple[list[Actor], str]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -222,14 +218,14 @@ def get_owners(
 
     if not owners:
         outcome = "empty"
-        recipients: list[RpcActor] = list()
+        recipients: list[Actor] = list()
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
         users = user_service.get_many(
             filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
         )
-        recipients = RpcActor.many_from_object(users)
+        recipients = Actor.many_from_object(users)
 
     else:
         outcome = "match"
@@ -291,7 +287,7 @@ def get_suspect_commit_users(project: Project, event: Event) -> list[RpcUser]:
     return [committer for committer in suspect_committers if committer.id in in_project_user_ids]
 
 
-def dedupe_suggested_assignees(suggested_assignees: Iterable[RpcActor]) -> Iterable[RpcActor]:
+def dedupe_suggested_assignees(suggested_assignees: Iterable[Actor]) -> Iterable[Actor]:
     return list({assignee.id: assignee for assignee in suggested_assignees}.values())
 
 
@@ -301,7 +297,7 @@ def determine_eligible_recipients(
     target_identifier: int | None = None,
     event: Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> Iterable[RpcActor]:
+) -> Iterable[Actor]:
     """
     Either get the individual recipient from the target type/id or the
     owners as determined by rules for this project and event.
@@ -312,12 +308,12 @@ def determine_eligible_recipients(
     elif target_type == ActionTargetType.MEMBER:
         user = get_user_from_identifier(project, target_identifier)
         if user:
-            return [RpcActor.from_object(user)]
+            return [Actor.from_object(user)]
 
     elif target_type == ActionTargetType.TEAM:
         team = get_team_from_identifier(project, target_identifier)
         if team:
-            return [RpcActor.from_orm_team(team)]
+            return [Actor.from_orm_team(team)]
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
         if not event:
@@ -338,9 +334,7 @@ def determine_eligible_recipients(
         suspect_commit_users = None
 
         try:
-            suspect_commit_users = RpcActor.many_from_object(
-                get_suspect_commit_users(project, event)
-            )
+            suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
             suggested_assignees.extend(suspect_commit_users)
         except (Release.DoesNotExist, Commit.DoesNotExist):
             logger.info("Skipping suspect committers because release does not exist.")
@@ -362,7 +356,7 @@ def determine_eligible_recipients(
         if suggested_assignees:
             return dedupe_suggested_assignees(suggested_assignees)
 
-        return RpcActor.many_from_object(get_fallthrough_recipients(project, fallthrough_choice))
+        return Actor.many_from_object(get_fallthrough_recipients(project, fallthrough_choice))
 
     return set()
 
@@ -376,7 +370,7 @@ def get_send_to(
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,
     notification_uuid: str | None = None,
-) -> Mapping[ExternalProviders, set[RpcActor]]:
+) -> Mapping[ExternalProviders, set[Actor]]:
     recipients = determine_eligible_recipients(
         project, target_type, target_identifier, event, fallthrough_choice
     )
@@ -471,8 +465,8 @@ def get_team_from_identifier(project: Project, target_identifier: str | int | No
 
 
 def _partition_recipients(
-    recipients: Iterable[RpcActor],
-) -> Mapping[ActorType, set[RpcActor]]:
+    recipients: Iterable[Actor],
+) -> Mapping[ActorType, set[Actor]]:
     mapping = defaultdict(set)
     for recipient in recipients:
         mapping[recipient.actor_type].add(recipient)
@@ -480,8 +474,8 @@ def _partition_recipients(
 
 
 def _get_users_from_team_fall_back(
-    teams: Iterable[RpcActor],
-    recipients_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]],
+    teams: Iterable[Actor],
+    recipients_by_provider: Mapping[ExternalProviders, Iterable[Actor]],
 ) -> Iterable[RpcUser]:
     assert all(team.is_team for team in teams)
 
@@ -503,9 +497,9 @@ def _get_users_from_team_fall_back(
 
 
 def combine_recipients_by_provider(
-    teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]],
-    users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]],
-) -> Mapping[ExternalProviders, set[RpcActor]]:
+    teams_by_provider: Mapping[ExternalProviders, Iterable[Actor]],
+    users_by_provider: Mapping[ExternalProviders, Iterable[Actor]],
+) -> Mapping[ExternalProviders, set[Actor]]:
     """TODO(mgaeta): Make this more generic and move it to utils."""
     recipients_by_provider = defaultdict(set)
     for provider, teams in teams_by_provider.items():
@@ -518,12 +512,12 @@ def combine_recipients_by_provider(
 
 
 def get_notification_recipients(
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Actor],
     type: NotificationSettingEnum,
     organization_id: int | None = None,
     project_ids: list[int] | None = None,
     actor_type: ActorType | None = None,
-) -> Mapping[ExternalProviders, set[RpcActor]]:
+) -> Mapping[ExternalProviders, set[Actor]]:
     recipients_by_provider = notifications_service.get_notification_recipients(
         recipients=list(recipients),
         type=type,
@@ -541,12 +535,12 @@ def get_notification_recipients(
 
 # TODO(Steve): Remove once reference is gone from getsentry
 def get_notification_recipients_v2(
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Actor],
     type: NotificationSettingEnum,
     organization_id: int | None = None,
     project_ids: list[int] | None = None,
     actor_type: ActorType | None = None,
-) -> Mapping[ExternalProviders, set[RpcActor]]:
+) -> Mapping[ExternalProviders, set[Actor]]:
     return get_notification_recipients(
         recipients=recipients,
         type=type,
@@ -558,12 +552,12 @@ def get_notification_recipients_v2(
 
 def _get_recipients_by_provider(
     project: Project,
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Actor],
     notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     target_type: ActionTargetType | None = None,
     target_identifier: int | None = None,
     notification_uuid: str | None = None,
-) -> Mapping[ExternalProviders, set[RpcActor]]:
+) -> Mapping[ExternalProviders, set[Actor]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
     recipients_by_type = _partition_recipients(recipients)
     teams = recipients_by_type[ActorType.TEAM]
@@ -571,7 +565,7 @@ def _get_recipients_by_provider(
 
     # First evaluate the teams.
     setting_type = notification_type_enum
-    teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+    teams_by_provider: Mapping[ExternalProviders, Iterable[Actor]] = {}
 
     # get by team
     teams_by_provider = get_notification_recipients(
@@ -590,12 +584,10 @@ def _get_recipients_by_provider(
     }
 
     # If there are any teams that didn't get added, fall back and add all users.
-    users |= set(
-        RpcActor.many_from_object(_get_users_from_team_fall_back(teams, teams_by_provider))
-    )
+    users |= set(Actor.many_from_object(_get_users_from_team_fall_back(teams, teams_by_provider)))
 
     # Repeat for users.
-    users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
+    users_by_provider: Mapping[ExternalProviders, Iterable[Actor]] = {}
     # convert from string to enum
     users_by_provider = get_notification_recipients(
         recipients=users,

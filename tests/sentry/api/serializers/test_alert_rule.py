@@ -14,10 +14,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.types.actor import Actor
 
 NOT_SET = object()
 
@@ -64,7 +64,7 @@ class BaseAlertRuleSerializerTest:
             assert result["environment"] is None
 
         if alert_rule.user_id or alert_rule.team_id:
-            owner = RpcActor.from_id(user_id=alert_rule.user_id, team_id=alert_rule.team_id)
+            owner = Actor.from_id(user_id=alert_rule.user_id, team_id=alert_rule.team_id)
             assert owner
             assert result["owner"] == owner.identifier
         else:
@@ -105,7 +105,7 @@ class BaseAlertRuleSerializerTest:
         if data.get("date_added"):
             rule.date_added = data["date_added"]
         if data.get("owner"):
-            actor = RpcActor.from_identifier(data["owner"])
+            actor = Actor.from_identifier(data["owner"])
             if actor.is_user:
                 rule.owner_user_id = actor.id
             if actor.is_team:
@@ -201,7 +201,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(
             environment=self.environment,
             user=user,
-            owner=RpcActor.from_id(team_id=self.team.id, user_id=None),
+            owner=Actor.from_id(team_id=self.team.id, user_id=None),
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)

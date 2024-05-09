@@ -18,10 +18,10 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_rules,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.types.actor import Actor
 
 
 def mock_event(*, transaction, data=None):
@@ -147,8 +147,8 @@ class NotificationHelpersTest(TestCase):
         self.create_member(organization=self.organization, teams=[team2], user=user2)
 
         with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
-            assert get_team_members(team1) == [RpcActor.from_object(user1)]
-            assert get_team_members(team2) == [RpcActor.from_object(user2)]
+            assert get_team_members(team1) == [Actor.from_object(user1)]
+            assert get_team_members(team2) == [Actor.from_object(user2)]
             assert get_team_members(team3) == []
 
     def test_team_is_valid_recipient(self):

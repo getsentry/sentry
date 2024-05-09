@@ -12,8 +12,8 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
     MemberWriteRoleRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         return f"Access request to {self.organization.name}"
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         context["email"] = self.pending_member.email
@@ -61,7 +61,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         return context
 
     def get_message_actions(
-        self, recipient: RpcActor, provider: ExternalProviders
+        self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         members_url = self.members_url + self.get_sentry_query_params(provider, recipient)
         return [
@@ -88,7 +88,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
     def get_callback_data(self) -> Mapping[str, Any]:
         return {"member_id": self.pending_member.id, "member_email": self.pending_member.email}
 
-    def get_log_params(self, recipient: RpcActor) -> MutableMapping[str, Any]:
+    def get_log_params(self, recipient: Actor) -> MutableMapping[str, Any]:
         # TODO: figure out who the user should be when pending_member.inviter_id is None
         return {
             **super().get_log_params(recipient),
