@@ -26,12 +26,11 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
   SpanMetricsResponse,
-  | 'avg_if(span.self_time,span.op,queue.process)'
-  | 'count_op(queue.publish)'
-  | 'count_op(queue.process)'
-  | 'sum(span.self_time)'
+  | 'sum(span.duration)'
   | 'messaging.destination.name'
   | 'avg(messaging.message.receive.latency)'
+  | `avg_if(${string},${string},${string})`
+  | `count_op(${string})`
 >;
 
 type Column = GridColumnHeader<string>;
@@ -48,7 +47,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.self_time,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -68,7 +67,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sum(span.self_time)',
+    key: 'sum(span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },

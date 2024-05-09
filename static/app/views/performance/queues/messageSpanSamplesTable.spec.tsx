@@ -18,7 +18,7 @@ describe('messageSpanSamplesTable', () => {
     expect(screen.getByRole('columnheader', {name: 'Span ID'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Message ID'})).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', {name: 'Processing Latency'})
+      screen.getByRole('columnheader', {name: 'Processing Time'})
     ).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Message Size'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Status'})).toBeInTheDocument();

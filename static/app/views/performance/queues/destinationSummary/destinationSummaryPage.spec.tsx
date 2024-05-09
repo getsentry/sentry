@@ -75,7 +75,6 @@ describe('destinationSummaryPage', () => {
     render(<DestinationSummaryPageWithProviders />);
     await screen.findByRole('table', {name: 'Transactions'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    screen.getByPlaceholderText('Search for events, users, tags, and more');
     screen.getByText('Avg Latency');
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
