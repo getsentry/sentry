@@ -40,7 +40,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
     @staticmethod
-    def _subscribe_project_to_alert_rule(
+    def subscribe_project_to_alert_rule(
         project: Project, release: Release, trigger: str
     ) -> list[QuerySubscription]:
         """
@@ -62,7 +62,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     def post_save(self, instance, created, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
         if created:
-            self._subscribe_project_to_alert_rule(
+            self.subscribe_project_to_alert_rule(
                 project=instance.project,
                 release=instance.release,
                 trigger="releaseproject.post_save",

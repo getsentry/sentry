@@ -1,8 +1,6 @@
 from unittest.mock import call as mock_call
 from unittest.mock import patch
 
-from django.utils import timezone
-
 from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorType
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
@@ -12,7 +10,6 @@ from sentry.signals import receivers_raise_on_send
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.datetime import freeze_time
 
 
 class ReleaseProjectManagerTestCase(TransactionTestCase):
@@ -97,22 +94,20 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
     def test_subscribe_project_to_alert_rule_constructs_query(self, mock_conditionally_subscribe):
         project = self.create_project(name="foo")
         release = Release.objects.create(organization_id=project.organization_id, version="42")
-        now = timezone.now()
-        with freeze_time(now):
-            ReleaseProjectModelManager._subscribe_project_to_alert_rule(
-                project=project, release=release, trigger="test"
-            )
+        ReleaseProjectModelManager.subscribe_project_to_alert_rule(
+            project=project, release=release, trigger="test"
+        )
 
-            assert mock_conditionally_subscribe.call_count == 1
-            assert mock_conditionally_subscribe.mock_calls == [
-                mock_call(
-                    project=project,
-                    activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-                    query_extra=f"release:42 AND event.timestamp:>{now.isoformat()}",
-                    origin="test",
-                    activator="42",
-                )
-            ]
+        assert mock_conditionally_subscribe.call_count == 1
+        assert mock_conditionally_subscribe.mock_calls == [
+            mock_call(
+                project=project,
+                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+                query_extra="release:42",
+                origin="test",
+                activator="42",
+            )
+        ]
 
     def test_unmocked_subscribe_project_to_alert_rule_constructs_query(self):
         # Let the logic flow through to snuba and see whether we properly construct the snuba query
