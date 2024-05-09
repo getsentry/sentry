@@ -59,7 +59,7 @@ describe('useSpanMetrics', () => {
     });
 
     const {result} = renderHook(
-      ({fields, enabled}) => useSpanMetrics({fields, enabled}),
+      ({fields, enabled}) => useSpanMetrics({fields, enabled}, 'span-metrics-series'),
       {
         wrapper: Wrapper,
         initialProps: {
