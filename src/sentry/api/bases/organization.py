@@ -256,13 +256,13 @@ class ControlSiloOrganizationEndpoint(Endpoint):
                 "organization_slug", None
             )
 
+        if not organization_id_or_slug:
+            raise ResourceDoesNotExist
+
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_id_or_slug:
                 raise ResourceDoesNotExist
-
-        if not organization_id_or_slug:
-            raise ResourceDoesNotExist
 
         if (
             id_or_slug_path_params_enabled(
@@ -566,13 +566,13 @@ class OrganizationEndpoint(Endpoint):
                 "organization_slug", None
             )
 
+        if not organization_id_or_slug:
+            raise ResourceDoesNotExist
+
         if not subdomain_is_region(request):
             subdomain = getattr(request, "subdomain", None)
             if subdomain is not None and subdomain != organization_id_or_slug:
                 raise ResourceDoesNotExist
-
-        if not organization_id_or_slug:
-            raise ResourceDoesNotExist
 
         try:
             if (
