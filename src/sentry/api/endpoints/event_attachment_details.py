@@ -78,7 +78,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         Retrieve an Attachment
         ``````````````````````
 
-        :pparam string organization_slug: the id or slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.

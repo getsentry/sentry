@@ -39,7 +39,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
 
         Returns the stats of a given release under a project.
 
-        :pparam string organization_slug: the id or slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to list the
                                      release files of.

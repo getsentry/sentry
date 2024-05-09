@@ -45,7 +45,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Return a list of user feedback items within this project.
 
-        :pparam string organization_slug: the id or slug of the organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         """
@@ -100,7 +100,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Note: Feedback may be submitted with DSN authentication (see auth documentation).
 
-        :pparam string organization_slug: the id or slug of the organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         :param string event_id: the event ID

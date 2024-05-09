@@ -58,7 +58,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         Update a CodeOwners
         `````````````
 
-        :pparam string organization_slug: the id or slug of the organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string project_id_or_slug: the id or slug of the project to get.
         :pparam string codeowners_id: id of codeowners object
         :param string raw: the raw CODEOWNERS text

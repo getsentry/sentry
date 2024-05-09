@@ -28,7 +28,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
 
         The data returned from here is auxiliary meta data that the UI uses.
 
-        :pparam string organization_slug: the id or slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :auth: required

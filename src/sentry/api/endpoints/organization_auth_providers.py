@@ -22,7 +22,7 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
         List available auth providers that are available to use for an Organization
         ```````````````````````````````````````````````````````````````````````````
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :auth: required
         """
         provider_list = []
