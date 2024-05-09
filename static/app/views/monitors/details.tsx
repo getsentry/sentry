@@ -6,6 +6,7 @@ import sortBy from 'lodash/sortBy';
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -51,7 +52,7 @@ function MonitorDetails({params, location}: Props) {
     }
   );
 
-  const {data: monitor} = useApiQuery<Monitor>(queryKey, {
+  const {data: monitor, isError} = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
     refetchOnWindowFocus: true,
     // Refetches while we are waiting for the user to send their first check-in
@@ -85,6 +86,12 @@ function MonitorDetails({params, location}: Props) {
       onUpdate(resp);
     }
   };
+
+  if (isError) {
+    return (
+      <LoadingError message={t('The monitor you were looking for was not found.')} />
+    );
+  }
 
   if (!monitor) {
     return (
