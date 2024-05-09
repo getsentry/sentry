@@ -55,6 +55,8 @@ class GroupStacktraceData(TypedDict):
     queue="default",
     max_retries=0,
     silo_mode=SiloMode.REGION,
+    soft_time_limit=60 * 15,
+    time_limit=60 * 15 + 5,
 )
 @metrics.wraps(f"{BACKFILL_NAME}.task")
 def backfill_seer_grouping_records(
