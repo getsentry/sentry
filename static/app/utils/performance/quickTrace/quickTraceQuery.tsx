@@ -18,9 +18,16 @@ import {
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
   event: Event | undefined;
+  skipLight: boolean;
+  type?: 'detailed' | 'spans';
 };
 
-export default function QuickTraceQuery({children, event, ...props}: QueryProps) {
+export default function QuickTraceQuery({
+  children,
+  event,
+  skipLight,
+  ...props
+}: QueryProps) {
   const renderEmpty = () => (
     <Fragment>
       {children({
@@ -44,6 +51,83 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
   }
 
   const {start, end} = getTraceTimeRangeFromEvent(event);
+  if (skipLight) {
+    return (
+      <TraceFullQuery
+        eventId={event.id}
+        traceId={traceId}
+        start={start}
+        end={end}
+        {...props}
+      >
+        {traceFullResults => {
+          const scope = new Sentry.Scope();
+          const traceErrorMsg =
+            'Updated: Trace endpoints returning non-array in response';
+          scope.setFingerprint([traceErrorMsg]);
+
+          if (
+            !traceFullResults.isLoading &&
+            traceFullResults.error === null &&
+            traceFullResults.traces !== null
+          ) {
+            const orphanError = traceFullResults.traces.orphan_errors?.find(
+              e => e.event_id === event.id
+            );
+            if (orphanError) {
+              return children({
+                ...traceFullResults,
+                trace: [],
+                orphanErrors: [orphanError],
+                currentEvent: orphanError,
+              });
+            }
+
+            const traceTransactions = traceFullResults.traces.transactions;
+
+            try {
+              for (const subtrace of traceTransactions) {
+                try {
+                  const trace = flattenRelevantPaths(event, subtrace);
+                  return children({
+                    ...traceFullResults,
+                    trace,
+                    currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
+                  });
+                } catch {
+                  // let this fall through and check the next subtrace
+                  // or use the trace lite results
+                }
+              }
+            } catch {
+              // capture exception and let this fall through to
+              // use the /events-trace-lite/ response below
+              scope.setExtras({
+                traceTransactions,
+                traceFullResults,
+              });
+              Sentry.captureException(new Error(traceErrorMsg), scope);
+            }
+          }
+
+          return children({
+            // only use the light results loading state if it didn't error
+            // if it did, we should rely on the full results
+            isLoading: traceFullResults.isLoading,
+            // swallow any errors from the light results because we
+            // should rely on the full results in this situations
+            error: traceFullResults.error,
+            trace: [],
+            // if we reach this point but there were some traces in the full results,
+            // that means there were other transactions in the trace, but the current
+            // event could not be found
+            type: traceFullResults.traces?.transactions?.length ? 'missing' : 'empty',
+            currentEvent: null,
+          });
+        }}
+      </TraceFullQuery>
+    );
+  }
 
   return (
     <TraceLiteQuery
