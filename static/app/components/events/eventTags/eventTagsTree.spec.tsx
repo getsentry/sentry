@@ -7,6 +7,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
@@ -62,7 +63,7 @@ describe('EventTagsTree', function () {
   const referrer = 'event-tags-table';
 
   it('avoids tag tree without query param or flag', function () {
-    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
+    render(<EventTags project={project} event={event} />, {organization});
     tags.forEach(({key: fullTagKey, value}) => {
       expect(screen.getByText(fullTagKey)).toBeInTheDocument();
       expect(screen.getByText(value)).toBeInTheDocument();
@@ -109,7 +110,7 @@ describe('EventTagsTree', function () {
 
   it('renders tag tree with query param', async function () {
     router.location.query.tagsTree = '1';
-    render(<EventTags projectSlug={project.slug} event={event} />, {
+    render(<EventTags project={project} event={event} />, {
       organization,
       router,
     });
@@ -118,7 +119,7 @@ describe('EventTagsTree', function () {
 
   it("renders tag tree with the 'event-tags-tree-ui' feature", async function () {
     const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
-    render(<EventTags projectSlug={project.slug} event={event} />, {
+    render(<EventTags project={project} event={event} />, {
       organization: featuredOrganization,
     });
     await assertNewTagsView();
@@ -144,7 +145,7 @@ describe('EventTagsTree', function () {
     const releaseEvent = EventFixture({
       tags: [{key: 'release', value: releaseVersion}],
     });
-    render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
+    render(<EventTags project={project} event={releaseEvent} />, {
       organization: featuredOrganization,
     });
     const versionText = screen.getByText<
@@ -216,7 +217,7 @@ describe('EventTagsTree', function () {
         features: ['event-tags-tree-ui'],
       });
       const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
-      render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
+      render(<EventTags project={project} event={uniqueTagsEvent} />, {
         organization: featuredOrganization,
       });
       const dropdown = screen.getByLabelText('Tag Actions Menu');
@@ -261,7 +262,7 @@ describe('EventTagsTree', function () {
         {key: 'some-invalid-char-tag', value: null},
       ],
     });
-    render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
+    render(<EventTags project={project} event={errorTagEvent} />, {
       organization: featuredOrganization,
     });
 
@@ -282,7 +283,7 @@ describe('EventTagsTree', function () {
         {key: 'boring-tag', value: 'boring tag'},
       ],
     });
-    render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
+    render(<EventTags project={project} event={uniqueTagsEvent} />, {
       organization: featuredOrganization,
     });
 
@@ -290,5 +291,33 @@ describe('EventTagsTree', function () {
     expect(screen.getByText('boring tag')).toBeInTheDocument();
     expect(screen.queryByText('null tag')).not.toBeInTheDocument();
     expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
+  });
+
+  it("renders 'Add to event highlights' option conditionally", async function () {
+    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
+    const highlightsEvent = EventFixture({
+      tags: [
+        {key: 'useless-tag', value: 'not so much'},
+        {key: 'highlighted-tag', value: 'so important'},
+      ],
+    });
+    const highlightProject = {...project, highlightTags: ['highlighted-tag']};
+    render(<EventTags project={highlightProject} event={highlightsEvent} />, {
+      organization: featuredOrganization,
+    });
+    const normalTagRow = screen
+      .getByText('useless-tag', {selector: 'div'})
+      .closest('div[data-test-id=tag-tree-row]') as HTMLElement;
+    const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
+    await userEvent.click(normalTagDropdown);
+    expect(screen.getByLabelText('Add to event highlights')).toBeInTheDocument();
+
+    const highlightTagRow = screen
+      .getByText('highlighted-tag', {selector: 'div'})
+      .closest('div[data-test-id=tag-tree-row]') as HTMLElement;
+    const highlightTagDropdown =
+      within(highlightTagRow).getByLabelText('Tag Actions Menu');
+    await userEvent.click(highlightTagDropdown);
+    expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 });

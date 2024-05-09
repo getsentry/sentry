@@ -78,7 +78,11 @@ function EditPreviewHighlightSection({
             meta={meta}
             item={item}
             alias={alias}
-            config={{includeAliasInSubject: true, disableErrors: true}}
+            config={{
+              includeAliasInSubject: true,
+              disableErrors: true,
+              disableRichValue: true,
+            }}
             data-test-id="highlights-preview-ctx"
           />
         </Fragment>

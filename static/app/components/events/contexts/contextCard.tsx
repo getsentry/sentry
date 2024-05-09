@@ -27,6 +27,7 @@ interface ContextCardProps {
 
 interface ContextCardContentConfig {
   disableErrors?: boolean;
+  disableRichValue?: boolean;
   includeAliasInSubject?: boolean;
 }
 
@@ -71,7 +72,7 @@ export function ContextCardContent({
       <ContextSubject>{contextSubject}</ContextSubject>
       <ContextValueSection hasErrors={hasErrors}>
         <ContextValueWrapper>
-          {defined(action?.link) ? (
+          {!config?.disableRichValue && defined(action?.link) ? (
             <Link to={action.link}>{dataComponent}</Link>
           ) : (
             dataComponent
