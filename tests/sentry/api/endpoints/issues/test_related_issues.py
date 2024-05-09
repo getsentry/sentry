@@ -44,9 +44,7 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         # The UI will then make normal calls to get issues-stats
         # For instance, this URL
         # https://us.sentry.io/api/0/organizations/sentry/issues-stats/?groups=4741828952&groups=4489703641&statsPeriod=24h
-        assert response.json() == {
-            "data": [{"type": "same_root_cause", "data": [5], "meta": {}}],
-        }
+        assert response.json() == {"type": "same_root_cause", "data": [5], "meta": {}}
 
     def test_trace_connected_errors(self) -> None:
         error_event, _, another_proj_event = self.load_errors(self.project, uuid4().hex[:16])
@@ -61,15 +59,8 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
 
         response = self.get_success_response(qs_params={"type": "trace_connected"})
         assert response.json() == {
-            "data": [
-                {
-                    "type": "trace_connected",
-                    # This is the other issue in the trace that it is not itself
-                    "data": [another_proj_event.group_id],
-                    "meta": {
-                        "event_id": recommended_event.event_id,
-                        "trace_id": error_event.trace_id,
-                    },
-                },
-            ]
+            "type": "trace_connected",
+            # This is the other issue in the trace that it is not itself
+            "data": [another_proj_event.group_id],
+            "meta": {"event_id": recommended_event.event_id, "trace_id": error_event.trace_id},
         }

@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.issues.related import find_related_issues  # To be deprecated
-from sentry.issues.related import same_root_cause_analysis, trace_connected_analysis
+from sentry.issues.related import RELATED_ISSUES_ALGORITHMS
 from sentry.models.group import Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -40,8 +40,8 @@ class RelatedIssuesEndpoint(GroupEndpoint):
 
         if related_type in RELATED_ISSUES_ALGORITHMS:
             data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group)
-            related_issues = [{"type": related_type, "data": data, "meta": meta}]
+            return Response({"type": related_type, "data": data, "meta": meta})
         else:
             # XXX: We will be deprecating this approach soon
             related_issues = find_related_issues(group)
-        return Response({"data": [related_set for related_set in related_issues]})
+            return Response({"data": [related_set for related_set in related_issues]})
