@@ -1053,7 +1053,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
 
-@use_redis_cluster(with_options={"assemble.read_from_redis": True})
+@use_redis_cluster()
 def test_redis_assemble_status():
     task = AssembleTask.DIF
     project_id = uuid.uuid4().hex

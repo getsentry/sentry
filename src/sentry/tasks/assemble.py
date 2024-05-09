@@ -17,7 +17,6 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.api.serializers import serialize
-from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
     INDEXING_THRESHOLD,
@@ -190,20 +189,14 @@ def get_assemble_status(task, scope, checksum):
     notice or error message.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-
-    if options.get("assemble.read_from_redis"):
-        client = _get_redis_cluster_for_assemble()
-        rv = client.get(cache_key)
-
-        # It is stored as bytes with [state, detail] on Redis.
-        if rv:
-            rv = orjson.loads(rv)
-    else:
-        rv = default_cache.get(cache_key)
+    client = _get_redis_cluster_for_assemble()
+    rv = client.get(cache_key)
 
     if rv is None:
         return None, None
-    return tuple(rv)
+
+    # It is stored as bytes with [state, detail] on Redis.
+    return tuple(orjson.loads(rv))
 
 
 @sentry_sdk.tracing.trace
@@ -212,7 +205,6 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     Updates the status of an assembling task. It is cached for 10 minutes.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-    default_cache.set(cache_key, (state, detail), 600)
     redis_client = _get_redis_cluster_for_assemble()
     redis_client.set(name=cache_key, value=orjson.dumps([state, detail]), ex=600)
 
@@ -223,7 +215,6 @@ def delete_assemble_status(task, scope, checksum):
     Deletes the status of an assembling task.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-    default_cache.delete(cache_key)
     redis_client = _get_redis_cluster_for_assemble()
     redis_client.delete(cache_key)
 
