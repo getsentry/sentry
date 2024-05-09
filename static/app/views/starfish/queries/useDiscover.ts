@@ -23,25 +23,33 @@ interface UseMetricsOptions<Fields> {
 }
 
 export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
-  options: UseMetricsOptions<Fields> = {}
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
 ) => {
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
-    DiscoverDatasets.SPANS_METRICS
+    DiscoverDatasets.SPANS_METRICS,
+    referrer
   );
 };
 
 export const useMetrics = <Fields extends MetricsProperty[]>(
-  options: UseMetricsOptions<Fields> = {}
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
 ) => {
-  return useDiscover<Fields, MetricsResponse>(options, DiscoverDatasets.METRICS);
+  return useDiscover<Fields, MetricsResponse>(
+    options,
+    DiscoverDatasets.METRICS,
+    referrer
+  );
 };
 
 const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseType>(
   options: UseMetricsOptions<T> = {},
-  dataset: DiscoverDatasets
+  dataset: DiscoverDatasets,
+  referrer: string
 ) => {
-  const {fields = [], search = undefined, sorts = [], limit, cursor, referrer} = options;
+  const {fields = [], search = undefined, sorts = [], limit, cursor} = options;
 
   const pageFilters = usePageFilters();
 

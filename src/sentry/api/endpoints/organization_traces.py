@@ -35,6 +35,7 @@ MAX_SNUBA_RESULTS = 10_000
 
 class TraceInterval(TypedDict):
     project: str | None
+    sdkName: str | None
     start: int
     end: int
     kind: Literal["project", "missing", "other"]
@@ -356,12 +357,17 @@ class TraceSamplesExecutor:
                 return min_timestamp, max_timestamp, [], []
         else:
             # No user queries so take the first N trace ids as our list
+            min_timestamp = snuba_params.end
+            max_timestamp = snuba_params.start
+            assert min_timestamp is not None
+            assert max_timestamp is not None
+
             trace_ids = trace_ids[: self.limit]
             timestamps = timestamps[: self.limit]
             for timestamp in timestamps:
                 if timestamp < min_timestamp:
                     min_timestamp = timestamp
-                if timestamp < max_timestamp:
+                if timestamp > max_timestamp:
                     max_timestamp = timestamp
 
         self.refine_params(min_timestamp, max_timestamp)
@@ -637,6 +643,8 @@ class TraceSamplesExecutor:
         # mapping of trace id to a tuple of project slug + transaction name
         traces_names: MutableMapping[str, tuple[str, str]] = {}
         for row in traces_breakdown_projects_results["data"]:
+            if row["trace"] in traces_names:
+                continue
             # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
             # So make sure to handle both in case something changes.
             if not row["parent_span"] or int(row["parent_span"], 16) == 0:
@@ -706,6 +714,7 @@ class TraceSamplesExecutor:
             selected_columns=[
                 "trace",
                 "project",
+                "sdk.name",
                 "parent_span",
                 "transaction",
                 "precise.start_ts",
@@ -748,6 +757,7 @@ class TraceSamplesExecutor:
                 "project",
                 "transaction",
                 "span.category",
+                "sdk.name",
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
@@ -986,6 +996,7 @@ def process_breakdowns(data, traces_range):
         return (
             interval_a["end"] >= interval_b["start"]
             and interval_a["project"] == interval_b["project"]
+            and interval_a["sdkName"] == interval_b["sdkName"]
             and interval_a["opCategory"] == interval_b["opCategory"]
         )
 
@@ -1014,6 +1025,7 @@ def process_breakdowns(data, traces_range):
                 {
                     "kind": "missing",
                     "project": None,
+                    "sdkName": None,
                     "opCategory": None,
                     "start": last_interval["end"],
                     "end": interval["start"],
@@ -1069,6 +1081,7 @@ def process_breakdowns(data, traces_range):
         cur: TraceInterval = {
             "kind": "project",
             "project": row["project"],
+            "sdkName": row["sdk.name"],
             "opCategory": row.get("span.category"),
             "start": span_start,
             "end": span_end,
@@ -1092,6 +1105,7 @@ def process_breakdowns(data, traces_range):
         other: TraceInterval = {
             "kind": "other",
             "project": None,
+            "sdkName": None,
             "opCategory": None,
             "start": trace_range["start"],
             "end": trace_range["end"],

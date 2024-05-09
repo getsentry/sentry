@@ -36,7 +36,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         Retrieves API Key details
         `````````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team belongs to.
         :pparam string api_key_id: the ID of the api key to delete
         :auth: required
@@ -53,7 +53,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         Update an API Key
         `````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team belongs to.
         :pparam string api_key_id: the ID of the api key to delete
         :param string label: the new label for the api key
@@ -89,7 +89,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         Deletes an API Key
         ``````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team belongs to.
         :pparam string api_key_id: the ID of the api key to delete
         :auth: required

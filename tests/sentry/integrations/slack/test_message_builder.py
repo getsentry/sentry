@@ -26,7 +26,7 @@ from sentry.integrations.slack.message_builder.time_utils import time_since
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
-    MonitorCheckInFailure,
+    MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
@@ -1155,7 +1155,7 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
         ) == ([], "", False)
 
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_identity_and_action_has_action(self):
         # returns True to indicate to use the white circle emoji
         group = self.create_group(project=self.project)
@@ -1321,7 +1321,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             type=PerformanceP95EndpointRegressionGroupType.type_id
         )
 
-        self.cron_issue = self.create_group(type=MonitorCheckInFailure.type_id)
+        self.cron_issue = self.create_group(type=MonitorIncidentType.type_id)
         self.feedback_issue = self.create_group(
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )

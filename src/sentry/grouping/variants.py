@@ -29,6 +29,11 @@ class BaseVariant:
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BaseVariant):
+            return NotImplemented
+        return self.as_dict() == other.as_dict()
+
 
 KeyedVariants = KeyedList[BaseVariant]
 

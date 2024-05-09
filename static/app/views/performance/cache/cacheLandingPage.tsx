@@ -54,21 +54,25 @@ export function CacheLandingPage() {
     isLoading: isCacheHitRateLoading,
     data: cacheHitRateData,
     error: cacheHitRateError,
-  } = useSpanMetricsSeries({
-    yAxis: [`${CACHE_MISS_RATE}()`],
-    search: MutableSearch.fromQueryObject(BASE_FILTERS),
-    referrer: Referrer.LANDING_CACHE_HIT_MISS_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      yAxis: [`${CACHE_MISS_RATE}()`],
+      search: MutableSearch.fromQueryObject(BASE_FILTERS),
+    },
+    Referrer.LANDING_CACHE_HIT_MISS_CHART
+  );
 
   const {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(BASE_FILTERS),
-    yAxis: ['spm()'],
-    referrer: Referrer.LANDING_CACHE_THROUGHPUT_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(BASE_FILTERS),
+      yAxis: ['spm()'],
+    },
+    Referrer.LANDING_CACHE_THROUGHPUT_CHART
+  );
 
   const {
     isLoading: isTransactionsListLoading,
@@ -76,23 +80,25 @@ export function CacheLandingPage() {
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(BASE_FILTERS),
-    fields: [
-      'project',
-      'project.id',
-      'transaction',
-      'spm()',
-      `${CACHE_MISS_RATE}()`,
-      'sum(span.self_time)',
-      'time_spent_percentage()',
-      `avg(${CACHE_ITEM_SIZE})`,
-    ],
-    sorts: [sort],
-    cursor,
-    limit: TRANSACTIONS_TABLE_ROW_COUNT,
-    referrer: Referrer.LANDING_CACHE_TRANSACTION_LIST,
-  });
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(BASE_FILTERS),
+      fields: [
+        'project',
+        'project.id',
+        'transaction',
+        'spm()',
+        `${CACHE_MISS_RATE}()`,
+        'sum(span.self_time)',
+        'time_spent_percentage()',
+        `avg(${CACHE_ITEM_SIZE})`,
+      ],
+      sorts: [sort],
+      cursor,
+      limit: TRANSACTIONS_TABLE_ROW_COUNT,
+    },
+    Referrer.LANDING_CACHE_TRANSACTION_LIST
+  );
 
   const {
     data: transactionDurationData,

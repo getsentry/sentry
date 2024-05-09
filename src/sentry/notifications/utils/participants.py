@@ -483,7 +483,7 @@ def _get_users_from_team_fall_back(
     teams: Iterable[RpcActor],
     recipients_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]],
 ) -> Iterable[RpcUser]:
-    assert all(team.actor_type == ActorType.TEAM for team in teams)
+    assert all(team.is_team for team in teams)
 
     teams_to_fall_back = set(teams)
     for recipients in recipients_by_provider.values():

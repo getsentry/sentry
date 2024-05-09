@@ -1,3 +1,4 @@
+import orjson
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -15,7 +16,7 @@ from sentry.db.models import (
 )
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releases.constants import DB_VERSION_LENGTH
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 
 @region_silo_model
@@ -116,11 +117,10 @@ class GroupResolution(Model):
                     # If current_release_version == release.version => 0
                     # If current_release_version < release.version => -1
                     # If current_release_version > release.version => 1
-                    json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
                     current_release_raw = parse_release(
-                        current_release_version, json_loads=json_loads
+                        current_release_version, json_loads=orjson.loads
                     ).get("version_raw")
-                    release_raw = parse_release(release.version, json_loads=json_loads).get(
+                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
                         "version_raw"
                     )
                     return compare_version_relay(current_release_raw, release_raw) >= 0
@@ -162,11 +162,10 @@ class GroupResolution(Model):
                 try:
                     # A resolution only exists if the resolved release is greater (in semver
                     # terms) than the provided release
-                    json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
-                    res_release_raw = parse_release(res_release_version, json_loads=json_loads).get(
-                        "version_raw"
-                    )
-                    release_raw = parse_release(release.version, json_loads=json_loads).get(
+                    res_release_raw = parse_release(
+                        res_release_version, json_loads=orjson.loads
+                    ).get("version_raw")
+                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
                         "version_raw"
                     )
                     return compare_version_relay(res_release_raw, release_raw) == 1

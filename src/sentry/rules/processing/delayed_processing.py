@@ -1,10 +1,8 @@
 import logging
 import uuid
 from collections import defaultdict
-from datetime import timedelta
-from typing import DefaultDict, NamedTuple
-
-from django.utils import timezone
+from datetime import datetime, timedelta, timezone
+from typing import Any, DefaultDict, NamedTuple
 
 from sentry import eventstore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
@@ -14,6 +12,7 @@ from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
     BaseEventFrequencyCondition,
@@ -21,6 +20,7 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyConditionData,
 )
 from sentry.rules.processing.processor import (
+    PROJECT_ID_BUFFER_LIST_KEY,
     activate_downstream_actions,
     bulk_get_rule_status,
     is_condition_slow,
@@ -32,9 +32,6 @@ from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
-
-
-PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
 class UniqueCondition(NamedTuple):
@@ -241,10 +238,14 @@ def get_group_to_groupevent(
 @redis_buffer_registry.add_handler(BufferHookEvent.FLUSH)
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
-        project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-        for project_id in project_ids:
-            with metrics.timer("delayed_processing.process_project.duration"):
-                apply_delayed.delay(project_id=project_id)
+        fetch_time = datetime.now(tz=timezone.utc)
+        project_ids = buffer.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp()
+        )
+        for project_id, _ in project_ids:
+            apply_delayed.delay(project_id)
+
+        buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
 
 @instrumented_task(
@@ -256,7 +257,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int) -> None:
+def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
@@ -269,7 +270,10 @@ def apply_delayed(project_id: int) -> None:
 
     # STEP 3: Fetch the Rule models we need to check
     alert_rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
-
+    snoozed_rules = set(
+        RuleSnooze.objects.filter(rule__in=alert_rules, user_id=None).values_list("rule", flat=True)
+    )
+    alert_rules = [rule for rule in alert_rules if rule.id not in snoozed_rules]
     # STEP 4: Create a map of unique conditions to a tuple containing the JSON
     # information needed to instantiate that condition class and the group_ids that
     # must be checked for that condition. We don't query per rule condition because
@@ -281,14 +285,13 @@ def apply_delayed(project_id: int) -> None:
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
     rule_to_slow_conditions = get_rule_to_slow_conditions(alert_rules)
-
+    rules_to_fire = defaultdict(set)
     if condition_group_results:
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
     # Step 7: Fire the rule's actions
-    now = timezone.now()
-    # TODO: check rulesnooze table again before firing
+    now = datetime.now(tz=timezone.utc)
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
 
     for rule, group_ids in rules_to_fire.items():
@@ -319,3 +322,13 @@ def apply_delayed(project_id: int) -> None:
                 rule, groupevent, notification_uuid, rule_fire_history
             ).values():
                 safe_execute(callback, groupevent, futures, _with_transaction=False)
+
+    # Step 8: Clean up Redis buffer data
+    hashes_to_delete = [
+        f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
+    ]
+    buffer.delete_hash(
+        model=Project,
+        filters={"project_id": project_id},
+        fields=hashes_to_delete,
+    )

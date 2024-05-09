@@ -35,7 +35,7 @@ describe('DatabaseSpanSummaryPage', function () {
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
-    query: {statsPeriod: '10d', transactionsCursor: '0:20:0'},
+    query: {statsPeriod: '10d', transactionsCursor: '0:25:0'},
     hash: '',
     state: undefined,
     action: 'PUSH',
@@ -131,11 +131,9 @@ describe('DatabaseSpanSummaryPage', function () {
         {...RouteComponentPropsFixture({})}
         params={{
           groupId: '1756baf8fd19c116',
-          endpoint: '',
-          endpointMethod: '',
           transaction: '',
           transactionMethod: '',
-          spansSort: '',
+          transactionsSort: '',
         }}
       />
     );
@@ -260,6 +258,7 @@ describe('DatabaseSpanSummaryPage', function () {
             'http_error_count()',
           ],
           per_page: 25,
+          cursor: '0:25:0',
           project: [],
           query: 'span.group:1756baf8fd19c116',
           sort: '-time_spent_percentage()',
@@ -329,7 +328,7 @@ describe('DatabaseSpanSummaryPage', function () {
     expect(screen.getByRole('cell', {name: 'GET /api/users'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'GET /api/users'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/starfish/spans/span/1756baf8fd19c116?statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
+      '/organizations/org-slug/performance/database/spans/span/1756baf8fd19c116?statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A25%3A0'
     );
     expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '204.50ms'})).toBeInTheDocument();
