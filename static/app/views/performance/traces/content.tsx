@@ -435,6 +435,7 @@ function useTraces<F extends string>({
       suggestedQuery,
       sort,
       per_page: limit,
+      minBreakdownPercentage: 1 / 40,
       maxSpansPerTrace: 5,
       mri,
       metricsQuery,
@@ -523,14 +524,14 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
   ${p =>
     p.highlightedSliceName
       ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
-         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(-2px);
+         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
        `
       : null}
   ${p =>
     p.highlightedSliceName
       ? `
-        --defaultSlice-opacity: 0.3;
-        --defaultSlice-transform: translateY(1px);
+        --defaultSlice-opacity: 1.0;
+        --defaultSlice-transform: translateY(0px);
         `
       : `
         --defaultSlice-opacity: 1.0;

@@ -62,3 +62,14 @@ export function generateTracesRouteWithQuery({
     },
   };
 }
+
+export function getShortenedSdkName(sdkName: string | null) {
+  if (!sdkName) {
+    return '';
+  }
+  const sdkNameParts = sdkName.split('.');
+  if (sdkNameParts.length <= 1) {
+    return sdkName;
+  }
+  return sdkNameParts[sdkNameParts.length - 1];
+}
