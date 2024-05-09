@@ -226,37 +226,20 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
     return bulk_event_id_to_events
 
 
-def get_group_to_groupevent(
+def build_group_to_groupevent(
     parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
-    project_id: int,
-    group_ids: set[int],
+    bulk_event_id_to_events: dict[str, Event],
+    bulk_occurrence_id_to_occurrence: dict[int, IssueOccurrence],
+    group_id_to_group: dict[int, Group],
 ) -> dict[Group, GroupEvent]:
     group_to_groupevent: dict[Group, GroupEvent] = {}
-    groups = Group.objects.filter(id__in=group_ids)
-    group_id_to_group = {group.id: group for group in groups}
-    event_ids: set[str] = set()
-    occurrence_ids: list[str] = []
-
-    for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
-        event_id = instance_data.get("event_id")
-        group_id = rule_group[1]
-        if event_id:
-            event_ids.add(event_id)
-        occurrence_id = instance_data.get("occurrence_id")
-        if occurrence_id:
-            occurrence_ids.append(occurrence_id)
-
-    bulk_event_id_to_events = bulk_fetch_events(list(event_ids), project_id)
-    bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
-    bulk_occurrence_id_to_occurrence = {
-        occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
-    }
 
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
         occurrence_id = instance_data.get("occurrence_id")
         group_id = rule_group[1]
         group_event = None
+        occurrence = None
 
         if event_id:
             event = bulk_event_id_to_events.get(event_id)
@@ -272,6 +255,38 @@ def get_group_to_groupevent(
         if group_event:
             group_to_groupevent[group] = group_event
 
+    return group_to_groupevent
+
+
+def get_group_to_groupevent(
+    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    project_id: int,
+    group_ids: set[int],
+) -> dict[Group, GroupEvent]:
+    groups = Group.objects.filter(id__in=group_ids)
+    group_id_to_group = {group.id: group for group in groups}
+    event_ids: set[str] = set()
+    occurrence_ids: list[str] = []
+
+    for _, instance_data in parsed_rulegroup_to_event_data.items():
+        event_id = instance_data.get("event_id")
+        if event_id:
+            event_ids.add(event_id)
+        occurrence_id = instance_data.get("occurrence_id")
+        if occurrence_id:
+            occurrence_ids.append(occurrence_id)
+
+    bulk_event_id_to_events = bulk_fetch_events(list(event_ids), project_id)
+    bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
+    bulk_occurrence_id_to_occurrence = {
+        occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
+    }
+    group_to_groupevent = build_group_to_groupevent(
+        parsed_rulegroup_to_event_data,
+        bulk_event_id_to_events,
+        bulk_occurrence_id_to_occurrence,
+        group_id_to_group,
+    )
     return group_to_groupevent
 
 
