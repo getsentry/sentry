@@ -36,8 +36,7 @@ type Props = React.ComponentProps<typeof Tags> & {
   isShare?: boolean;
 };
 
-export function EventTagsAndScreenshot({project, event, isShare = false}: Props) {
-  const projectSlug = project.slug;
+export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const hasNewTagsUI = useHasNewTagsUI();
@@ -125,7 +124,7 @@ export function EventTagsAndScreenshot({project, event, isShare = false}: Props)
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       <TagWrapper hasNewTagsUI={hasNewTagsUI}>
-        {showTags && <Tags event={event} project={project} />}
+        {showTags && <Tags event={event} projectSlug={projectSlug} />}
       </TagWrapper>
       {showScreenshot && (
         <div>

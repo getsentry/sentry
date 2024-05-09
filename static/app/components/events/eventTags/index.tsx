@@ -21,7 +21,7 @@ import EventTagsPill from './eventTagsPill';
 
 type Props = {
   event: Event;
-  project: Project;
+  projectSlug: Project['slug'];
   filteredTags?: EventTag[];
   tagFilter?: TagFilter;
 };
@@ -31,7 +31,7 @@ const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
 export function EventTags({
   event,
   filteredTags,
-  project,
+  projectSlug,
   tagFilter = TagFilter.ALL,
 }: Props) {
   const location = useLocation();
@@ -113,7 +113,7 @@ export function EventTags({
   return (
     <Fragment>
       {hasNewTagsUI ? (
-        <EventTagsTree event={event} tags={tags} meta={meta} project={project} />
+        <EventTagsTree event={event} meta={meta} projectSlug={projectSlug} tags={tags} />
       ) : (
         <StyledClippedBox clipHeight={150}>
           <Pills>
@@ -121,7 +121,7 @@ export function EventTags({
               <EventTagsPill
                 key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
                 tag={tag}
-                projectSlug={project.slug}
+                projectSlug={projectSlug}
                 projectId={projectId}
                 organization={organization}
                 query={generateQueryWithTag(

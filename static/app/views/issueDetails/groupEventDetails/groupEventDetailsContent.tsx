@@ -52,7 +52,6 @@ import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
@@ -94,18 +93,12 @@ function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProp
 function DefaultGroupEventDetailsContent({
   group,
   event,
-  project: projectSummary,
+  project,
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
   const hasNewTagsUI = useHasNewTagsUI();
-  const {
-    data: detailedProject,
-    isLoading,
-    isError,
-  } = useDetailedProject({orgSlug: organization.slug, projectSlug: projectSummary.slug});
-
-  const project = !isLoading && !isError ? detailedProject : projectSummary;
   const tagsRef = useRef<HTMLDivElement>(null);
+
   const projectSlug = project.slug;
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -178,7 +171,9 @@ function DefaultGroupEventDetailsContent({
         project={project}
         viewAllRef={tagsRef}
       />
-      {!hasNewTagsUI && <EventTagsAndScreenshot event={event} project={project} />}
+      {!hasNewTagsUI && (
+        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+      )}
       {showMaybeSolutionsHigher && (
         <ResourcesAndMaybeSolutionsIssueDetailsContent
           event={event}
@@ -219,7 +214,7 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       {hasNewTagsUI && (
         <div ref={tagsRef}>
-          <EventTagsAndScreenshot event={event} project={project} />
+          <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
         </div>
       )}
       <EventContexts group={group} event={event} />

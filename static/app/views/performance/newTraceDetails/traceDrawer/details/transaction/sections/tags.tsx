@@ -3,7 +3,7 @@ import type {Location} from 'history';
 
 import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {LazyRender} from 'sentry/components/lazyRender';
-import type {EventTransaction, Organization, Project} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -12,19 +12,18 @@ import type {
 import {TraceDrawerComponents} from '../../styles';
 
 export function EventTags({
+  node,
   event,
-  project,
 }: {
   event: EventTransaction;
   location: Location;
   node: TraceTreeNode<TraceTree.Transaction>;
   organization: Organization;
-  project: Project;
 }) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
       <TagsWrapper>
-        <NewTagsUI event={event} project={project} />
+        <NewTagsUI event={event} projectSlug={node.value.project_slug} />
       </TagsWrapper>
     </LazyRender>
   );

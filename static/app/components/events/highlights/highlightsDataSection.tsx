@@ -216,7 +216,7 @@ function HighlightsFeedback() {
   );
 }
 
-export default function HighlightDataSection({
+export default function HighlightsDataSection({
   viewAllRef,
   ...props
 }: HighlightsDataSectionProps) {

@@ -63,7 +63,7 @@ describe('EventTagsTree', function () {
   const referrer = 'event-tags-table';
 
   it('avoids tag tree without query param or flag', function () {
-    render(<EventTags project={project} event={event} />, {organization});
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
     tags.forEach(({key: fullTagKey, value}) => {
       expect(screen.getByText(fullTagKey)).toBeInTheDocument();
       expect(screen.getByText(value)).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe('EventTagsTree', function () {
 
   it('renders tag tree with query param', async function () {
     router.location.query.tagsTree = '1';
-    render(<EventTags project={project} event={event} />, {
+    render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
       router,
     });
@@ -119,7 +119,7 @@ describe('EventTagsTree', function () {
 
   it("renders tag tree with the 'event-tags-tree-ui' feature", async function () {
     const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
-    render(<EventTags project={project} event={event} />, {
+    render(<EventTags projectSlug={project.slug} event={event} />, {
       organization: featuredOrganization,
     });
     await assertNewTagsView();
@@ -145,7 +145,7 @@ describe('EventTagsTree', function () {
     const releaseEvent = EventFixture({
       tags: [{key: 'release', value: releaseVersion}],
     });
-    render(<EventTags project={project} event={releaseEvent} />, {
+    render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
       organization: featuredOrganization,
     });
     const versionText = screen.getByText<
@@ -217,7 +217,7 @@ describe('EventTagsTree', function () {
         features: ['event-tags-tree-ui'],
       });
       const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
-      render(<EventTags project={project} event={uniqueTagsEvent} />, {
+      render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization: featuredOrganization,
       });
       const dropdown = screen.getByLabelText('Tag Actions Menu');
@@ -262,7 +262,7 @@ describe('EventTagsTree', function () {
         {key: 'some-invalid-char-tag', value: null},
       ],
     });
-    render(<EventTags project={project} event={errorTagEvent} />, {
+    render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
       organization: featuredOrganization,
     });
 
@@ -283,7 +283,7 @@ describe('EventTagsTree', function () {
         {key: 'boring-tag', value: 'boring tag'},
       ],
     });
-    render(<EventTags project={project} event={uniqueTagsEvent} />, {
+    render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
       organization: featuredOrganization,
     });
 
@@ -302,7 +302,7 @@ describe('EventTagsTree', function () {
       ],
     });
     const highlightProject = {...project, highlightTags: ['highlighted-tag']};
-    render(<EventTags project={highlightProject} event={highlightsEvent} />, {
+    render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization: featuredOrganization,
     });
     const normalTagRow = screen

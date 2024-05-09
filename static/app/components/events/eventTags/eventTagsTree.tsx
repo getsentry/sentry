@@ -35,7 +35,7 @@ interface TagTreeColumnData {
 
 interface EventTagsTreeProps {
   event: Event;
-  project: Project;
+  projectSlug: Project['slug'];
   tags: EventTag[];
   meta?: Record<any, any>;
 }

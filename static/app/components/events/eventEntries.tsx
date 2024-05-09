@@ -101,7 +101,11 @@ function EventEntries({
         </EventDataSection>
       )}
       {showTagSummary && (
-        <EventTagsAndScreenshot event={event} project={project} isShare={isShare} />
+        <EventTagsAndScreenshot
+          event={event}
+          projectSlug={projectSlug}
+          isShare={isShare}
+        />
       )}
       <EventEvidence event={event} project={project} />
       <Entries
