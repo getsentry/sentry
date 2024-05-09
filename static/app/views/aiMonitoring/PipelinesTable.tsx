@@ -121,17 +121,18 @@ export function PipelinesTable() {
     'api.ai-pipelines.view'
   );
 
-  const {data: tokensUsedData, isLoading: tokensUsedLoading} = useSpanMetrics({
-    search: new MutableSearch(
-      `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
-    ),
-    fields: [
-      'span.ai.pipeline.group',
-      'ai_total_tokens_used()',
-      'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
-    ],
-  },
-    'use-span-metrics-default-please-update'  ); // TODO - update this reff
+  const {data: tokensUsedData, isLoading: tokensUsedLoading} = useSpanMetrics(
+    {
+      search: new MutableSearch(
+        `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
+      ),
+      fields: [
+        'span.ai.pipeline.group',
+        'ai_total_tokens_used()',
+        'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+      ],
+    },
+    'use-span-metrics-default-please-update' // TODO - update this reff
   );
 
   const rows: Row[] = (data as Row[]).map(baseRow => {
