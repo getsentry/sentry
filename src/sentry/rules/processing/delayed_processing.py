@@ -35,6 +35,7 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
+EVENT_LIMIT = 100
 
 
 class UniqueCondition(NamedTuple):
@@ -204,7 +205,6 @@ def parse_rulegroup_to_event_data(
 
 
 def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]:
-    event_limit = 100
     node_id_to_event_id: dict[str, str] = {
         Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
     }
@@ -212,7 +212,7 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
     fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
     bulk_data = {}
-    for node_id_chunk in chunked(node_ids, event_limit):
+    for node_id_chunk in chunked(node_ids, EVENT_LIMIT):
         bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
         bulk_data.update(bulk_results)
 
@@ -237,13 +237,18 @@ def build_group_to_groupevent(
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
         occurrence_id = instance_data.get("occurrence_id")
-        group_id = rule_group[1]
         occurrence = None
 
         if event_id:
             event = bulk_event_id_to_events.get(event_id)
-        group = group_id_to_group.get(int(group_id))
+        else:
+            logger.info("delayed_processing.missing_event_id", extra={"rule": rule_group[0]})
+        group = group_id_to_group.get(int(rule_group[1]))
         if not group or not event:
+            if not group:
+                logger.info("delayed_processing.missing_group", extra={"rule": rule_group[0]})
+            if not event:
+                logger.info("delayed_processing.missing_event", extra={"rule": rule_group[0]})
             continue
 
         group_event = event.for_group(group)
