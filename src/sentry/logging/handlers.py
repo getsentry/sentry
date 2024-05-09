@@ -53,15 +53,12 @@ _json_encoder_no_skipkeys = _json_encoder(skipkeys=False)
 
 class JSONRenderer:
     def __call__(self, logger, name, event_dict):
-        # importing inside of the function to avoid circular imports
-        from django.conf import settings
-
         try:
             return _json_encoder_no_skipkeys.encode(event_dict)
         except Exception:
             logging.warning("Failed to serialize event", exc_info=True)
             # in Production, we want to skip non-serializable keys, rather than raise an exception
-            if settings.DEBUG:
+            if logging.raiseExceptions:
                 raise
             else:
                 return _json_encoder_skipkeys.encode(event_dict)

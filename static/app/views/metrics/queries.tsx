@@ -19,10 +19,10 @@ import {
 } from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DDM_CHART_GROUP} from 'sentry/views/metrics/constants';
+import {METRIC_CHART_GROUP} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {FormulaInput} from 'sentry/views/metrics/formulaInput';
+import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/metrics/metricFormulaContextMenu';
 import {MetricQueryContextMenu} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
@@ -48,7 +48,7 @@ export function Queries() {
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
-    echarts.connect(DDM_CHART_GROUP);
+    echarts.connect(METRIC_CHART_GROUP);
   }, [widgets]);
 
   const handleChange = useCallback(
@@ -273,7 +273,7 @@ function Formula({
           type={MetricExpressionType.EQUATION}
         />
       )}
-      <FormulaInput
+      <EquationInput
         availableVariables={availableVariables}
         value={widget.formula}
         onChange={formula => handleChange({formula})}

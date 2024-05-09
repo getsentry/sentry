@@ -1,3 +1,4 @@
+import logging
 import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -48,7 +49,11 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source, log_skipped_job
+from sentry.dynamic_sampling.tasks.logging import (
+    log_project_with_zero_root_count,
+    log_sample_rate_source,
+    log_skipped_job,
+)
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
@@ -59,7 +64,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -71,6 +76,7 @@ from sentry.utils.snuba import raw_snql_query
 # This set contains all the projects for which we want to start extracting the sample rate over time. This is done
 # as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
 PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -84,6 +90,10 @@ PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
+    logger.info(
+        "boost_low_volume_projects",
+        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
+    )
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
         for (
             org_id,
@@ -110,6 +120,11 @@ def boost_low_volume_projects_of_org(
         tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
+
+    logger.info(
+        "boost_low_volume_projects_of_org",
+        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
+    )
     adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
 
@@ -293,6 +308,7 @@ def adjust_sample_rates_of_projects(
         # for it, thus we consider it as having 0 transactions for the query's time window.
         if project_id not in projects_with_counts:
             projects_with_counts[project_id] = 0
+            log_project_with_zero_root_count(org_id=org_id, project_id=project_id)
 
     projects = []
     for project_id, count_per_root in projects_with_counts.items():

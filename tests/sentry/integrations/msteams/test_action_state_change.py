@@ -1,6 +1,7 @@
 import time
 from unittest.mock import patch
 
+import orjson
 import responses
 from django.http import HttpResponse
 from django.urls import reverse
@@ -15,12 +16,11 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.identity import Identity, IdentityStatus
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -125,12 +125,12 @@ class StatusActionTest(APITestCase):
         sign.return_value = "signed_parameters"
 
         def user_conversation_id_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "s4ur0n"}] and payload["channelData"] == {
                 "tenant": {"id": "7h3_gr347"}
             }:
-                return (200, {}, json.dumps({"id": "d4rk_l0rd"}))
-            return (404, {}, json.dumps({}))
+                return 200, {}, orjson.dumps({"id": "d4rk_l0rd"}).decode()
+            return 404, {}, orjson.dumps({}).decode()
 
         responses.add_callback(
             method=responses.POST,
@@ -159,7 +159,7 @@ class StatusActionTest(APITestCase):
             self.integration, self.org, "s4ur0n", "f3ll0wsh1p", "7h3_gr347"
         )
 
-        data = json.loads(responses.calls[1].request.body)
+        data = orjson.loads(responses.calls[1].request.body)
 
         assert resp.status_code == 201
         assert "attachments" in data

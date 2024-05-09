@@ -1,21 +1,25 @@
+import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DurationUnit, RateUnit, type Sort} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
+import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
+import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -24,51 +28,42 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
-import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
-import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 type Query = {
-  endpoint: string;
-  endpointMethod: string;
   transaction: string;
   transactionMethod: string;
-  [QueryParameterNames.SPANS_SORT]: string;
+  [QueryParameterNames.TRANSACTIONS_SORT]: string;
   aggregate?: string;
 };
 
-type Props = {
-  location: Location<Query>;
-} & RouteComponentProps<Query, {groupId: string}>;
+type Props = RouteComponentProps<Query, {groupId: string}>;
 
-function SpanSummaryPage({params}: Props) {
+export function DatabaseSpanSummaryPage({params}: Props) {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
   const [selectedAggregate] = useSelectedDurationAggregate();
 
   const {groupId} = params;
-  const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
+  const {transaction, transactionMethod} = location.query;
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
   };
 
-  if (endpoint) {
-    filters.transaction = endpoint;
-  }
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
-  if (endpointMethod) {
-    filters['transaction.method'] = endpointMethod;
-  }
+  // TODO: Fetch sort information using `useLocationQuery`
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
+  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
   const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics({
     search: MutableSearch.fromQueryObject(filters),
@@ -89,6 +84,29 @@ function SpanSummaryPage({params}: Props) {
   });
 
   const spanMetrics = data[0] ?? {};
+
+  const {
+    isLoading: isTransactionsListLoading,
+    data: transactionsList,
+    meta: transactionsListMeta,
+    error: transactionsListError,
+    pageLinks: transactionsListPageLinks,
+  } = useSpanMetrics({
+    search: MutableSearch.fromQueryObject(filters),
+    fields: [
+      'transaction',
+      'transaction.method',
+      'spm()',
+      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+      'time_spent_percentage()',
+      `${SpanFunction.HTTP_ERROR_COUNT}()`,
+    ],
+    sorts: [sort],
+    limit: TRANSACTIONS_TABLE_ROW_COUNT,
+    cursor,
+    referrer: 'api.starfish.span-transaction-metrics',
+  });
 
   const span = {
     ...spanMetrics,
@@ -126,11 +144,7 @@ function SpanSummaryPage({params}: Props) {
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
-      baseURL="/performance/database"
-      features="spans-first-ui"
-    >
+    <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -154,12 +168,15 @@ function SpanSummaryPage({params}: Props) {
           />
           <Layout.Title>{t('Query Summary')}</Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
-
           <HeaderContainer>
             <PageFilterBar condensed>
               <EnvironmentPageFilter />
@@ -226,11 +243,14 @@ function SpanSummaryPage({params}: Props) {
 
             {span && (
               <ModuleLayout.Full>
-                <SpanTransactionsTable
+                <QueryTransactionsTable
                   span={span}
+                  data={transactionsList}
+                  error={transactionsListError}
+                  isLoading={isTransactionsListLoading}
+                  meta={transactionsListMeta}
+                  pageLinks={transactionsListPageLinks}
                   sort={sort}
-                  endpoint={endpoint}
-                  endpointMethod={endpointMethod}
                 />
               </ModuleLayout.Full>
             )}
@@ -243,14 +263,16 @@ function SpanSummaryPage({params}: Props) {
           />
         </Layout.Main>
       </Layout.Body>
-    </ModulePageProviders>
+    </Fragment>
   );
 }
 
-const DEFAULT_SORT: Sort = {
-  kind: 'desc',
-  field: 'time_spent_percentage()',
+const DEFAULT_SORT = {
+  kind: 'desc' as const,
+  field: 'time_spent_percentage()' as const,
 };
+
+const TRANSACTIONS_TABLE_ROW_COUNT = 25;
 
 const ChartContainer = styled('div')`
   display: grid;
@@ -279,4 +301,16 @@ const MetricsRibbon = styled('div')`
   gap: ${space(4)};
 `;
 
-export default SpanSummaryPage;
+function PageWithProviders(props) {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
+      baseURL="/performance/database"
+      features="spans-first-ui"
+    >
+      <DatabaseSpanSummaryPage {...props} />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;

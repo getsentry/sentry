@@ -142,9 +142,9 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+            RateLimitCategory.IP: RateLimit(limit=20, window=1),
+            RateLimitCategory.USER: RateLimit(limit=20, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
         }
     }
     permission_classes = (OrganizationAndStaffPermission,)
@@ -168,7 +168,10 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         with self.handle_query_errors():
 
             if features.has("organizations:metrics-stats", organization):
-                if request.GET.get("category") == "metrics":
+                if (
+                    request.GET.get("category") == "metrics"
+                    or request.GET.get("category") == "metricSecond"
+                ):
                     # TODO(metrics): align project resolution
                     result = run_metrics_outcomes_query(
                         request.GET,

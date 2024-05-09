@@ -4,7 +4,8 @@ import type {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {ChildrenProps as SpanExamplesProps} from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
@@ -17,6 +18,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
@@ -51,6 +53,13 @@ export default function SpanDetailsContentWrapper(props: Props) {
   useRouteAnalyticsParams({
     project_platforms: project ? getSelectedProjectPlatforms(location, [project]) : '',
   });
+
+  const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
+
+  // TODO: When this feature is rolled out to GA, we will no longer need the entire `spanDetails` directory and can switch to `spanSummary`
+  if (hasNewSpansUIFlag) {
+    return <SpanSummary {...props} />;
+  }
 
   return (
     <Fragment>

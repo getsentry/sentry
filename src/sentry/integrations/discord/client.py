@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+import orjson
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -14,7 +15,7 @@ from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
 
 # to avoid a circular import
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.discord")
 
@@ -47,6 +48,7 @@ class DiscordClient(ApiClient):
     _METRICS_FAILURE_KEY: str = "sentry.integrations.discord.failure"
     _METRICS_SUCCESS_KEY: str = "sentry.integrations.discord.success"
     _METRICS_USER_ERROR_KEY: str = "sentry.integrations.discord.failure.user_error"
+    _METRICS_RATE_LIMIT_KEY: str = "sentry.integrations.discord.failure.rate_limit"
 
     def __init__(self):
         super().__init__()
@@ -147,12 +149,14 @@ class DiscordClient(ApiClient):
         }
 
         if not is_ok or error:
-            self._handle_failure(log_params=log_params, resp=resp)
+            code_to_use = code if isinstance(code, int) else None
+            self._handle_failure(code=code_to_use, log_params=log_params, resp=resp)
         else:
             self._handle_success(log_params=log_params)
 
     def _handle_failure(
         self,
+        code: int | None,
         log_params: dict[str, Any],
         resp: Response | None = None,
     ) -> None:
@@ -164,7 +168,7 @@ class DiscordClient(ApiClient):
         if resp is not None:
             # Try to get the additional error code that Discord sent us to help determine what specific error happened
             try:
-                discord_error_response = json.loads(resp.content.decode("utf-8"))
+                discord_error_response = orjson.loads(resp.content)
                 log_params["discord_error_response"] = discord_error_response
             except Exception as err:
                 self.logger.info(
@@ -187,7 +191,15 @@ class DiscordClient(ApiClient):
         is_user_error = discord_error_code in DISCORD_USER_ERRORS
         log_params["is_user_error"] = is_user_error
 
-        metrics_key = self._METRICS_USER_ERROR_KEY if is_user_error else self._METRICS_FAILURE_KEY
+        if is_user_error:
+            metrics_key = self._METRICS_USER_ERROR_KEY
+        else:
+            metrics_key = (
+                self._METRICS_RATE_LIMIT_KEY
+                if code is not None and code == status.HTTP_429_TOO_MANY_REQUESTS
+                else self._METRICS_FAILURE_KEY
+            )
+
         metrics.incr(
             metrics_key,
             sample_rate=1.0,

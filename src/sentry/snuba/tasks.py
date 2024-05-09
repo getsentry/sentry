@@ -9,7 +9,6 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
-from sentry.features.rollout import in_random_rollout
 from sentry.models.environment import Environment
 from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -23,7 +22,7 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
 
 if TYPE_CHECKING:
@@ -253,10 +252,7 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
 
     entity_key = get_entity_key_from_request(snql_query)
 
-    if in_random_rollout("snuba.snql.enable-orjson"):
-        post_body: str | bytes = orjson.dumps(body)
-    else:
-        post_body = json.dumps(body)
+    post_body: str | bytes = orjson.dumps(body)
     response = _snuba_pool.urlopen(
         "POST",
         f"/{snuba_query.dataset}/{entity_key.value}/subscriptions",
@@ -266,10 +262,7 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
 
-    if in_random_rollout("snuba.snql.enable-orjson"):
-        with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-            return orjson.loads(response.data)["subscription_id"]
-    return json.loads(response.data)["subscription_id"]
+    return orjson.loads(response.data)["subscription_id"]
 
 
 def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: EntityKey) -> None:

@@ -12,7 +12,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
@@ -46,8 +46,8 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     ) -> list[QuerySubscription]:
         """
         TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
+
         NOTE: import AlertRule model here to avoid circular dependency
-        TODO: move once AlertRule has been split into separate subdirectory files
         """
         from sentry.incidents.models.alert_rule import AlertRule
 
@@ -56,7 +56,8 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             project=project,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
             query_extra=query_extra,
-            trigger=trigger,
+            origin=trigger,
+            activator=release.version,
         )
 
     def post_save(self, instance, created, **kwargs):
@@ -72,7 +73,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         self._on_post(project=instance.project, trigger="releaseproject.post_delete")
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

@@ -42,7 +42,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         operation_id="Get list of user who have viewed a replay",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ReplayParams.REPLAY_ID,
         ],
         responses={
@@ -84,11 +84,11 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
         if viewed_by_ids == []:
             return Response({"data": {"viewed_by": []}}, status=200)
 
-        # Note: in the rare/error case where Snuba returns non-existent user ids, this fx will filter them out.
         serialized_users = user_service.serialize_many(
-            filter=dict(user_ids=viewed_by_ids),
+            filter=dict(user_ids=viewed_by_ids, organization_id=project.organization.id),
             as_user=serialize_generic_user(request.user),
         )
+
         serialized_users = [_normalize_user(user) for user in serialized_users]
 
         return Response({"data": {"viewed_by": serialized_users}}, status=200)
@@ -104,6 +104,11 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             replay_id = str(uuid.UUID(replay_id))
         except ValueError:
             return Response(status=404)
+
+        user_orgs = user_service.get_organizations(user_id=request.user.id)
+        if project.organization.id not in [org.id for org in user_orgs]:
+            # If the user is not in the same organization as the replay, we don't need to do anything.
+            return Response(status=204)
 
         # make a query to avoid overwriting the `finished_at` column
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)

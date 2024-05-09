@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from sentry.backup.dependencies import dependencies, get_exportable_sentry_models, get_model_name
 from sentry.backup.scopes import RelocationScope
-from sentry.models.actor import Actor
-from sentry.models.team import Team
 from tests.sentry.backup.test_exhaustive import EXHAUSTIVELY_TESTED, UNIQUENESS_TESTED
 from tests.sentry.backup.test_imports import COLLISION_TESTED
 from tests.sentry.backup.test_models import DYNAMIC_RELOCATION_SCOPE_TESTED
 from tests.sentry.backup.test_releases import RELEASE_TESTED
+from tests.sentry.backup.test_sanitize import SANITIZATION_TESTED
 
 ALL_EXPORTABLE_MODELS = {get_model_name(c) for c in get_exportable_sentry_models()}
 
@@ -60,10 +59,6 @@ def test_exportable_final_derivations_of_sentry_model_are_collision_tested():
             if necessitates_collision_test:
                 want_collision_tested.add(model_relations.model)
 
-    # TODO(hybrid-cloud): Remove after actor refactor completed.
-    want_collision_tested.remove(Actor)
-    want_collision_tested.remove(Team)
-
     untested = {get_model_name(m) for m in want_collision_tested} - COLLISION_TESTED
     assert not {str(u) for u in untested}
 
@@ -75,6 +70,11 @@ def test_exportable_final_derivations_of_sentry_model_are_exhaustively_tested():
 
 def test_exportable_final_derivations_of_sentry_model_are_release_tested_at_head():
     untested = ALL_EXPORTABLE_MODELS - RELEASE_TESTED
+    assert not {str(u) for u in untested}
+
+
+def test_exportable_final_derivations_of_sentry_model_are_sanitization_tested_at_head():
+    untested = ALL_EXPORTABLE_MODELS - SANITIZATION_TESTED
     assert not {str(u) for u in untested}
 
 

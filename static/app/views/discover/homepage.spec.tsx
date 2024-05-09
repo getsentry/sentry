@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -14,6 +13,7 @@ import {
 
 import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -56,6 +56,10 @@ describe('Discover > Homepage', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      body: '',
     });
     mockHomepage = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',

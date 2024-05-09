@@ -71,7 +71,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         If this is taken, a random three letter suffix is added as needed
         (eg: ...-gnm, ...-zls). Then create a new project bound to this team
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string name: the name for the new project.
         :param string platform: the optional platform that this project is for.

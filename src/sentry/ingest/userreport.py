@@ -32,7 +32,8 @@ def save_userreport(
     start_time=None,
 ):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
-
+        if is_org_in_denylist(project.organization):
+            return
         if should_filter_user_report(report["comments"]):
             return
 
@@ -94,10 +95,23 @@ def save_userreport(
 
         user_feedback_received.send(project=project, sender=save_userreport)
 
-        if (
-            features.has("organizations:user-feedback-ingest", project.organization, actor=None)
-            and event
-        ):
+        has_feedback_ingest = features.has(
+            "organizations:user-feedback-ingest", project.organization, actor=None
+        )
+        logger.info(
+            "ingest.user_report",
+            extra={
+                "project_id": project.id,
+                "event_id": report["event_id"],
+                "has_event": bool(event),
+                "has_feedback_ingest": has_feedback_ingest,
+            },
+        )
+        if has_feedback_ingest and event:
+            logger.info(
+                "ingest.user_report.shim_to_feedback",
+                extra={"project_id": project.id, "event_id": report["event_id"]},
+            )
             shim_to_feedback(report, event, project, source)
 
         return report_instance
@@ -129,4 +143,11 @@ def should_filter_user_report(comments: str):
         )
         return True
 
+    return False
+
+
+def is_org_in_denylist(organization):
+    if organization.slug in options.get("feedback.organizations.slug-denylist"):
+        metrics.incr("user_report.create_user_report.filtered", tags={"reason": "org.denylist"})
+        return True
     return False

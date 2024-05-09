@@ -4,22 +4,17 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {space} from 'sentry/styles/space';
+import type {DateString} from 'sentry/types/core';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,10 +24,9 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {useTraceMeta} from '../newTraceDetails/traceApi/useTraceMeta';
-
 import type {TraceResult} from './content';
 import type {Field} from './data';
+import {getStylingSliceName} from './utils';
 
 interface ProjectRendererProps {
   projectSlug: string;
@@ -61,17 +55,36 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
 export const TraceBreakdownContainer = styled('div')`
   position: relative;
   display: flex;
-  min-width: 150px;
-  height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  min-width: 200px;
+  height: 15px;
   background-color: ${p => p.theme.gray100};
 `;
 
-const RectangleTraceBreakdown = styled(RowRectangle)`
+const RectangleTraceBreakdown = styled(RowRectangle)<{
+  sliceColor: string;
+  sliceName: string | null;
+}>`
+  background-color: ${p => p.sliceColor};
   position: relative;
   width: 100%;
+  height: 15px;
+  ${p => `
+    opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
+  `}
+  ${p => `
+    transform: var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0));
+  `}
+  transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
-export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
+export function TraceBreakdownRenderer({
+  trace,
+  setHighlightedSliceName,
+}: {
+  setHighlightedSliceName: (sliceName: string) => void;
+
+  trace: TraceResult<Field>;
+}) {
   const theme = useTheme();
 
   return (
@@ -83,8 +96,16 @@ export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
             sliceName={breakdown.project}
             sliceStart={breakdown.start}
             sliceEnd={breakdown.end}
+            sliceSecondaryName={breakdown.sdkName}
             trace={trace}
             theme={theme}
+            onMouseEnter={() =>
+              breakdown.project
+                ? setHighlightedSliceName(
+                    getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
+                  )
+                : null
+            }
           />
         );
       })}
@@ -92,15 +113,22 @@ export function TraceBreakdownRenderer({trace}: {trace: TraceResult<Field>}) {
   );
 }
 
+const BREAKDOWN_BAR_SIZE = 200;
+const BREAKDOWN_QUANTIZE_STEP = 5;
+
 export function SpanBreakdownSliceRenderer({
   trace,
   theme,
   sliceName,
   sliceStart,
   sliceEnd,
+  sliceSecondaryName,
+  onMouseEnter,
 }: {
+  onMouseEnter: () => void;
   sliceEnd: number;
   sliceName: string | null;
+  sliceSecondaryName: string | null;
   sliceStart: number;
   theme: Theme;
   trace: TraceResult<Field>;
@@ -112,16 +140,44 @@ export function SpanBreakdownSliceRenderer({
   if (sliceDuration <= 0) {
     return null;
   }
-  const sliceColor = sliceName ? pickBarColor(sliceName) : theme.gray100;
-  const slicePercent = toPercent(sliceDuration / traceDuration);
+
+  const stylingSliceName = getStylingSliceName(sliceName, sliceSecondaryName);
+  const sliceColor = stylingSliceName ? pickBarColor(stylingSliceName) : theme.gray100;
+
+  const sliceWidth =
+    BREAKDOWN_QUANTIZE_STEP *
+    Math.ceil(
+      (BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * (sliceDuration / traceDuration)
+    );
   const relativeSliceStart = sliceStart - trace.start;
-  const sliceOffset = toPercent(relativeSliceStart / traceDuration);
+  const sliceOffset =
+    BREAKDOWN_QUANTIZE_STEP *
+    Math.floor(
+      ((BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * relativeSliceStart) /
+        traceDuration
+    );
   return (
-    <div style={{width: slicePercent, left: sliceOffset, position: 'absolute'}}>
+    <BreakdownSlice
+      sliceName={sliceName}
+      sliceOffset={sliceOffset}
+      sliceWidth={sliceWidth}
+      onMouseEnter={onMouseEnter}
+    >
       <Tooltip
         title={
           <div>
-            <div>{sliceName}</div>
+            <FlexContainer>
+              {sliceName ? <ProjectRenderer projectSlug={sliceName} hideName /> : null}
+              <strong>{sliceName}</strong>
+
+              {sliceSecondaryName ? (
+                <span>
+                  {'\u2014'}
+                  &nbsp;
+                  {sliceSecondaryName}
+                </span>
+              ) : null}
+            </FlexContainer>
             <div>
               <PerformanceDuration milliseconds={sliceDuration} abbreviation />
             </div>
@@ -129,16 +185,30 @@ export function SpanBreakdownSliceRenderer({
         }
         containerDisplayMode="block"
       >
-        <RectangleTraceBreakdown
-          style={{
-            backgroundColor: sliceColor,
-          }}
-          onClick={_ => {}}
-        />
+        <RectangleTraceBreakdown sliceColor={sliceColor} sliceName={stylingSliceName} />
       </Tooltip>
-    </div>
+    </BreakdownSlice>
   );
 }
+
+const FlexContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding-bottom: ${space(0.5)};
+`;
+
+const BreakdownSlice = styled('div')<{
+  sliceName: string | null;
+  sliceOffset: number;
+  sliceWidth: number;
+}>`
+  position: absolute;
+  width: max(3px, ${p => p.sliceWidth}px);
+  left: ${p => p.sliceOffset}px;
+  ${p => (p.sliceName ? null : 'z-index: -1;')}
+`;
 
 interface SpanIdRendererProps {
   projectSlug: string;
@@ -159,18 +229,12 @@ export function SpanIdRenderer({
   const organization = useOrganization();
 
   const target = generateLinkToEventInTraceView({
-    eventSlug: generateEventSlug({
-      id: transactionId,
-      project: projectSlug,
-    }),
+    projectSlug,
+    traceSlug: traceId,
+    timestamp,
+    eventId: transactionId,
     organization,
     location,
-    eventView: EventView.fromLocation(location),
-    dataRow: {
-      id: transactionId,
-      trace: traceId,
-      timestamp,
-    },
     spanId,
   });
 
@@ -201,12 +265,15 @@ export function TraceIdRenderer({
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    {},
     stringOrNumberTimestamp,
     transactionId
   );
 
-  return <Link to={target}>{getShortEventId(traceId)}</Link>;
+  return (
+    <Link to={target} style={{minWidth: '66px', textAlign: 'right'}}>
+      {getShortEventId(traceId)}
+    </Link>
+  );
 }
 
 interface TransactionRendererProps {
@@ -236,12 +303,11 @@ export function TransactionRenderer({
 }
 
 export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
-  const traceMeta = useTraceMeta(trace.trace);
   const organization = useOrganization();
 
-  const issueCount = !traceMeta.data
-    ? undefined
-    : traceMeta.data.errors + traceMeta.data.performance_issues;
+  const issueCount = trace.numErrors + trace.numOccurrences;
+
+  const issueText = issueCount >= 100 ? '99+' : issueCount === 0 ? '\u2014' : issueCount;
 
   return (
     <LinkButton
@@ -253,17 +319,27 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
       })}
       size="xs"
       icon={<IconIssues size="xs" />}
+      disabled={issueCount === 0}
+      style={{minHeight: '24px', height: '24px', minWidth: '44px'}}
     >
-      {issueCount !== undefined ? (
-        issueCount
-      ) : (
-        <LoadingIndicator
-          size={12}
-          mini
-          style={{height: '12px', width: '12px', margin: 0, marginRight: 0}}
-        />
-      )}
-      {issueCount === 100 && '+'}
+      {issueText}
     </LinkButton>
+  );
+}
+
+export function SpanTimeRenderer({
+  timestamp,
+  tooltipShowSeconds,
+}: {
+  timestamp: number;
+  tooltipShowSeconds?: boolean;
+}) {
+  const date = new Date(timestamp);
+  return (
+    <TimeSince
+      unitStyle="extraShort"
+      date={date}
+      tooltipShowSeconds={tooltipShowSeconds}
+    />
   );
 }

@@ -12,6 +12,7 @@ def use_redis_cluster(
     cluster_id: str = "cluster",
     high_watermark: int = 100,
     with_settings: dict[str, Any] | None = None,
+    with_options: dict[str, Any] | None = None,
 ) -> Generator[None, None, None]:
     # Cluster id needs to be different than "default" to distinguish redis instance with redis cluster.
 
@@ -31,6 +32,9 @@ def use_redis_cluster(
             }
         },
     }
+
+    if with_options:
+        options.update(with_options)
 
     settings = dict(with_settings or {})
     settings["SENTRY_PROCESSING_SERVICES"] = {"redis": {"redis": cluster_id}}

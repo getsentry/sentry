@@ -22,7 +22,7 @@ import {IconAdd, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,6 +35,7 @@ import {
 } from './components/cronsLandingPanel';
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
+import {OwnerFilter} from './components/ownerFilter';
 import type {Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
@@ -117,6 +118,15 @@ export default function Monitors() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Filters>
+              <OwnerFilter
+                selectedOwners={decodeList(router.location.query.owner)}
+                onChangeFilter={owner =>
+                  router.replace({
+                    ...router.location,
+                    query: {...router.location.query, owner},
+                  })
+                }
+              />
               <PageFilterBar>
                 <ProjectPageFilter resetParamsOnChange={['cursor']} />
                 <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
@@ -146,8 +156,11 @@ export default function Monitors() {
 }
 
 const Filters = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
+  display: flex;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+
+  > :last-child {
+    flex-grow: 1;
+  }
 `;

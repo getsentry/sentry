@@ -87,11 +87,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         allow_null=True,
     )
     aggregate = serializers.CharField(required=True, min_length=1)
-    owner = ActorField(
-        required=False,
-        allow_null=True,
-        as_actor=True,
-    )  # This will be set to required=True once the frontend starts sending it.
+
+    # This will be set to required=True once the frontend starts sending it.
+    owner = ActorField(required=False, allow_null=True)
+
     monitor_type = serializers.IntegerField(required=False, min_value=0)
     activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
 
@@ -129,13 +128,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         AlertRuleThresholdType.ABOVE: lambda threshold: threshold + 100,
         AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
     }
-
-    def validate_owner(self, owner):
-        # owner should be team:id or user:id
-        if owner is None:
-            return
-
-        return owner
 
     def validate_query(self, query):
         query_terms = query.split()
@@ -503,6 +495,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
+        if "monitor_type" in validated_data:
+            """
+            TODO: enable monitor type editing
+            requires creating/disabling activations accordingly
+            """
+            validated_data.pop("monitor_type")
         with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rule = update_alert_rule(
                 instance,

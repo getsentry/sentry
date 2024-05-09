@@ -10,14 +10,15 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
-import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm';
+import {
+  DEFAULT_CHECKIN_MARGIN,
+  DEFAULT_MAX_RUNTIME,
+} from 'sentry/views/monitors/components/monitorForm';
 import {MonitorIndicator} from 'sentry/views/monitors/components/monitorIndicator';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
-import {ScheduleType} from 'sentry/views/monitors/types';
+import {CheckInStatus, ScheduleType} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 interface Props {
@@ -26,8 +27,6 @@ interface Props {
 }
 
 export default function DetailsSidebar({monitorEnv, monitor}: Props) {
-  const org = useOrganization();
-
   const {checkin_margin, schedule, schedule_type, max_runtime, timezone} = monitor.config;
   const {onClick, label} = useCopyToClipboard({text: monitor.slug});
 
@@ -70,28 +69,31 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       </CheckIns>
       <SectionHeading>{t('Schedule')}</SectionHeading>
       <Schedule>
-        <Text>{scheduleAsText(monitor.config)}</Text>
+        <Text>
+          {scheduleAsText(monitor.config)}{' '}
+          {schedule_type === ScheduleType.CRONTAB && `(${timezone})`}
+        </Text>
         {schedule_type === ScheduleType.CRONTAB && (
           <CrontabText>({schedule})</CrontabText>
         )}
       </Schedule>
-      <SectionHeading>{t('Margins')}</SectionHeading>
+      <SectionHeading>{t('Legend')}</SectionHeading>
       <Thresholds>
-        <MonitorIndicator status="warning" size={12} />
-        <Text>
-          {defined(checkin_margin)
-            ? tn(
-                'Check-ins missed after %s min',
-                'Check-ins missed after %s mins',
-                checkin_margin
-              )
-            : t('Check-ins that are missed')}
-        </Text>
-        <MonitorIndicator status="error" size={12} />
+        <MonitorIndicator status={CheckInStatus.MISSED} size={12} />
         <Text>
           {tn(
-            'Check-ins longer than %s min or errors',
-            'Check-ins longer than %s mins or errors',
+            'Check-in missed after %s min',
+            'Check-in missed after %s mins',
+            checkin_margin ?? DEFAULT_CHECKIN_MARGIN
+          )}
+        </Text>
+        <MonitorIndicator status={CheckInStatus.ERROR} size={12} />
+        <Text>{t('Check-in reported as failed')}</Text>
+        <MonitorIndicator status={CheckInStatus.TIMEOUT} size={12} />
+        <Text>
+          {tn(
+            'Check-in timed out after %s min',
+            'Check-in timed out after %s mins',
             max_runtime ?? DEFAULT_MAX_RUNTIME
           )}
         </Text>
@@ -99,21 +101,16 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <KeyValueTable>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
-        {schedule_type === ScheduleType.CRONTAB && (
-          <KeyValueTableRow keyName={t('Timezone')} value={timezone} />
-        )}
-        {org.features.includes('crons-ownership') && (
-          <KeyValueTableRow
-            keyName={t('Owner')}
-            value={
-              monitor.owner ? (
-                <ActorAvatar size={24} actor={monitor.owner} />
-              ) : (
-                t('Unassigned')
-              )
-            }
-          />
-        )}
+        <KeyValueTableRow
+          keyName={t('Owner')}
+          value={
+            monitor.owner ? (
+              <ActorAvatar size={24} actor={monitor.owner} />
+            ) : (
+              t('Unassigned')
+            )
+          }
+        />
         <KeyValueTableRow
           keyName={t('Date created')}
           value={getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}

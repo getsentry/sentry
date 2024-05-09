@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import orjson
 from django.db import router, transaction
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
@@ -21,7 +22,6 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .client import PagerDutyClient
@@ -197,7 +197,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                 )
 
     def build_integration(self, state):
-        config = json.loads(state.get("config"))
+        config = orjson.loads(state.get("config"))
         account = config["account"]
         # PagerDuty gives us integration keys for various things, some of which
         # are not services. For now we only care about services.

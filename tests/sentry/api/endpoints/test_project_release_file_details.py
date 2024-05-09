@@ -42,7 +42,7 @@ class ReleaseFileDetailsTest(APITestCase):
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -78,7 +78,7 @@ class ReleaseFileDetailsTest(APITestCase):
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -122,7 +122,7 @@ class ReleaseFileDetailsTest(APITestCase):
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
                 "file_id": file_id,
             },
@@ -205,7 +205,7 @@ class ReleaseFileUpdateTest(APITestCase):
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -230,7 +230,7 @@ class ReleaseFileUpdateTest(APITestCase):
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
                 "file_id": id,
             },
@@ -267,7 +267,7 @@ class ReleaseFileDeleteTest(APITestCase):
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -291,7 +291,7 @@ class ReleaseFileDeleteTest(APITestCase):
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
                 "file_id": id,
             },

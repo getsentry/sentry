@@ -10,7 +10,7 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import type {Field, FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not

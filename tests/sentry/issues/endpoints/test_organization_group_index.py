@@ -16,6 +16,8 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -49,7 +51,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -586,6 +588,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_success_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
+        assert response["X-Sentry-Direct-Hit"] == "1"
 
     def test_lookup_by_short_id_alias(self):
         event_id = "f" * 32
@@ -596,8 +599,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         short_id = group.qualified_short_id
 
         self.login_as(user=self.user)
-        response = self.get_success_response(query=f"issue:{short_id}")
+        response = self.get_success_response(query=f"issue:{short_id}", shortIdLookup=1)
         assert len(response.data) == 1
+        assert response["X-Sentry-Direct-Hit"] == "1"
 
     def test_lookup_by_multiple_short_id_alias(self):
         self.login_as(self.user)
@@ -613,9 +617,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         with self.feature("organizations:global-views"):
             response = self.get_success_response(
-                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]"
+                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
+                shortIdLookup=1,
             )
         assert len(response.data) == 2
+        assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_short_id_ignores_project_list(self):
         organization = self.create_organization()
@@ -633,6 +639,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             organization.slug, project=project.id, query=short_id, shortIdLookup=1
         )
         assert len(response.data) == 1
+        assert response.get("X-Sentry-Direct-Hit") == "1"
 
     def test_lookup_by_short_id_no_perms(self):
         organization = self.create_organization()
@@ -647,6 +654,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_success_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
+        assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_group_id(self):
         self.login_as(user=self.user)
@@ -1853,6 +1861,47 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["sentryAppIssues"][0]["displayName"] == issue_1.display_name
         assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
 
+    @with_feature("organizations:event-attachments")
+    def test_expand_has_attachments(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["hasAttachments"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        # No attachments
+        assert response.data[0]["hasAttachments"] is False
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "hasAttachments" not in response.data[0]
+
+        # Add 1 attachment
+        file_attachment = File.objects.create(name="hello.png", type="image/png")
+        EventAttachment.objects.create(
+            group_id=event.group.id,
+            event_id=event.event_id,
+            project_id=event.project_id,
+            file_id=file_attachment.id,
+            type=file_attachment.type,
+            name="hello.png",
+        )
+
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["hasAttachments"]
+        )
+        assert response.status_code == 200
+        assert response.data[0]["hasAttachments"] is True
+
     def test_expand_owners(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -2504,7 +2553,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             group=event3.group,
             project=event3.group.project,
             organization=event3.group.project.organization,
-            type=0,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
             team_id=None,
             user_id=self.user.id,
         )
@@ -2519,7 +2568,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             group=event4.group,
             project=event4.group.project,
             organization=event4.group.project.organization,
-            type=1,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
             team_id=self.team.id,
             user_id=None,
         )
@@ -2550,7 +2599,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             group=event7.group,
             project=event7.group.project,
             organization=event7.group.project.organization,
-            type=0,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
             team_id=None,
             user_id=self.create_user().id,
         )
@@ -2564,7 +2613,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             group=event8.group,
             project=event8.group.project,
             organization=event8.group.project.organization,
-            type=0,
+            type=GroupOwnerType.CODEOWNERS.value,
             team_id=self.create_team().id,
             user_id=None,
         )
@@ -2578,85 +2627,156 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
 
-        for query in [
-            "assigned_or_suggested:[me]",
-            "assigned_or_suggested:[my_teams]",
-            "assigned_or_suggested:[me, my_teams]",
-            "assigned_or_suggested:[me, my_teams, none]",
-            "assigned_or_suggested:none",
-            "assigned:[me]",
-            "assigned:[my_teams]",
-            "assigned:[me, my_teams]",
-            "assigned:[me, my_teams, none]",
-            "assigned:none",
-        ]:
+        queries_with_expected_ids = [
+            ("assigned_or_suggested:[me]", [event3.group.id, event1.group.id]),
+            ("assigned_or_suggested:[my_teams]", [event4.group.id, event2.group.id]),
+            (
+                "assigned_or_suggested:[me, my_teams]",
+                [event4.group.id, event3.group.id, event2.group.id, event1.group.id],
+            ),
+            (
+                "assigned_or_suggested:[me, my_teams, none]",
+                [
+                    event9.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            ("assigned_or_suggested:none", [event9.group.id]),
+            ("assigned:[me]", [event1.group.id]),
+            ("assigned:[my_teams]", [event2.group.id]),
+            ("assigned:[me, my_teams]", [event2.group.id, event1.group.id]),
+            (
+                "assigned:[me, my_teams, none]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "assigned:none",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event2.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event3.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me, my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                ],
+            ),
+            (
+                "!assigned_or_suggested:[me, my_teams, none]",
+                [event8.group.id, event7.group.id, event6.group.id, event5.group.id],
+            ),
+            (
+                "!assigned_or_suggested:none",
+                [
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned:[me]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event2.group.id,
+                ],
+            ),
+            (
+                "!assigned:[my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                    event1.group.id,
+                ],
+            ),
+            (
+                "!assigned:[me, my_teams]",
+                [
+                    event9.group.id,
+                    event8.group.id,
+                    event7.group.id,
+                    event6.group.id,
+                    event5.group.id,
+                    event4.group.id,
+                    event3.group.id,
+                ],
+            ),
+            ("!assigned:[me, my_teams, none]", [event6.group.id, event5.group.id]),
+            (
+                "!assigned:none",
+                [event6.group.id, event5.group.id, event2.group.id, event1.group.id],
+            ),
+        ]
+
+        for query, expected_group_ids in queries_with_expected_ids:
             response = self.get_success_response(
                 sort="new",
                 useGroupSnubaDataset=1,
                 query=query,
             )
-
-            if query == "assigned_or_suggested:[me]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event3.group.id
-                assert int(response.data[1]["id"]) == event1.group.id
-            elif query == "assigned_or_suggested:[my_teams]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event4.group.id
-                assert int(response.data[1]["id"]) == event2.group.id
-            elif query == "assigned_or_suggested:[me, my_teams]":
-                assert len(response.data) == 4
-                assert int(response.data[0]["id"]) == event4.group.id
-                assert int(response.data[1]["id"]) == event3.group.id
-                assert int(response.data[2]["id"]) == event2.group.id
-                assert int(response.data[3]["id"]) == event1.group.id
-            elif query == "assigned_or_suggested:[me, my_teams, none]":
-                assert len(response.data) == 5
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event4.group.id
-                assert int(response.data[2]["id"]) == event3.group.id
-                assert int(response.data[3]["id"]) == event2.group.id
-                assert int(response.data[4]["id"]) == event1.group.id
-
-            elif query == "assigned_or_suggested:none":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event9.group.id
-            elif query == "assigned:[me]":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event1.group.id
-            elif query == "assigned:[my_teams]":
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event2.group.id
-            elif query == "assigned:[me, my_teams]":
-                assert len(response.data) == 2
-                assert int(response.data[0]["id"]) == event2.group.id
-                assert int(response.data[1]["id"]) == event1.group.id
-            elif query == "assigned:[me, my_teams, none]":
-                assert len(response.data) == 7
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event4.group.id
-                assert int(response.data[4]["id"]) == event3.group.id
-                assert int(response.data[5]["id"]) == event2.group.id
-                assert int(response.data[6]["id"]) == event1.group.id
-            elif query == "assigned:none":
-                assert len(response.data) == 5
-                assert int(response.data[0]["id"]) == event9.group.id
-                assert int(response.data[1]["id"]) == event8.group.id
-                assert int(response.data[2]["id"]) == event7.group.id
-                assert int(response.data[3]["id"]) == event4.group.id
-                assert int(response.data[4]["id"]) == event3.group.id
-            else:
-                assert False, f"Unexpected query {query}"
+            assert [int(row["id"]) for row in response.data] == expected_group_ids
 
     def test_snuba_unsupported_filters(self):
         self.login_as(user=self.user)
         for query in [
-            "bookmarks:me",
-            "is:linked",
-            "is:unlinked",
-            "subscribed:me",
             "regressed_in_release:latest",
             "issue.priority:high",
         ]:
@@ -2758,6 +2878,382 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             str(error_event.group.id),
         }
         assert mock_query.call_count == 1
+
+    @patch("sentry.issues.ingest.should_create_group", return_value=True)
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    @with_feature("organizations:issue-platform")
+    @with_feature(PerformanceRenderBlockingAssetSpanGroupType.build_visible_feature_name())
+    @with_feature(PerformanceNPlusOneGroupType.build_visible_feature_name())
+    def test_snuba_type_and_category(self, mock_query, mock_should_create_group):
+        self.project = self.create_project(organization=self.organization)
+        # create a render blocking issue
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            2,
+            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
+            event_data={
+                "type": "transaction",
+                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            override_occurrence_data={
+                "type": PerformanceRenderBlockingAssetSpanGroupType.type_id,
+            },
+        )
+        # make mypy happy
+        blocking_asset_group_id = group_info.group.id if group_info else None
+
+        _, _, group_info = self.store_search_issue(
+            self.project.id,
+            2,
+            [f"{PerformanceNPlusOneGroupType.type_id}-group2"],
+            event_data={
+                "type": "transaction",
+                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            override_occurrence_data={
+                "type": PerformanceNPlusOneGroupType.type_id,
+            },
+        )
+        # make mypy happy
+        np1_group_id = group_info.group.id if group_info else None
+
+        # create an error issue
+        self.store_event(
+            data={
+                "fingerprint": ["error-issue"],
+                "event_id": "e" * 32,
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        assert Group.objects.filter(id=np1_group_id).exists()
+
+        # first test just the category
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.category:performance",
+        )
+        assert len(response.data) == 2
+        assert {r["id"] for r in response.data} == {
+            str(blocking_asset_group_id),
+            str(np1_group_id),
+        }
+        assert mock_query.call_count == 1
+
+        # now ask for the type
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.type:performance_n_plus_one_db_queries",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {
+            str(np1_group_id),
+        }
+
+        # now ask for the type and category in a way that should return no results
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.category:replay issue.type:performance_n_plus_one_db_queries",
+        )
+        assert len(response.data) == 0
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_pagination_and_x_hits_header(self):
+        # Create 30 issues
+        for i in range(30):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=i)),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            )
+
+        self.login_as(user=self.user)
+
+        # Request the first page with a limit of 10
+        response = self.get_success_response(limit=10, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+        assert response.headers.get("X-Hits") == "30"
+        assert "Link" in response.headers
+
+        # Parse the Link header to get the cursor for the next page
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "true"
+        cursor = next_obj["cursor"]
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "false"
+
+        # Request the second page using the cursor
+        response = self.get_success_response(limit=10, cursor=cursor, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+
+        # Check for the presence of the next cursor
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "true"
+        cursor = next_obj["cursor"]
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "true"
+
+        # Request the third page using the cursor
+        response = self.get_success_response(limit=10, cursor=cursor, useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        assert len(response.data) == 10
+
+        # Check that there is no next page
+        header_links = parse_link_header(response.headers["Link"])
+        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
+        assert next_obj["results"] == "false"
+        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
+        assert prev_obj["results"] == "true"
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_find_error_by_message_with_snuba_only_search(self):
+        self.login_as(user=self.user)
+        project = self.project
+        # Simulate sending an event with Kafka enabled
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "message": "OutOfMemoryError",
+                "tags": {"level": "error"},
+            },
+            project_id=project.id,
+        )
+        # Simulate sending another event that matches the wildcard filter
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "message": "MemoryError",
+                "tags": {"level": "error"},
+            },
+            project_id=project.id,
+        )
+
+        # Simulate sending another event that doesn't match the filter
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "message": "NullPointerException",
+                "tags": {"level": "error"},
+            },
+            project_id=project.id,
+        )
+
+        # Retrieve the event based on its message
+        response = self.get_success_response(query="OutOfMemoryError", useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        issues = json.loads(response.content)
+        assert len(issues) == 1
+        assert int(issues[0]["id"]) == event.group.id
+
+        # Retrieve events based on a wildcard match for any *Error in the message
+        response = self.get_success_response(query="*Error", useGroupSnubaDataset=1)
+        assert response.status_code == 200
+        issues = json.loads(response.content)
+        assert len(issues) >= 2  # Expecting at least two issues: OutOfMemoryError and MemoryError
+        assert any(int(issue["id"]) == event.group.id for issue in issues)
+        assert any(int(issue["id"]) == event2.group.id for issue in issues)
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_first_seen_and_last_seen_filters(self):
+        self.login_as(user=self.user)
+        project = self.project
+        # Create 4 issues at different times
+        times = [
+            (before_now(hours=1), before_now(hours=1)),  # Two events for issue 0
+            (before_now(hours=6), before_now(hours=3)),  # Two events for issue 1
+            (before_now(hours=11), before_now(hours=10)),  # Two events for issue 2
+            (before_now(hours=23), before_now(minutes=30)),  # Two events for issue 3
+        ]
+        for i, (time1, time2) in enumerate(times):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(time1),
+                    "message": f"Error {i}",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(time2),
+                    "message": f"Error {i} - additional event",
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=project.id,
+            )
+
+        # Test firstSeen filter
+        twenty_four_hours_ago = iso_format(before_now(hours=24))
+        response = self.get_success_response(
+            query=f"firstSeen:<{twenty_four_hours_ago}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
+        response = self.get_success_response(query="firstSeen:-24h", useGroupSnubaDataset=1)
+        assert len(response.data) == 4
+
+        # Test lastSeen filter
+        response = self.get_success_response(query="lastSeen:-6h", useGroupSnubaDataset=1)
+        assert len(response.data) == 3
+
+        response = self.get_success_response(query="lastSeen:-12h", useGroupSnubaDataset=1)
+        assert len(response.data) == 4
+
+        # Test lastSeen filter with an absolute date using before_now
+        absolute_date = iso_format(before_now(days=1))  # Assuming 365 days before now as an example
+        response = self.get_success_response(
+            query=f"lastSeen:>{absolute_date}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 4
+        response = self.get_success_response(
+            query=f"lastSeen:<{absolute_date}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_bookmarked_by(self):
+        self.login_as(user=self.user)
+        project = self.project
+        user2 = self.create_user(email="user2@example.com")
+
+        # Create two issues, one bookmarked by each user
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupBookmark.objects.create(user_id=self.user.id, group=group1, project_id=project.id)
+
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+        group2 = event2.group
+        GroupBookmark.objects.create(user_id=user2.id, group=group2, project_id=project.id)
+
+        # Filter by bookmarked_by the first user
+        response = self.get_success_response(
+            query=f"bookmarked_by:{self.user.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # Filter by bookmarked_by the second user
+        response = self.get_success_response(
+            query=f"bookmarked_by:{user2.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group2.id
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_linked(self):
+        self.login_as(user=self.user)
+        project = self.project
+
+        # Create two issues, one linked and one not linked
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupLink.objects.create(
+            group_id=group1.id,
+            project=project,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=1,
+        )
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+        group2 = event2.group
+
+        # Filter by linked issues
+        response = self.get_success_response(query="is:linked", useGroupSnubaDataset=1)
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # Ensure the unlinked issue is not returned
+        response = self.get_success_response(query="is:unlinked", useGroupSnubaDataset=1)
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group2.id
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_filter_by_subscribed_by(self):
+        self.login_as(user=self.user)
+        project = self.project
+
+        # Create two issues, one subscribed by user1 and one not subscribed
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 1",
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        group1 = event1.group
+        GroupSubscription.objects.create(
+            user_id=self.user.id,
+            group=group1,
+            project=project,
+            is_active=True,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "message": "Error 2",
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+
+        # Filter by subscriptions
+        response = self.get_success_response(
+            query=f"subscribed:{self.user.email}", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == group1.id
+
+        # ensure we don't return ny results
+        response = self.get_success_response(
+            query="subscribed:fake@fake.com", useGroupSnubaDataset=1
+        )
+        assert len(response.data) == 0
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
