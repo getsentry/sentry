@@ -66,6 +66,9 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
     actual_deserialized = json.loads(actual_payload.value)
     expected_deserialized = json.loads(expected_payload.value)
     del actual_deserialized["mapping_meta"]
+    # The custom use case metrics payload adds the aggregation option to the transformed payload.
+    # Others don't. Since the tests are generic over different payload types, removed the checking
+    # of fields which are specific to a payload.
     actual_deserialized.pop("aggregation_option", None)
     assert actual_deserialized == expected_deserialized
 
@@ -359,7 +362,7 @@ def test_process_messages() -> None:
                         None,
                         json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
                         [
-                            ("metric_type", str.encode(message_payloads[i]["type"])),
+                            ("metric_type", message_payloads[i]["type"].encode()),
                         ],
                     ),
                     m.value.partition,
