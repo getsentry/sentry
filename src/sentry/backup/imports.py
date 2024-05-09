@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import IO
+from typing import IO, Any
 from uuid import uuid4
 
 from django.core import serializers
@@ -315,7 +315,7 @@ def _import(
         import_write_context: ImportWriteContext,
         pk_map: PrimaryKeyMap,
         model_name: NormalizedModelName,
-        json_data: json.JSONData,
+        json_data: Any,
         offset: int,
     ) -> None:
         model_relations = import_write_context.dependencies.get(model_name)

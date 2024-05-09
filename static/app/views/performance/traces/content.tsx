@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -18,12 +19,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeInteger, decodeList} from 'sentry/utils/queryString';
+import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -54,6 +55,10 @@ export function Content() {
   const limit = useMemo(() => {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
   }, [location.query.perPage]);
+
+  const metricsOp = decodeScalar(location.query.metricsOp);
+  const mri = decodeScalar(location.query.mri);
+  const metricsQuery = decodeScalar(location.query.metricsQuery);
 
   const handleSearch = useCallback(
     (searchIndex: number, searchQuery: string) => {
@@ -95,6 +100,8 @@ export function Content() {
     [location, queries]
   );
 
+  const hasMetric = metricsOp && mri;
+
   const traces = useTraces<Field>({
     fields: [
       ...FIELDS,
@@ -105,6 +112,8 @@ export function Content() {
     limit,
     query: queries,
     sort: SORTS,
+    mri: hasMetric ? mri : undefined,
+    metricsQuery: hasMetric ? metricsQuery : undefined,
   });
 
   const isLoading = traces.isFetching;
@@ -119,6 +128,18 @@ export function Content() {
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
+      {hasMetric && (
+        <StyledAlert type="info" showIcon>
+          {tct('The metric query [metricQuery] is filtering the results below.', {
+            metricQuery: <strong>{`${metricsOp}(${mri}){${metricsQuery || ''}}`}</strong>,
+          })}
+        </StyledAlert>
+      )}
+      {isError && typeof traces.error?.responseJSON?.detail === 'string' ? (
+        <StyledAlert type="error" showIcon>
+          {traces.error?.responseJSON?.detail}
+        </StyledAlert>
+      ) : null}
       <TracesSearchBar
         queries={queries}
         handleSearch={handleSearch}
@@ -386,6 +407,8 @@ interface UseTracesOptions<F extends string> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
+  metricsQuery?: string;
+  mri?: string;
   query?: string | string[];
   sort?: string[];
   suggestedQuery?: string;
@@ -396,6 +419,8 @@ function useTraces<F extends string>({
   datetime,
   enabled,
   limit,
+  mri,
+  metricsQuery,
   query,
   suggestedQuery,
   sort,
@@ -415,7 +440,10 @@ function useTraces<F extends string>({
       suggestedQuery,
       sort,
       per_page: limit,
-      maxSpansPerTrace: 10,
+      minBreakdownPercentage: 1 / 40,
+      maxSpansPerTrace: 5,
+      mri,
+      metricsQuery,
     },
   };
 
@@ -501,14 +529,14 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
   ${p =>
     p.highlightedSliceName
       ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
-         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(-2px);
+         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
        `
       : null}
   ${p =>
     p.highlightedSliceName
       ? `
-        --defaultSlice-opacity: 0.3;
-        --defaultSlice-transform: translateY(1px);
+        --defaultSlice-opacity: 1.0;
+        --defaultSlice-transform: translateY(0px);
         `
       : `
         --defaultSlice-opacity: 1.0;
@@ -518,4 +546,8 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: 0;
 `;

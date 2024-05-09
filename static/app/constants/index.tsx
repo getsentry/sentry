@@ -318,9 +318,9 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Cron Monitors'),
     uid: 13,
   },
-  [DataCategoryExact.METRICS]: {
-    name: DataCategoryExact.METRICS,
-    apiName: 'metrics',
+  [DataCategoryExact.METRIC_SECOND]: {
+    name: DataCategoryExact.METRIC_SECOND,
+    apiName: 'metricSecond',
     plural: 'metrics',
     displayName: 'metrics',
     titleName: t('Metrics'),

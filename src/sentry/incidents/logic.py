@@ -50,7 +50,6 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
@@ -79,6 +78,7 @@ from sentry.snuba.subscriptions import (
 )
 from sentry.snuba.tasks import build_query_builder
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
@@ -503,7 +503,7 @@ def create_alert_rule(
     time_window,
     threshold_type,
     threshold_period,
-    owner: RpcActor | None = None,
+    owner: Actor | None = None,
     resolve_threshold=None,
     environment=None,
     include_all_projects=False,
@@ -525,7 +525,7 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
-    :param owner: RpcActor (sentry.services.hybrid_cloud.actor.RpcActor) or None
+    :param owner: Actor (sentry.services.hybrid_cloud.actor.Actor) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
@@ -559,7 +559,7 @@ def create_alert_rule(
 
     owner_user_id = None
     owner_team_id = None
-    if owner and isinstance(owner, RpcActor):
+    if owner and isinstance(owner, Actor):
         if owner.is_user:
             owner_user_id = owner.id
         elif owner.is_team:
@@ -690,7 +690,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
-    owner: RpcActor | None | object = NOT_SET,
+    owner: Actor | None | object = NOT_SET,
     query=None,
     aggregate=None,
     time_window=None,
@@ -714,7 +714,7 @@ def update_alert_rule(
     `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
-    :param owner: RpcActor (sentry.services.hybrid_cloud.actor.RpcActor) or None
+    :param owner: Actor (sentry.services.hybrid_cloud.actor.Actor) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
@@ -764,7 +764,7 @@ def update_alert_rule(
     if owner is not NOT_SET:
         team_id = None
         user_id = None
-        if owner and isinstance(owner, RpcActor):
+        if owner and isinstance(owner, Actor):
             if owner.is_user:
                 user_id = owner.id
             elif owner.is_team:
