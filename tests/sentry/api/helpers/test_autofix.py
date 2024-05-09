@@ -1,11 +1,11 @@
 from unittest import mock
 from unittest.mock import call, patch
 
+import orjson
 from django.conf import settings
 
 from sentry.api.helpers.autofix import get_project_codebase_indexing_status
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
 class TestGetProjectCodebaseIndexingStatus(TestCase):
@@ -28,7 +28,7 @@ class TestGetProjectCodebaseIndexingStatus(TestCase):
         assert status == "up_to_date"
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/status",
-            data=json.dumps(
+            data=orjson.dumps(
                 {
                     "organization_id": self.project.organization.id,
                     "project_id": self.project.id,
@@ -71,7 +71,7 @@ class TestGetProjectCodebaseIndexingStatus(TestCase):
         calls = [
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/status",
-                data=json.dumps(
+                data=orjson.dumps(
                     {
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,
@@ -87,7 +87,7 @@ class TestGetProjectCodebaseIndexingStatus(TestCase):
             ),
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/status",
-                data=json.dumps(
+                data=orjson.dumps(
                     {
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,
@@ -132,7 +132,7 @@ class TestGetProjectCodebaseIndexingStatus(TestCase):
         calls = [
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/status",
-                data=json.dumps(
+                data=orjson.dumps(
                     {
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,
@@ -148,7 +148,7 @@ class TestGetProjectCodebaseIndexingStatus(TestCase):
             ),
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/status",
-                data=json.dumps(
+                data=orjson.dumps(
                     {
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,
@@ -194,7 +194,7 @@ class TestGetProjectCodebaseIndexingStatus(TestCase):
         calls = [
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/status",
-                data=json.dumps(
+                data=orjson.dumps(
                     {
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,
@@ -210,7 +210,7 @@ class TestGetProjectCodebaseIndexingStatus(TestCase):
             ),
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/status",
-                data=json.dumps(
+                data=orjson.dumps(
                     {
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,

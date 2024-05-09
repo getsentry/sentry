@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from sentry.utils import json
-
 
 class SecretField(serializers.Field):
     """
@@ -30,7 +28,7 @@ class SecretField(serializers.Field):
         return self.string_field.to_internal_value(data)
 
 
-def validate_secret(secret: str | dict[str, bool] | None) -> json.JSONData | None:
+def validate_secret(secret: str | dict[str, bool] | None) -> str | dict[str, bool] | None:
     """
     Validates the contents of a field containing a secret that may have a magic object representing
     some existing value already stored on the server.

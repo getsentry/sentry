@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import orjson
 import pytest
 from django.utils import timezone
 
@@ -13,7 +14,6 @@ from sentry.sentry_metrics.querying.metadata.metrics_code_locations import (
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -48,7 +48,7 @@ class OrganizationMetricsCodeLocationsTest(APITestCase, BaseSpansTestCase):
         if post_context is not None:
             code_location["post_context"] = post_context
 
-        return json.dumps(code_location)
+        return orjson.dumps(code_location).decode()
 
     def _store_code_location(
         self, organization_id: int, project_id: int, metric_mri: str, timestamp: int, value: str

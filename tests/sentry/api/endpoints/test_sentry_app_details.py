@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import orjson
+
 from sentry import audit_log, deletions
 from sentry.api.endpoints.integrations.sentry_apps.details import (
     PARTNERSHIP_RESTRICTED_ERROR_MESSAGE,
@@ -14,7 +16,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -419,7 +420,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             sentry_app_id=app.id,
             sentry_app_name="SampleApp",
             error_message="'elements' is a required property",
-            schema=json.dumps(schema),
+            schema=orjson.dumps(schema).decode(),
         )
 
     def test_no_webhook_public_integration(self):

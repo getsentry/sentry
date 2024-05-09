@@ -1,5 +1,6 @@
 import logging
 
+import orjson
 import sentry_sdk
 from django.db import router, transaction
 from requests import RequestException
@@ -24,7 +25,6 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
@@ -116,7 +116,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             for error_message in serializer.errors["schema"]:
                 name = "sentry_app.schema_validation_error"
                 log_info = {
-                    "schema": json.dumps(request.data["schema"]),
+                    "schema": orjson.dumps(request.data["schema"]).decode(),
                     "user_id": request.user.id,
                     "sentry_app_id": sentry_app.id,
                     "sentry_app_name": sentry_app.name,

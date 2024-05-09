@@ -1,5 +1,6 @@
 import logging
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -18,7 +19,6 @@ from sentry.constants import SentryAppStatus
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             for error_message in serializer.errors["schema"]:
                 name = "sentry_app.schema_validation_error"
                 log_info = {
-                    "schema": json.dumps(data["schema"]),
+                    "schema": orjson.dumps(data["schema"]).decode(),
                     "user_id": request.user.id,
                     "sentry_app_name": data["name"],
                     "organization_id": organization.id,

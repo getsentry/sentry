@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import orjson
 import pytest
 from django.urls import reverse
 from sentry_relay.processing import normalize_global_config
@@ -7,7 +8,6 @@ from sentry_relay.processing import normalize_global_config
 from sentry.relay.globalconfig import get_global_config
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def call_endpoint(client, relay, private_key):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        return json.loads(resp.content), resp.status_code
+        return orjson.loads(resp.content), resp.status_code
 
     return inner
 

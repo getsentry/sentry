@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import Mock, call, patch
 from uuid import UUID
 
+import orjson
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 
@@ -23,7 +24,6 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
-from sentry.utils import json
 from sentry.utils.relocation import OrderedTask
 
 FRESH_INSTALL_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -310,8 +310,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -372,8 +372,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -439,8 +439,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -493,8 +493,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -544,8 +544,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -605,8 +605,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -658,8 +658,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner=self.owner.username,
@@ -684,8 +684,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner=self.owner.username,
@@ -730,8 +730,8 @@ class PostRelocationsTest(APITestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-                with open(FRESH_INSTALL_PATH) as f:
-                    data = json.load(f)
+                with open(FRESH_INSTALL_PATH, "rb") as f:
+                    data = orjson.loads(f.read())
                     with open(tmp_pub_key_path, "rb") as p:
                         response = self.get_success_response(
                             owner=self.owner.username,
@@ -790,8 +790,8 @@ class PostRelocationsTest(APITestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-                with open(FRESH_INSTALL_PATH) as f:
-                    data = json.load(f)
+                with open(FRESH_INSTALL_PATH, "rb") as f:
+                    data = orjson.loads(f.read())
                     with open(tmp_pub_key_path, "rb") as p:
                         response = self.get_error_response(
                             owner=self.owner.username,
@@ -841,8 +841,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -899,8 +899,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner=self.owner.username,
@@ -927,8 +927,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         file=SimpleUploadedFile(
@@ -957,8 +957,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.staff_user, staff=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner="doesnotexist",
@@ -988,8 +988,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner="doesnotexist",
@@ -1019,8 +1019,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner="other",
@@ -1064,8 +1064,8 @@ class PostRelocationsTest(APITestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-                with open(FRESH_INSTALL_PATH) as f:
-                    data = json.load(f)
+                with open(FRESH_INSTALL_PATH, "rb") as f:
+                    data = orjson.loads(f.read())
                     with open(tmp_pub_key_path, "rb") as p:
                         simple_file = SimpleUploadedFile(
                             "export.tar",
@@ -1095,8 +1095,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1163,8 +1163,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1246,8 +1246,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1335,8 +1335,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1420,7 +1420,7 @@ class PostRelocationsTest(APITestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
             with open(FRESH_INSTALL_PATH) as f, freeze_time("2023-11-28 00:00:00") as frozen_time:
-                data = json.load(f)
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1506,8 +1506,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     self.get_error_response(
                         owner=self.owner.username,

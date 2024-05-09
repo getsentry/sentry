@@ -1,11 +1,11 @@
 from typing import Any
 
+import orjson
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.seer_rpc import generate_request_signature
 from sentry.testutils.cases import APITestCase
-from sentry.utils import json
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
@@ -19,8 +19,8 @@ class TestSeerRpc(APITestCase):
 
     def auth_header(self, path: str, data: dict | str) -> str:
         if isinstance(data, dict):
-            data = json.dumps(data)
-        signature = generate_request_signature(path, data.encode("utf8"))
+            data = orjson.dumps(data).decode()
+        signature = generate_request_signature(path, data.encode())
 
         return f"rpcsignature {signature}"
 

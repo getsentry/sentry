@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Final, TypedDict, cast
 
+import orjson
 import sentry_sdk
 from django.db import connection
 from django.db.models import prefetch_related_objects
@@ -41,7 +42,6 @@ from sentry.processing import realtime_metrics
 from sentry.roles import organization_roles
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
-from sentry.utils import json
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -1013,7 +1013,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = "[]"
         else:
             redacted_sources = redact_source_secrets(sources)
-            serialized_sources = json.dumps(redacted_sources)
+            serialized_sources = orjson.dumps(redacted_sources).decode()
 
         data.update(
             {

@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import orjson
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -29,7 +30,6 @@ from sentry.lang.native.sources import (
     validate_sources,
 )
 from sentry.models.project import Project
-from sentry.utils import json
 
 
 class LayoutSerializer(serializers.Serializer):
@@ -302,7 +302,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             if len(filtered_sources) == len(sources):
                 return Response(data={"error": f"Unknown source id: {id}"}, status=404)
 
-            serialized = json.dumps(filtered_sources)
+            serialized = orjson.dumps(filtered_sources).decode()
             project.update_option("sentry:symbol_sources", serialized)
             return Response(status=204)
 
@@ -341,7 +341,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         except InvalidSourcesError:
             return Response(status=400)
 
-        serialized = json.dumps(sources)
+        serialized = orjson.dumps(sources).decode()
         project.update_option("sentry:symbol_sources", serialized)
 
         redacted = redact_source_secrets([source])
@@ -402,7 +402,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         except InvalidSourcesError as e:
             return Response(data={"error": str(e)}, status=400)
 
-        serialized = json.dumps(sources)
+        serialized = orjson.dumps(sources).decode()
         project.update_option("sentry:symbol_sources", serialized)
 
         redacted = redact_source_secrets([source])

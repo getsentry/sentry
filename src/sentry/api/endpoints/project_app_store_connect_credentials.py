@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -59,7 +61,6 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
 logger = logging.getLogger(__name__)
@@ -275,7 +276,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
 
     def validate_appconnectPrivateKey(
         self, private_key_json: str | dict[str, bool] | None
-    ) -> json.JSONData | None:
+    ) -> Any | None:
         return validate_secret(private_key_json)
 
 

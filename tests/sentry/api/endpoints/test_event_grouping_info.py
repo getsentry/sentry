@@ -1,5 +1,6 @@
 from unittest import mock
 
+import orjson
 import pytest
 from django.urls import reverse
 
@@ -7,7 +8,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 from sentry.utils.samples import load_data
 
 pytestmark = [requires_snuba]
@@ -39,7 +39,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         )
 
         response = self.client.get(url, format="json")
-        content = json.loads(response.content)
+        content = orjson.loads(response.content)
 
         assert response.status_code == 200
         assert content["system"]["type"] == "component"
@@ -58,7 +58,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         )
 
         response = self.client.get(url, format="json")
-        content = json.loads(response.content)
+        content = orjson.loads(response.content)
 
         assert response.status_code == 200
         assert content == {}
@@ -76,7 +76,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         )
 
         response = self.client.get(url, format="json")
-        content = json.loads(response.content)
+        content = orjson.loads(response.content)
 
         assert response.status_code == 200
         assert content["performance_n_plus_one_db_queries"]["type"] == "performance-problem"

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+import orjson
 from django.http import HttpResponse, HttpResponseRedirect
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -23,7 +24,6 @@ from sentry.profiles.utils import (
     parse_profile_filters,
     proxy_profiling_service,
 )
-from sentry.utils import json
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):
@@ -96,7 +96,7 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
         )
 
         if response.status == 200:
-            profile = json.loads(response.data)
+            profile = orjson.loads(response.data)
 
             if "release" in profile:
                 profile["release"] = get_release(project, profile["release"])
@@ -186,7 +186,7 @@ class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
                 **kwargs,
             )
 
-            data = json.loads(response.data)
+            data = orjson.loads(response.data)
 
             return data.get("functions", [])
 

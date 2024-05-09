@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
@@ -19,7 +20,6 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
     ):
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/start",
-            data=json.dumps(
+            data=orjson.dumps(
                 {
                     "organization_id": group.organization.id,
                     "project_id": group.project.id,
@@ -118,7 +118,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
     def _call_get_autofix_state(self, group_id: int) -> dict[str, Any] | None:
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
-            data=json.dumps(
+            data=orjson.dumps(
                 {
                     "group_id": group_id,
                 }
@@ -136,7 +136,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         return None
 
     def post(self, request: Request, group: Group) -> Response:
-        data = json.loads(request.body)
+        data = orjson.loads(request.body)
 
         # This event_id is the event that the user is looking at when they click the "Fix" button
         event_id = data.get("event_id", None)

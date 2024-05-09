@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Sequence
 
 import jsonschema
+import orjson
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
@@ -44,7 +45,6 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
@@ -419,7 +419,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
         }
 
         try:
-            files = json.loads(request.body)
+            files = orjson.loads(request.body)
             jsonschema.validate(files, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
