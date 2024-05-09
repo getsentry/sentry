@@ -23,7 +23,9 @@ from sentry.backup.sanitize import (
 )
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.fields.uuid import UUIDField
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import BackupTestCase
@@ -37,6 +39,12 @@ FAKE_NAME = "Fake Name"
 FAKE_NICKNAME = "Fake Nickname"
 FAKE_SLUG = "fake-slug"
 FAKE_TEXT = "This is some text."
+FAKE_JSON_DICT = {"foo": "bar"}
+FAKE_JSON_LIST = ["foo"]
+FAKE_IP_V4 = "8.8.8.8"
+FAKE_IP_V6 = "9c72:8448:90c4:4e5e:a946:c1f5:71a6:4cc2"
+FAKE_URL = "https://sub.domain.example.com/some/path?a=b&c=d#foo"
+FAKE_UUID = "6b79316f-cd5c-42fa-ad45-20ce0b1f0725"
 
 CURR_DATE = datetime.now()
 CURR_YEAR = CURR_DATE.year
@@ -55,6 +63,12 @@ class FakeSanitizableModel(DefaultFieldsModel):
     slug = SentrySlugField(null=True)
     nickname = models.CharField(null=True, max_length=32)
     text = SentrySlugField(null=True, max_length=128)
+    json_dict = JSONField(null=True, default=dict)
+    json_list = JSONField(null=True, default=list)
+    ip_v4 = models.GenericIPAddressField(null=True)
+    ip_v6 = models.GenericIPAddressField(null=True)
+    url = models.URLField(null=True)
+    uuid = UUIDField(null=True)
 
     class Meta:
         app_label = "test"
@@ -65,9 +79,12 @@ class FakeSanitizableModel(DefaultFieldsModel):
         cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
         sanitizer.set_name(json, SanitizableField(model_name, "nickname"))
         sanitizer.set_string(json, SanitizableField(model_name, "text"))
-        return super().sanitize_relocation_json(json, sanitizer, model_name)
+        sanitizer.set_json(json, SanitizableField(model_name, "json_dict"), {})
+        sanitizer.set_json(json, SanitizableField(model_name, "json_list"), [])
 
 
 @patch("sentry.backup.dependencies.get_model", Mock(return_value=FakeSanitizableModel))
@@ -91,7 +108,13 @@ class SanitizationUnitTests(TestCase):
             name=FAKE_NAME,
             slug=FAKE_SLUG,
             nickname=FAKE_NICKNAME,
+            json_dict=FAKE_JSON_DICT.copy(),
+            json_list=FAKE_JSON_LIST.copy(),
             text=FAKE_TEXT,
+            ip_v4=FAKE_IP_V4,
+            ip_v6=FAKE_IP_V6,
+            url=FAKE_URL,
+            uuid=FAKE_UUID,
         )
         faked = self.serialize_to_json_data([model, model])
         sanitized = sanitize(faked, DELTA_YEAR)
@@ -108,6 +131,21 @@ class SanitizationUnitTests(TestCase):
         assert isinstance(s0["nickname"], str)
         assert isinstance(s0["text"], str)
 
+        assert isinstance(s0["json_dict"], dict)
+        assert s0["json_dict"] == {}
+
+        assert isinstance(s0["json_list"], list)
+        assert s0["json_list"] == []
+
+        assert isinstance(s0["ip_v4"], str)
+        assert s0["ip_v4"].count(".") == 3
+
+        assert isinstance(s0["ip_v6"], str)
+        assert s0["ip_v6"].count(":") == 7
+
+        assert isinstance(s0["url"], str)
+        assert isinstance(s0["uuid"], str)
+
         # Confirm sanitization.
         assert parse_datetime(f0["date_added"]) < s0["date_added"]
         assert parse_datetime(f0["date_updated"]) < s0["date_updated"]
@@ -116,6 +154,12 @@ class SanitizationUnitTests(TestCase):
         assert f0["slug"] != s0["slug"]
         assert f0["nickname"] != s0["nickname"]
         assert f0["text"] != s0["text"]
+        assert f0["json_dict"] != s0["json_dict"]
+        assert f0["json_list"] != s0["json_list"]
+        assert f0["ip_v4"] != s0["ip_v4"]
+        assert f0["ip_v6"] != s0["ip_v6"]
+        assert f0["url"] != s0["url"]
+        assert f0["uuid"] != s0["uuid"]
 
         # Identical source values remain equal after sanitization.
         assert s0["date_added"] == s1["date_added"]
@@ -125,6 +169,12 @@ class SanitizationUnitTests(TestCase):
         assert s0["slug"] == s1["slug"]
         assert s0["nickname"] == s1["nickname"]
         assert s0["text"] == s1["text"]
+        assert s0["json_dict"] == s1["json_dict"]
+        assert s0["json_list"] == s1["json_list"]
+        assert s0["ip_v4"] == s1["ip_v4"]
+        assert s0["ip_v6"] == s1["ip_v6"]
+        assert s0["url"] == s1["url"]
+        assert s0["uuid"] == s1["uuid"]
 
     def test_good_all_sanitizers_unset_fields(self):
         model = FakeSanitizableModel(
@@ -134,6 +184,12 @@ class SanitizationUnitTests(TestCase):
             nickname=None,
             slug=None,
             text=None,
+            json_dict=None,
+            json_list=None,
+            ip_v4=None,
+            ip_v6=None,
+            url=None,
+            uuid=None,
         )
         faked = self.serialize_to_json_data([model])
         sanitized = sanitize(faked, DELTA_YEAR)
@@ -146,12 +202,25 @@ class SanitizationUnitTests(TestCase):
         assert s["slug"] is None
         assert s["nickname"] is None
         assert s["text"] is None
+        assert s["json_dict"] is None
+        assert s["json_list"] is None
+        assert s["ip_v4"] is None
+        assert s["ip_v6"] is None
+        assert s["url"] is None
+        assert s["uuid"] is None
+
         assert s["date_updated"] == f["date_updated"]
         assert s["email"] == f["email"]
         assert s["name"] == f["name"]
         assert s["slug"] == f["slug"]
         assert s["nickname"] == f["nickname"]
         assert s["text"] == f["text"]
+        assert s["json_dict"] == f["json_dict"]
+        assert s["json_list"] == f["json_list"]
+        assert s["ip_v4"] == f["ip_v4"]
+        assert s["ip_v6"] == f["ip_v6"]
+        assert s["url"] == f["url"]
+        assert s["uuid"] == f["uuid"]
 
     def test_good_date_all_sanitizers_no_delta(self):
         faked = self.serialize_to_json_data(
@@ -164,6 +233,12 @@ class SanitizationUnitTests(TestCase):
                     slug=FAKE_SLUG,
                     nickname=FAKE_NICKNAME,
                     text=FAKE_TEXT,
+                    json_dict=FAKE_JSON_DICT.copy(),
+                    json_list=FAKE_JSON_LIST.copy(),
+                    ip_v4=FAKE_IP_V4,
+                    ip_v6=FAKE_IP_V6,
+                    url=FAKE_URL,
+                    uuid=FAKE_UUID,
                 )
             ]
         )
@@ -177,6 +252,12 @@ class SanitizationUnitTests(TestCase):
         assert f["slug"] != s["slug"]
         assert f["nickname"] != s["nickname"]
         assert f["text"] != s["text"]
+        assert f["json_dict"] != s["json_dict"]
+        assert f["json_list"] != s["json_list"]
+        assert f["ip_v4"] != s["ip_v4"]
+        assert f["ip_v6"] != s["ip_v6"]
+        assert f["url"] != s["url"]
+        assert f["uuid"] != s["uuid"]
         assert s["date_added"] < s["date_updated"]
 
     def test_good_dates_preserve_ordering(self):

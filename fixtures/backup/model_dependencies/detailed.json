@@ -323,36 +323,6 @@
     "table_name": "sentry_activity",
     "uniques": []
   },
-  "sentry.actor": {
-    "dangling": false,
-    "foreign_keys": {
-      "team": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.team",
-        "nullable": true
-      },
-      "user_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      }
-    },
-    "model": "sentry.actor",
-    "relocation_dependencies": [],
-    "relocation_scope": "Organization",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_actor",
-    "uniques": [
-      [
-        "team"
-      ],
-      [
-        "user_id"
-      ]
-    ]
-  },
   "sentry.alertrule": {
     "dangling": false,
     "foreign_keys": {
@@ -5803,7 +5773,6 @@
     },
     "model": "sentry.snubaquery",
     "relocation_dependencies": [
-      "sentry.actor",
       "sentry.organization",
       "sentry.project"
     ],
@@ -5877,9 +5846,6 @@
     ],
     "table_name": "sentry_team",
     "uniques": [
-      [
-        "actor"
-      ],
       [
         "organization",
         "slug"

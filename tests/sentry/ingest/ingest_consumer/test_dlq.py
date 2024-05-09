@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import Mock
 
 import msgpack
+import orjson
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
@@ -13,7 +14,6 @@ from sentry.event_manager import EventManager
 from sentry.ingest.consumer.factory import IngestStrategyFactory
 from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
 def make_message(payload: bytes, partition: Partition, offset: int) -> Message:
@@ -60,7 +60,7 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
         {
             "type": "unsupported type",
             "project_id": project.id,
-            "payload": json.dumps(sample_event).encode("utf-8"),
+            "payload": orjson.dumps(sample_event),
             "start_time": int(time.time()),
             "event_id": "aaa",
         }

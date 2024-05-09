@@ -1,3 +1,4 @@
+import orjson
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -116,8 +117,12 @@ class GroupResolution(Model):
                     # If current_release_version == release.version => 0
                     # If current_release_version < release.version => -1
                     # If current_release_version > release.version => 1
-                    current_release_raw = parse_release(current_release_version).get("version_raw")
-                    release_raw = parse_release(release.version).get("version_raw")
+                    current_release_raw = parse_release(
+                        current_release_version, json_loads=orjson.loads
+                    ).get("version_raw")
+                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                        "version_raw"
+                    )
                     return compare_version_relay(current_release_raw, release_raw) >= 0
                 except RelayError:
                     ...
@@ -157,8 +162,12 @@ class GroupResolution(Model):
                 try:
                     # A resolution only exists if the resolved release is greater (in semver
                     # terms) than the provided release
-                    res_release_raw = parse_release(res_release_version).get("version_raw")
-                    release_raw = parse_release(release.version).get("version_raw")
+                    res_release_raw = parse_release(
+                        res_release_version, json_loads=orjson.loads
+                    ).get("version_raw")
+                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                        "version_raw"
+                    )
                     return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...

@@ -59,11 +59,9 @@ EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:custom-metrics",
     "organizations:device-class-synthesis",
-    "organizations:metric-meta",
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
-    "organizations:session-replay-video",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
@@ -292,8 +290,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "namespace": namespace.value,
             }
             if id in passive_limits:
-                # HACK inc-730: reduce pressure on memory by disabling limits for passive projects
-                continue
+                limit["passive"] = True
             cardinality_limits.append(limit)
             existing_ids.add(id)
 
@@ -1016,7 +1013,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 3
+TRANSACTION_METRICS_EXTRACTION_VERSION = 5
 
 
 class CustomMeasurementSettings(TypedDict):

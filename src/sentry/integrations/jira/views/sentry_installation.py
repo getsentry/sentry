@@ -1,9 +1,9 @@
+import orjson
 from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
@@ -32,7 +32,7 @@ class JiraSentryInstallationView(JiraSentryUIBaseView):
         # expose a link to the configuration view
         signed_data = {
             "external_id": integration.external_id,
-            "metadata": json.dumps(integration.metadata),
+            "metadata": orjson.dumps(integration.metadata).decode(),
         }
         finish_link = "{}.?signed_params={}".format(
             absolute_uri("/extensions/jira/configure/"), sign(**signed_data)

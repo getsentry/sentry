@@ -3,6 +3,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor, MonitorType
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -31,7 +32,9 @@ class DeleteTeamTest(TestCase, HybridCloudTestMixin):
         project = self.create_project(teams=[team], name="test1")
         rule = Rule.objects.create(label="test rule", project=project, owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
-            name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
+            name="test alert rule",
+            owner=RpcActor.from_id(user_id=None, team_id=team.id),
+            projects=[project],
         )
         self.ScheduledDeletion.schedule(team, days=0)
 

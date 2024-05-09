@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,7 +14,7 @@ jest.mock('sentry/utils/useOrganization');
 describe('messageConsumerSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let eventsRequestMock, eventsStatsRequestMock;
+  let eventsRequestMock, eventsStatsRequestMock, samplesRequestMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -63,14 +63,31 @@ describe('messageConsumerSamplesPanel', () => {
         meta: {},
       },
     });
+
+    samplesRequestMock = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/${organization.slug}/spans-samples/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            span_id: '123',
+            trace: 'abc',
+            project: 'project',
+            timestamp: '2024-03-25T20:31:36+00:00',
+            'span.self_time': 320.300102,
+          },
+        ],
+      },
+    });
   });
 
   afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('renders', () => {
+  it('renders', async () => {
     render(<MessageConsumerSamplesPanel />);
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(eventsStatsRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
@@ -81,20 +98,45 @@ describe('messageConsumerSamplesPanel', () => {
           environment: [],
           field: [
             'count()',
-            'count_op(queue.submit.celery)',
-            'count_op(queue.task.celery)',
+            'count_op(queue.publish)',
+            'count_op(queue.process)',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'avg_if(span.self_time,span.op,queue.submit.celery)',
-            'avg_if(span.self_time,span.op,queue.task.celery)',
+            'avg_if(span.self_time,span.op,queue.publish)',
+            'avg_if(span.self_time,span.op,queue.process)',
+            'avg(messaging.message.receive.latency)',
           ],
           per_page: 10,
           project: [],
-          // TODO: This query filters on transaction twice because `destination` is not an implemented tag yet, and `transaction` is being used as a substitute.
-          // Update this test to check for filtering on `destination` when available.
           query:
-            'span.op:[queue.task.celery,queue.submit.celery] transaction:event-queue transaction:sentry.tasks.store.save_event',
+            'span.op:[queue.process,queue.publish] messaging.destination.name:event-queue transaction:sentry.tasks.store.save_event',
           statsPeriod: '10d',
+        }),
+      })
+    );
+    expect(samplesRequestMock).toHaveBeenCalledWith(
+      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          additionalFields: [
+            'trace',
+            'transaction.id',
+            'span.description',
+            'measurements.messaging.message.body.size',
+            'measurements.messaging.message.receive.latency',
+            'messaging.message.id',
+            'trace.status',
+            'span.self_time',
+          ],
+          firstBound: 2666.6666666666665,
+          lowerBound: 0,
+          project: [],
+          query:
+            'span.op:queue.process OR span.op:queue.publish transaction:sentry.tasks.store.save_event messaging.destination.name:event-queue',
+          referrer: undefined,
+          secondBound: 5333.333333333333,
+          statsPeriod: '10d',
+          upperBound: 8000,
         }),
       })
     );

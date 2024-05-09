@@ -15,7 +15,7 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.27',
+        corejs: '3.37',
       },
     ],
     // TODO: Remove allowDeclareFields when we upgrade to Babel 8
@@ -41,8 +41,6 @@ const config: TransformOptions = {
     test: {
       sourceMaps: process.env.CI ? false : true,
       plugins: [
-        // Required, see https://github.com/facebook/jest/issues/9430
-        'dynamic-import-node',
         // Disable emotion sourcemaps in tests
         // Since emotion spends lots of time parsing and inserting sourcemaps
         [

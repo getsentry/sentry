@@ -211,4 +211,6 @@ __all__ = (
     "load",
     "loads",
     "prune_empty_keys",
+    "loads_experimental",
+    "dumps_experimental",
 )

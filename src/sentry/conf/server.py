@@ -135,6 +135,7 @@ SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
+SENTRY_ASSEMBLE_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -186,8 +187,6 @@ SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 # XXX(epurkhiser): The generated chartucterie config.js file will be stored
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
-
-CDC_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "cdc")
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
@@ -733,8 +732,6 @@ CELERY_IMPORTS = (
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
-    "sentry.monitors.tasks.check_missed",
-    "sentry.monitors.tasks.check_timeout",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
@@ -1113,12 +1110,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-daily-organization-reports": {
-        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-        # Run every 1 hour on business days
-        "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-        "options": {"expires": 60 * 60 * 3},
-    },
+    # "schedule-daily-organization-reports": {
+    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+    #     # Run every 1 hour on business days
+    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
+    #     "options": {"expires": 60 * 60 * 3},
+    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1455,8 +1452,6 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
-    # Enables superuser read vs. write separation
-    "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
     # Enables activated alert rules
@@ -1501,6 +1496,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
+    # Disables legacy cron ingest endpoints
+    "organizations:crons-write-user-feedback": False,
     # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1536,8 +1533,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
-    # Enables automatically deriving of code mappings for Go Projects
-    "organizations:derive-code-mappings-go": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
@@ -1579,10 +1574,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
-    # Enable caching group counts in GroupSnooze
-    "organizations:groupsnooze-cached-counts": False,
-    # Enable caching group frequency rates in GroupSnooze
-    "organizations:groupsnooze-cached-rates": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
@@ -1646,6 +1637,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-group-attributes-side-query": False,
     # Enable the updated empty state for issues
     "organizations:issue-stream-empty-state": False,
+    # Enable new events graph design for issue stream
+    "organizations:issue-stream-new-events-graph": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
     # Enabled latest adopted release filter for issue alerts
@@ -1658,8 +1651,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-load-shedding": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
-    # Enables the metrics metadata.
-    "organizations:metric-meta": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
     # Enables the search bar for metrics samples list
@@ -1673,7 +1664,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
-    "organizations:multi-region-selector": False,
+    "organizations:multi-region-selector": True,
     # Enable new page filter UI
     "organizations:new-page-filter": True,
     # Display warning banner for every event issue alerts
@@ -1771,6 +1762,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable trace explorer features in performance
     "organizations:performance-trace-explorer": False,
+    # Enable linking to trace explorer from metrics
+    "organizations:performance-trace-explorer-with-metrics": False,
     # Experimental performance issue for streamed spans - ingestion
     "organizations:performance-streamed-spans-exp-ingest": False,
     # Experimental performance issue for streamed spans - UI
@@ -1827,8 +1820,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:scim-team-roles": False,
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
-    # Enable Sentry Functions
-    "organizations:sentry-functions": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable core Session Replay backend APIs
@@ -1877,6 +1868,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
     "organizations:slack-thread-issue-alert": False,
+    # Enable improvements to Slack notifications
+    "organizations:slack-improvements": False,
     # Add regression chart as image to slack message
     "organizations:slack-endpoint-regression-image": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -1958,6 +1951,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # User Feedback Error Link Ingestion Changes
+    "organizations:user-feedback-event-link-ingestion-changes": False,
+    # Enabled unresolved issue webhook for organization
+    "organizations:webhooks-unresolved": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -2732,9 +2729,6 @@ SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # metrics in the development environment. Note: this is "metrics" the product
 SENTRY_USE_METRICS_DEV = False
 
-# This flags activates the Change Data Capture backend in the development environment
-SENTRY_USE_CDC_DEV = False
-
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
@@ -2778,18 +2772,6 @@ SENTRY_USE_SPOTLIGHT = False
 #         }
 #     )
 # }
-
-
-def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]]:
-    return (
-        {
-            os.path.join(settings.CDC_CONFIG_DIR, "init_hba.sh"): {
-                "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
-            }
-        }
-        if settings.SENTRY_USE_CDC_DEV
-        else {}
-    )
 
 
 # platform.processor() changed at some point between these:
@@ -2843,8 +2825,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "volumes": {
                 "postgres": {"bind": "/var/lib/postgresql/data"},
                 "wal2json": {"bind": "/wal2json"},
-                settings.CDC_CONFIG_DIR: {"bind": "/cdc"},
-                **build_cdc_postgres_init_db_volume(settings),
             },
             "command": [
                 "postgres",
@@ -2855,7 +2835,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "-c",
                 "max_wal_senders=1",
             ],
-            "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
         }
     ),
     "kafka": lambda settings, options: (
@@ -2992,7 +2971,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "chartcuterie": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/chartcuterie:latest",
+            "image": "us-central1-docker.pkg.dev/sentryio/chartcuterie/image:latest",
             "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
             "environment": {
                 "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
@@ -3002,14 +2981,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
             "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
             or options.get("chart-rendering.enabled"),
-        }
-    ),
-    "cdc": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/cdc:latest",
-            "only_if": settings.SENTRY_USE_CDC_DEV,
-            "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
-            "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
         }
     ),
     "vroom": lambda settings, options: (
@@ -3476,7 +3447,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
 }
 
 
-# If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
+# If True, sentry.utils.arroyo.run_task_with_multiprocessing will actually be
 # single-threaded under the hood for performance
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 
@@ -3734,6 +3705,10 @@ DEVSERVER_REQUEST_LOG_EXCLUDES: list[str] = []
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
+# We should not run access logging middleware on some endpoints as
+# it is very noisy, and these views are hit by internal services.
+ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/")
+
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 
@@ -3769,10 +3744,6 @@ SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
 SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
-
-SENTRY_FUNCTIONS_PROJECT_NAME: str | None = None
-
-SENTRY_FUNCTIONS_REGION = "us-central1"
 
 # Settings related to SiloMode
 FAIL_ON_UNAVAILABLE_API_CALL = False

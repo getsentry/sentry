@@ -142,11 +142,11 @@ from sentry.monitors.endpoints.project_monitor_checkin_attachment import (
 from sentry.monitors.endpoints.project_monitor_checkin_index import (
     ProjectMonitorCheckInIndexEndpoint,
 )
+from sentry.monitors.endpoints.project_monitor_details import ProjectMonitorDetailsEndpoint
 from sentry.monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
 from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
-from sentry.monitors.endpoints.project_monitors_details import ProjectMonitorDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -460,13 +460,13 @@ from .endpoints.organization_sdk_updates import (
     OrganizationSdkUpdatesEndpoint,
 )
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
-from .endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
-from .endpoints.organization_sentry_function_details import (
-    OrganizationSentryFunctionDetailsEndpoint,
-)
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
+from .endpoints.organization_spans_fields import (
+    OrganizationSpansFieldsEndpoint,
+    OrganizationSpansFieldValuesEndpoint,
+)
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -1113,7 +1113,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
     ),
     # Alert Rules
@@ -1397,6 +1397,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/spans/fields/$",
+        OrganizationSpansFieldsEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-fields",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/spans/fields/(?P<key>[^/]+)/values/$",
+        OrganizationSpansFieldValuesEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-fields-values",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/metrics-estimation-stats/$",
@@ -1860,7 +1870,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-user-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/sentry-app-installations/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/sentry-app-installations/$",
         SentryAppInstallationsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installations",
     ),
@@ -1969,16 +1979,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
         OrganizationReplayEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-replay-events-meta",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/functions/$",
-        OrganizationSentryFunctionEndpoint.as_view(),
-        name="sentry-api-0-organization-sentry-functions",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/functions/(?P<function_id_or_slug>[^\/]+)/$",
-        OrganizationSentryFunctionDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-sentry-function-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
@@ -2766,72 +2766,72 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
 
 TEAM_URLS = [
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/$",
         TeamDetailsEndpoint.as_view(),
         name="sentry-api-0-team-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issues/old/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issues/old/$",
         TeamGroupsOldEndpoint.as_view(),
         name="sentry-api-0-team-oldest-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/release-count/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/release-count/$",
         TeamReleaseCountEndpoint.as_view(),
         name="sentry-api-0-team-release-count",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/time-to-resolution/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/time-to-resolution/$",
         TeamTimeToResolutionEndpoint.as_view(),
         name="sentry-api-0-team-time-to-resolution",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/unresolved-issue-age/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/unresolved-issue-age/$",
         TeamUnresolvedIssueAgeEndpoint.as_view(),
         name="sentry-api-0-team-unresolved-issue-age",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered/$",
         TeamAlertsTriggeredTotalsEndpoint.as_view(),
         name="sentry-api-0-team-alerts-triggered",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered-index/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/alerts-triggered-index/$",
         TeamAlertsTriggeredIndexEndpoint.as_view(),
         name="sentry-api-0-team-alerts-triggered-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issue-breakdown/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/issue-breakdown/$",
         TeamIssueBreakdownEndpoint.as_view(),
         name="sentry-api-0-team-issue-breakdown",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/all-unresolved-issues/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/all-unresolved-issues/$",
         TeamAllUnresolvedIssuesEndpoint.as_view(),
         name="sentry-api-0-team-all-unresolved-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/members/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/members/$",
         TeamMembersEndpoint.as_view(),
         name="sentry-api-0-team-members",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/projects/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/projects/$",
         TeamProjectsEndpoint.as_view(),
         name="sentry-api-0-team-project-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/stats/$",
         TeamStatsEndpoint.as_view(),
         name="sentry-api-0-team-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/$",
         ExternalTeamEndpoint.as_view(),
         name="sentry-api-0-external-team",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/(?P<external_team_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<team_id_or_slug>[^\/]+)/external-teams/(?P<external_team_id>[^\/]+)/$",
         ExternalTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-external-team-details",
     ),
