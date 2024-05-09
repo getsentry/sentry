@@ -4,6 +4,7 @@ from unittest import mock
 from unittest.mock import patch
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 
 import sentry
@@ -34,7 +35,6 @@ from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -432,7 +432,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert data["channel"] == ["CXXXXXXX2"]
         assert "blocks" in data
         assert "text" in data
-        blocks = json.loads(data["blocks"][0])
+        blocks = orjson.loads(data["blocks"][0])
         fallback_text = data["text"][0]
         notification_uuid = notification.notification_uuid
 
@@ -598,7 +598,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         data = parse_qs(responses.calls[0].request.body)
         assert data["channel"] == ["CXXXXXXX2"]
         assert "blocks" in data
-        blocks = json.loads(data["blocks"][0])
+        blocks = orjson.loads(data["blocks"][0])
         assert "Hello world" in blocks[1]["text"]["text"]
         title_link = blocks[1]["text"]["text"][13:][1:-1]
         notification_uuid = self.get_notification_uuid(title_link)
@@ -679,7 +679,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert data["channel"] == ["CXXXXXXX2"]
         assert "blocks" in data
         assert "text" in data
-        blocks = json.loads(data["blocks"][0])
+        blocks = orjson.loads(data["blocks"][0])
         fallback_text = data["text"][0]
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
 
@@ -767,7 +767,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         data = parse_qs(responses.calls[0].request.body)
         assert data["channel"] == ["CXXXXXXX2"]
         assert "blocks" in data
-        blocks = json.loads(data["blocks"][0])
+        blocks = orjson.loads(data["blocks"][0])
         assert "Hello world" in blocks[1]["text"]["text"]
         title_link = blocks[1]["text"]["text"][13:][1:-1]
         notification_uuid = self.get_notification_uuid(title_link)
@@ -872,7 +872,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert data["channel"] == ["UXXXXXXX1"]
         assert "blocks" in data
-        blocks = json.loads(data["blocks"][0])
+        blocks = orjson.loads(data["blocks"][0])
         assert "Hello world" in blocks[1]["text"]["text"]
         title_link = blocks[1]["text"]["text"]
         notification_uuid = self.get_notification_uuid(title_link)
@@ -884,7 +884,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # check that user2 got a notification as well
         assert data2["channel"] == ["UXXXXXXX2"]
         assert "blocks" in data2
-        blocks = json.loads(data2["blocks"][0])
+        blocks = orjson.loads(data2["blocks"][0])
         assert "Hello world" in blocks[1]["text"]["text"]
         assert (
             blocks[-2]["elements"][0]["text"]

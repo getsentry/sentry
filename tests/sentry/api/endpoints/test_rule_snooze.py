@@ -6,10 +6,10 @@ from typing import Any
 from sentry import audit_log
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
+from sentry.types.actor import Actor
 
 
 class BaseRuleSnoozeTest(APITestCase):
@@ -545,7 +545,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         other_metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization,
             projects=[self.project],
-            owner=RpcActor.from_identifier(f"team:{other_team.id}"),
+            owner=Actor.from_identifier(f"team:{other_team.id}"),
         )
         self.get_success_response(
             self.organization.slug,

@@ -56,7 +56,7 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
-from sentry.services.hybrid_cloud.actor import ActorType, parse_and_validate_actor
+from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -102,9 +102,9 @@ def _ensure_monitor_with_config(
             },
         )
     else:
-        if owner_actor and owner_actor.actor_type == ActorType.USER:
+        if owner_actor and owner_actor.is_user:
             owner_user_id = owner_actor.id
-        elif owner_actor and owner_actor.actor_type == ActorType.TEAM:
+        elif owner_actor and owner_actor.is_team:
             owner_team_id = owner_actor.id
 
     validator = ConfigValidator(data=config)
@@ -1028,6 +1028,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     ) -> None:
         if mode == "parallel":
             self.parallel = True
+            self.parallel_executor = ThreadPoolExecutor(max_workers=self.max_workers)
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
@@ -1041,8 +1042,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             self.parallel_executor.shutdown()
 
     def create_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
-        self.parallel_executor = ThreadPoolExecutor(max_workers=self.max_workers)
-
+        assert self.parallel_executor is not None
         batch_processor = RunTask(
             function=partial(process_batch, self.parallel_executor),
             next_step=CommitOffsets(commit),

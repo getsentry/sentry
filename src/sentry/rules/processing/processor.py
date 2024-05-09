@@ -259,6 +259,10 @@ class RuleProcessor:
         return fast_conditions, slow_conditions
 
     def enqueue_rule(self, rule: Rule) -> None:
+        logger.info(
+            "rule_processor.rule_enqueued",
+            extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
+        )
         self.buffer = RedisBuffer()
         self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 

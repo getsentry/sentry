@@ -132,7 +132,7 @@ export type SpanMetricsResponse = {
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
 } & {
-  'ai_total_tokens_used(c:spans/ai.total_cost@none)': number;
+  'ai_total_tokens_used(c:spans/ai.total_cost@usd)': number;
 } & {
   ['project']: string;
   ['project.id']: number;
@@ -327,6 +327,8 @@ export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
+} & {
+  [Property in MetricsStringFields as `${Property}`]: string;
 };
 
 export type MetricsProperty = keyof MetricsResponse;

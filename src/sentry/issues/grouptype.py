@@ -523,14 +523,19 @@ class MonitorIncidentType(GroupType):
     notification_config = NotificationConfig(context=[])
 
 
+# XXX(epurkhiser): We renamed this group type but we keep the alias since we
+# store group type in pickles
+MonitorCheckInFailure = MonitorIncidentType
+
+
 @dataclass(frozen=True)
-class MonitorCheckInTimeoutDeprecated(MonitorIncidentType, GroupType):
+class MonitorCheckInTimeout(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4002
 
 
 @dataclass(frozen=True)
-class MonitorCheckInMissedDeprecated(MonitorIncidentType, GroupType):
+class MonitorCheckInMissed(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4003
 

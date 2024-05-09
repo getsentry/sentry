@@ -1,6 +1,7 @@
 from unittest import mock
 from uuid import uuid4
 
+import orjson
 import responses
 from django.core.exceptions import ValidationError
 
@@ -18,7 +19,6 @@ from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -73,7 +73,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
-        data = json.loads(bytes.decode(body, "utf-8"))
+        data = orjson.loads(body)
 
         embed = data["embeds"][0]
         assert embed == {
@@ -138,7 +138,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
-        data = json.loads(bytes.decode(body, "utf-8"))
+        data = orjson.loads(body)
 
         buttons = data["components"][0]["components"]
         assert (
@@ -165,7 +165,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
-        data = json.loads(bytes.decode(body, "utf-8"))
+        data = orjson.loads(body)
 
         buttons = data["components"][0]["components"]
         assert (
@@ -192,7 +192,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
-        data = json.loads(bytes.decode(body, "utf-8"))
+        data = orjson.loads(body)
 
         buttons = data["components"][0]["components"]
         assert (
