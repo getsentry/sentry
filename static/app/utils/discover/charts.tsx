@@ -1,4 +1,3 @@
-import {captureMessage} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 
@@ -177,7 +176,7 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
           scope.setTag('seriesName', seriesName);
           scope.setExtra('min', min);
           scope.setExtra('max', min);
-          captureMessage('Found negative min value in multiseries');
+          Sentry.captureMessage('Found negative min value in multiseries');
         });
       }
     }

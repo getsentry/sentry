@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+import orjson
 from sentry_relay.processing import parse_release
 
 from sentry import features
@@ -52,7 +53,9 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
     def linkify_release(self, release, organization):
         path = f"/releases/{release.version}/"
         url = organization.absolute_url(path)
-        release_description = parse_release(release.version).get("description")
+        release_description = parse_release(release.version, json_loads=orjson.loads).get(
+            "description"
+        )
         return f":rocket: *<{url}|Release {release_description}>*\n"
 
     def truncate_text(self, text):

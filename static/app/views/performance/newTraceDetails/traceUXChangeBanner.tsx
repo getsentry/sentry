@@ -16,7 +16,7 @@ export function TraceUXChangeAlert() {
       system
       trailingItems={
         <Button
-          aria-label="dismiss"
+          aria-label={t('dismiss')}
           priority="link"
           size="xs"
           icon={<IconClose />}

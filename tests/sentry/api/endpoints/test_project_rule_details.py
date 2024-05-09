@@ -15,12 +15,10 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.models.team import Team
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -28,7 +26,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
-from sentry.utils.actor import ActorTuple
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -40,11 +37,11 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        actor = ActorTuple.from_actor_identifier(owner_id)
-        if actor.type == User:
+        actor = RpcActor.from_identifier(owner_id)
+        if actor.is_user:
             assert rule.owner_user_id == actor.id
             assert rule.owner_team_id is None
-        if actor.type == Team:
+        if actor.is_team:
             assert rule.owner_team_id == actor.id
             assert rule.owner_user_id is None
     else:
@@ -1120,7 +1117,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "frequency": 180,
             "filters": filters,
             "environment": staging_env.name,
-            "owner": get_actor_for_user(self.user).get_actor_identifier(),
+            "owner": f"user:{self.user.id}",
         }
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
@@ -1275,7 +1272,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filterMatch": "any",
             "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
             "actions": [],
-            "owner": get_actor_for_user(new_user).get_actor_identifier(),
+            "owner": f"user:{new_user.id}",
         }
         response = self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload

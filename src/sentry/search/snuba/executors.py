@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import Enum, auto
 from hashlib import md5
 from math import floor
 from typing import Any, TypedDict, cast
@@ -57,6 +58,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.events.builder.discover import UnresolvedQuery
+from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.dataset import Dataset
@@ -84,6 +86,16 @@ DEFAULT_TRENDS_WEIGHTS: TrendsSortWeights = {
     "v2": True,
     "norm": False,
 }
+
+
+class Clauses(Enum):
+    HAVING = auto()
+    WHERE = auto()
+
+
+# we cannot use snuba for these fields because they require a join with tables that don't exist there
+# if we ever see these fields, we will use postgres to get the group_ids before sending back to ClickHouse
+POSTGRES_ONLY_SEARCH_FIELDS = ["bookmarked_by", "linked", "subscribed_by"]
 
 
 @dataclass
@@ -1129,6 +1141,24 @@ class InvalidQueryForExecutor(Exception):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    def get_last_seen_filter(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
+        # get the max timestamp of the error/search_issue event
+        return Condition(
+            Function("max", [Column("timestamp", joined_entity)]),
+            Op(search_filter.operator),
+            search_filter.value.raw_value,
+        )
+
+    def get_first_seen_filter(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        # use the group first seen from the group dataset
+        return Condition(
+            Column("group_first_seen", self.entities["attrs"]),
+            Op(search_filter.operator),
+            search_filter.value.raw_value,
+        )
+
     def get_basic_group_snuba_condition(
         self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
@@ -1147,14 +1177,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         Returns the basic lookup for a search filter.
         """
-
-        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
-
-        query_builder = UnresolvedQuery(
-            dataset=dataset,
-            entity=joined_entity,
-            params={},
-        )
+        query_builder = self.def_get_query_builder(joined_entity)
         return query_builder.default_filter_converter(search_filter)
 
     def get_assigned(
@@ -1386,6 +1409,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             conditions=top_level_conditions,
         )
 
+    def def_get_query_builder(self, joined_entity: Entity) -> Condition:
+        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
+
+        return UnresolvedQuery(
+            dataset=dataset,
+            entity=joined_entity,
+            params={},
+        )
+
+    def get_message_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        query_builder = self.def_get_query_builder(joined_entity)
+
+        # leverage discover logic internally here
+        dataset_config = DiscoverDatasetConfig(query_builder)
+        return dataset_config._message_filter_converter(search_filter)
+
     def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
         return Function(
             "ifNull",
@@ -1414,12 +1455,14 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     }
 
     group_conditions_lookup = {
-        "status": get_basic_group_snuba_condition,
-        "substatus": get_basic_group_snuba_condition,
-        "assigned_or_suggested": get_assigned_or_suggested,
-        "assigned_to": get_assigned,
+        "status": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "substatus": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
+        "assigned_to": (get_assigned, Clauses.WHERE),
+        "message": (get_message_condition, Clauses.WHERE),
+        "first_seen": (get_first_seen_filter, Clauses.WHERE),
+        "last_seen": (get_last_seen_filter, Clauses.HAVING),
     }
-
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
 
@@ -1500,6 +1543,17 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if len(projects) == 0:
             return self.empty_result
 
+        # Check if any search filters are in POSTGRES_ONLY_SEARCH_FIELDS
+        search_filters = search_filters or ()
+        group_ids_to_pass_to_snuba = None
+        if any(sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS for sf in search_filters):
+            group_ids_to_pass_to_snuba = list(group_queryset.values_list("id", flat=True))
+
+        # remove the search filters that are only for postgres
+        search_filters = [
+            sf for sf in search_filters if sf.key.name not in POSTGRES_ONLY_SEARCH_FIELDS
+        ]
+
         organization = projects[0].organization
 
         event_entity = self.entities["event"]
@@ -1525,14 +1579,40 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 Condition(Column("timestamp", joined_entity), Op.GTE, start),
                 Condition(Column("timestamp", joined_entity), Op.LT, end),
             ]
+            having = []
+            # if we need to prefetch from postgres, we add filter by the group ids
+            if group_ids_to_pass_to_snuba is not None:
+                # will not find any matches, we can return early
+                if len(group_ids_to_pass_to_snuba) == 0:
+                    return self.empty_result
+
+                # limit groups and events to the group ids
+                for entity_with_group_id in [attr_entity, joined_entity]:
+                    where_conditions.append(
+                        Condition(
+                            Column("group_id", entity_with_group_id),
+                            Op.IN,
+                            group_ids_to_pass_to_snuba,
+                        )
+                    )
+
             for search_filter in search_filters or ():
                 # use the stored function if it exists in our mapping, otherwise use the basic lookup
-                fn = self.group_conditions_lookup.get(search_filter.key.name)
-                if fn:
-                    where_conditions.append(fn(self, search_filter, joined_entity))
-                elif search_filter.key.name in ["issue.category", "issue.type"]:
-                    # handle this separately since it's a special case that combines both issue.type and issue.category to determine the type
+                lookup = self.group_conditions_lookup.get(search_filter.key.name)
+                fn = lookup[0] if lookup else None
+                clause = lookup[1] if lookup else Clauses.WHERE
+
+                # skip these
+                if search_filter.key.name in ["issue.category", "issue.type"]:
                     pass
+                elif fn:
+                    # dynamic lookup of what clause to use
+                    if clause == Clauses.WHERE:
+                        where_conditions.append(fn(self, search_filter, joined_entity))
+                    elif clause == Clauses.HAVING:
+                        having.append(fn(self, search_filter, joined_entity))
+                    else:
+                        raise InvalidQueryForExecutor(f"Invalid clause {clause}")
                 else:
                     where_conditions.append(
                         self.get_basic_event_snuba_condition(search_filter, joined_entity)
@@ -1565,7 +1645,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         Column("environment", joined_entity), Op.IN, [e.name for e in environments]
                     )
                 )
-            having = []
+
             if cursor is not None:
                 op = Op.GTE if cursor.is_prev else Op.LTE
                 having.append(Condition(sort_func, op, cursor.value))
@@ -1618,7 +1698,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
 
         data = []
-        count = 0
+        count: int = 0
         # get the query data and the query counts
         k = 0
         for _ in range(len(entities_to_check)):
@@ -1628,20 +1708,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 count += bulk_result[k]["data"][0]["count"]
             k += 1
 
-        hits = 0
         paginator_results = SequencePaginator(
             [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
-        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
+        ).get_result(limit, cursor, known_hits=count, max_hits=max_hits)
 
-        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
-        # Since replay between Postgres and Clickhouse can happen, we might get back results that
-        # have changed state in Postgres. By rechecking them we guarantee than any returned results
-        # have the correct state.
-        # TODO: This can result in us returning less than a full page of results, but shouldn't
-        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
-        # full page. In practice, this will likely only skip a couple of results at worst, and
+        # TODO: do we need to set has_results for the next cursor?
+
+        if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
+            # If the user passed a cursor, and it isn't already a 0 result `is_prev`
+            # cursor, then it's worth allowing them to go back a page to check for
+            # more results.
+            paginator_results.prev.has_results = True
+
+        # We filter against `group_queryset` here to ensure we only return groups that aren't being migrated
+        # or being deleted before snuba is updated. This can result in us returning less than a full page of
+        # results, but we can't do much about that without a more complex solution such as asking for more results
+        # In practice, this will likely only skip a couple of results at worst, and
         # probably not be noticeable to the user, so holding off for now to reduce complexity.
 
         groups = group_queryset.in_bulk(paginator_results.results)

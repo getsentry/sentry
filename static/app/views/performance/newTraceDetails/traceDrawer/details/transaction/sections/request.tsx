@@ -108,7 +108,7 @@ export function Request({event}: {event: EventTransaction}) {
       className="request"
     >
       {view === 'formatted' ? (
-        <Fragment>
+        <TraceDrawerComponents.SectionCardGroup>
           {defined(data.query) && Object.keys(data.query).length > 0 ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.query, meta?.query)}
@@ -152,7 +152,7 @@ export function Request({event}: {event: EventTransaction}) {
               title={t('Environment')}
             />
           ) : null}
-        </Fragment>
+        </TraceDrawerComponents.SectionCardGroup>
       ) : (
         <TraceDrawerComponents.SectionCard items={curlItems} title={t('cURL')} />
       )}

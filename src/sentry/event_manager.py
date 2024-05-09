@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -35,6 +36,7 @@ from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
+    PLACEHOLDER_EVENT_TITLES,
     DataCategory,
 )
 from sentry.culprit import generate_culprit
@@ -100,7 +102,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
@@ -147,7 +148,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
 
 HIGH_SEVERITY_THRESHOLD = 0.1
 
@@ -387,11 +387,14 @@ class EventManager:
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
+            json_dumps=orjson.dumps,
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        self._data = CanonicalKeyDict(
+            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
+        )
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -568,10 +571,6 @@ class EventManager:
         _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs)
         _tsdb_record_all_metrics(jobs)
-
-        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-            group_id=group_info.group.id, environment_id=job["environment"].id
-        )
 
         if attachments:
             attachments = filter_attachments_for_group(attachments, job)
