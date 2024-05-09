@@ -314,9 +314,7 @@ export default function AssigneeSelectorDropdown({
           data-test-id="assignee-option"
           displayName={`${userDisplay}${isCurrentUser ? ' (You)' : ''}`}
           hideEmail
-          user={{
-            ...user,
-          }}
+          user={user}
         />
       ),
       // Jank way to pass assignee type (team or user) into each row
@@ -342,9 +340,7 @@ export default function AssigneeSelectorDropdown({
             hideEmail
             data-test-id="assignee-option"
             displayName={`${assignee.name}${isCurrentUser ? ' (You)' : ''}`}
-            user={{
-              ...(assignee.assignee as User),
-            }}
+            user={assignee.assignee as User}
             description={suggestedReasonTable[assignee.suggestedReason]}
           />
         ),
