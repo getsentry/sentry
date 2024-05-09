@@ -139,31 +139,35 @@ export function HTTPSamplesPanel() {
   const {
     data: domainTransactionMetrics,
     isFetching: areDomainTransactionMetricsFetching,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(ribbonFilters),
-    fields: [
-      `${SpanFunction.SPM}()`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      'http_response_rate(3)',
-      'http_response_rate(4)',
-      'http_response_rate(5)',
-      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-    ],
-    enabled: isPanelOpen,
-    referrer: Referrer.SAMPLES_PANEL_METRICS_RIBBON,
-  });
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(ribbonFilters),
+      fields: [
+        `${SpanFunction.SPM}()`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        'http_response_rate(3)',
+        'http_response_rate(4)',
+        'http_response_rate(5)',
+        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+      ],
+      enabled: isPanelOpen,
+    },
+    Referrer.SAMPLES_PANEL_METRICS_RIBBON
+  );
 
   const {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search,
-    yAxis: [`avg(span.self_time)`],
-    enabled: isPanelOpen && query.panel === 'duration',
-    referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search,
+      yAxis: [`avg(span.self_time)`],
+      enabled: isPanelOpen && query.panel === 'duration',
+    },
+    Referrer.SAMPLES_PANEL_DURATION_CHART
+  );
 
   const {
     isFetching: isResponseCodeDataLoading,
