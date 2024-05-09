@@ -314,8 +314,8 @@ class RedisBuffer(Buffer):
     def process_batch(self) -> None:
         try:
             redis_buffer_registry.callback(BufferHookEvent.FLUSH, self)
-        except Exception as e:
-            logger.exception("process_batch.error", extra={"exception": e})
+        except Exception:
+            logger.exception("process_batch.error")
 
     def incr(
         self,
