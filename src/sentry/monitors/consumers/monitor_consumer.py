@@ -1004,11 +1004,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     Does the consumer process unrelated check-ins in parallel?
     """
 
-    max_workers: int | None = None
-    """
-    Number of Executor workers to use when running in parallel
-    """
-
     max_batch_size = 500
     """
     How many messages will be batched at once when in parallel mode.
@@ -1028,14 +1023,12 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     ) -> None:
         if mode == "parallel":
             self.parallel = True
-            self.parallel_executor = ThreadPoolExecutor(max_workers=self.max_workers)
+            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
         if max_batch_time is not None:
             self.max_batch_time = max_batch_time
-        if max_workers is not None:
-            self.max_workers = max_workers
 
     def shutdown(self) -> None:
         if self.parallel_executor:
