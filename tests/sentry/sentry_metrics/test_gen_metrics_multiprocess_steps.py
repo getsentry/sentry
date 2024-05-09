@@ -66,6 +66,10 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
     actual_deserialized = json.loads(actual_payload.value)
     expected_deserialized = json.loads(expected_payload.value)
     del actual_deserialized["mapping_meta"]
+    # The custom use case metrics payload adds the aggregation option to the transformed payload.
+    # Others don't. Since the tests are generic over different payload types, removed the checking
+    # of fields which are specific to a payload.
+    actual_deserialized.pop("aggregation_option", None)
     assert actual_deserialized == expected_deserialized
 
 
@@ -241,7 +245,7 @@ counter_payloads: list[dict[str, Any]] = [
             "session.status": "init",
         },
         "timestamp": ts,
-        "type": b"c",
+        "type": "c",
         "value": 1.0,
         "org_id": 1,
         "project_id": 3,
@@ -258,7 +262,7 @@ distribution_payloads: list[dict[str, Any]] = [
             "session.status": "healthy",
         },
         "timestamp": ts,
-        "type": b"d",
+        "type": "d",
         "value": [4, 5, 6],
         "org_id": 1,
         "project_id": 3,
@@ -276,7 +280,7 @@ set_payloads: list[dict[str, Any]] = [
             "session.status": "errored",
         },
         "timestamp": ts,
-        "type": b"s",
+        "type": "s",
         "value": [3],
         "org_id": 1,
         "project_id": 3,
@@ -358,7 +362,7 @@ def test_process_messages() -> None:
                         None,
                         json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
                         [
-                            ("metric_type", message_payloads[i]["type"]),
+                            ("metric_type", message_payloads[i]["type"].encode()),
                         ],
                     ),
                     m.value.partition,
