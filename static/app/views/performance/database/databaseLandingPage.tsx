@@ -80,42 +80,48 @@ export function DatabaseLandingPage() {
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
-  const queryListResponse = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(tableFilters),
-    fields: [
-      'project.id',
-      'span.group',
-      'span.description',
-      'spm()',
-      'avg(span.self_time)',
-      'sum(span.self_time)',
-      'time_spent_percentage()',
-    ],
-    sorts: [sort],
-    limit: LIMIT,
-    cursor,
-    referrer: 'api.starfish.use-span-list',
-  });
+  const queryListResponse = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(tableFilters),
+      fields: [
+        'project.id',
+        'span.group',
+        'span.description',
+        'spm()',
+        'avg(span.self_time)',
+        'sum(span.self_time)',
+        'time_spent_percentage()',
+      ],
+      sorts: [sort],
+      limit: LIMIT,
+      cursor,
+    },
+    'api.starfish.use-span-list'
+  );
 
   const {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: ['spm()'],
-    referrer: 'api.starfish.span-landing-page-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['spm()'],
+    },
+    'api.starfish.span-landing-page-metrics-chart'
+  );
 
   const {
     isLoading: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    referrer: 'api.starfish.span-landing-page-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    },
+    'api.starfish.span-landing-page-metrics-chart'
+  );
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;

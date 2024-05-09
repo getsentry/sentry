@@ -44,24 +44,28 @@ function SpanSummaryCharts() {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: ['spm()'],
-    enabled: Boolean(groupId),
-    referrer: SpanSummaryReferrer.SPAN_SUMMARY_THROUGHPUT_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: ['spm()'],
+      enabled: Boolean(groupId),
+    },
+    SpanSummaryReferrer.SPAN_SUMMARY_THROUGHPUT_CHART
+  );
 
   const {
     isLoading: isAvgDurationDataLoading,
     data: avgDurationData,
     error: avgDurationError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    // TODO: Switch this to SPAN_DURATION before release
-    yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-    enabled: Boolean(groupId),
-    referrer: SpanSummaryReferrer.SPAN_SUMMARY_DURATION_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      // TODO: Switch this to SPAN_DURATION before release
+      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+      enabled: Boolean(groupId),
+    },
+    SpanSummaryReferrer.SPAN_SUMMARY_DURATION_CHART
+  );
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -94,10 +98,6 @@ function SpanSummaryCharts() {
     getRequestPayload: () => ({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
-      topEvents: eventView.topEvents,
-      excludeOther: 0,
-      partial: 1,
-      orderby: undefined,
       interval: eventView.interval,
     }),
     options: {
@@ -111,7 +111,7 @@ function SpanSummaryCharts() {
     data:
       txnThroughputData?.data.map(datum => ({
         value: datum[1][0].count,
-        name: datum[0],
+        name: datum[0] * 1000,
       })) ?? [],
   };
 
@@ -126,7 +126,6 @@ function SpanSummaryCharts() {
             type={ChartType.LINE}
             definedAxisTicks={4}
             aggregateOutputFormat="duration"
-            stacked
             error={avgDurationError}
             chartColors={[AVG_COLOR]}
           />
@@ -143,7 +142,6 @@ function SpanSummaryCharts() {
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
-            stacked
             error={throughputError}
             chartColors={[THROUGHPUT_COLOR]}
             tooltipFormatterOptions={{
@@ -163,7 +161,6 @@ function SpanSummaryCharts() {
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
-            stacked
             error={txnThroughputError}
             chartColors={[TXN_THROUGHPUT_COLOR]}
             tooltipFormatterOptions={{

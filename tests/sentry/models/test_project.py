@@ -20,7 +20,6 @@ from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
@@ -28,6 +27,7 @@ from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 
@@ -245,7 +245,7 @@ class ProjectTest(APITestCase, TestCase):
         alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[project],
-            owner=RpcActor.from_identifier(f"team:{team.id}"),
+            owner=Actor.from_identifier(f"team:{team.id}"),
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
@@ -394,7 +394,7 @@ class ProjectTest(APITestCase, TestCase):
 
         rule = Rule.objects.create(project=self.project, label="issa rule", owner_team_id=team.id)
         alert_rule = self.create_alert_rule(
-            organization=self.organization, owner=RpcActor.from_id(team_id=team.id)
+            organization=self.organization, owner=Actor.from_id(team_id=team.id)
         )
         self.project.remove_team(team)
 
@@ -505,13 +505,13 @@ class CopyProjectSettingsTest(TestCase):
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
         recipients = get_notification_recipients(
-            recipients=RpcActor.many_from_object(users),
+            recipients=Actor.many_from_object(users),
             type=NotificationSettingEnum.ISSUE_ALERTS,
             project_ids=[self.project.id],
             organization_id=self.project.organization.id,
         )
         actual_recipients = recipients[ExternalProviders.EMAIL]
-        expected_recipients = {RpcActor.from_object(user) for user in expected_users}
+        expected_recipients = {Actor.from_object(user) for user in expected_users}
         assert actual_recipients == expected_recipients
 
     def test(self):

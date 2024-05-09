@@ -1,3 +1,7 @@
+import type {Location, LocationDescriptor} from 'history';
+
+import type {Organization} from 'sentry/types/organization';
+
 import type {SpanResult, TraceResult} from './content';
 import type {Field} from './data';
 
@@ -25,4 +29,47 @@ export function getStylingSliceName(
 
 export function getSecondaryNameFromSpan(span: SpanResult<Field>) {
   return span['sdk.name'];
+}
+
+export function generateTracesRoute({orgSlug}: {orgSlug: Organization['slug']}): string {
+  return `/organizations/${orgSlug}/performance/traces/`;
+}
+
+export function generateTracesRouteWithQuery({
+  orgSlug,
+  metric,
+  query,
+}: {
+  orgSlug: Organization['slug'];
+  metric?: {
+    metricsOp: string;
+    mri: string;
+    metricsQuery?: string;
+  };
+  query?: Location['query'];
+}): LocationDescriptor {
+  const {metricsOp, metricsQuery, mri} = metric || {};
+
+  const pathname = generateTracesRoute({orgSlug});
+
+  return {
+    pathname,
+    query: {
+      ...query,
+      metricsOp,
+      metricsQuery,
+      mri,
+    },
+  };
+}
+
+export function getShortenedSdkName(sdkName: string | null) {
+  if (!sdkName) {
+    return '';
+  }
+  const sdkNameParts = sdkName.split('.');
+  if (sdkNameParts.length <= 1) {
+    return sdkName;
+  }
+  return sdkNameParts[sdkNameParts.length - 1];
 }
