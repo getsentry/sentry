@@ -89,7 +89,7 @@ def test_simple_similar_issues_embeddings_only_group_id_returned(
 
 
 @django_db_all
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, default_project):
     """Test that valid responses are decoded and returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
