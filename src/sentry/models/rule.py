@@ -114,15 +114,12 @@ class Rule(Model):
     @owner.setter
     def owner(self, actor: Actor | None) -> None:
         """Part of ActorOwned Protocol"""
-        if actor is None:
-            self.owner_team_id = None
-            self.owner_user_id = None
+        self.owner_team_id = None
+        self.owner_user_id = None
         if actor and actor.is_user:
-            self.owner_team_id = None
             self.owner_user_id = actor.id
         if actor and actor.is_team:
             self.owner_team_id = actor.id
-            self.owner_user_id = None
 
     def delete(self, *args, **kwargs):
         rv = super().delete(*args, **kwargs)

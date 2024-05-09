@@ -233,15 +233,12 @@ class GroupHistory(Model):
     @owner.setter
     def owner(self, actor: Actor | None) -> None:
         """Part of ActorOwned protocol"""
-        if actor is None:
-            self.team_id = None
-            self.user_id = None
+        self.team_id = None
+        self.user_id = None
         if actor and actor.is_user:
-            self.team_id = None
             self.user_id = actor.id
         if actor and actor.is_team:
             self.team_id = actor.id
-            self.user_id = None
 
 
 def get_prev_history(group, status):
