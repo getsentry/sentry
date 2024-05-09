@@ -25,7 +25,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
 
         Retrieve a list of files for a given release.
 
-        :pparam string organization_slug: the id or slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :qparam string query: If set, only files with these partial names will be returned.
@@ -56,7 +56,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         that this file will be referenced as. For example, in the case of
         JavaScript you might specify the full web URI.
 
-        :pparam string organization_slug: the id or slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :param string name: the name (full path) of the file.
