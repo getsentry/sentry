@@ -44,29 +44,40 @@ def get_grouping_info(
     except GroupingConfigNotFound:
         raise ResourceDoesNotExist(detail="Unknown grouping config")
 
-    return get_grouping_info_from_variants(
-        event, project, variants, hashes.hashes, hashes.hierarchical_hashes
+    grouping_info = get_grouping_info_from_variants(variants)
+
+    # One place we use this info is in the grouping info section of the event details page, and for
+    # that we recalculate hashes/variants on the fly since we don't store the variants as part of
+    # event data. If the grouping config has been changed since the event was ingested, we may get
+    # different hashes here than the ones stored on the event.
+    _check_for_mismatched_hashes(
+        event, project, grouping_info, hashes.hashes, hashes.hierarchical_hashes
     )
 
+    return grouping_info
 
-def get_grouping_info_from_variants(
+
+def _check_for_mismatched_hashes(
     event: Event,
     project: Project,
-    variants: dict[str, Any],
+    grouping_info: dict[str, dict[str, Any]],
     hashes: list[str],
     hierarchical_hashes: list[str],
-) -> dict[str, dict[str, Any]]:
-    grouping_info = {}
+) -> None:
+    """
+    Given a dictionary of variant data, check each variant's hash value to make sure it is one of
+    the known values from either `hashes` or `hierarchical_hashes`.
 
-    for key, variant in variants.items():
-        variant_dict = variant.as_dict()
-        # Since the hashes are generated on the fly and might no
-        # longer match the stored ones we indicate if the hash
-        # generation caused the hash to mismatch.
+    The result is stored with each variant and recorded as a metric.
+    """
+
+    for variant_dict in grouping_info.values():
+        hash_value = variant_dict["hash"]
+
         variant_dict["hashMismatch"] = hash_mismatch = (
-            variant_dict["hash"] is not None
-            and variant_dict["hash"] not in hashes
-            and variant_dict["hash"] not in hierarchical_hashes
+            hash_value is not None
+            and hash_value not in hashes
+            and hash_value not in hierarchical_hashes
         )
 
         if hash_mismatch:
@@ -78,7 +89,14 @@ def get_grouping_info_from_variants(
         else:
             metrics.incr("event_grouping_info.hash_match")
 
-        variant_dict["key"] = key
-        grouping_info[key] = variant_dict
 
-    return grouping_info
+def get_grouping_info_from_variants(
+    variants: dict[str, BaseVariant],
+) -> dict[str, dict[str, Any]]:
+    """
+    Given a dictionary of variant objects, create and return a copy of the dictionary in which each
+    variant object value has been transformed into an equivalent dictionary value, which knows the
+    key under which it lives.
+    """
+
+    return {key: {"key": key, **variant.as_dict()} for key, variant in variants.items()}
