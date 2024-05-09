@@ -119,11 +119,7 @@ export function PipelinesTable() {
     referrer: 'api.ai-pipelines.view',
   });
 
-  const {
-    data: tokensUsedData,
-    error: tokensUsedError,
-    isLoading: tokensUsedLoading,
-  } = useSpanMetrics({
+  const {data: tokensUsedData, isLoading: tokensUsedLoading} = useSpanMetrics({
     search: new MutableSearch(
       `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
     ),
@@ -185,7 +181,7 @@ export function PipelinesTable() {
         />
         <GridEditable
           isLoading={isLoading}
-          error={error ?? tokensUsedError}
+          error={error}
           data={rows}
           columnOrder={COLUMN_ORDER}
           columnSortBy={[
