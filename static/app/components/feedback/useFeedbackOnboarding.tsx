@@ -3,8 +3,8 @@ import {useCallback, useEffect} from 'react';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 export const CRASH_REPORT_HASH = '#crashreport-sidequest';
 export const FEEDBACK_HASH = '#feedback-sidequest';
@@ -22,7 +22,7 @@ export function useHaveSelectedProjectsSetupNewFeedback() {
 }
 
 export function useFeedbackOnboardingSidebarPanel() {
-  const {location} = useRouteContext();
+  const location = useLocation();
   const organization = useOrganization();
 
   useEffect(() => {
