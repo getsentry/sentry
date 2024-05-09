@@ -790,7 +790,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     # TODO: Remove once switch is complete
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
     def test_simple_group_id_and_hash_returned(self, mock_logger, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
@@ -897,6 +897,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             user_id=self.user.id,
         )
 
+    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.logger")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_incomplete_return_data(self, mock_seer_request, mock_logger):
@@ -945,7 +946,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.logger")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_nonexistent_group(self, mock_seer_request, mock_logger):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
