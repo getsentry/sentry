@@ -40,7 +40,7 @@ export default function Page({
   isVideoReplay,
 }: Props) {
   const title = replayRecord
-    ? `${replayRecord.id} — Session Replay — ${orgSlug}`
+    ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
   const onShareReplay = useShareReplayAtTimestamp();
