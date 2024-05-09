@@ -94,10 +94,6 @@ function SpanSummaryCharts() {
     getRequestPayload: () => ({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
-      topEvents: eventView.topEvents,
-      excludeOther: 0,
-      partial: 1,
-      orderby: undefined,
       interval: eventView.interval,
     }),
     options: {
@@ -111,7 +107,7 @@ function SpanSummaryCharts() {
     data:
       txnThroughputData?.data.map(datum => ({
         value: datum[1][0].count,
-        name: datum[0],
+        name: datum[0] * 1000,
       })) ?? [],
   };
 
@@ -126,7 +122,6 @@ function SpanSummaryCharts() {
             type={ChartType.LINE}
             definedAxisTicks={4}
             aggregateOutputFormat="duration"
-            stacked
             error={avgDurationError}
             chartColors={[AVG_COLOR]}
           />
@@ -143,7 +138,6 @@ function SpanSummaryCharts() {
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
-            stacked
             error={throughputError}
             chartColors={[THROUGHPUT_COLOR]}
             tooltipFormatterOptions={{
@@ -163,7 +157,6 @@ function SpanSummaryCharts() {
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
-            stacked
             error={txnThroughputError}
             chartColors={[TXN_THROUGHPUT_COLOR]}
             tooltipFormatterOptions={{
