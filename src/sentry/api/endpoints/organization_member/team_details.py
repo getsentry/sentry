@@ -36,7 +36,6 @@ from sentry.models.team import Team
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
-from sentry.utils.json import JSONData
 
 from . import can_admin_team, can_set_team_role
 
@@ -51,7 +50,7 @@ class OrganizationMemberTeamSerializer(serializers.Serializer):
 class OrganizationMemberTeamDetailsSerializer(Serializer):
     def serialize(
         self, obj: OrganizationMemberTeam, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         return {
             "isActive": obj.is_active,
             "teamRole": obj.role,
