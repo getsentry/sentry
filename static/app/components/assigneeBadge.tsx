@@ -44,48 +44,28 @@ export function AssigneeBadge({
     );
   };
 
-  const makeUnassignedIcon = () => {
-    return (
-      <Fragment>
-        <Placeholder
-          shape="circle"
-          width={`${AVATAR_SIZE}px`}
-          height={`${AVATAR_SIZE}px`}
-        />
-        {showLabel && <Fragment>Unassigned</Fragment>}
-        <Chevron direction={chevronDirection} size="small" />
-      </Fragment>
-    );
-  };
-
-  const makeAssignedTooltipText = (actor: Actor) => {
-    // Cant use StyledTag's tooltipText prop because
-    // it screws with the nested div style
-    return (
-      <TooltipWrapper>
-        {t('Assigned to')} {actor.type === 'team' ? `#${actor.name}` : actor.name}
-        {assignmentReason && <TooltipSubtext>{assignmentReason}</TooltipSubtext>}
-      </TooltipWrapper>
-    );
-  };
-
-  const makeUnAssignedTooltipText = () => {
-    return (
-      <TooltipWrapper>
-        <div>{t('Unassigned')}</div>
-        <TooltipSubtext>
-          {tct('You can auto-assign issues by adding [issueOwners:Issue Owner rules].', {
-            issueOwners: (
-              <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-            ),
-          })}
-        </TooltipSubtext>
-      </TooltipWrapper>
-    );
-  };
+  const unassignedIcon = (
+    <Fragment>
+      <Placeholder
+        shape="circle"
+        width={`${AVATAR_SIZE}px`}
+        height={`${AVATAR_SIZE}px`}
+      />
+      {showLabel && <Fragment>Unassigned</Fragment>}
+      <Chevron direction={chevronDirection} size="small" />
+    </Fragment>
+  );
 
   return assignedTo ? (
-    <Tooltip title={makeAssignedTooltipText(assignedTo)}>
+    <Tooltip
+      title={
+        <TooltipWrapper>
+          {t('Assigned to')}{' '}
+          {assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name}
+          {assignmentReason && <TooltipSubtext>{assignmentReason}</TooltipSubtext>}
+        </TooltipWrapper>
+      }
+    >
       <StyledTag
         data-is-team={assignedTo.type === 'team'}
         // Team avatars need extra left padding since the square avatar
@@ -98,8 +78,24 @@ export function AssigneeBadge({
       />
     </Tooltip>
   ) : (
-    <Tooltip title={makeUnAssignedTooltipText()}>
-      <StyledTag icon={makeUnassignedIcon()} borderStyle="dashed" />
+    <Tooltip
+      title={
+        <TooltipWrapper>
+          <div>{t('Unassigned')}</div>
+          <TooltipSubtext>
+            {tct(
+              'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
+              {
+                issueOwners: (
+                  <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+                ),
+              }
+            )}
+          </TooltipSubtext>
+        </TooltipWrapper>
+      }
+    >
+      <StyledTag icon={unassignedIcon} borderStyle="dashed" />
     </Tooltip>
   );
 }
