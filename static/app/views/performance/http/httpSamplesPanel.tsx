@@ -49,6 +49,7 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
+import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDataPoint';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
@@ -246,12 +247,6 @@ export function HTTPSamplesPanel() {
     highlightedSpanId
   );
 
-  const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
-    return durationSamplesData.find(
-      s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
-    );
-  };
-
   const handleClose = () => {
     router.replace({
       pathname: router.location.pathname,
@@ -406,7 +401,14 @@ export function HTTPSamplesPanel() {
                       return;
                     }
 
-                    const sample = findSampleFromDataPoint(firstHighlight.dataPoint);
+                    const sample = findSampleFromDataPoint<
+                      (typeof durationSamplesData)[0]
+                    >(
+                      firstHighlight.dataPoint,
+                      durationSamplesData,
+                      SpanIndexedField.SPAN_SELF_TIME
+                    );
+
                     setHighlightedSpanId(sample?.span_id);
                   }}
                   isLoading={isDurationDataFetching}
