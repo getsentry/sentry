@@ -242,6 +242,11 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
         project_ids = buffer.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp()
         )
+        log_str = ""
+        for project_id, timestamp in project_ids:
+            log_str += f"{project_id}: {timestamp}"
+        logger.info("delayed_processing.project_id_list", extra={"project_ids": log_str})
+
         for project_id, _ in project_ids:
             apply_delayed.delay(project_id)
 
@@ -265,6 +270,10 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     project = Project.objects.get_from_cache(id=project_id)
     buffer = RedisBuffer()
     rulegroup_to_event_data = buffer.get_hash(model=Project, field={"project_id": project.id})
+    logger.info(
+        "delayed_processing.rulegroupeventdata",
+        extra={"rulegroupdata": rulegroup_to_event_data},
+    )
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
@@ -290,6 +299,10 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
+        log_str = ""
+        for rule in rules_to_fire.keys():
+            log_str += f"{str(rule.id)}, "
+        logger.info("delayed_processing.rule_to_fire", extra={"rules_to_fire": log_str})
     # Step 7: Fire the rule's actions
     now = datetime.now(tz=timezone.utc)
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
@@ -304,6 +317,10 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
             rule_statuses = bulk_get_rule_status(alert_rules, group, project)
             status = rule_statuses[rule.id]
             if status.last_active and status.last_active > freq_offset:
+                logger.info(
+                    "delayed_processing.last_active",
+                    extra={"last_active": status.last_active, "freq_offset": freq_offset},
+                )
                 return
 
             updated = (
@@ -313,6 +330,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
             )
 
             if not updated:
+                logger.info("delayed_processing.not_updated", extra={"status_id": status.id})
                 return
 
             notification_uuid = str(uuid.uuid4())
