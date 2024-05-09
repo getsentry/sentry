@@ -42,7 +42,9 @@ export function AssigneeBadge({
             margin-left: ${actor.type === 'team' ? space(0.5) : space(0)};
           `}
         />
-        {showLabel && <Fragment>{actor.name}</Fragment>}
+        {showLabel && (
+          <Fragment>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</Fragment>
+        )}
         <Chevron direction={chevronDirection} size="small" />
       </Fragment>
     );
