@@ -1113,7 +1113,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
     ),
     # Alert Rules
@@ -1870,7 +1870,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-user-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/sentry-app-installations/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/sentry-app-installations/$",
         SentryAppInstallationsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installations",
     ),
