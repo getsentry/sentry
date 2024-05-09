@@ -128,10 +128,7 @@ function EditPreviewHighlightSection({
       {columns.length > 0 ? (
         columns
       ) : (
-        <EmptyHighlightMessage
-          columnCount={previewColumnCount}
-          data-test-id="highlights-empty-message"
-        >
+        <EmptyHighlightMessage data-test-id="highlights-empty-preview">
           {t('Promote tags or context keys to highlights for quicker debugging!')}
         </EmptyHighlightMessage>
       )}
@@ -202,7 +199,13 @@ function EditTagHighlightSection({
         />
       </Subtitle>
       <EditHighlightSectionContent columnCount={columnCount}>
-        {tagColumns}
+        {tagColumns.length > 0 ? (
+          tagColumns
+        ) : (
+          <EmptyHighlightMessage extraMargin data-test-id="highlights-empty-tags">
+            {t('No matching event tags found.')}
+          </EmptyHighlightMessage>
+        )}
       </EditHighlightSectionContent>
     </EditHighlightSection>
   );
@@ -301,7 +304,13 @@ function EditContextHighlightSection({
         />
       </Subtitle>
       <EditHighlightSectionContent columnCount={columnCount}>
-        {contextColumns}
+        {contextColumns.length > 0 ? (
+          contextColumns
+        ) : (
+          <EmptyHighlightMessage extraMargin data-test-id="highlights-empty-context">
+            {t('No matching event context found.')}
+          </EmptyHighlightMessage>
+        )}
       </EditHighlightSectionContent>
     </EditHighlightSection>
   );
@@ -489,11 +498,12 @@ const EditHighlightPreview = styled('div')<{columnCount: number}>`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const EmptyHighlightMessage = styled('div')<{columnCount: number}>`
+const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
-  grid-column: span ${p => p.columnCount};
+  grid-column: 1 / -1;
   text-align: center;
+  margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
 `;
 
 const EditHighlightSection = styled('div')`
