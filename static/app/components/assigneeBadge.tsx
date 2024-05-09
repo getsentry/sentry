@@ -110,7 +110,6 @@ const StyledTag = styled(Tag)`
   & > div {
     height: 24px;
     padding: ${space(0.5)};
-    padding-right: ${space(0.25)};
   }
   cursor: pointer;
 `;
