@@ -43,7 +43,7 @@ export const BaseBadge = memo(
     const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
     return (
-      <Wrapper className={className} gap={wrapperGap}>
+      <Wrapper className={className} style={{gap: space(wrapperGap)}}>
         {!hideAvatar && (
           <Avatar
             {...avatarProps}
@@ -69,9 +69,8 @@ export const BaseBadge = memo(
   }
 );
 
-const Wrapper = styled('div')<{gap: ValidSize}>`
+const Wrapper = styled('div')`
   display: flex;
-  gap: ${p => space(p.gap)};
   align-items: center;
   flex-shrink: 0;
 `;

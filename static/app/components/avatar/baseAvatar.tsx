@@ -122,21 +122,27 @@ function BaseAvatar({
         width: size,
       };
 
-  return (
-    <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
-      <StyledBaseAvatar
-        data-test-id={`${type}-avatar`}
-        ref={forwardedRef}
-        className={classNames('avatar', className)}
-        round={!!round}
-        suggested={!!suggested}
-        style={{...sizeStyle, ...style}}
-        title={title}
-        {...props}
-      >
-        {hasError ? backup : imageAvatar}
-      </StyledBaseAvatar>
+  const avatarComponent = (
+    <StyledBaseAvatar
+      data-test-id={`${type}-avatar`}
+      ref={forwardedRef}
+      className={classNames('avatar', className)}
+      round={!!round}
+      suggested={!!suggested}
+      style={{...sizeStyle, ...style}}
+      title={title}
+      {...props}
+    >
+      {hasError ? backup : imageAvatar}
+    </StyledBaseAvatar>
+  );
+
+  return hasTooltip ? (
+    <Tooltip title={tooltip} {...tooltipOptions}>
+      {avatarComponent}
     </Tooltip>
+  ) : (
+    avatarComponent
   );
 }
 
