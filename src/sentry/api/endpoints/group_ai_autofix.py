@@ -108,7 +108,8 @@ class GroupAutofixEndpoint(GroupEndpoint):
                         if not isinstance(user, AnonymousUser)
                         else None
                     ),
-                }
+                },
+                option=orjson.OPT_NON_STR_KEYS,
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
