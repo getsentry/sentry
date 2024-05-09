@@ -1,0 +1,2 @@
+MAX_QUERY_SUBSCTIPTIONS_HEADER = "X-Sentry-Rule-Limit"
+ALERT_RULES_COUNT_HEADER = "X-Sentry-Alert-Rule-Hits"

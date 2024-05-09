@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import UTC, datetime
 
+from django.conf import settings
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
@@ -15,6 +16,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import ActorField
+from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCTIPTIONS_HEADER
 from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
@@ -70,7 +72,7 @@ class AlertRuleIndexMixin(Endpoint):
         if monitor_type is not None:
             alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
-        return self.paginate(
+        response = self.paginate(
             request,
             queryset=alert_rules,
             order_by="-date_added",
@@ -78,6 +80,10 @@ class AlertRuleIndexMixin(Endpoint):
             on_results=lambda x: serialize(x, request.user),
             default_per_page=25,
         )
+
+        response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
+        response[MAX_QUERY_SUBSCTIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+        return response
 
     def create_metric_alert(self, request, organization, project=None):
         if not features.has("organizations:incidents", organization, actor=request.user):
@@ -278,7 +284,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             case_insensitive=case_insensitive,
         )
         response["X-Sentry-Issue-Rule-Hits"] = issue_rules_count
-        response["X-Sentry-Alert-Rule-Hits"] = alert_rules_count
+        response[ALERT_RULES_COUNT_HEADER] = alert_rules_count
+        response[MAX_QUERY_SUBSCTIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
 
 
