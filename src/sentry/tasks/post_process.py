@@ -216,12 +216,6 @@ def handle_owner_assignment(job):
 
             event = job["event"]
             project, group = event.project, event.group
-            basic_logging_details = {
-                "event": event.event_id,
-                "group": event.group_id,
-                "project": event.project_id,
-                "organization": event.project.organization_id,
-            }
             # We want to debounce owner assignment when:
             # - GroupOwner of type Ownership Rule || CodeOwner exist with TTL 1 day
             # - we tried to calculate and could not find issue owners with TTL 1 day
@@ -233,13 +227,6 @@ def handle_owner_assignment(job):
                         group_id=group.id,
                         organization_id=event.project.organization_id,
                     ):
-                        logger.info(
-                            "handle_owner_assignment.ratelimited",
-                            extra={
-                                **basic_logging_details,
-                                "reason": "ratelimited",
-                            },
-                        )
                         metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
                         return
 
