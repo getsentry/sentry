@@ -135,6 +135,11 @@ export function Content() {
           })}
         </StyledAlert>
       )}
+      {isError && typeof traces.error?.responseJSON?.detail === 'string' ? (
+        <StyledAlert type="error" showIcon>
+          {traces.error?.responseJSON?.detail}
+        </StyledAlert>
+      ) : null}
       <TracesSearchBar
         queries={queries}
         handleSearch={handleSearch}
