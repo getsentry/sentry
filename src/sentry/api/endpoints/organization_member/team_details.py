@@ -100,11 +100,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: int | str | None = None,
+        organization_id_or_slug: int | str | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         team_id_or_slug = kwargs.pop("team_id_or_slug")
         organization = kwargs["organization"]
@@ -113,7 +113,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if request.method == "GET":
             try:
                 if id_or_slug_path_params_enabled(
-                    self.get.__qualname__, organization_slug=organization.slug
+                    self.get.__qualname__, organization_id_or_slug=organization.slug
                 ):
                     omt = OrganizationMemberTeam.objects.get(
                         team__slug__id_or_slug=team_id_or_slug, organizationmember=member
@@ -130,7 +130,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         else:
             try:
                 if id_or_slug_path_params_enabled(
-                    self.post.__qualname__, organization_slug=organization.slug
+                    self.post.__qualname__, organization_id_or_slug=organization.slug
                 ):
                     team = Team.objects.get(
                         organization__slug__id_or_slug=organization.slug,
@@ -229,7 +229,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Add an Organization Member to a Team",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to add to the team"),
             GlobalParams.TEAM_ID_OR_SLUG,
         ],
@@ -419,7 +419,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member from a Team",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to delete from the team"),
             GlobalParams.TEAM_ID_OR_SLUG,
         ],

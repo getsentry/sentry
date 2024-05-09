@@ -35,14 +35,14 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str | int,
+        organization_id_or_slug: int | str,
         project_id_or_slug: int | str,
         codeowners_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[Any, Any]:
         args, kwargs = super().convert_args(
-            request, organization_slug, project_id_or_slug, *args, **kwargs
+            request, organization_id_or_slug, project_id_or_slug, *args, **kwargs
         )
         try:
             kwargs["codeowners"] = ProjectCodeOwners.objects.get(

@@ -1314,7 +1314,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-access-request-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/activity/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/activity/$",
         OrganizationActivityEndpoint.as_view(),
         name="sentry-api-0-organization-activity",
     ),
@@ -1384,7 +1384,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/events/(?P<project_id_or_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/events/(?P<project_id_or_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationEventDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-event-details",
     ),
@@ -1566,22 +1566,22 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-integration-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
         OrganizationIntegrationReposEndpoint.as_view(),
         name="sentry-api-0-organization-integration-repos",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/issues/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/issues/$",
         OrganizationIntegrationIssuesEndpoint.as_view(),
         name="sentry-api-0-organization-integration-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/migrate-opsgenie/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/migrate-opsgenie/$",
         OrganizationIntegrationMigrateOpsgenieEndpoint.as_view(),
         name="sentry-api-0-organization-integration-migrate-opsgenie",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
         OrganizationIntegrationServerlessFunctionsEndpoint.as_view(),
         name="sentry-api-0-organization-integration-serverless-functions",
     ),
@@ -1611,7 +1611,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-invite-request-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/invite-requests/(?P<member_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/invite-requests/(?P<member_id>[^\/]+)/$",
         OrganizationInviteRequestDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-invite-request-detail",
     ),
@@ -1709,17 +1709,17 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-release-resolved",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$",
         OrganizationMemberDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-member-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$",
         OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
         name="sentry-api-0-organization-member-unreleased-commits",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
         OrganizationMemberTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-member-team-details",
     ),
@@ -2551,7 +2551,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-teams",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
         ProjectTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-project-team-details",
     ),
@@ -2601,7 +2601,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-codeowners",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
         ProjectCodeOwnersDetailsEndpoint.as_view(),
         name="sentry-api-0-project-codeowners-details",
     ),
@@ -3131,7 +3131,7 @@ urlpatterns = [
     ),
     # Organization invite
     re_path(
-        r"^accept-invite/(?P<organization_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
+        r"^accept-invite/(?P<organization_id_or_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-organization-accept-organization-invite",
     ),
