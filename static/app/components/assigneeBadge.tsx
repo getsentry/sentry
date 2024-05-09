@@ -36,7 +36,11 @@ export function AssigneeBadge({
           className="avatar"
           size={AVATAR_SIZE}
           hasTooltip={false}
-          style={{paddingLeft: space(1)}}
+          // Team avatars need extra left margin since the
+          // square team avatar is being fit into a rounded borders
+          css={css`
+            margin-left: ${actor.type === 'team' ? space(0.5) : space(0)};
+          `}
         />
         {showLabel && <Fragment>{actor.name}</Fragment>}
         <Chevron direction={chevronDirection} size="small" />
@@ -60,22 +64,13 @@ export function AssigneeBadge({
     <Tooltip
       title={
         <TooltipWrapper>
-          {t('Assigned to')}{' '}
+          {t('Assigned to ')}
           {assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name}
           {assignmentReason && <TooltipSubtext>{assignmentReason}</TooltipSubtext>}
         </TooltipWrapper>
       }
     >
-      <StyledTag
-        data-is-team={assignedTo.type === 'team'}
-        // Team avatars need extra left padding since the square avatar
-        // is being fit into a rounded edge
-        css={css`
-          --avatar-spacing: ${space(0.5)} ${space(0.25)} ${space(0.5)}
-            ${assignedTo.type === 'team' ? space(0.75) : space(0.5)};
-        `}
-        icon={makeAssignedIcon(assignedTo)}
-      />
+      <StyledTag icon={makeAssignedIcon(assignedTo)} />
     </Tooltip>
   ) : (
     <Tooltip
@@ -112,7 +107,8 @@ const StyledTag = styled(Tag)`
   }
   & > div {
     height: 24px;
-    padding: var(--avatar-spacing, ${space(0.5)});
+    padding: ${space(0.5)};
+    padding-right: ${space(0.25)};
   }
   cursor: pointer;
 `;
