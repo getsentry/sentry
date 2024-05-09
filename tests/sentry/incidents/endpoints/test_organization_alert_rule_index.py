@@ -9,7 +9,7 @@ from django.test.utils import override_settings
 from rest_framework import status
 
 from sentry import audit_log
-from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCTIPTIONS_HEADER
+from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -133,7 +133,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
             resp = self.get_response(self.organization.slug)
 
         assert resp[ALERT_RULES_COUNT_HEADER] == "2"
-        assert resp[MAX_QUERY_SUBSCTIPTIONS_HEADER] == "1000"
+        assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
 
     def test_simple_with_activation(self):
         self.create_team(organization=self.organization, members=[self.user])

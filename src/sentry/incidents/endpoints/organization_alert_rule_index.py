@@ -16,7 +16,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import ActorField
-from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCTIPTIONS_HEADER
+from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
@@ -82,7 +82,7 @@ class AlertRuleIndexMixin(Endpoint):
         )
 
         response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
-        response[MAX_QUERY_SUBSCTIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
 
     def create_metric_alert(self, request, organization, project=None):
@@ -285,7 +285,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         )
         response["X-Sentry-Issue-Rule-Hits"] = issue_rules_count
         response[ALERT_RULES_COUNT_HEADER] = alert_rules_count
-        response[MAX_QUERY_SUBSCTIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
 
 
