@@ -63,7 +63,7 @@ def handle_viewed_by_me_filters(
             new_filters.append(search_filter)
             continue
 
-        # since the value is boolean, negations (!) are not allowed
+        # since the value is boolean, negations (!) are not supported
         if search_filter.operator != "=":
             raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
 
