@@ -6,6 +6,7 @@ from typing import Any
 from unittest.mock import patch
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 from rest_framework import status
 
@@ -25,7 +26,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.utils import json
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -1017,14 +1017,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=orjson.dumps(channels),
         )
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
+            body=orjson.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
         )
 
         payload = {
@@ -1081,19 +1081,19 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=orjson.dumps(channels),
         )
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
+            body=orjson.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
         )
         blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
+            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
             "channel": "new_channel_id",
             "unfurl_links": False,
             "unfurl_media": False,
@@ -1103,7 +1103,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/chat.postMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(payload),
+            body=orjson.dumps(payload),
         )
         staging_env = self.create_environment(
             self.project, name="staging", organization=self.organization
@@ -1128,7 +1128,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         data = parse_qs(responses.calls[1].request.body)
         message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the *{self.project.slug}* project was updated."
         assert data["text"][0] == message
-        rendered_blocks = json.loads(data["blocks"][0])
+        rendered_blocks = orjson.loads(data["blocks"][0])
         assert rendered_blocks[0]["text"]["text"] == message
         changes = "*Changes*\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
@@ -1170,14 +1170,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=orjson.dumps(channels),
         )
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
+            body=orjson.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
         )
 
         actions[0]["channel"] = "#new_channel_name"
@@ -1201,7 +1201,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": {"name": "team-team-team", "id": channel_id}}
             ),
         )
