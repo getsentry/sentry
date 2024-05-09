@@ -13,15 +13,15 @@ export function useSampleScatterPlotSeries(
   spans: Partial<IndexedResponse>[],
   average?: number,
   highlightedSpanId?: string,
-  plotValueKey: string = 'span.self_time'
+  key: string = 'span.self_time'
 ): Series[] {
   const theme = useTheme();
 
   return spans.map(span => {
     let symbol, color;
 
-    if (span[plotValueKey] && defined(average)) {
-      ({symbol, color} = getSampleChartSymbol(span[plotValueKey], average, theme));
+    if (span[key] && defined(average)) {
+      ({symbol, color} = getSampleChartSymbol(span[key], average, theme));
     } else {
       symbol = 'circle';
       color = AVG_COLOR;
@@ -31,7 +31,7 @@ export function useSampleScatterPlotSeries(
       data: [
         {
           name: span?.timestamp ?? span.span_id ?? t('Span'),
-          value: span?.[plotValueKey] ?? 0,
+          value: span?.[key] ?? 0,
         },
       ],
       symbol,

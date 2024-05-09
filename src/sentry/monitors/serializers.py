@@ -19,7 +19,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 
 
 class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
@@ -180,12 +180,12 @@ class MonitorSerializer(Serializer):
             for project, serialized_project in zip(projects, serialize(list(projects), user))
         }
 
-        actors = [RpcActor.from_id(user_id=m.owner_user_id) for m in item_list if m.owner_user_id]
+        actors = [Actor.from_id(user_id=m.owner_user_id) for m in item_list if m.owner_user_id]
         actors.extend(
-            [RpcActor.from_id(team_id=m.owner_team_id) for m in item_list if m.owner_team_id]
+            [Actor.from_id(team_id=m.owner_team_id) for m in item_list if m.owner_team_id]
         )
 
-        actors_serialized = serialize(RpcActor.resolve_many(actors), user, ActorSerializer())
+        actors_serialized = serialize(Actor.resolve_many(actors), user, ActorSerializer())
         actor_data = {
             actor: serialized_actor for actor, serialized_actor in zip(actors, actors_serialized)
         }

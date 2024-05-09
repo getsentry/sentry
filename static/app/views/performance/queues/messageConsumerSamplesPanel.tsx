@@ -76,11 +76,14 @@ export function MessageConsumerSamplesPanel() {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search,
-    yAxis: [`avg(span.duration)`],
-    enabled: isPanelOpen,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search,
+      yAxis: [`avg(span.duration)`],
+      enabled: isPanelOpen,
+    },
+    'api.performance.queues.avg-duration-chart'
+  );
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
 

@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -26,7 +27,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceResult} from './content';
 import type {Field} from './data';
-import {getStylingSliceName} from './utils';
+import {getShortenedSdkName, getStylingSliceName} from './utils';
 
 interface ProjectRendererProps {
   projectSlug: string;
@@ -52,17 +53,19 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
   );
 }
 
-export const TraceBreakdownContainer = styled('div')`
+export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   position: relative;
   display: flex;
   min-width: 200px;
   height: 15px;
   background-color: ${p => p.theme.gray100};
+  ${p => `--hoveredSlice-${p.hoveredIndex ?? -1}-translateY: translateY(-3px)`};
 `;
 
 const RectangleTraceBreakdown = styled(RowRectangle)<{
   sliceColor: string;
   sliceName: string | null;
+  offset?: number;
 }>`
   background-color: ${p => p.sliceColor};
   position: relative;
@@ -72,7 +75,7 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
     opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
   `}
   ${p => `
-    transform: var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0));
+    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
   `}
   transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
@@ -86,10 +89,15 @@ export function TraceBreakdownRenderer({
   trace: TraceResult<Field>;
 }) {
   const theme = useTheme();
+  const [hoveredIndex, setHoveredIndex] = useState(-1);
 
   return (
-    <TraceBreakdownContainer data-test-id="relative-ops-breakdown">
-      {trace.breakdowns.map(breakdown => {
+    <TraceBreakdownContainer
+      data-test-id="relative-ops-breakdown"
+      hoveredIndex={hoveredIndex}
+      onMouseLeave={() => setHoveredIndex(-1)}
+    >
+      {trace.breakdowns.map((breakdown, index) => {
         return (
           <SpanBreakdownSliceRenderer
             key={breakdown.start + (breakdown.project ?? t('missing instrumentation'))}
@@ -99,13 +107,15 @@ export function TraceBreakdownRenderer({
             sliceSecondaryName={breakdown.sdkName}
             trace={trace}
             theme={theme}
-            onMouseEnter={() =>
+            offset={index}
+            onMouseEnter={() => {
+              setHoveredIndex(index);
               breakdown.project
                 ? setHighlightedSliceName(
                     getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
                   )
-                : null
-            }
+                : null;
+            }}
           />
         );
       })}
@@ -124,6 +134,7 @@ export function SpanBreakdownSliceRenderer({
   sliceEnd,
   sliceSecondaryName,
   onMouseEnter,
+  offset,
 }: {
   onMouseEnter: () => void;
   sliceEnd: number;
@@ -132,6 +143,7 @@ export function SpanBreakdownSliceRenderer({
   sliceStart: number;
   theme: Theme;
   trace: TraceResult<Field>;
+  offset?: number;
 }) {
   const traceDuration = trace.end - trace.start;
 
@@ -169,14 +181,7 @@ export function SpanBreakdownSliceRenderer({
             <FlexContainer>
               {sliceName ? <ProjectRenderer projectSlug={sliceName} hideName /> : null}
               <strong>{sliceName}</strong>
-
-              {sliceSecondaryName ? (
-                <span>
-                  {'\u2014'}
-                  &nbsp;
-                  {sliceSecondaryName}
-                </span>
-              ) : null}
+              <Subtext>({getShortenedSdkName(sliceSecondaryName)})</Subtext>
             </FlexContainer>
             <div>
               <PerformanceDuration milliseconds={sliceDuration} abbreviation />
@@ -185,12 +190,20 @@ export function SpanBreakdownSliceRenderer({
         }
         containerDisplayMode="block"
       >
-        <RectangleTraceBreakdown sliceColor={sliceColor} sliceName={stylingSliceName} />
+        <RectangleTraceBreakdown
+          sliceColor={sliceColor}
+          sliceName={stylingSliceName}
+          offset={offset}
+        />
       </Tooltip>
     </BreakdownSlice>
   );
 }
 
+const Subtext = styled('span')`
+  font-weight: 400;
+  color: ${p => p.theme.gray300};
+`;
 const FlexContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -314,7 +327,7 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
       to={normalizeUrl({
         pathname: `/organizations/${organization.slug}/issues`,
         query: {
-          query: `is:unresolved trace:"${trace.trace}"`,
+          query: `trace:"${trace.trace}"`,
         },
       })}
       size="xs"

@@ -3,13 +3,13 @@ import io
 import zipfile
 from uuid import uuid4
 
+import orjson
 from django.urls import reverse
 
 from sentry.models.artifactbundle import ArtifactBundle, ProjectArtifactBundle
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.utils import json
 
 
 class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
@@ -26,7 +26,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
 
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         # We remove the "content" key in the original dict, thus no subsequent calls should be made.
                         "files": {
@@ -34,7 +34,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
                             for file_path, info in files.items()
                         }
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 

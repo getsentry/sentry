@@ -117,6 +117,9 @@ class QuerySubscription(Model):
     query_extra = models.TextField(
         null=True
     )  # additional query filters to attach to the query created in Snuba such as datetime filters, or release/deploy tags
+    # timebox_start/end is optional timebox restrictions to apply to the snuba query
+    timebox_start = models.DateTimeField(null=True)
+    timebox_end = models.DateTimeField(null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("pk", "subscription_id"), cache_ttl=int(timedelta(hours=1).total_seconds())

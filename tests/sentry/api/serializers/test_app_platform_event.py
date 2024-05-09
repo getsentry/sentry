@@ -1,6 +1,7 @@
+import orjson
+
 from sentry.api.serializers import AppPlatformEvent
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
 class AppPlatformEventSerializerTest(TestCase):
@@ -17,13 +18,16 @@ class AppPlatformEventSerializerTest(TestCase):
             resource="event_alert", action="triggered", install=self.install, data={}
         )
 
-        assert result.body == json.dumps(
-            {
-                "action": "triggered",
-                "installation": {"uuid": self.install.uuid},
-                "data": {},
-                "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
-            }
+        assert (
+            result.body
+            == orjson.dumps(
+                {
+                    "action": "triggered",
+                    "installation": {"uuid": self.install.uuid},
+                    "data": {},
+                    "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
+                }
+            ).decode()
         )
 
         signature = self.sentry_app.build_signature(result.body)
@@ -41,7 +45,7 @@ class AppPlatformEventSerializerTest(TestCase):
             actor=self.sentry_app.proxy_user,
         )
 
-        assert json.loads(result.body)["actor"] == {
+        assert orjson.loads(result.body)["actor"] == {
             "type": "application",
             "id": self.sentry_app.uuid,
             "name": self.sentry_app.name,
@@ -62,7 +66,7 @@ class AppPlatformEventSerializerTest(TestCase):
             actor=self.user,
         )
 
-        assert json.loads(result.body)["actor"] == {
+        assert orjson.loads(result.body)["actor"] == {
             "type": "user",
             "id": self.user.id,
             "name": self.user.name,
