@@ -34,7 +34,6 @@ from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -192,7 +191,7 @@ class GitHubClientMixin(GithubProxyClient):
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
-    def get_last_commits(self, repo: str, end_sha: str) -> Sequence[JSONData]:
+    def get_last_commits(self, repo: str, end_sha: str) -> Sequence[Any]:
         """
         Return API request that fetches last ~30 commits
         see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
@@ -200,32 +199,32 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> JSONData:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
         return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
 
-    def repo_hooks(self, repo: str) -> Sequence[JSONData]:
+    def repo_hooks(self, repo: str) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/webhooks/repos#list-repository-webhooks
         """
         return self.get(f"/repos/{repo}/hooks")
 
-    def get_commits(self, repo: str) -> Sequence[JSONData]:
+    def get_commits(self, repo: str) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
         return self.get(f"/repos/{repo}/commits")
 
-    def get_commit(self, repo: str, sha: str) -> JSONData:
+    def get_commit(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/commits#get-a-commit
         """
         return self.get_cached(f"/repos/{repo}/commits/{sha}")
 
-    def get_pullrequest_from_commit(self, repo: str, sha: str) -> JSONData:
+    def get_pullrequest_from_commit(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
 
@@ -233,7 +232,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest(self, repo: str, pull_number: str) -> JSONData:
+    def get_pullrequest(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
@@ -241,7 +240,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
-    def get_pullrequest_files(self, repo: str, pull_number: str) -> JSONData:
+    def get_pullrequest_files(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
 
@@ -249,7 +248,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
-    def get_repo(self, repo: str) -> JSONData:
+    def get_repo(self, repo: str) -> Any:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository
         """
@@ -263,8 +262,8 @@ class GitHubClientMixin(GithubProxyClient):
         return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
-        tree: JSONData = {}
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> Any:
+        tree: Any = {}
         # We do not cache this call since it is a rather large object
         contents: dict[str, Any] = self.get(
             f"/repos/{repo_full_name}/git/trees/{tree_sha}",
@@ -370,7 +369,7 @@ class GitHubClientMixin(GithubProxyClient):
         should_count_error = False
         txt = error.text
         if error.json:
-            json_data: JSONData = error.json
+            json_data: Any = error.json
             txt = json_data.get("message")
 
         # TODO: Add condition for  getsentry/DataForThePeople
@@ -473,7 +472,7 @@ class GitHubClientMixin(GithubProxyClient):
         )
         return RepoTree(Repo(full_name, branch), repo_files)
 
-    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
+    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
         """
         args:
          * fetch_max_pages - fetch as many repos as possible using pagination (slow)
@@ -494,7 +493,7 @@ class GitHubClientMixin(GithubProxyClient):
         return [repo for repo in repos if not repo.get("archived")]
 
     # XXX: Find alternative approach
-    def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
+    def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
         Find repositories matching a query.
         NOTE: All search APIs share a rate limit of 30 requests/minute
@@ -503,7 +502,7 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get("/search/repositories", params={"q": query})
 
-    def get_assignees(self, repo: str) -> Sequence[JSONData]:
+    def get_assignees(self, repo: str) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/issues/assignees#list-assignees
         """
@@ -511,7 +510,7 @@ class GitHubClientMixin(GithubProxyClient):
 
     def get_with_pagination(
         self, path: str, response_key: str | None = None, page_number_limit: int | None = None
-    ) -> Sequence[JSONData]:
+    ) -> Sequence[Any]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our
@@ -559,8 +558,8 @@ class GitHubClientMixin(GithubProxyClient):
                 page_number += 1
             return output
 
-    def get_issues(self, repo: str) -> Sequence[JSONData]:
-        issues: Sequence[JSONData] = self.get(f"/repos/{repo}/issues")
+    def get_issues(self, repo: str) -> Sequence[Any]:
+        issues: Sequence[Any] = self.get(f"/repos/{repo}/issues")
         return issues
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
@@ -570,44 +569,44 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get("/search/issues", params={"q": query})
 
-    def get_issue(self, repo: str, number: str) -> JSONData:
+    def get_issue(self, repo: str, number: str) -> Any:
         """
         https://docs.github.com/en/rest/issues/issues#get-an-issue
         """
         return self.get(f"/repos/{repo}/issues/{number}")
 
-    def create_issue(self, repo: str, data: Mapping[str, Any]) -> JSONData:
+    def create_issue(self, repo: str, data: Mapping[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/issues#create-an-issue
         """
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
 
-    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> JSONData:
+    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
         """
         endpoint = f"/repos/{repo}/issues/{issue_id}/comments"
         return self.post(endpoint, data=data)
 
-    def update_comment(self, repo: str, comment_id: str, data: Mapping[str, Any]) -> JSONData:
+    def update_comment(self, repo: str, comment_id: str, data: Mapping[str, Any]) -> Any:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
 
-    def get_comment_reactions(self, repo: str, comment_id: str) -> JSONData:
+    def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         response = self.get(endpoint)
         reactions = response["reactions"]
         del reactions["url"]
         return reactions
 
-    def get_user(self, gh_username: str) -> JSONData:
+    def get_user(self, gh_username: str) -> Any:
         """
         https://docs.github.com/en/rest/users/users#get-a-user
         """
         return self.get(f"/users/{gh_username}")
 
-    def get_labels(self, repo: str) -> Sequence[JSONData]:
+    def get_labels(self, repo: str) -> Sequence[Any]:
         """
         Fetches up to the first 100 labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
