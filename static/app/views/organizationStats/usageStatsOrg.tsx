@@ -136,7 +136,7 @@ class UsageStatsOrganization<
           {
             query: {
               ...this.endpointQuery,
-              category: DATA_CATEGORY_INFO.metrics.apiName,
+              category: DATA_CATEGORY_INFO.metricSecond.apiName,
               groupBy: ['outcome'],
             },
           },
@@ -159,7 +159,7 @@ class UsageStatsOrganization<
         ...group,
         by: {
           ...group.by,
-          category: DATA_CATEGORY_INFO.metrics.apiName,
+          category: DATA_CATEGORY_INFO.metricSecond.apiName,
         },
       };
     });
@@ -315,6 +315,14 @@ class UsageStatsOrganization<
       }
     };
 
+    const navigateToMetricsSettings = (event: ReactMouseEvent) => {
+      event.preventDefault();
+      const url = `/settings/${organization.slug}/projects/:projectId/metrics/`;
+      if (router) {
+        navigateTo(url, router);
+      }
+    };
+
     const cardMetadata: Record<string, ScoreCardProps> = {
       total: {
         title: tct('Total [dataCategory]', {dataCategory: dataCategoryName}),
@@ -336,15 +344,29 @@ class UsageStatsOrganization<
       },
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
-        help: tct(
-          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
-          {
-            dataCategory,
-            filterSettings: (
-              <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
-            ),
-          }
-        ),
+        help:
+          dataCategory === DATA_CATEGORY_INFO.metricSecond.plural
+            ? tct(
+                'Filtered metrics were blocked due to your disabled metrics [settings: settings]',
+                {
+                  dataCategory,
+                  settings: (
+                    <a href="#" onClick={event => navigateToMetricsSettings(event)} />
+                  ),
+                }
+              )
+            : tct(
+                'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
+                {
+                  dataCategory,
+                  filterSettings: (
+                    <a
+                      href="#"
+                      onClick={event => navigateToInboundFilterSettings(event)}
+                    />
+                  ),
+                }
+              ),
         score: filtered,
       },
       dropped: {

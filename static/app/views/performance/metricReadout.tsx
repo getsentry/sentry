@@ -5,10 +5,18 @@ import styled from '@emotion/styled';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PercentChange} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
-import type {CountUnit, PercentageUnit} from 'sentry/utils/discover/fields';
-import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {
+  type CountUnit,
+  CurrencyUnit,
+  DurationUnit,
+  type PercentageUnit,
+  type PercentChangeUnit,
+  RateUnit,
+  SizeUnit,
+} from 'sentry/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatPercentage,
@@ -21,7 +29,9 @@ type Unit =
   | SizeUnit.BYTE
   | RateUnit
   | CountUnit
-  | PercentageUnit;
+  | PercentageUnit
+  | PercentChangeUnit
+  | CurrencyUnit;
 
 interface Props {
   title: string;
@@ -95,6 +105,21 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
     );
   }
 
+  if (unit === CurrencyUnit.USD) {
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (numericValue < 0.01) {
+      renderedValue = (
+        <NumberContainer align={align}>US {numericValue * 100}¢</NumberContainer>
+      );
+    } else if (numericValue >= 1) {
+      renderedValue = (
+        <NumberContainer align={align}>
+          US ${formatAbbreviatedNumber(numericValue)}
+        </NumberContainer>
+      );
+    }
+  }
+
   if (unit === 'percentage') {
     renderedValue = (
       <NumberContainer align={align}>
@@ -103,6 +128,17 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
           undefined,
           {minimumValue: MINIMUM_PERCENTAGE_VALUE}
         )}
+      </NumberContainer>
+    );
+  }
+
+  if (unit === 'percent_change') {
+    renderedValue = (
+      <NumberContainer align={align}>
+        <PercentChange
+          value={typeof value === 'string' ? parseFloat(value) : value}
+          minimumValue={MINIMUM_PERCENTAGE_VALUE}
+        />
       </NumberContainer>
     );
   }

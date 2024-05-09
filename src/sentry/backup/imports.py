@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import IO
+from typing import IO, Any
 from uuid import uuid4
 
 from django.core import serializers
@@ -47,6 +48,8 @@ __all__ = (
     "import_in_global_scope",
 )
 
+logger = logging.getLogger(__name__)
+
 # We have to be careful when removing fields from our model schemas, since exports created using
 # the old-but-still-in-the-support-window versions could have those fields set in the data they
 # provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
@@ -59,11 +62,24 @@ __all__ = (
 # around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
 # each entry in this dict, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[
-    str, set[str]
-] = {  # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
-    "sentry.team": {"org_role"}
+DELETED_FIELDS: dict[str, set[str]] = {
+    # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+    # The actor field should be retained until 24.6.0
+    "sentry.team": {"org_role", "actor"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.rule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.alertrule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.grouphistory": {"actor"},
 }
+
+# When models are removed from the application, they will continue to be in exports
+# from previous releases. Models in this list are elided from data as imports are processed.
+DELETED_MODELS = {"sentry.actor"}
+
+# The maximum number of models that may be sent at a time.
+MAX_BATCH_SIZE = 20
 
 
 class ImportingError(Exception):
@@ -143,7 +159,10 @@ def _import(
     #
     # Needless to say, there is probably a better way to do this, but we'll use this hacky
     # workaround for now to enable forward progress.
-    deferred_org_auth_tokens = None
+    #
+    # Note: this is a list serialized JSON lists of `OrgAuthToken` models, batched into
+    # `MAX_BATCH_SIZE` length batches.
+    deferred_org_auth_tokens: list[str] = []
 
     # TODO(getsentry#team-ospo/190): Reading the entire export into memory as a string is quite
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
@@ -154,19 +173,23 @@ def _import(
         else src.read().decode("utf-8")
     )
 
-    if len(DELETED_FIELDS) > 0:
-        # Parse the content JSON and remove and fields that we have marked for deletion in the
+    if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
+        # Parse the content JSON and remove fields and models that we have marked for deletion in the
         # function.
+        content_as_json = json.loads_experimental("backup.enable-orjson", content)  # type: ignore[arg-type]
+
         shimmed_models = set(DELETED_FIELDS.keys())
-        content_as_json = json.loads(content)  # type: ignore[arg-type]
-        for json_model in content_as_json:
+        for i, json_model in enumerate(content_as_json):
             if json_model["model"] in shimmed_models:
                 fields_to_remove = DELETED_FIELDS[json_model["model"]]
                 for field in fields_to_remove:
                     json_model["fields"].pop(field, None)
 
+            if json_model["model"] in DELETED_MODELS:
+                del content_as_json[i]
+
         # Return the content to byte form, as that is what the Django deserializer expects.
-        content = json.dumps(content_as_json)
+        content = json.dumps_experimental("backup.enable-orjson", content_as_json)
 
     filters = []
     if filter_by is not None:
@@ -239,26 +262,45 @@ def _import(
 
         filters.append(email_filter)
 
-    # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
-    # with N model kinds into N json blobs with 1 model kind each.
-    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str]]:
+    # The input JSON blob should already be ordered by model kind. We simply break it up into
+    # smaller chunks, while guaranteeing that each chunk contains at most 1 model kind.
+    #
+    # This generator returns a three-tuple of values: 1. the name of the model being generated, 2. a
+    # serialized JSON string containing some number of such model instances, and 3. an offset
+    # representing how many instances of this model have already been produced by this generator,
+    # NOT including the current instance.
+    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
-        models = json.loads(content)
+        models = json.loads_experimental("backup.enable-orjson", content)
         last_seen_model_name: NormalizedModelName | None = None
         batch: list[type[Model]] = []
+        num_current_model_instances_yielded = 0
         for model in models:
             model_name = NormalizedModelName(model["model"])
             if last_seen_model_name != model_name:
                 if last_seen_model_name is not None and len(batch) > 0:
-                    yield (last_seen_model_name, json.dumps(batch))
+                    yield (
+                        last_seen_model_name,
+                        json.dumps_experimental("backup.enable-orjson", batch),
+                        num_current_model_instances_yielded,
+                    )
 
+                num_current_model_instances_yielded = 0
                 batch = []
                 last_seen_model_name = model_name
+            if len(batch) >= MAX_BATCH_SIZE:
+                yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
+                num_current_model_instances_yielded += len(batch)
+                batch = []
 
             batch.append(model)
 
         if last_seen_model_name is not None and batch:
-            yield (last_seen_model_name, json.dumps(batch))
+            yield (
+                last_seen_model_name,
+                json.dumps_experimental("backup.enable-orjson", batch),
+                num_current_model_instances_yielded,
+            )
 
     # A wrapper for some immutable state we need when performing a single `do_write().
     @dataclass(frozen=True)
@@ -273,7 +315,8 @@ def _import(
         import_write_context: ImportWriteContext,
         pk_map: PrimaryKeyMap,
         model_name: NormalizedModelName,
-        json_data: json.JSONData,
+        json_data: Any,
+        offset: int,
     ) -> None:
         model_relations = import_write_context.dependencies.get(model_name)
         if not model_relations:
@@ -282,6 +325,15 @@ def _import(
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
         model_name_str = str(model_name)
+        min_ordinal = offset + 1
+
+        extra = {
+            "model_name": model_name_str,
+            "import_uuid": flags.import_uuid,
+            "min_ordinal": min_ordinal,
+        }
+        logger.info("import_by_model.request_import", extra=extra)
+
         result = import_by_model(
             model_name=model_name_str,
             scope=import_write_context.scope,
@@ -289,6 +341,7 @@ def _import(
             filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
+            min_ordinal=min_ordinal,
         )
 
         if isinstance(result, RpcImportError):
@@ -306,37 +359,46 @@ def _import(
         # the RPC divide, we create a replica of the `ControlImportChunk` that successful import
         # would have generated in the calling region as well.
         if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
-            # If `min_ordinal` is not null, these values must not be either.
-            assert result.max_ordinal is not None
-            assert result.min_source_pk is not None
-            assert result.max_source_pk is not None
+            # Maybe we are resuming an import on a retry. Check to see if this
+            # `ControlImportChunkReplica` already exists, and only write it if it does not. There
+            # can't be races here, since there is only one celery task running at a time, pushing
+            # updates in a synchronous manner.
+            existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
+                import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
+            ).first()
+            if existing_control_import_chunk_replica is not None:
+                logger.info("import_by_model.control_replica_already_exists", extra=extra)
+            else:
+                # If `min_ordinal` is not null, these values must not be either.
+                assert result.max_ordinal is not None
+                assert result.min_source_pk is not None
+                assert result.max_source_pk is not None
 
-            inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
-                model_name_str
-            ]
-            existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
-                model_name_str
-            ]
-            overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
-                model_name_str
-            ]
-            control_import_chunk_replica = ControlImportChunkReplica(
-                import_uuid=flags.import_uuid,
-                model=model_name_str,
-                # TODO(getsentry/team-ospo#190): The next two fields assume the entire model is
-                # being imported in a single call; we may change this in the future.
-                min_ordinal=result.min_ordinal,
-                max_ordinal=result.max_ordinal,
-                min_source_pk=result.min_source_pk,
-                max_source_pk=result.max_source_pk,
-                min_inserted_pk=result.min_inserted_pk,
-                max_inserted_pk=result.max_inserted_pk,
-                inserted_map={k: v[0] for k, v in inserted.items()},
-                existing_map={k: v[0] for k, v in existing.items()},
-                overwrite_map={k: v[0] for k, v in overwrite.items()},
-                inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
-            )
-            control_import_chunk_replica.save()
+                inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
+                    model_name_str
+                ]
+                existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
+                    model_name_str
+                ]
+                overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
+                    model_name_str
+                ]
+
+                control_import_chunk_replica = ControlImportChunkReplica(
+                    import_uuid=flags.import_uuid,
+                    model=model_name_str,
+                    min_ordinal=result.min_ordinal,
+                    max_ordinal=result.max_ordinal,
+                    min_source_pk=result.min_source_pk,
+                    max_source_pk=result.max_source_pk,
+                    min_inserted_pk=result.min_inserted_pk,
+                    max_inserted_pk=result.max_inserted_pk,
+                    inserted_map={k: v[0] for k, v in inserted.items()},
+                    existing_map={k: v[0] for k, v in existing.items()},
+                    overwrite_map={k: v[0] for k, v in overwrite.items()},
+                    inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
+                )
+                control_import_chunk_replica.save()
 
     import_write_context = ImportWriteContext(
         scope=RpcImportScope.into_rpc(scope),
@@ -351,12 +413,12 @@ def _import(
     def do_writes(pk_map: PrimaryKeyMap) -> None:
         nonlocal deferred_org_auth_tokens, import_write_context
 
-        for model_name, json_data in yield_json_models(content):
+        for model_name, json_data, offset in yield_json_models(content):
             if model_name == org_auth_token_model_name:
-                deferred_org_auth_tokens = json_data
+                deferred_org_auth_tokens.append(json_data)
                 continue
 
-            do_write(import_write_context, pk_map, model_name, json_data)
+            do_write(import_write_context, pk_map, model_name, json_data, offset)
 
     # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
     # their slug globally via control silo by issuing a slug update.
@@ -393,7 +455,14 @@ def _import(
     resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
-        do_write(import_write_context, pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
+        for i, deferred_org_auth_token_batch in enumerate(deferred_org_auth_tokens):
+            do_write(
+                import_write_context,
+                pk_map,
+                org_auth_token_model_name,
+                deferred_org_auth_token_batch,
+                i * MAX_BATCH_SIZE,
+            )
 
 
 def import_in_user_scope(

@@ -8,13 +8,15 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {generateQueryWithTag, isUrl} from 'sentry/utils';
+import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -43,19 +45,18 @@ export default function EventTagsTreeRow({
   config = {},
   ...props
 }: EventTagsTreeRowProps) {
-  const organization = useOrganization();
   const originalTag = content.originalTag;
-  const tagMeta = content.meta?.value?.[''];
-  const tagErrors = tagMeta?.err ?? [];
+  const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
+  const hasStem = !isLast && objectIsEmpty(content.subtree);
 
   if (!originalTag) {
     return (
-      <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors}>
+      <TreeRow hasErrors={hasTagErrors} {...props}>
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
-              <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+              <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
               <TreeBranchIcon hasErrors={hasTagErrors} />
             </Fragment>
           )}
@@ -65,20 +66,6 @@ export default function EventTagsTreeRow({
       </TreeRow>
     );
   }
-  const tagValue =
-    originalTag.key === 'release' && !config?.disableRichValue ? (
-      <VersionHoverCard
-        organization={organization}
-        projectSlug={projectSlug}
-        releaseVersion={content.value}
-        showUnderline
-        underlineColor="linkUnderline"
-      >
-        <Version version={content.value} truncate />
-      </VersionHoverCard>
-    ) : (
-      <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
-    );
 
   const tagActions = hasTagErrors ? (
     <TreeValueErrors data-test-id="tag-tree-row-errors">
@@ -89,11 +76,11 @@ export default function EventTagsTreeRow({
   );
 
   return (
-    <TreeRow data-test-id="tag-tree-row" hasErrors={hasTagErrors} {...props}>
+    <TreeRow hasErrors={hasTagErrors} {...props}>
       <TreeKeyTrunk spacerCount={spacerCount}>
         {spacerCount > 0 && (
           <Fragment>
-            <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+            <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
             <TreeBranchIcon hasErrors={hasTagErrors} />
           </Fragment>
         )}
@@ -103,7 +90,14 @@ export default function EventTagsTreeRow({
         </TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
-        <TreeValue hasErrors={hasTagErrors}>{tagValue}</TreeValue>
+        <TreeValue hasErrors={hasTagErrors}>
+          <EventTagsTreeValue
+            config={config}
+            content={content}
+            event={event}
+            projectSlug={projectSlug}
+          />
+        </TreeValue>
         {!config?.disableActions && tagActions}
       </TreeValueTrunk>
     </TreeRow>
@@ -123,7 +117,7 @@ function EventTagsTreeRowDropdown({
     return null;
   }
 
-  const referrer = 'event-tags-tree';
+  const referrer = 'event-tags-table';
   const query = generateQueryWithTag({referrer}, originalTag);
   const searchQuery = `?${qs.stringify(query)}`;
 
@@ -216,6 +210,86 @@ function EventTagsTreeRowDropdown({
   );
 }
 
+function EventTagsTreeValue({
+  config,
+  content,
+  event,
+  projectSlug,
+}: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'projectSlug'>) {
+  const organization = useOrganization();
+  const {originalTag} = content;
+  const tagMeta = content.meta?.value?.[''];
+  if (!originalTag) {
+    return null;
+  }
+
+  const defaultValue = (
+    <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
+  );
+
+  if (config?.disableRichValue) {
+    return defaultValue;
+  }
+
+  let tagValue = defaultValue;
+  const referrer = 'event-tags-table';
+  switch (originalTag.key) {
+    case 'release':
+      tagValue = (
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={projectSlug}
+          releaseVersion={content.value}
+          showUnderline
+          underlineColor="linkUnderline"
+        >
+          <Version version={content.value} truncate />
+        </VersionHoverCard>
+      );
+      break;
+    case 'transaction':
+      const transactionQuery = qs.stringify({
+        project: event.projectID,
+        transaction: content.value,
+        referrer,
+      });
+      const transactionDestination = `/organizations/${organization.slug}/performance/summary/?${transactionQuery}`;
+      tagValue = (
+        <TagLinkText>
+          <Link to={transactionDestination}>{content.value}</Link>
+        </TagLinkText>
+      );
+      break;
+    case 'replayId':
+    case 'replay_id':
+      const replayQuery = qs.stringify({referrer});
+      const replayDestination = `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`;
+      tagValue = (
+        <TagLinkText>
+          <Link to={replayDestination}>{content.value}</Link>
+        </TagLinkText>
+      );
+      break;
+    default:
+      tagValue = defaultValue;
+  }
+
+  return !isUrl(content.value) ? (
+    tagValue
+  ) : (
+    <TagLinkText>
+      <ExternalLink
+        onClick={e => {
+          e.preventDefault();
+          openNavigateToExternalLinkModal({linkText: content.value});
+        }}
+      >
+        {content.value}
+      </ExternalLink>
+    </TagLinkText>
+  );
+}
+
 const TreeRow = styled('div')<{hasErrors: boolean}>`
   border-radius: ${space(0.5)};
   padding-left: ${space(1)};
@@ -245,12 +319,13 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
     ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
 `;
 
-const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
+const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (!p.isLast ? p.theme.border : 'transparent')};
+  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
   margin-right: -1px;
   height: 100%;
+  width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
@@ -268,8 +343,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   display: grid;
   height: 100%;
   align-items: center;
-  grid-template-columns: ${p =>
-    p.spacerCount > 0 ? `${(p.spacerCount - 1) * 20 + 3}px 1rem 1fr` : '1fr'};
+  grid-template-columns: ${p => (p.spacerCount > 0 ? `auto 1rem 1fr` : '1fr')};
 `;
 
 const TreeValueTrunk = styled('div')`
@@ -319,4 +393,9 @@ const TreeValueDropdown = styled(DropdownMenu)`
 const TreeValueErrors = styled('div')`
   height: 20px;
   margin-right: ${space(0.75)};
+`;
+
+const TagLinkText = styled('span')`
+  color: ${p => p.theme.linkColor};
+  margin: 0;
 `;

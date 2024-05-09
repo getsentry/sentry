@@ -24,7 +24,7 @@ interface VideoReplayerOptions {
   clipWindow?: ClipWindow;
 }
 
-interface VideoReplayerConfig {
+export interface VideoReplayerConfig {
   /**
    * Not supported, only here to maintain compat w/ rrweb player
    */
@@ -526,6 +526,10 @@ export class VideoReplayer {
   protected async loadSegmentAtTime(
     videoOffsetMs: number = 0
   ): Promise<number | undefined> {
+    if (!this._trackList.length) {
+      return undefined;
+    }
+
     const {segment: segmentIndex, previousSegment: previousSegmentIndex} =
       this.getSegmentIndexForTime(videoOffsetMs);
 

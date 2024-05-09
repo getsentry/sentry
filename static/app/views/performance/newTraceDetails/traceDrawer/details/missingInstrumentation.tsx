@@ -1,10 +1,9 @@
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import useProjects from 'sentry/utils/useProjects';
 import {ProfilePreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/profiling/profilePreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -47,11 +46,11 @@ export function MissingInstrumentationNodeDetails({
             <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation')}</div>
           </TraceDrawerComponents.IconTitleWrapper>
         </TraceDrawerComponents.Title>
-        <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => onTabScrollToNode(node)}>
-            {t('Show in view')}
-          </Button>
-        </TraceDrawerComponents.Actions>
+        <TraceDrawerComponents.NodeActions
+          organization={organization}
+          node={node}
+          onTabScrollToNode={onTabScrollToNode}
+        />
       </TraceDrawerComponents.HeaderContainer>
       {event.projectSlug ? (
         <ProfilesProvider

@@ -40,28 +40,27 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         for datum in groups_data:
             self.create_group(data=datum)
 
-        response = self.get_success_response()
+        response = self.get_success_response(qs_params={"type": "same_root_cause"})
         # The UI will then make normal calls to get issues-stats
         # For instance, this URL
         # https://us.sentry.io/api/0/organizations/sentry/issues-stats/?groups=4741828952&groups=4489703641&statsPeriod=24h
-        assert response.json() == {
-            "data": [
-                {"type": "same_root_cause", "data": [5]},
-                {"type": "trace_connected", "data": []},
-            ],
-        }
+        assert response.json() == {"type": "same_root_cause", "data": [5], "meta": {}}
 
     def test_trace_connected_errors(self) -> None:
         error_event, _, another_proj_event = self.load_errors(self.project, uuid4().hex[:16])
+        group = error_event.group
         self.group_id = error_event.group_id  # type: ignore[assignment]
+        recommended_event = group.get_recommended_event_for_environments()  # type: ignore[union-attr]
+        assert recommended_event is not None  # It helps with typing
+
         assert error_event.group_id != another_proj_event.group_id
         assert error_event.project.id != another_proj_event.project.id
         assert error_event.trace_id == another_proj_event.trace_id
 
-        response = self.get_success_response()
+        response = self.get_success_response(qs_params={"type": "trace_connected"})
         assert response.json() == {
-            "data": [
-                {"type": "same_root_cause", "data": []},
-                {"type": "trace_connected", "data": [another_proj_event.group_id]},
-            ]
+            "type": "trace_connected",
+            # This is the other issue in the trace that it is not itself
+            "data": [another_proj_event.group_id],
+            "meta": {"event_id": recommended_event.event_id, "trace_id": error_event.trace_id},
         }

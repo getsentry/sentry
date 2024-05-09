@@ -26,7 +26,6 @@ type Props = {
 };
 
 type State = {
-  authenticators: Array<Authenticator>;
   error: boolean;
   errorType: string;
   isLoading: boolean;
@@ -40,7 +39,6 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
     this.state = {
-      authenticators: [],
       error: false,
       errorType: '',
       showAccessForms: true,
@@ -59,15 +57,18 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
       return;
     }
 
-    await this.getAuthenticators();
+    const authenticators = await this.getAuthenticators();
+    this.authenticators = authenticators;
+
     // Set the error state if there are no authenticators and U2F is on
-    if (!this.state.authenticators.length && !disableU2FForSUForm) {
+    if (!this.authenticators.length && !disableU2FForSUForm) {
       this.handleError(ErrorCodes.NO_AUTHENTICATOR);
     }
     this.setState({isLoading: false});
   }
 
   authUrl: string;
+  authenticators: Authenticator[] = [];
 
   handleSubmitCOPS = () => {
     this.setState({
@@ -78,13 +79,13 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
 
   handleSubmit = async data => {
     const {api} = this.props;
-    const {superuserAccessCategory, superuserReason, authenticators} = this.state;
+    const {superuserAccessCategory, superuserReason} = this.state;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
     const suReason = superuserReason || data.superuserReason;
 
-    if (!authenticators.length && !disableU2FForSUForm) {
+    if (!this.authenticators.length && !disableU2FForSUForm) {
       this.handleError(ErrorCodes.NO_AUTHENTICATOR);
       return;
     }
@@ -183,14 +184,15 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
 
     try {
       const authenticators = await api.requestPromise('/authenticators/');
-      this.setState({authenticators: authenticators ?? []});
+      return authenticators ?? [];
     } catch {
       // ignore errors
     }
+    return [];
   }
 
   render() {
-    const {authenticators, error, errorType, showAccessForms, isLoading} = this.state;
+    const {error, errorType, showAccessForms, isLoading} = this.state;
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
       this.handleLogout();
       return null;
@@ -209,7 +211,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
                 </StyledAlert>
               )}
               <U2fContainer
-                authenticators={authenticators}
+                authenticators={this.authenticators}
                 displayMode="sudo"
                 onTap={this.handleU2fTap}
               />
@@ -237,7 +239,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
             {showAccessForms && <Hook name="component:superuser-access-category" />}
             {!showAccessForms && (
               <U2fContainer
-                authenticators={authenticators}
+                authenticators={this.authenticators}
                 displayMode="sudo"
                 onTap={this.handleU2fTap}
               />

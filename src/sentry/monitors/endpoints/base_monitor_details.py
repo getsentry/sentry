@@ -17,8 +17,6 @@ from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -99,9 +97,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             owner = result["owner"]
             params["owner_user_id"] = None
             params["owner_team_id"] = None
-            if owner and owner.type == User:
+            if owner and owner.is_user:
                 params["owner_user_id"] = owner.id
-            elif owner and owner.type == Team:
+            elif owner and owner.is_team:
                 params["owner_team_id"] = owner.id
         if "config" in result:
             params["config"] = result["config"]

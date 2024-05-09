@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import orjson
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -29,7 +30,6 @@ from sentry.lang.native.sources import (
     validate_sources,
 )
 from sentry.models.project import Project
-from sentry.utils import json
 
 
 class LayoutSerializer(serializers.Serializer):
@@ -244,7 +244,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         operation_id="Retrieve a Project's Symbol Sources",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id(
                 "The ID of the source to look up. If this is not provided, all sources are returned.",
                 False,
@@ -278,7 +278,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         operation_id="Delete a Symbol Source from a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id("The ID of the source to delete.", True),
         ],
         responses={
@@ -302,7 +302,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             if len(filtered_sources) == len(sources):
                 return Response(data={"error": f"Unknown source id: {id}"}, status=404)
 
-            serialized = json.dumps(filtered_sources)
+            serialized = orjson.dumps(filtered_sources).decode()
             project.update_option("sentry:symbol_sources", serialized)
             return Response(status=204)
 
@@ -310,7 +310,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Add a Symbol Source to a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SourceSerializer,
         responses={
             201: REDACTED_SOURCE_SCHEMA,
@@ -341,7 +341,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         except InvalidSourcesError:
             return Response(status=400)
 
-        serialized = json.dumps(sources)
+        serialized = orjson.dumps(sources).decode()
         project.update_option("sentry:symbol_sources", serialized)
 
         redacted = redact_source_secrets([source])
@@ -351,7 +351,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         operation_id="Update a Project's Symbol Source",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.source_id("The ID of the source to update.", True),
         ],
         request=SourceSerializer,
@@ -402,7 +402,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         except InvalidSourcesError as e:
             return Response(data={"error": str(e)}, status=400)
 
-        serialized = json.dumps(sources)
+        serialized = orjson.dumps(sources).decode()
         project.update_option("sentry:symbol_sources", serialized)
 
         redacted = redact_source_secrets([source])

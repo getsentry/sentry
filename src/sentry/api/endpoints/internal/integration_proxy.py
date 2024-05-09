@@ -93,7 +93,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         # Get the organization integration
         org_integration_id_header = request.headers.get(PROXY_OI_HEADER)
-        if org_integration_id_header is None or not org_integration_id_header.isnumeric():
+        if org_integration_id_header is None or not org_integration_id_header.isdecimal():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
         org_integration_id = int(org_integration_id_header)
@@ -161,8 +161,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info("integration_proxy.failure.invalid_request", extra=self.log_extra)
             metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_request", sample_rate=1.0)
             return False
-
-        logger.info("integration_proxy.valid_request", extra=self.log_extra)
         return True
 
     def _call_third_party_api(self, request, full_url: str, headers) -> HttpResponse:
@@ -218,7 +216,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             tags={"status": response.status_code},
             sample_rate=1.0,
         )
-        logger.info("proxy_success", extra=self.log_extra)
         return response
 
     def handle_exception(  # type: ignore[override]

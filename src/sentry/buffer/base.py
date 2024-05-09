@@ -36,6 +36,14 @@ class Buffer(Service):
         """
         return {col: 0 for col in columns}
 
+    def get_hash(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> dict[str, str]:
+        return {}
+
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+        return []
+
     def incr(
         self,
         model: type[models.Model],
@@ -61,10 +69,10 @@ class Buffer(Service):
             }
         )
 
-    def process_pending(self, partition: int | None = None) -> None:
+    def process_pending(self) -> None:
         return
 
-    def process_batch(self, partition: int | None = None) -> None:
+    def process_batch(self) -> None:
         return
 
     def process(

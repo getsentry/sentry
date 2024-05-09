@@ -46,9 +46,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         :qparam bool sample: return events in pseudo-random order. This is deterministic,
                              same query will return the same events in the same order.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           groups belong to.
-        :pparam string project_slug: the slug of the project the groups
+        :pparam string project_id_or_slug: the id or slug of the project the groups
                                      belong to.
         """
         from sentry.api.paginator import GenericOffsetPaginator

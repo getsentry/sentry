@@ -59,11 +59,9 @@ EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:custom-metrics",
     "organizations:device-class-synthesis",
-    "organizations:metric-meta",
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
-    "organizations:session-replay-video",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
@@ -267,6 +265,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             str(project.organization.id), []
         )
 
+        existing_ids: set[str] = set()
         cardinality_limits: list[CardinalityLimit] = []
         for namespace in CARDINALITY_LIMIT_USE_CASES:
             timeout.check()
@@ -291,18 +290,32 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "namespace": namespace.value,
             }
             if id in passive_limits:
-                # HACK inc-730: reduce pressure on memory by disabling limits for passive projects
-                continue
+                limit["passive"] = True
             cardinality_limits.append(limit)
+            existing_ids.add(id)
 
-        clos: list[CardinalityLimitOption] = options.get("relay.cardinality-limiter.limits")
-        for clo in clos:
+        project_limit_options: list[CardinalityLimitOption] = project.get_option(
+            "relay.cardinality-limiter.limits", []
+        )
+        organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
+            "relay.cardinality-limiter.limits", []
+        )
+        option_limit_options: list[CardinalityLimitOption] = options.get(
+            "relay.cardinality-limiter.limits", []
+        )
+
+        for clo in project_limit_options + organization_limit_options + option_limit_options:
             rollout_rate = clo.get("rollout_rate", 1.0)
             if (project.organization.id % 100000) / 100000 >= rollout_rate:
                 continue
 
             try:
-                cardinality_limits.append(clo["limit"])
+                limit = clo["limit"]
+                if clo["limit"]["id"] in existing_ids:
+                    # skip if a limit with the same id already exists
+                    continue
+                cardinality_limits.append(limit)
+                existing_ids.add(clo["limit"]["id"])
             except KeyError:
                 pass
 
@@ -803,14 +816,13 @@ def _get_project_config(
 
         add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
 
-    if features.has("organizations:metrics-extraction", project.organization):
-        config["sessionMetrics"] = {
-            "version": (
-                EXTRACT_ABNORMAL_MECHANISM_VERSION
-                if _should_extract_abnormal_mechanism(project)
-                else EXTRACT_METRICS_VERSION
-            ),
-        }
+    config["sessionMetrics"] = {
+        "version": (
+            EXTRACT_ABNORMAL_MECHANISM_VERSION
+            if _should_extract_abnormal_mechanism(project)
+            else EXTRACT_METRICS_VERSION
+        ),
+    }
 
     performance_score_profiles = [
         *_get_browser_performance_profiles(project.organization),
@@ -1001,7 +1013,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 3
+TRANSACTION_METRICS_EXTRACTION_VERSION = 5
 
 
 class CustomMeasurementSettings(TypedDict):

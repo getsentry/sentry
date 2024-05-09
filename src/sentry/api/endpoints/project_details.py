@@ -4,6 +4,7 @@ import time
 from datetime import timedelta
 from uuid import uuid4
 
+import orjson
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
@@ -48,7 +49,6 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.utils import has_alert_integration
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +105,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "safeFields",
         "storeCrashReports",
         "relayPiiConfig",
+        "relayCustomMetricCardinalityLimit",
         "builtinSymbolSources",
         "symbolSources",
         "scrubIPAddresses",
@@ -188,6 +189,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    relayCustomMetricCardinalityLimit = serializers.IntegerField(required=False, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
@@ -261,6 +263,12 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         organization = self.context["project"].organization
         return validate_pii_config_update(organization, value)
 
+    def validate_relayCustomMetricCardinalityLimit(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Cardinality limit must be a non-negative integer.")
+
+        return value
+
     def validate_builtinSymbolSources(self, value):
         if not value:
             return value
@@ -276,7 +284,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         return value
 
-    def validate_symbolSources(self, sources_json):
+    def validate_symbolSources(self, sources_json) -> str:
         if not sources_json:
             return sources_json
 
@@ -299,7 +307,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         # This is always allowed.
         added_or_modified_sources = [s for s in sources if s not in orig_sources]
         if not added_or_modified_sources:
-            return json.dumps(sources) if sources else ""
+            return orjson.dumps(sources).decode() if sources else ""
 
         # All modified sources should get a new UUID, as a way to invalidate caches.
         # Downstream symbolicator uses this ID as part of a cache key, so assigning
@@ -313,7 +321,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             if source["type"] != "appStoreConnect":
                 source["id"] = str(uuid4())
 
-        sources_json = json.dumps(sources) if sources else ""
+        sources_json = orjson.dumps(sources).decode() if sources else ""
 
         # Adding sources is only allowed if custom symbol sources are enabled.
         has_sources = features.has(
@@ -448,7 +456,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: DetailedProjectSerializer,
@@ -493,7 +501,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         operation_id="Update a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectAdminSerializer,
         responses={
@@ -663,6 +671,25 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:relay_pii_config"] = (
                     result["relayPiiConfig"].strip() or None
                 )
+        if "relayCustomMetricCardinalityLimit" in result:
+            limit = result.get("relayCustomMetricCardinalityLimit")
+            cardinality_limits = []
+            if limit is not None:
+                # For now we only allow setting a single limit
+                # TODO: validate this with rust validator
+                cardinality_limits = [
+                    {
+                        "limit": {
+                            "id": "project-override-custom",
+                            "window": {"windowSeconds": 3600, "granularitySeconds": 600},
+                            "limit": limit,
+                            "namespace": "custom",
+                            "scope": "name",
+                        }
+                    }
+                ]
+            if project.update_option("relay.cardinality-limiter.limits", cardinality_limits):
+                changed_proj_settings["relay.cardinality-limiter.limits"] = cardinality_limits
         if result.get("builtinSymbolSources") is not None:
             if project.update_option(
                 "sentry:builtin_symbol_sources", result["builtinSymbolSources"]
@@ -864,7 +891,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Delete a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,

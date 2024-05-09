@@ -9,7 +9,7 @@ from sentry import projectoptions
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.utils.cache import cache
@@ -68,6 +68,7 @@ OPTION_KEYS = frozenset(
         "mail:subject_template",
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
+        "relay.cardinality-limiter.limits",
     ]
 )
 
@@ -102,16 +103,18 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self.filter(project=project, key=key).delete()
         self.reload_cache(project.id, "projectoption.unset_value")
 
-    def set_value(self, project: Project, key: str, value: Value) -> bool:
-        inst, created = self.create_or_update(project=project, key=key, values={"value": value})
-        self.reload_cache(project.id, "projectoption.set_value")
+    def set_value(self, project: int | Project, key: str, value: Value) -> bool:
+        if isinstance(project, models.Model):
+            project_id = project.id
+        else:
+            project_id = project
+
+        inst, created = self.create_or_update(
+            project_id=project_id, key=key, values={"value": value}
+        )
+        self.reload_cache(project_id, "projectoption.set_value")
 
         return created or inst > 0
-
-    def update_value(self, project_id: int, key: str, value: Value):
-        # Updates a value with the assumption of the entry being existent.
-        self.update_value(project_id=project_id, key=key, value=value)
-        self.reload_cache(project_id, "projectoption.update_value")
 
     def get_all_values(self, project: Project | int) -> Mapping[str, Value]:
         if isinstance(project, models.Model):
@@ -147,7 +150,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectOption(Model):
     """
     Project options apply only to an instance of a project.

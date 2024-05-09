@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import * as qs from 'query-string';
 
 import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
@@ -14,6 +15,7 @@ import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {
   canUseMetricsData,
   useMEPSettingContext,
@@ -22,8 +24,10 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/performance/browser/resources/resourceView';
 import {getResourcesEventViewQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
+import {BASE_FILTERS, CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
 import DurationChart from 'sentry/views/performance/charts/chart';
 import {DomainCell} from 'sentry/views/performance/http/tables/domainCell';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -34,7 +38,7 @@ import {
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 
@@ -42,6 +46,7 @@ import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
+  HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
   ListClose,
   RightAlignedCell,
   Subtitle,
@@ -101,6 +106,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
   ) {
     emptyComponent = TimeConsumingDomainsWidgetEmptyStateWarning;
+  } else if (
+    props.chartSetting === PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+  ) {
+    emptyComponent = HighestCacheMissRateTransactionsWidgetEmptyStateWarning;
   } else {
     emptyComponent = canHaveIntegrationEmptyState
       ? () => (
@@ -239,6 +248,28 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {'resource.render_blocking_status': 'blocking'},
             DEFAULT_RESOURCE_TYPES
           ).join(' ')}`;
+        } else if (
+          props.chartSetting ===
+          PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+        ) {
+          eventView.fields = [
+            {field: SpanMetricsField.TRANSACTION},
+            {field: 'project.id'},
+            {field},
+          ];
+
+          // Change data set to spansMetrics
+          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          extraQueryParams = {
+            ...extraQueryParams,
+            dataset: DiscoverDatasets.SPANS_METRICS,
+          };
+
+          // Update query
+          const mutableSearch = MutableSearch.fromQueryObject(BASE_FILTERS);
+          eventView.additionalConditions.removeFilter('event.type');
+          eventView.additionalConditions.removeFilter('transaction.op');
+          eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
           eventView.fields = [
@@ -257,6 +288,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
             PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
             PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+            PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
           ].includes(props.chartSetting)
         ) {
           eventView.additionalConditions.setFilterValues(field, ['>0']);
@@ -388,6 +420,34 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 ].toString()
               );
             }
+
+            const mutableSearch = new MutableSearch(eventView.query);
+            mutableSearch.removeFilter('transaction');
+            eventView.query = mutableSearch.formatString();
+          } else if (
+            props.chartSetting ===
+            PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+          ) {
+            // Update request params
+            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            extraQueryParams = {
+              ...extraQueryParams,
+              dataset: DiscoverDatasets.SPANS_METRICS,
+              excludeOther: false,
+              per_page: 50,
+            };
+            eventView.fields = [];
+
+            // Update chart options
+            partialDataParam = false;
+            yAxis = `${SpanFunction.CACHE_MISS_RATE}()`;
+            interval = getInterval(pageFilterDatetime, STARFISH_CHART_INTERVAL_FIDELITY);
+            includePreviousParam = false;
+            currentSeriesNames = [`${SpanFunction.CACHE_MISS_RATE}()`];
+
+            // Update search query
+            eventView.additionalConditions.removeFilter('event.type');
+            eventView.additionalConditions.removeFilter('transaction.op');
 
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction');
@@ -587,7 +647,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               const isQueriesWidget =
                 props.chartSetting ===
                 PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
-              const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.HTTP;
+              const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.RESOURCE;
               const timeSpentOp = isQueriesWidget ? 'op' : undefined;
               const routingContextBaseURL = isQueriesWidget
                 ? '/performance/database'
@@ -623,6 +683,30 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     )}
                   </Fragment>
                 </RoutingContextProvider>
+              );
+            case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
+              const cacheMissRate = listItem[fieldString];
+              const target = normalizeUrl(
+                `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction})}`
+              );
+              return (
+                <Fragment>
+                  <GrowLink to={target}>
+                    <Truncate value={transaction} maxLength={40} />
+                  </GrowLink>
+                  <RightAlignedCell>{formatPercentage(cacheMissRate)}</RightAlignedCell>
+                  {!props.withStaticFilters && (
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() =>
+                        excludeTransaction(listItem.transaction, {
+                          eventView: props.eventView,
+                          location,
+                        })
+                      }
+                    />
+                  )}
+                </Fragment>
               );
             default:
               if (typeof rightValue === 'number') {

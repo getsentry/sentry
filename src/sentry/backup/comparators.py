@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import lru_cache
+from typing import Any
 
 from dateutil import parser
 from django.db import models
@@ -18,7 +19,6 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side
-from sentry.utils.json import JSONData
 
 UNIX_EPOCH = unix_zero_date = datetime.fromtimestamp(0, timezone.utc).isoformat()
 
@@ -53,7 +53,7 @@ class JSONScrubbingComparator(ABC):
     def __init__(self, *fields: str):
         self.fields = set(fields)
 
-    def check(self, side: Side, data: JSONData) -> None:
+    def check(self, side: Side, data: Any) -> None:
         """Ensure that we have received valid JSON data at runtime."""
 
         if "model" not in data or not isinstance(data["model"], str):
@@ -64,12 +64,12 @@ class JSONScrubbingComparator(ABC):
             raise RuntimeError(f"The {side.name} input must have a `fields` dictionary.")
 
     @abstractmethod
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         """An abstract method signature, to be implemented by inheriting classes with their own
         comparison logic. Implementations of this method MUST take care not to mutate the method's
         inputs!"""
 
-    def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def existence(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         """Ensure that all tracked fields on either both models or neither."""
 
         findings = []
@@ -102,8 +102,8 @@ class JSONScrubbingComparator(ABC):
 
     def __scrub__(
         self,
-        left: JSONData,
-        right: JSONData,
+        left: Any,
+        right: Any,
         f: (
             Callable[[list[str]], list[str]] | Callable[[list[str]], ScrubbedData]
         ) = lambda _: ScrubbedData(),
@@ -142,8 +142,8 @@ class JSONScrubbingComparator(ABC):
 
     def scrub(
         self,
-        left: JSONData,
-        right: JSONData,
+        left: Any,
+        right: Any,
     ) -> None:
         self.__scrub__(left, right)
 
@@ -168,7 +168,7 @@ class AutoSuffixComparator(JSONScrubbingComparator):
     becomes "my-org-1k1j"). This comparator is robust to such fields, and ensures that the left
     field entry is a strict prefix of the right."""
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
         fields = sorted(self.fields)
         for f in fields:
@@ -196,7 +196,7 @@ class DateUpdatedComparator(JSONScrubbingComparator):
     """Comparator that ensures that the specified fields' value on the right input is an ISO-8601
     date that is greater than (ie, occurs after) or equal to the specified field's left input."""
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
         fields = sorted(self.fields)
         for f in fields:
@@ -223,7 +223,7 @@ class DatetimeEqualityComparator(JSONScrubbingComparator):
     exactly `.000` (ie, not milliseconds at all - what are the odds!). Because comparisons may fail
     in this case, we use a special comparator for these cases."""
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
         fields = sorted(self.fields)
         for f in fields:
@@ -263,7 +263,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
         self.left_pk_map = left_pk_map
         self.right_pk_map = right_pk_map
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
         fields = sorted(self.fields)
         for f in fields:
@@ -319,7 +319,7 @@ class ObfuscatingComparator(JSONScrubbingComparator, ABC):
     def __init__(self, *fields: str):
         super().__init__(*fields)
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
         fields = sorted(self.fields)
         for f in fields:
@@ -344,8 +344,8 @@ class ObfuscatingComparator(JSONScrubbingComparator, ABC):
 
     def scrub(
         self,
-        left: JSONData,
-        right: JSONData,
+        left: Any,
+        right: Any,
     ) -> None:
         super().__scrub__(left, right, self.truncate)
 
@@ -403,7 +403,7 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
     def __init__(self):
         super().__init__("password")
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
 
         # Error case: there is no importing action that can "claim" a user.
@@ -496,12 +496,12 @@ class IgnoredComparator(JSONScrubbingComparator):
     sure you are validating them some other way!
     """
 
-    def compare(self, _o: InstanceID, _l: JSONData, _r: JSONData) -> list[ComparatorFinding]:
+    def compare(self, _o: InstanceID, _l: Any, _r: Any) -> list[ComparatorFinding]:
         """Noop - there is nothing to compare once we've checked for existence."""
 
         return []
 
-    def existence(self, _o: InstanceID, _l: JSONData, _r: JSONData) -> list[ComparatorFinding]:
+    def existence(self, _o: InstanceID, _l: Any, _r: Any) -> list[ComparatorFinding]:
         """Noop - never compare existence for ignored fields, they're ignored after all."""
 
         return []
@@ -514,7 +514,7 @@ class RegexComparator(JSONScrubbingComparator, ABC):
         self.regex = regex
         super().__init__(*fields)
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
         fields = sorted(self.fields)
         for f in fields:
@@ -553,7 +553,7 @@ class EqualOrRemovedComparator(JSONScrubbingComparator):
     missing.
     """
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
         fields = sorted(self.fields)
         for f in fields:
@@ -577,7 +577,7 @@ class EqualOrRemovedComparator(JSONScrubbingComparator):
 
         return findings
 
-    def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def existence(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         """Ensure that all tracked fields on either both models or neither."""
 
         findings = []
@@ -613,7 +613,7 @@ class SubscriptionIDComparator(RegexComparator):
     def __init__(self, *fields: str):
         super().__init__(re.compile("^\\d+/[0-9a-f]{32}$"), *fields)
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         # First, ensure that the two sides are not equivalent.
         findings = []
         fields = sorted(self.fields)
@@ -644,7 +644,7 @@ class UnorderedListComparator(JSONScrubbingComparator):
     """Comparator for fields that are lists of unordered elements, which simply orders them before
     doing the comparison."""
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         findings = []
         fields = sorted(self.fields)
         for f in fields:
@@ -681,7 +681,7 @@ class UUID4Comparator(RegexComparator):
             *fields,
         )
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
         # First, ensure that the two sides are not equivalent.
         findings = []
         fields = sorted(self.fields)
@@ -783,9 +783,6 @@ ComparatorMap = dict[str, ComparatorList]
 def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
     """Helper function executed at startup time which builds the static default comparators map."""
 
-    from sentry.models.actor import Actor
-    from sentry.models.organization import Organization
-
     # Some comparators (like `DateAddedComparator`) we can automatically assign by inspecting the
     # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must
     # assign manually, since there is no clever way to derive them automatically.
@@ -804,10 +801,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
             "sentry.alertrule": [
                 DateUpdatedComparator("date_modified"),
-                # TODO(hybrid-cloud): actor refactor. Remove this check once we're sure we've
-                # migrated all remaining `owner_id`'s to also have `team_id` or `user_id`, which
-                # seems to not be the case today.
-                EqualOrRemovedComparator("owner", "team", "user_id"),
             ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
@@ -844,9 +837,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
-            # TODO(hybrid-cloud): actor refactor. Remove this entry when done.
             "sentry.team": [
-                ForeignKeyComparator({"actor": Actor, "organization": Organization}),
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
                 IgnoredComparator("org_role"),
             ],

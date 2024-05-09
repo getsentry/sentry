@@ -2,6 +2,7 @@ import re
 import time
 from unittest import mock
 
+import orjson
 import responses
 
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
@@ -10,7 +11,6 @@ from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -49,9 +49,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
-        results = list(
-            rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
-        )
+        results = list(rule.after(event=event, notification_uuid=notification_uuid))
         assert len(results) == 1
 
         responses.add(
@@ -62,7 +60,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert "attachments" in data
         attachments = data["attachments"]
@@ -109,7 +107,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Hellboy", "channel_id": "nb"}
         )
-        results = list(rule.after(event=group_event, state=self.get_state()))
+        results = list(rule.after(event=group_event))
         assert len(results) == 1
 
         responses.add(
@@ -121,7 +119,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         results[0].callback(event, futures=[])
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert "attachments" in data
         attachments = data["attachments"]
         assert len(attachments) == 1
@@ -147,7 +145,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -159,7 +157,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         results[0].callback(event, futures=[])
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert "attachments" in data
         attachments = data["attachments"]
         assert len(attachments) == 1

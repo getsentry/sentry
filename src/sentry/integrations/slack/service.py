@@ -8,11 +8,14 @@ from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessageRepository,
 )
 from sentry.integrations.slack import BlockSlackMessageBuilder, SlackClient
+from sentry.integrations.slack.threads.activity_notifications import (
+    AssignedActivityNotification,
+    ExternalIssueCreatedActivityNotification,
+)
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
-from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
@@ -45,6 +48,7 @@ DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
     ActivityType.SET_ESCALATING: EscalatingActivityNotification,
     ActivityType.SET_IGNORED: ArchiveActivityNotification,
     ActivityType.SET_UNRESOLVED: UnresolvedActivityNotification,
+    ActivityType.CREATE_ISSUE: ExternalIssueCreatedActivityNotification,
 }
 
 

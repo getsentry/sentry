@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import {IncidentFixture} from 'sentry-fixture/incident';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import IncidentRedirect from './incidentRedirect';
 

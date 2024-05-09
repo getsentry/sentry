@@ -1,6 +1,7 @@
 from unittest import mock
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 
 from sentry.constants import ObjectStatus
@@ -12,7 +13,6 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
@@ -49,7 +49,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -65,7 +65,7 @@ class SlackNotifyActionTest(RuleTestCase):
         data = parse_qs(responses.calls[0].request.body)
 
         assert "blocks" in data
-        blocks = json.loads(data["blocks"][0])
+        blocks = orjson.loads(data["blocks"][0])
 
         assert event.title in blocks[0]["text"]["text"]
 
@@ -127,7 +127,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": "chan-id", "scheduled_message_id": "Q1298393284"}
             ),
         )
@@ -136,7 +136,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/chat.deleteScheduledMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": True}),
+            body=orjson.dumps({"ok": True}),
         )
 
         form = rule.get_form_instance()
@@ -154,7 +154,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {
@@ -170,7 +170,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/users.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(members),
+            body=orjson.dumps(members),
         )
 
         form = rule.get_form_instance()
@@ -187,7 +187,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {"ok": "true", "members": [{"name": "other-member", "id": "member-id"}]}
@@ -197,7 +197,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/users.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(members),
+            body=orjson.dumps(members),
         )
 
         form = rule.get_form_instance()
@@ -213,7 +213,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         responses.add(
@@ -221,7 +221,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/users.list",
             status=429,
             content_type="application/json",
-            body=json.dumps({"ok": False, "error": "ratelimited"}),
+            body=orjson.dumps({"ok": False, "error": "ratelimited"}),
         )
         rule = self.get_rule(
             data={
@@ -243,7 +243,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
+            body=orjson.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
         )
         rule = self.get_rule(
             data={
@@ -264,7 +264,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
         )
         rule = self.get_rule(
             data={
@@ -286,7 +286,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
+            body=orjson.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
         )
         rule = self.get_rule(
             data={
@@ -324,7 +324,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
+            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {
@@ -340,7 +340,7 @@ class SlackNotifyActionTest(RuleTestCase):
             url="https://slack.com/api/users.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(members),
+            body=orjson.dumps(members),
         )
 
         form = rule.get_form_instance()
@@ -360,7 +360,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 0
 
     @responses.activate
@@ -381,9 +381,7 @@ class SlackNotifyActionTest(RuleTestCase):
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
-            results = list(
-                rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
-            )
+            results = list(rule.after(event=event, notification_uuid=notification_uuid))
             assert len(results) == 1
 
             responses.add(
@@ -399,7 +397,7 @@ class SlackNotifyActionTest(RuleTestCase):
             data = parse_qs(responses.calls[0].request.body)
 
             assert "blocks" in data
-            blocks = json.loads(data["blocks"][0])
+            blocks = orjson.loads(data["blocks"][0])
 
             assert event.title in blocks[0]["text"]["text"]
             assert blocks[-2]["text"]["text"] == self.organization.slug
@@ -433,5 +431,5 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1

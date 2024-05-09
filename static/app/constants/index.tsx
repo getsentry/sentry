@@ -318,9 +318,9 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Cron Monitors'),
     uid: 13,
   },
-  [DataCategoryExact.METRICS]: {
-    name: DataCategoryExact.METRICS,
-    apiName: 'metrics',
+  [DataCategoryExact.METRIC_SECOND]: {
+    name: DataCategoryExact.METRIC_SECOND,
+    apiName: 'metricSecond',
     plural: 'metrics',
     displayName: 'metrics',
     titleName: t('Metrics'),
@@ -378,7 +378,6 @@ export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
 export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
-export const USE_REACT_CONCURRENT_MODE = process.env.USE_REACT_CONCURRENT_MODE;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

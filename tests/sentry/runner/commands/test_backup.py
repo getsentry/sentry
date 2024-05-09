@@ -77,6 +77,38 @@ def create_encryption_test_files(tmp_dir: str) -> tuple[Path, Path, Path]:
     return (tmp_priv_key_path, tmp_pub_key_path, tmp_tar_path)
 
 
+def mock_gcp_kms_asymmetric_decrypt(
+    tmp_dir: str,
+    tmp_priv_key_path: Path,
+    tmp_encrypted_path: Path,
+    fake_kms_client: FakeKeyManagementServiceClient,
+) -> Path:
+    with open(tmp_encrypted_path, "rb") as f:
+        unwrapped_tarball = unwrap_encrypted_export_tarball(f)
+    with open(tmp_priv_key_path, "rb") as f:
+        plaintext_dek = LocalFileDecryptor(f).decrypt_data_encryption_key(unwrapped_tarball)
+        fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
+            plaintext=plaintext_dek,
+            plaintext_crc32c=crc32c(plaintext_dek),
+        )
+
+    gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")
+    with open(gcp_kms_config_path, "w") as f:
+        f.write(
+            """
+                {
+                    "project_id": "test-google-cloud-project",
+                    "location": "global",
+                    "key_ring": "test-key-ring-name",
+                    "key": "test-key-name",
+                    "version": "1"
+                }
+                """
+        )
+
+    return gcp_kms_config_path
+
+
 class GoodCompareCommandTests(TestCase):
     """
     Test success cases of the `sentry backup compare` CLI command.
@@ -123,38 +155,6 @@ class GoodCompareCommandEncryptionTests(TestCase):
     """
     Test success cases of the `sentry compare` CLI command on encrypted inputs.
     """
-
-    def mock_gcp_kms_asymmetric_decrypt(
-        self,
-        tmp_dir: str,
-        tmp_priv_key_path: Path,
-        tmp_encrypted_path: Path,
-        fake_kms_client: FakeKeyManagementServiceClient,
-    ) -> Path:
-        with open(tmp_encrypted_path, "rb") as f:
-            unwrapped_tarball = unwrap_encrypted_export_tarball(f)
-        with open(tmp_priv_key_path, "rb") as f:
-            plaintext_dek = LocalFileDecryptor(f).decrypt_data_encryption_key(unwrapped_tarball)
-            fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
-                plaintext=plaintext_dek,
-                plaintext_crc32c=crc32c(plaintext_dek),
-            )
-
-        gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")
-        with open(gcp_kms_config_path, "w") as f:
-            f.write(
-                """
-                {
-                    "project_id": "test-google-cloud-project",
-                    "location": "global",
-                    "key_ring": "test-key-ring-name",
-                    "key": "test-key-name",
-                    "version": "1"
-                }
-                """
-            )
-
-        return gcp_kms_config_path
 
     def test_compare_decrypt_with(self):
         with TemporaryDirectory() as tmp_dir:
@@ -211,7 +211,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
     def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: FakeKeyManagementServiceClient):
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, _, tmp_encrypted_path) = create_encryption_test_files(tmp_dir)
-            gcp_kms_config_path = self.mock_gcp_kms_asymmetric_decrypt(
+            gcp_kms_config_path = mock_gcp_kms_asymmetric_decrypt(
                 tmp_dir, tmp_priv_key_path, tmp_encrypted_path, fake_kms_client
             )
             tmp_findings = Path(tmp_dir).joinpath(f"{self._testMethodName}.findings.json")
@@ -381,6 +381,117 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                 assert source_json == target_json
 
 
+class GoodSanitizeCommandTests(TestCase):
+    """
+    Test success cases of the `sentry backup sanitize` CLI command.
+    """
+
+    def test_sanitize(self):
+        with TemporaryDirectory() as tmp_dir:
+            tmp_sanitized_path = Path(tmp_dir).joinpath("sanitized.json")
+            rv = CliRunner().invoke(
+                backup,
+                [
+                    "sanitize",
+                    str(tmp_sanitized_path),
+                    "--src",
+                    GOOD_FILE_PATH,
+                ],
+            )
+            assert rv.exit_code == 0, rv.output
+
+    def test_sanitize_with_datetime_offset(self):
+        with TemporaryDirectory() as tmp_dir:
+            tmp_sanitized_path = Path(tmp_dir).joinpath("sanitized.json")
+            rv = CliRunner().invoke(
+                backup,
+                [
+                    "sanitize",
+                    str(tmp_sanitized_path),
+                    "--src",
+                    GOOD_FILE_PATH,
+                    "--days-offset",
+                    "-1234",
+                ],
+            )
+            assert rv.exit_code == 0, rv.output
+
+
+class GoodSanitizeCommandEncryptionTests(TestCase):
+    """
+    Test success cases of the `sentry sanitize` CLI command on decrypted inputs with encrypted
+    outputs.
+    """
+
+    def test_sanitize_with_decryption_and_encryption(self):
+        with TemporaryDirectory() as tmp_dir:
+            tmp_sanitized_encrypted_path = Path(tmp_dir).joinpath("sanitized_encrypted.tar")
+            (
+                tmp_priv_key_path,
+                tmp_pub_key_path,
+                tmp_unsanitized_encrypted_path,
+            ) = create_encryption_test_files(tmp_dir)
+
+            rv = CliRunner().invoke(
+                backup,
+                [
+                    "sanitize",
+                    str(tmp_sanitized_encrypted_path),
+                    "--src",
+                    str(tmp_unsanitized_encrypted_path),
+                    "--decrypt-with",
+                    str(tmp_priv_key_path),
+                    "--encrypt-with",
+                    str(tmp_pub_key_path),
+                ],
+            )
+            assert rv.exit_code == 0, rv.output
+
+    @patch(
+        "sentry.backup.crypto.KeyManagementServiceClient",
+        new_callable=lambda: FakeKeyManagementServiceClient,
+    )
+    def test_sanitize_with_gcp_kms_decryption_and_encryption(
+        self, fake_kms_client: FakeKeyManagementServiceClient
+    ):
+        with TemporaryDirectory() as tmp_dir:
+            tmp_sanitized_encrypted_path = Path(tmp_dir).joinpath("sanitized_encrypted.tar")
+            (
+                tmp_priv_key_path,
+                tmp_pub_key_path,
+                tmp_unsanitized_encrypted_path,
+            ) = create_encryption_test_files(tmp_dir)
+            gcp_kms_config_path = mock_gcp_kms_asymmetric_decrypt(
+                tmp_dir, tmp_priv_key_path, tmp_unsanitized_encrypted_path, fake_kms_client
+            )
+
+            # Mock out the GCP KMS reply for the public key retrieval.
+            with open(tmp_pub_key_path, "rb") as f:
+                fake_kms_client.get_public_key.return_value = SimpleNamespace(
+                    pem=f.read().decode("utf-8")
+                )
+
+            fake_kms_client.asymmetric_decrypt.call_count = 0
+            fake_kms_client.get_public_key.call_count = 0
+
+            rv = CliRunner().invoke(
+                backup,
+                [
+                    "sanitize",
+                    str(tmp_sanitized_encrypted_path),
+                    "--src",
+                    str(tmp_unsanitized_encrypted_path),
+                    "--decrypt-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                    "--encrypt-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                ],
+            )
+            assert rv.exit_code == 0, rv.output
+            assert fake_kms_client.asymmetric_decrypt.call_count == 1
+            assert fake_kms_client.get_public_key.call_count == 1
+
+
 def cli_import_then_export(
     scope: str, *, import_args: list[str] | None = None, export_args: list[str] | None = None
 ):
@@ -451,6 +562,22 @@ class GoodImportExportCommandTests(TransactionTestCase):
             import_args=["--filter-usernames", "testing@example.com"],
             export_args=["--filter-usernames", "testing@example.com"],
         )
+
+        with TemporaryDirectory() as tmp_dir:
+            tmp_findings_file_path = Path(tmp_dir).joinpath(
+                f"{''.join(choice(ascii_letters)for _ in range(6))}.txt"
+            )
+            with open(tmp_findings_file_path, "w") as f:
+                f.write(
+                    """
+                    testing@example.com, other@example.com
+                    """
+                )
+            cli_import_then_export(
+                "users",
+                import_args=["--filter-usernames-file", str(tmp_findings_file_path)],
+                export_args=["--filter-usernames-file", str(tmp_findings_file_path)],
+            )
 
 
 class GoodImportExportCommandEncryptionTests(TransactionTestCase):
@@ -623,12 +750,10 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
 @patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
 class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self, get_importer_for_model):
-        importer_mock_fn = (
-            lambda model_name, scope, flags, filter_by, pk_map, json_data: RpcImportError(
-                kind=RpcImportErrorKind.IntegrityError,
-                on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
-                reason="Test integrity error",
-            )
+        importer_mock_fn = lambda model_name, scope, flags, filter_by, pk_map, json_data, min_ordinal: RpcImportError(
+            kind=RpcImportErrorKind.IntegrityError,
+            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            reason="Test integrity error",
         )
         get_importer_for_model.return_value = importer_mock_fn
         # Global imports assume an empty DB, so this should fail with an `IntegrityError`.

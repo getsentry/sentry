@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import Link from 'sentry/components/links/link';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -38,9 +38,9 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
   ModuleName,
@@ -49,6 +49,7 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
+import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDataPoint';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
@@ -138,31 +139,35 @@ export function HTTPSamplesPanel() {
   const {
     data: domainTransactionMetrics,
     isFetching: areDomainTransactionMetricsFetching,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(ribbonFilters),
-    fields: [
-      `${SpanFunction.SPM}()`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      'http_response_rate(3)',
-      'http_response_rate(4)',
-      'http_response_rate(5)',
-      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-    ],
-    enabled: isPanelOpen,
-    referrer: Referrer.SAMPLES_PANEL_METRICS_RIBBON,
-  });
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(ribbonFilters),
+      fields: [
+        `${SpanFunction.SPM}()`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        'http_response_rate(3)',
+        'http_response_rate(4)',
+        'http_response_rate(5)',
+        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+      ],
+      enabled: isPanelOpen,
+    },
+    Referrer.SAMPLES_PANEL_METRICS_RIBBON
+  );
 
   const {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search,
-    yAxis: [`avg(span.self_time)`],
-    enabled: isPanelOpen && query.panel === 'duration',
-    referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search,
+      yAxis: [`avg(span.self_time)`],
+      enabled: isPanelOpen && query.panel === 'duration',
+    },
+    Referrer.SAMPLES_PANEL_DURATION_CHART
+  );
 
   const {
     isFetching: isResponseCodeDataLoading,
@@ -241,12 +246,6 @@ export function HTTPSamplesPanel() {
     domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
     highlightedSpanId
   );
-
-  const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
-    return durationSamplesData.find(
-      s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
-    );
-  };
 
   const handleClose = () => {
     router.replace({
@@ -402,7 +401,14 @@ export function HTTPSamplesPanel() {
                       return;
                     }
 
-                    const sample = findSampleFromDataPoint(firstHighlight.dataPoint);
+                    const sample = findSampleFromDataPoint<
+                      (typeof durationSamplesData)[0]
+                    >(
+                      firstHighlight.dataPoint,
+                      durationSamplesData,
+                      SpanIndexedField.SPAN_SELF_TIME
+                    );
+
                     setHighlightedSpanId(sample?.span_id);
                   }}
                   isLoading={isDurationDataFetching}

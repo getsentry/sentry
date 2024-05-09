@@ -24,7 +24,7 @@ class SentryAppInstallationDocsTest(APIDocsTestCase):
         self.login_as(user=self.user)
         self.url = reverse(
             "sentry-api-0-sentry-app-installations",
-            kwargs={"organization_slug": self.org.slug},
+            kwargs={"organization_id_or_slug": self.org.slug},
         )
 
     def test_get(self):

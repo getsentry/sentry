@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -13,6 +13,7 @@ import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -36,7 +37,9 @@ function AutofixRepoChange({
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const {mutate: createPr, isLoading} = useMutation({
+  const [hasClickedCreatePr, setHasClickedCreatePr] = useState(false);
+
+  const {mutate: createPr} = useMutation({
     mutationFn: () => {
       return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
         method: 'POST',
@@ -73,6 +76,12 @@ function AutofixRepoChange({
     },
   });
 
+  useEffect(() => {
+    if (hasClickedCreatePr && change.pull_request) {
+      setHasClickedCreatePr(false);
+    }
+  }, [hasClickedCreatePr, change.pull_request]);
+
   return (
     <Content>
       <RepoChangesHeader>
@@ -84,8 +93,16 @@ function AutofixRepoChange({
           <Actions>
             <Button
               size="xs"
-              onClick={() => createPr()}
-              busy={isLoading}
+              onClick={() => {
+                createPr();
+                setHasClickedCreatePr(true);
+              }}
+              icon={
+                hasClickedCreatePr && (
+                  <ProcessingStatusIndicator size={14} mini hideMessage />
+                )
+              }
+              busy={hasClickedCreatePr}
               analyticsEventName="Autofix: Create PR Clicked"
               analyticsEventKey="autofix.create_pr_clicked"
               analyticsParams={{group_id: groupId}}
@@ -204,4 +221,12 @@ const Separator = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.innerBorder};
   margin: ${space(2)} -${space(2)} 0 -${space(2)};
+`;
+
+const ProcessingStatusIndicator = styled(LoadingIndicator)`
+  && {
+    margin: 0;
+    height: 14px;
+    width: 14px;
+  }
 `;

@@ -2,7 +2,7 @@ import {useEffect, useMemo} from 'react';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -22,6 +22,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,
@@ -145,10 +146,21 @@ const STATIC_SEMVER_TAGS = Object.keys(SEMVER_TAGS).reduce((tags, key) => {
   return tags;
 }, {});
 
+export const getHasTag = (tags: TagCollection) => ({
+  key: FieldKey.HAS,
+  name: 'Has property',
+  values: Object.keys(tags).sort((a, b) => {
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+  }),
+  predefined: true,
+  kind: FieldKind.FIELD,
+});
+
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
   tags: TagCollection;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
   /**
@@ -156,8 +168,10 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
    */
   maxMenuHeight?: number;
   maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
+  metricAlert?: boolean;
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
+  supportedTags?: TagCollection | undefined;
 };
 
 function SearchBar(props: SearchBarProps) {
@@ -165,12 +179,15 @@ function SearchBar(props: SearchBarProps) {
     maxSearchItems,
     organization,
     tags,
+    metricAlert = false,
     omitTags,
+    supportedTags,
     fields,
     projectIds,
     includeSessionTagsValues,
     maxMenuHeight,
     customMeasurements,
+    dataset,
   } = props;
 
   const api = useApi();
@@ -210,18 +227,30 @@ function SearchBar(props: SearchBarProps) {
         return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
       }
 
-      return fetchTagValues({
-        api,
-        orgSlug: organization.slug,
-        tagKey: tag.key,
-        search: query,
-        projectIds: projectIdStrings,
-        endpointParams,
-        // allows searching for tags on transactions as well
-        includeTransactions: true,
-        // allows searching for tags on sessions as well
-        includeSessions: includeSessionTagsValues,
-      }).then(
+      const fetchPromise =
+        dataset === DiscoverDatasets.SPANS_INDEXED
+          ? fetchSpanFieldValues({
+              api,
+              orgSlug: organization.slug,
+              fieldKey: tag.key,
+              search: query,
+              projectIds: projectIdStrings,
+              endpointParams,
+            })
+          : fetchTagValues({
+              api,
+              orgSlug: organization.slug,
+              tagKey: tag.key,
+              search: query,
+              projectIds: projectIdStrings,
+              endpointParams,
+              // allows searching for tags on transactions as well
+              includeTransactions: true,
+              // allows searching for tags on sessions as well
+              includeSessions: includeSessionTagsValues,
+            });
+
+      return fetchPromise.then(
         results => results.filter(({name}) => defined(name)).map(({name}) => name),
         () => {
           throw new Error('Unable to fetch event field values');
@@ -239,6 +268,12 @@ function SearchBar(props: SearchBarProps) {
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
+    // If it is not a metric alert search bar and supportedTags has a value, return supportedTags
+    // If it is a metric alert search bar, combine supportedTags with getTagList tags
+    if (metricAlert === false && supportedTags !== undefined) {
+      return supportedTags;
+    }
+
     const combinedTags: TagCollection = orgHasPerformanceView
       ? Object.assign(
           {},
@@ -249,17 +284,15 @@ function SearchBar(props: SearchBarProps) {
         )
       : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    Object.assign(
+      combinedTags,
+      tagsWithKind,
+      STATIC_FIELD_TAGS,
+      STATIC_SEMVER_TAGS,
+      supportedTags
+    );
 
-    combinedTags.has = {
-      key: FieldKey.HAS,
-      name: 'Has property',
-      values: Object.keys(combinedTags).sort((a, b) => {
-        return a.toLowerCase().localeCompare(b.toLowerCase());
-      }),
-      predefined: true,
-      kind: FieldKind.FIELD,
-    };
+    combinedTags.has = getHasTag(combinedTags);
 
     const list =
       omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
@@ -278,7 +311,6 @@ function SearchBar(props: SearchBarProps) {
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
           onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList(measurements)}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
@@ -288,6 +320,7 @@ function SearchBar(props: SearchBarProps) {
           maxMenuHeight={maxMenuHeight ?? 300}
           {...customPerformanceMetricsSearchConfig}
           {...props}
+          supportedTags={getTagList(measurements)}
         />
       )}
     </Measurements>

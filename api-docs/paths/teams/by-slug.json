@@ -5,18 +5,18 @@
     "operationId": "Retrieve a Team",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the team belongs to.",
+        "description": "The id or slug of the organization the team belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "team_slug",
+        "name": "team_id_or_slug",
         "in": "path",
-        "description": "The slug of the team to get.",
+        "description": "The id or slug of the team to get.",
         "required": true,
         "schema": {
           "type": "string"
@@ -83,18 +83,18 @@
     "operationId": "Update a Team",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the team belongs to.",
+        "description": "The id or slug of the organization the team belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "team_slug",
+        "name": "team_id_or_slug",
         "in": "path",
-        "description": "The slug of the team to get.",
+        "description": "The id or slug of the team to get.",
         "required": true,
         "schema": {
           "type": "string"
@@ -172,18 +172,18 @@
     "operationId": "Delete a Team",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the team belongs to.",
+        "description": "The id or slug of the organization the team belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "team_slug",
+        "name": "team_id_or_slug",
         "in": "path",
-        "description": "The slug of the team to get.",
+        "description": "The id or slug of the team to get.",
         "required": true,
         "schema": {
           "type": "string"

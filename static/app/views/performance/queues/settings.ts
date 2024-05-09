@@ -13,5 +13,4 @@ export const releaseLevelAsBadgeProps = {
   isNew: (RELEASE_LEVEL as BadgeType) === 'new',
 };
 
-// TODO: Currently this only filters to celery tasks. Add or genericize to include other queue/messaging tasks when available.
-export const DEFAULT_QUERY_FILTER = 'span.op:[queue.task.celery,queue.submit.celery]';
+export const DEFAULT_QUERY_FILTER = 'span.op:[queue.process,queue.publish]';

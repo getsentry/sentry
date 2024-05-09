@@ -1,9 +1,9 @@
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import debounce from 'lodash/debounce';
 
 import IdBadge from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeams} from 'sentry/utils/useTeams';

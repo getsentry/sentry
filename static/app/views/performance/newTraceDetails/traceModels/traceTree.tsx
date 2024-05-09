@@ -114,6 +114,7 @@ export declare namespace TraceTree {
   interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
+    measurements?: Record<string, Measurement>;
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
@@ -391,6 +392,8 @@ export class TraceTree {
   vital_types: Set<'web' | 'mobile'> = new Set();
   eventsCount: number = 0;
 
+  profiled_events: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
+
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
@@ -443,6 +446,10 @@ export class TraceTree {
       });
       node.canFetch = true;
       tree.eventsCount += 1;
+
+      if (node.profiles.length > 0) {
+        tree.profiled_events.add(node);
+      }
 
       if (isTraceTransaction(value)) {
         for (const error of value.errors) {
@@ -1256,6 +1263,11 @@ export class TraceTree {
 
     if (!zoomedIn) {
       const index = this._list.indexOf(node);
+
+      if (index === -1) {
+        return Promise.resolve(null);
+      }
+
       const childrenCount = node.getVisibleChildrenCount();
       this._list.splice(index + 1, childrenCount);
 
@@ -1299,6 +1311,11 @@ export class TraceTree {
 
         // Remove existing entries from the list
         const index = this._list.indexOf(node);
+
+        if (index === -1) {
+          return data;
+        }
+
         if (node.expanded) {
           const childrenCount = node.getVisibleChildrenCount();
           if (childrenCount > 0) {
@@ -1380,13 +1397,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     project_slug: undefined,
     event_id: undefined,
   };
+
   errors: Set<TraceErrorType> = new Set<TraceErrorType>();
   performance_issues: Set<TracePerformanceIssue> = new Set<TracePerformanceIssue>();
+  profiles: TraceTree.Profile[] = [];
 
   multiplier: number;
   space: [number, number] | null = null;
-
-  profiles: TraceTree.Profile[] = [];
 
   private unit = 'milliseconds' as const;
   private _depth: number | undefined;
@@ -1849,6 +1866,27 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return null;
   }
 
+  static ForEachChild(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    cb: (node: TraceTreeNode<TraceTree.NodeValue>) => void
+  ): void {
+    const queue = [root];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+      cb(next);
+
+      if (isParentAutogroupedNode(next)) {
+        queue.push(next.head);
+      } else {
+        const children = next.spanChildren ? next.spanChildren : next.children;
+        for (const child of children) {
+          queue.push(child);
+        }
+      }
+    }
+  }
+
   static Root() {
     return new TraceTreeNode(null, null, {
       event_id: undefined,
@@ -2102,7 +2140,7 @@ function getRelatedPerformanceIssuesFromTransaction(
     return [];
   }
 
-  if (!node?.value?.performance_issues?.length && !node?.value?.errors?.length) {
+  if (!node?.value?.performance_issues?.length) {
     return [];
   }
 

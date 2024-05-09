@@ -20,7 +20,7 @@ from sentry.db.models import (
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -31,7 +31,7 @@ from sentry.utils.retries import TimedRetryPolicy
 logger = logging.getLogger(__name__)
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -44,7 +44,7 @@ class IncidentProject(Model):
         unique_together = (("project", "incident"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentSeen(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -167,8 +167,14 @@ INCIDENT_STATUS = {
 }
 
 
-@region_silo_only_model
+@region_silo_model
 class Incident(Model):
+    """
+    An Incident represents the overarching period during an AlertRule's "unhealthy" state.
+    An AlertRule can have multiple IncidentTriggers during an Incident (ie. Critical -> Warning -> Critical)
+    but if it has been resolved, will end the Incident.
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[IncidentManager] = IncidentManager()
@@ -194,6 +200,9 @@ class Incident(Model):
     date_detected = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     date_closed = models.DateTimeField(null=True)
+    activation = FlexibleForeignKey(
+        "sentry.AlertRuleActivations", on_delete=models.SET_NULL, null=True
+    )
 
     class Meta:
         app_label = "sentry"
@@ -226,7 +235,7 @@ class Incident(Model):
         return old_pk
 
 
-@region_silo_only_model
+@region_silo_model
 class PendingIncidentSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -239,7 +248,7 @@ class PendingIncidentSnapshot(Model):
         db_table = "sentry_pendingincidentsnapshot"
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -254,7 +263,7 @@ class IncidentSnapshot(Model):
         db_table = "sentry_incidentsnapshot"
 
 
-@region_silo_only_model
+@region_silo_model
 class TimeSeriesSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
     __relocation_dependencies__ = {"sentry.Incident"}
@@ -285,7 +294,7 @@ class IncidentActivityType(Enum):
     DETECTED = 4
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentActivity(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -315,7 +324,7 @@ class IncidentActivity(Model):
         return old_pk
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentSubscription(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -367,8 +376,13 @@ class IncidentTriggerManager(BaseManager["IncidentTrigger"]):
         assert cache.get(cls._build_cache_key(instance.incident_id)) is None
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentTrigger(Model):
+    """
+    An instance of an alert rule trigger (eg. each time the rule hits the trigger threshold, we create an incident trigger)
+    NOTE: dissimilar to an AlertRuleTrigger which represents the trigger threshold required to initialize an Incident
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[IncidentTriggerManager] = IncidentTriggerManager()

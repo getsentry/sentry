@@ -1,15 +1,13 @@
 from collections.abc import MutableMapping
+from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
-from sentry.utils.json import JSONData
 
 
 @register(SentryAppAvatar)
 class SentryAppAvatarSerializer(Serializer):
-    def serialize(
-        self, obj: SentryAppAvatar, attrs, user, **kwargs
-    ) -> MutableMapping[str, JSONData]:
+    def serialize(self, obj: SentryAppAvatar, attrs, user, **kwargs) -> MutableMapping[str, Any]:
         return {
             "avatarType": obj.get_avatar_type_display(),
             "avatarUuid": obj.ident,
