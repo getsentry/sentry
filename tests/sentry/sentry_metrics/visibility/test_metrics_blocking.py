@@ -1,5 +1,6 @@
 from unittest import mock
 
+import orjson
 import pytest
 
 from sentry.sentry_metrics.visibility import (
@@ -16,7 +17,6 @@ from sentry.sentry_metrics.visibility.metrics_blocking import (
     unblock_tags_of_metric,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
 @mock.patch("sentry.sentry_metrics.visibility.metrics_blocking.metrics")
@@ -29,7 +29,7 @@ def test_apply_multiple_operations(mock_metrics, default_project):
     block_metric(mri_1, [default_project])
 
     metrics_blocking_state = sorted(
-        json.loads(default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)),
+        orjson.loads(default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)),
         key=lambda v: v["metric_mri"],
     )
     assert len(metrics_blocking_state) == 1
@@ -41,7 +41,7 @@ def test_apply_multiple_operations(mock_metrics, default_project):
     # We block tags of a blocked metric.
     block_tags_of_metric(mri_1, {"release", "transaction", "release"}, [default_project])
 
-    metrics_blocking_state = json.loads(
+    metrics_blocking_state = orjson.loads(
         default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
     )
     assert len(metrics_blocking_state) == 1
@@ -53,7 +53,7 @@ def test_apply_multiple_operations(mock_metrics, default_project):
     # We unblock a tag of a blocked metric.
     unblock_tags_of_metric(mri_1, {"transaction"}, [default_project])
 
-    metrics_blocking_state = json.loads(
+    metrics_blocking_state = orjson.loads(
         default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
     )
     assert len(metrics_blocking_state) == 1
@@ -65,7 +65,7 @@ def test_apply_multiple_operations(mock_metrics, default_project):
     # We block tags of an unblocked metric.
     block_tags_of_metric(mri_2, {"environment", "transaction"}, [default_project])
 
-    metrics_blocking_state = json.loads(
+    metrics_blocking_state = orjson.loads(
         default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
     )
     assert len(metrics_blocking_state) == 2
@@ -79,7 +79,7 @@ def test_apply_multiple_operations(mock_metrics, default_project):
     # We unblock all the tags of an unblocked metric.
     unblock_tags_of_metric(mri_2, {"environment", "transaction"}, [default_project])
 
-    metrics_blocking_state = json.loads(
+    metrics_blocking_state = orjson.loads(
         default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
     )
     assert len(metrics_blocking_state) == 1
@@ -90,7 +90,7 @@ def test_apply_multiple_operations(mock_metrics, default_project):
     # We unblock a blocked metric with blocked tags.
     unblock_metric(mri_1, [default_project])
 
-    metrics_blocking_state = json.loads(
+    metrics_blocking_state = orjson.loads(
         default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
     )
     assert len(metrics_blocking_state) == 1
@@ -102,7 +102,7 @@ def test_apply_multiple_operations(mock_metrics, default_project):
     # We unblock all the tags of an unblocked metric.
     unblock_tags_of_metric(mri_1, {"release", "transaction"}, [default_project])
 
-    metrics_blocking_state = json.loads(
+    metrics_blocking_state = orjson.loads(
         default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
     )
     assert len(metrics_blocking_state) == 0

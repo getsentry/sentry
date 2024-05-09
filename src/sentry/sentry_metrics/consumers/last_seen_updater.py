@@ -5,7 +5,7 @@ from collections.abc import Callable, Mapping
 from datetime import timedelta
 from typing import Any
 
-import rapidjson
+import orjson
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
@@ -19,7 +19,6 @@ from django.utils import timezone
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
-from sentry.utils import json
 
 MAPPING_META = "mapping_meta"
 
@@ -83,14 +82,14 @@ def _update_stale_last_seen(
 
 def retrieve_db_read_keys(message: Message[KafkaPayload]) -> set[int]:
     try:
-        parsed_message = json.loads(message.payload.value, use_rapid_json=True)
+        parsed_message = orjson.loads(message.payload.value)
         if MAPPING_META in parsed_message:
             if FetchType.DB_READ.value in parsed_message[MAPPING_META]:
                 return {
                     int(key) for key in parsed_message[MAPPING_META][FetchType.DB_READ.value].keys()
                 }
         return set()
-    except rapidjson.JSONDecodeError:
+    except orjson.JSONDecodeError:
         logger.exception("last_seen_updater.invalid_json")
         return set()
 

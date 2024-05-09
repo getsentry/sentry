@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import Mock, call
 
+import orjson
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
@@ -26,7 +27,6 @@ from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.mock import MockIndexer, RawSimpleIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +58,12 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
     assert actual_payload.key == expected_payload.key
 
     actual_headers_without_mapping_sources = [
-        (k, v.encode()) for k, v in actual_payload.headers if k != "mapping_sources"
+        (k, v) for k, v in actual_payload.headers if k != "mapping_sources"
     ]
     assert actual_headers_without_mapping_sources == expected_payload.headers
 
-    actual_deserialized = json.loads(actual_payload.value)
-    expected_deserialized = json.loads(expected_payload.value)
+    actual_deserialized = orjson.loads(actual_payload.value)
+    expected_deserialized = orjson.loads(expected_payload.value)
     del actual_deserialized["mapping_meta"]
     assert actual_deserialized == expected_deserialized
 
@@ -237,7 +237,7 @@ counter_payload: dict[str, Any] = {
         "session.status": "init",
     },
     "timestamp": ts,
-    "type": b"c",
+    "type": "c",
     "value": 1.0,
     "org_id": 1,
     "project_id": 3,
@@ -250,7 +250,7 @@ distribution_payload: dict[str, Any] = {
         "session.status": "healthy",
     },
     "timestamp": ts,
-    "type": b"d",
+    "type": "d",
     "value": [4, 5, 6],
     "org_id": 1,
     "project_id": 3,
@@ -264,7 +264,7 @@ set_payload: dict[str, Any] = {
         "session.status": "errored",
     },
     "timestamp": ts,
-    "type": b"s",
+    "type": "s",
     "value": [3],
     "org_id": 1,
     "project_id": 3,
@@ -307,7 +307,7 @@ def test_process_messages() -> None:
     message_batch = [
         Message(
             BrokerValue(
-                KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+                KafkaPayload(None, orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS), []),
                 Partition(Topic("topic"), 0),
                 i + 1,
                 BROKER_TIMESTAMP,
@@ -329,7 +329,10 @@ def test_process_messages() -> None:
                 BrokerValue(
                     KafkaPayload(
                         None,
-                        json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                        orjson.dumps(
+                            __translated_payload(message_payloads[i]),
+                            option=orjson.OPT_NON_STR_KEYS,
+                        ),
                         [
                             ("metric_type", message_payloads[i]["type"]),
                         ],
@@ -379,7 +382,7 @@ invalid_payloads = [
         True,
     ),
     (
-        b"invalid_json_payload",
+        "invalid_json_payload",
         "invalid_json",
         False,
     ),
@@ -405,13 +408,13 @@ def test_process_messages_invalid_messages(
     `invalid_payload` has a payload that fits the scenarios outlined above.
 
     """
-    formatted_payload = (
-        json.dumps(invalid_payload).encode("utf-8") if format_payload else invalid_payload
-    )
+    formatted_payload = orjson.dumps(invalid_payload) if format_payload else invalid_payload
     message_batch = [
         Message(
             BrokerValue(
-                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+                KafkaPayload(
+                    None, orjson.dumps(counter_payload, option=orjson.OPT_NON_STR_KEYS), []
+                ),
                 Partition(Topic("topic"), 0),
                 0,
                 BROKER_TIMESTAMP,
@@ -441,8 +444,10 @@ def test_process_messages_invalid_messages(
             Value(
                 KafkaPayload(
                     None,
-                    json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", b"c")],
+                    orjson.dumps(
+                        __translated_payload(counter_payload), option=orjson.OPT_NON_STR_KEYS
+                    ),
+                    [("metric_type", "c")],
                 ),
                 expected_msg.committable,
             )
@@ -471,7 +476,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     message_batch = [
         Message(
             BrokerValue(
-                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+                KafkaPayload(None, orjson.dumps(counter_payload), []),
                 Partition(Topic("topic"), 0),
                 0,
                 BROKER_TIMESTAMP,
@@ -479,7 +484,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
         ),
         Message(
             BrokerValue(
-                KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
+                KafkaPayload(None, orjson.dumps(rate_limited_payload), []),
                 Partition(Topic("topic"), 0),
                 1,
                 BROKER_TIMESTAMP,
@@ -512,8 +517,10 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
             BrokerValue(
                 KafkaPayload(
                     None,
-                    json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                    [("metric_type", b"c")],
+                    orjson.dumps(
+                        __translated_payload(counter_payload), option=orjson.OPT_NON_STR_KEYS
+                    ),
+                    [("metric_type", "c")],
                 ),
                 expected_msg.value.partition,
                 expected_msg.value.offset,

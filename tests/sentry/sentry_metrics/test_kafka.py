@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest import TestCase
 
+import orjson
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker, LocalProducer
@@ -10,7 +11,6 @@ from arroyo.utils.clock import TestingClock as Clock
 
 from sentry.sentry_metrics.client.kafka import KafkaMetricsBackend
 from sentry.testutils.metrics_backend import GenericMetricsTestMixIn
-from sentry.utils import json
 
 
 class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
@@ -55,7 +55,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             "type": "c",
         }
 
-        counter_value = json.dumps(counter_metric).encode("utf-8")
+        counter_value = orjson.dumps(counter_metric)
 
         produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
         assert produced_message is not None

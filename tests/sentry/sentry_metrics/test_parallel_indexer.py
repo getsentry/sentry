@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import orjson
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
@@ -7,7 +8,6 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry.metrics.middleware import global_tags
 from sentry.sentry_metrics.consumers.indexer.parallel import MetricsConsumerStrategyFactory
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.utils import json
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
@@ -65,7 +65,7 @@ def test_basic(request, settings, force_disable_multiprocessing):
 
     message = Message(
         BrokerValue(
-            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+            KafkaPayload(None, orjson.dumps(counter_payload), []),
             Partition(Topic("topic"), 0),
             0,
             datetime.now(),

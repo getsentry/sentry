@@ -2,12 +2,13 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Optional, TypedDict
 
+import orjson
 import sentry_sdk
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.visibility.errors import MalformedBlockedMetricsPayloadError
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
 
@@ -89,8 +90,8 @@ class MetricsBlockingState:
             return MetricsBlockingState(metrics={})
 
         try:
-            metrics_blocking_state_payload = json.loads(json_payload)
-        except ValueError:
+            metrics_blocking_state_payload = orjson.loads(json_payload)
+        except orjson.JSONDecodeError:
             if repair:
                 project.delete_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
 
@@ -121,7 +122,15 @@ class MetricsBlockingState:
         metrics_blocking_state_payload = [
             metric_blocking.to_dict() for metric_blocking in self.metrics.values()
         ]
-        json_payload = json.dumps(metrics_blocking_state_payload)
+
+        def _orjson_default(obj: Any) -> Any:
+            if isinstance(obj, set):
+                return list(obj)
+            raise TypeError
+
+        json_payload = orjson.dumps(
+            metrics_blocking_state_payload, default=_orjson_default
+        ).decode()
         project.update_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY, json_payload)
 
     def apply_metric_operation(self, metric_operation: MetricOperation) -> MetricBlocking | None:

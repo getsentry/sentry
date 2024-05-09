@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
@@ -26,7 +27,6 @@ from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.testutils.helpers.options import override_options
-from sentry.utils import json
 
 MOCK_METRIC_ID_AGG_OPTION = {
     "d:transactions/measurements.fcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
@@ -110,7 +110,7 @@ def _construct_messages(payloads):
         message_batch.append(
             Message(
                 BrokerValue(
-                    KafkaPayload(None, json.dumps(payload).encode("utf-8"), headers or []),
+                    KafkaPayload(None, orjson.dumps(payload), headers or []),
                     Partition(Topic("topic"), 0),
                     i,
                     BROKER_TIMESTAMP,
@@ -165,7 +165,7 @@ def _deconstruct_routing_messages(snuba_messages):
         for key, value in msg.payload.routing_header.items():
             headers.update({key: value})
 
-        payload = json.loads(msg.payload.routing_message.value.decode("utf-8"))
+        payload = orjson.loads(msg.payload.routing_message.value)
 
         all_messages.append((headers, payload, msg.payload.routing_message.headers))
 

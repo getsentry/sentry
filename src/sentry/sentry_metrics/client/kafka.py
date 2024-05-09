@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import orjson
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -13,7 +14,6 @@ from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 INGEST_CODEC: Codec[IngestMetric] = get_topic_codec(Topic.INGEST_METRICS)
@@ -91,7 +91,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         INGEST_CODEC.validate(metric)
         payload = KafkaPayload(
             None,
-            json.dumps(metric).encode("utf-8"),
+            orjson.dumps(metric),
             [
                 ("namespace", use_case_id.value.encode()),
             ],

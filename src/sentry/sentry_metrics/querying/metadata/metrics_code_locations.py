@@ -2,10 +2,12 @@ from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
+import orjson
+
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.hashlib import fnv1a_32
 
 DAY_IN_SECONDS = 86400
@@ -127,7 +129,7 @@ class CodeLocationsFetcher:
                     index += 1
 
     def _parse_code_location_payload(self, encoded_location: str) -> CodeLocationPayload:
-        decoded_location = json.loads(encoded_location)
+        decoded_location = orjson.loads(encoded_location)
         return CodeLocationPayload(
             function=decoded_location.get("function"),
             module=decoded_location.get("module"),
