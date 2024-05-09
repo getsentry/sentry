@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.integrations.slack import SlackIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -83,13 +85,13 @@ class TestGetOrganizationConfig(_BaseTestCase):
 @control_silo_test
 class TestUpdateAndCleanFlagsInOrganizationConfig(_BaseTestCase):
     def test_adds_flags_key_when_it_does_not_exist(self) -> None:
-        data = {}
+        data: dict[str, Any] = {}
         self.slack_installation._update_and_clean_flags_in_organization_config(data=data)
 
         assert "TOGGLEABLE_FLAGS" in data
 
     def test_adds_default_flags_key_when_it_does_not_exist(self) -> None:
-        data = {}
+        data: dict[str, Any] = {}
         self.slack_installation._update_and_clean_flags_in_organization_config(data=data)
 
         results = data["TOGGLEABLE_FLAGS"]
@@ -99,7 +101,7 @@ class TestUpdateAndCleanFlagsInOrganizationConfig(_BaseTestCase):
         }
 
     def test_adds_missing_flags(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "TOGGLEABLE_FLAGS": {
                 "ISSUE_ALERTS_THREAD_FLAG": False,
             }
@@ -113,7 +115,7 @@ class TestUpdateAndCleanFlagsInOrganizationConfig(_BaseTestCase):
         }
 
     def test_corrects_bad_flag_values(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "TOGGLEABLE_FLAGS": {
                 "ISSUE_ALERTS_THREAD_FLAG": False,
                 "METRIC_ALERTS_THREAD_FLAG": 0,
@@ -136,7 +138,7 @@ class TestUpdateOrganizationConfig(_BaseTestCase):
             integration=self.slack_provider_integration,
             config={},
         )
-        data = {
+        data: dict[str, Any] = {
             "TOGGLEABLE_FLAGS": {
                 "ISSUE_ALERTS_THREAD_FLAG": False,
                 "METRIC_ALERTS_THREAD_FLAG": True,
