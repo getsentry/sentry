@@ -6,6 +6,7 @@ import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -76,6 +77,7 @@ function SpanSummaryCharts() {
       }).formatString(),
       fields: [],
       version: 2,
+      dataset: DiscoverDatasets.METRICS,
     },
     location
   );
