@@ -421,7 +421,7 @@ class OrganizationReleasesEndpoint(
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           release belongs to.
         :param string version: a version identifier for this release.  Can
                                be a version number, a commit hash etc.

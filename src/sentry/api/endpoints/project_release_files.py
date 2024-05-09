@@ -244,7 +244,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
         Retrieve a list of files for a given release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to list the
                                      release files of.
@@ -276,7 +276,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
         that this file will be referenced as. For example, in the case of
         JavaScript you might specify the full web URI.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.

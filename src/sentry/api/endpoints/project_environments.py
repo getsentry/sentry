@@ -27,7 +27,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
                                    environments, or ``"all"`` for both hidden
                                    and visible environments.
 
-        :pparam string organization_slug: the slug of the organization the project
+        :pparam string organization_slug: the id or slug of the organization the project
                                           belongs to.
 
         :pparam string project_id_or_slug: the id or slug of the project.

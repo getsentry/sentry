@@ -27,7 +27,7 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
         Create an External User
         `````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           user belongs to.
         :param required string provider: enum("github", "gitlab", "slack")
         :param required string external_name: the associated username for this provider.

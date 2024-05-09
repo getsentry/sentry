@@ -63,7 +63,7 @@ class ProjectArtifactBundleFileDetailsEndpoint(
         not actually return the contents of the file, just the associated
         metadata.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      file of.

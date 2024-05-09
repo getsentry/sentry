@@ -61,7 +61,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         Creates an invite request given an email and suggested role / teams.
 
-        :pparam string organization_slug: the slug of the organization the member will belong to
+        :pparam string organization_slug: the id or slug of the organization the member will belong to
         :param string email: the email address to invite
         :param string role: the suggested role of the new member
         :param string orgRole: the suggested org-role of the new member

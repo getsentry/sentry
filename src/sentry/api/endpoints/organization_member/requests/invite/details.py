@@ -90,7 +90,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
         Update and/or approve an invite request to an organization.
 
-        :pparam string organization_slug: the slug of the organization the member will belong to
+        :pparam string organization_slug: the id or slug of the organization the member will belong to
         :param string member_id: the member ID
         :param boolean approve: allows the member to be invited
         :param string role: the suggested role of the new member
@@ -171,7 +171,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
         Delete an invite request to an organization.
 
-        :pparam string organization_slug: the slug of the organization the member would belong to
+        :pparam string organization_slug: the id or slug of the organization the member would belong to
         :param string member_id: the member ID
 
         :auth: required
