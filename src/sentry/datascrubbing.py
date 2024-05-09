@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import orjson
 import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.processing import (
@@ -80,8 +81,7 @@ def get_all_pii_configs(project):
 
     settings = get_datascrubbing_settings(project)
 
-    json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
-    yield convert_datascrubbing_config(settings, json_dumps=json_dumps, json_loads=json_loads)
+    yield convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads)
 
 
 @sentry_sdk.tracing.trace
@@ -98,8 +98,7 @@ def scrub_data(project, event):
 
         metrics.distribution("datascrubbing.config.rules.size", total_rules)
 
-        json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
-        event = pii_strip_event(config, event, json_loads=json_loads, json_dumps=json_dumps)
+        event = pii_strip_event(config, event, json_loads=orjson.loads, json_dumps=orjson.dumps)
 
     return event
 

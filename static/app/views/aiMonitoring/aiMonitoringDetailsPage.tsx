@@ -13,7 +13,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {CurrencyUnit, DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -25,7 +25,7 @@ import {
 import {PipelineSpansTable} from 'sentry/views/aiMonitoring/pipelineSpansTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   SpanFunction,
   SpanMetricsField,
@@ -54,29 +54,36 @@ export default function AiMonitoringPage({params}: Props) {
     'span.category': 'ai.pipeline',
   };
 
-  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      SpanMetricsField.SPAN_OP,
-      SpanMetricsField.SPAN_DESCRIPTION,
-      'count()',
-      `${SpanFunction.SPM}()`,
-      `avg(${SpanMetricsField.SPAN_DURATION})`,
-    ],
-    enabled: Boolean(groupId),
-    referrer: 'api.ai-pipelines.view',
-  });
+  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        SpanMetricsField.SPAN_OP,
+        SpanMetricsField.SPAN_DESCRIPTION,
+        'count()',
+        `${SpanFunction.SPM}()`,
+        `avg(${SpanMetricsField.SPAN_DURATION})`,
+      ],
+      enabled: Boolean(groupId),
+    },
+    'api.ai-pipelines.view'
+  );
   const spanMetrics = data[0] ?? {};
 
-  const {data: totalTokenData, isLoading: isTotalTokenDataLoading} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({
-      'span.category': 'ai',
-      'span.ai.pipeline.group': groupId,
-    }),
-    fields: ['ai_total_tokens_used()'],
-    enabled: Boolean(groupId),
-    referrer: 'api.ai-pipelines.view',
-  });
+  const {data: totalTokenData, isLoading: isTotalTokenDataLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({
+        'span.category': 'ai',
+        'span.ai.pipeline.group': groupId,
+      }),
+      fields: [
+        'ai_total_tokens_used()',
+        'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+      ],
+      enabled: Boolean(groupId),
+    },
+    'api.ai-pipelines.view'
+  );
   const tokenUsedMetric = totalTokenData[0] ?? {};
 
   return (
@@ -131,6 +138,17 @@ export default function AiMonitoringPage({params}: Props) {
                           />
 
                           <MetricReadout
+                            title={t('Total Cost')}
+                            value={
+                              tokenUsedMetric[
+                                'ai_total_tokens_used(c:spans/ai.total_cost@usd)'
+                              ]
+                            }
+                            unit={CurrencyUnit.USD}
+                            isLoading={isTotalTokenDataLoading}
+                          />
+
+                          <MetricReadout
                             title={t('Pipeline Duration')}
                             value={
                               spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]
@@ -175,6 +193,7 @@ const SpaceBetweenWrap = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
+  gap: ${space(2)};
 `;
 
 const MetricsRibbon = styled('div')`

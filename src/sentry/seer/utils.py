@@ -1,11 +1,14 @@
 import logging
 from dataclasses import dataclass
-from typing import NotRequired, TypedDict
+from typing import NotRequired, Self, TypedDict
 
 import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
+from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VERSION
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
@@ -14,6 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 class SeerException(Exception):
+    pass
+
+
+class IncompleteSeerDataError(Exception):
+    pass
+
+
+class SimilarGroupNotFoundError(Exception):
     pass
 
 
@@ -92,7 +103,7 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
     group_id: NotRequired[int]  # TODO: Remove this once we stop sending it to seer
-    group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
+    hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class RawSeerSimilarIssueData(TypedDict):
@@ -100,7 +111,7 @@ class RawSeerSimilarIssueData(TypedDict):
     message_distance: float
     should_group: bool
     parent_group_id: NotRequired[int]  # TODO: Remove this once seer stops sending it
-    parent_group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
+    parent_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
@@ -114,17 +125,62 @@ class SeerSimilarIssueData:
     message_distance: float
     should_group: bool
     parent_group_id: int
+    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
     # TODO: See if we end up needing the hash here
-    parent_group_hash: str | None = None
+    parent_hash: str | None = None
+
+    @classmethod
+    def from_raw(cls, project_id: int, raw_similar_issue_data: RawSeerSimilarIssueData) -> Self:
+        """
+        Create an instance of `SeerSimilarIssueData` from the raw data that comes back from Seer,
+        using the parent hash to look up the parent group id. Needs to be run individually on each
+        similar issue in the Seer response.
+
+        Throws an `IncompleteSeerDataError` if given data with both parent group id and parent hash
+        missing, and a `SimilarGroupNotFoundError` if the data points to a group which no longer
+        exists. Thus if this successfully returns, the parent group id it contains is guaranteed to
+        point to an existing group.
+
+        """
+        similar_issue_data = raw_similar_issue_data
+        parent_hash = raw_similar_issue_data.get("parent_hash")
+        parent_group_id = raw_similar_issue_data.get("parent_group_id")
+
+        if not parent_group_id and not parent_hash:
+            raise IncompleteSeerDataError(
+                "Seer similar issues response missing both `parent_group_id` and `parent_hash`"
+            )
+
+        if parent_group_id:
+            if not Group.objects.filter(id=parent_group_id).first():
+                raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
+
+        else:
+            parent_grouphash = (
+                GroupHash.objects.filter(project_id=project_id, hash=parent_hash)
+                .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+                .first()
+            )
+
+            if not parent_grouphash:
+                # TODO: Report back to seer that the hash has been deleted.
+                raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
+
+            similar_issue_data = {
+                **raw_similar_issue_data,
+                "parent_group_id": parent_grouphash.group_id,
+            }
+
+        return cls(**similar_issue_data)
 
 
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
-) -> list[RawSeerSimilarIssueData]:
-    """Call /v0/issues/similar-issues endpoint from seer."""
+) -> list[SeerSimilarIssueData]:
+    """Request similar issues data from seer and normalize the results."""
     response = seer_staging_connection_pool.urlopen(
         "POST",
-        "/v0/issues/similar-issues",
+        SEER_SIMILAR_ISSUES_URL,
         body=json.dumps(similar_issues_request),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
@@ -145,4 +201,22 @@ def get_similar_issues_embeddings(
         )
         return []
 
-    return response_data.get("responses") or []
+    normalized = []
+
+    for raw_similar_issue_data in response_data.get("responses") or []:
+        try:
+            normalized.append(
+                SeerSimilarIssueData.from_raw(
+                    similar_issues_request["project_id"], raw_similar_issue_data
+                )
+            )
+        except (IncompleteSeerDataError, SimilarGroupNotFoundError) as err:
+            logger.exception(
+                str(err),
+                extra={
+                    "request_params": similar_issues_request,
+                    "raw_similar_issue_data": raw_similar_issue_data,
+                },
+            )
+
+    return normalized

@@ -79,9 +79,9 @@ export enum DataCategory {
   PROFILES = 'profiles',
   REPLAYS = 'replays',
   MONITOR_SEATS = 'monitorSeats',
-  METRIC_HOUR = 'metricHour',
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
+  METRIC_SECOND = 'metricSecond',
 }
 
 /**
@@ -99,9 +99,9 @@ export enum DataCategoryExact {
   TRANSACTION_INDEXED = 'transaction_indexed',
   MONITOR = 'monitor',
   MONITOR_SEAT = 'monitorSeat',
-  METRIC_HOUR = 'metricHour',
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
+  METRIC_SECOND = 'metricSecond',
 }
 
 export interface DataCategoryInfo {

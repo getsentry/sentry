@@ -58,6 +58,6 @@ class SentryAuditLogRegistration(ActionRegistration):
     @classmethod
     def serialize_available(
         cls, organization: Organization, integrations: List[RpcIntegration] = None
-    ) -> List[JSONData]:
+    ) -> List[Any]:
         return []
 ```

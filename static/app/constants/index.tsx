@@ -334,9 +334,9 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profile Durations'),
     uid: 17,
   },
-  [DataCategoryExact.METRIC_HOUR]: {
-    name: DataCategoryExact.METRIC_HOUR,
-    apiName: 'metrics',
+  [DataCategoryExact.METRIC_SECOND]: {
+    name: DataCategoryExact.METRIC_SECOND,
+    apiName: 'metricSecond',
     plural: 'metrics',
     displayName: 'metrics',
     titleName: t('Metrics'),

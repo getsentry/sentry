@@ -23,8 +23,9 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
+import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconEdit} from 'sentry/icons';
+import {IconEdit, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
@@ -68,7 +69,7 @@ export default function HighlightsDataSection({
   const viewAllButton = viewAllRef ? (
     <Button
       onClick={() => {
-        trackAnalytics('highlights_section.view_all_clicked', {organization});
+        trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
         viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
       }}
       size="xs"
@@ -130,7 +131,7 @@ export default function HighlightsDataSection({
   });
 
   function openEditHighlightsModal() {
-    trackAnalytics('highlights_section.edit_clicked', {organization});
+    trackAnalytics('highlights.issue_details.edit_clicked', {organization});
     openModal(
       deps => (
         <EditHighlightsModal
@@ -158,6 +159,7 @@ export default function HighlightsDataSection({
       type="event-highlights"
       actions={
         <ButtonBar gap={1}>
+          <HighlightsFeedback />
           {viewAllButton}
           <Button
             size="xs"
@@ -193,6 +195,31 @@ export default function HighlightsDataSection({
         )}
       </HighlightContainer>
     </EventDataSection>
+  );
+}
+
+function HighlightsFeedback() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const feedback = useFeedbackWidget({
+    buttonRef,
+    messagePlaceholder: t(
+      'How can we make tags, context or highlights more useful to you?'
+    ),
+  });
+
+  if (!feedback) {
+    return null;
+  }
+
+  return (
+    <Button
+      ref={buttonRef}
+      aria-label={t('Give Feedback')}
+      icon={<IconMegaphone />}
+      size={'xs'}
+    >
+      {t('Feedback')}
+    </Button>
   );
 }
 

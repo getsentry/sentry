@@ -33,8 +33,6 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -50,7 +48,7 @@ from sentry.monitors.serializers import (
 from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
-from sentry.utils.actor import ActorTuple
+from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 
 from .base import OrganizationMonitorPermission
@@ -203,16 +201,16 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         if owners:
             owners = set(owners)
 
-            # Remove special values from owners, this can't be parsed as an ActorTuple
+            # Remove special values from owners, this can't be parsed as an Actor
             include_myteams = "myteams" in owners
             owners.discard("myteams")
             include_unassigned = "unassigned" in owners
             owners.discard("unassigned")
 
-            actors = [ActorTuple.from_actor_identifier(identifier) for identifier in owners]
+            actors = [Actor.from_identifier(identifier) for identifier in owners]
 
-            user_ids = [actor.id for actor in actors if actor.type == User]
-            team_ids = [actor.id for actor in actors if actor.type == Team]
+            user_ids = [actor.id for actor in actors if actor.is_user]
+            team_ids = [actor.id for actor in actors if actor.is_team]
 
             teams = get_teams(
                 request,
@@ -297,9 +295,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         owner = result.get("owner")
         owner_user_id = None
         owner_team_id = None
-        if owner and owner.type == User:
+        if owner and owner.is_user:
             owner_user_id = owner.id
-        elif owner and owner.type == Team:
+        elif owner and owner.is_team:
             owner_team_id = owner.id
 
         try:

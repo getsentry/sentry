@@ -1,12 +1,10 @@
 import logging
 import uuid
 from collections import defaultdict
-from datetime import timedelta
-from typing import DefaultDict, NamedTuple
+from datetime import datetime, timedelta, timezone
+from typing import Any, DefaultDict, NamedTuple
 
-from django.utils import timezone
-
-from sentry import eventstore
+from sentry import nodestore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -14,6 +12,7 @@ from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
     BaseEventFrequencyCondition,
@@ -21,6 +20,7 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyConditionData,
 )
 from sentry.rules.processing.processor import (
+    PROJECT_ID_BUFFER_LIST_KEY,
     activate_downstream_actions,
     bulk_get_rule_status,
     is_condition_slow,
@@ -28,13 +28,14 @@ from sentry.rules.processing.processor import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.post_process import should_retry_fetch
 from sentry.utils import json, metrics
+from sentry.utils.iterators import chunked
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
-
-
-PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
+EVENT_LIMIT = 100
 
 
 class UniqueCondition(NamedTuple):
@@ -203,48 +204,110 @@ def parse_rulegroup_to_event_data(
     return parsed_rulegroup_to_event_data
 
 
+def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]:
+    node_id_to_event_id: dict[str, str] = {
+        Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
+    }
+    node_ids = list(node_id_to_event_id.keys())
+    fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
+
+    bulk_data = {}
+    for node_id_chunk in chunked(node_ids, EVENT_LIMIT):
+        bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
+        bulk_data.update(bulk_results)
+
+    bulk_event_id_to_events: dict[str, Event] = {}
+    for node_id, data in bulk_data.items():
+        event_id = node_id_to_event_id[node_id]
+        if data is not None:
+            event = Event(event_id=event_id, project_id=project_id, data=data)
+            bulk_event_id_to_events[event_id] = event
+
+    return bulk_event_id_to_events
+
+
+def build_group_to_groupevent(
+    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    bulk_event_id_to_events: dict[str, Event],
+    bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
+    group_id_to_group: dict[int, Group],
+) -> dict[Group, GroupEvent]:
+    group_to_groupevent: dict[Group, GroupEvent] = {}
+
+    for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
+        event_id = instance_data.get("event_id")
+        occurrence_id = instance_data.get("occurrence_id")
+        occurrence = None
+
+        if event_id:
+            event = bulk_event_id_to_events.get(event_id)
+        else:
+            logger.info("delayed_processing.missing_event_id", extra={"rule": rule_group[0]})
+        group = group_id_to_group.get(int(rule_group[1]))
+        if not group or not event:
+            if not group:
+                logger.info("delayed_processing.missing_group", extra={"rule": rule_group[0]})
+            if not event:
+                logger.info("delayed_processing.missing_event", extra={"rule": rule_group[0]})
+            continue
+
+        group_event = event.for_group(group)
+        if occurrence_id:
+            occurrence = bulk_occurrence_id_to_occurrence.get(occurrence_id)
+        group_event.occurrence = occurrence
+        group_to_groupevent[group] = group_event
+
+    return group_to_groupevent
+
+
 def get_group_to_groupevent(
     parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
     project_id: int,
     group_ids: set[int],
 ) -> dict[Group, GroupEvent]:
-    group_to_groupevent: dict[Group, GroupEvent] = {}
     groups = Group.objects.filter(id__in=group_ids)
     group_id_to_group = {group.id: group for group in groups}
-    for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
-        event_id = instance_data.get("event_id")
-        occurrence_id = instance_data.get("occurrence_id")
-        group_id = rule_group[1]
-        group = group_id_to_group.get(int(group_id))
-        if group and event_id:
-            # TODO: fetch events and occurrences in batches
-            event = Event(
-                event_id=event_id,
-                project_id=project_id,
-                snuba_data={
-                    "event_id": event_id,
-                    "group_id": group.id,
-                    "project_id": project_id,
-                },
-            )
-            eventstore.backend.bind_nodes([event])
-            group_event = event.for_group(group)
-            if occurrence_id:
-                occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project_id)
-                if occurrence:
-                    group_event.occurrence = occurrence
+    event_ids: set[str] = set()
+    occurrence_ids: list[str] = []
 
-            group_to_groupevent[group] = group_event
+    for instance_data in parsed_rulegroup_to_event_data.values():
+        event_id = instance_data.get("event_id")
+        if event_id:
+            event_ids.add(event_id)
+        occurrence_id = instance_data.get("occurrence_id")
+        if occurrence_id:
+            occurrence_ids.append(occurrence_id)
+
+    bulk_event_id_to_events = bulk_fetch_events(list(event_ids), project_id)
+    bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
+    bulk_occurrence_id_to_occurrence = {
+        occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
+    }
+    group_to_groupevent = build_group_to_groupevent(
+        parsed_rulegroup_to_event_data,
+        bulk_event_id_to_events,
+        bulk_occurrence_id_to_occurrence,
+        group_id_to_group,
+    )
     return group_to_groupevent
 
 
 @redis_buffer_registry.add_handler(BufferHookEvent.FLUSH)
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
-        project_ids = buffer.get_set(PROJECT_ID_BUFFER_LIST_KEY)
-        for project_id in project_ids:
-            with metrics.timer("delayed_processing.process_project.duration"):
-                apply_delayed.delay(project_id=project_id)
+        fetch_time = datetime.now(tz=timezone.utc)
+        project_ids = buffer.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp()
+        )
+        log_str = ""
+        for project_id, timestamp in project_ids:
+            log_str += f"{project_id}: {timestamp}"
+        logger.info("delayed_processing.project_id_list", extra={"project_ids": log_str})
+
+        for project_id, _ in project_ids:
+            apply_delayed.delay(project_id)
+
+        buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
 
 @instrumented_task(
@@ -256,7 +319,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     time_limit=60,  # 1 minute
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int) -> None:
+def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
@@ -264,12 +327,19 @@ def apply_delayed(project_id: int) -> None:
     project = Project.objects.get_from_cache(id=project_id)
     buffer = RedisBuffer()
     rulegroup_to_event_data = buffer.get_hash(model=Project, field={"project_id": project.id})
+    logger.info(
+        "delayed_processing.rulegroupeventdata",
+        extra={"rulegroupdata": rulegroup_to_event_data},
+    )
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
     # STEP 3: Fetch the Rule models we need to check
     alert_rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
-
+    snoozed_rules = set(
+        RuleSnooze.objects.filter(rule__in=alert_rules, user_id=None).values_list("rule", flat=True)
+    )
+    alert_rules = [rule for rule in alert_rules if rule.id not in snoozed_rules]
     # STEP 4: Create a map of unique conditions to a tuple containing the JSON
     # information needed to instantiate that condition class and the group_ids that
     # must be checked for that condition. We don't query per rule condition because
@@ -281,14 +351,17 @@ def apply_delayed(project_id: int) -> None:
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
     rule_to_slow_conditions = get_rule_to_slow_conditions(alert_rules)
-
+    rules_to_fire = defaultdict(set)
     if condition_group_results:
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rule_to_slow_conditions, rules_to_groups
         )
+        log_str = ""
+        for rule in rules_to_fire.keys():
+            log_str += f"{str(rule.id)}, "
+        logger.info("delayed_processing.rule_to_fire", extra={"rules_to_fire": log_str})
     # Step 7: Fire the rule's actions
-    now = timezone.now()
-    # TODO: check rulesnooze table again before firing
+    now = datetime.now(tz=timezone.utc)
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
 
     for rule, group_ids in rules_to_fire.items():
@@ -301,6 +374,10 @@ def apply_delayed(project_id: int) -> None:
             rule_statuses = bulk_get_rule_status(alert_rules, group, project)
             status = rule_statuses[rule.id]
             if status.last_active and status.last_active > freq_offset:
+                logger.info(
+                    "delayed_processing.last_active",
+                    extra={"last_active": status.last_active, "freq_offset": freq_offset},
+                )
                 return
 
             updated = (
@@ -310,6 +387,7 @@ def apply_delayed(project_id: int) -> None:
             )
 
             if not updated:
+                logger.info("delayed_processing.not_updated", extra={"status_id": status.id})
                 return
 
             notification_uuid = str(uuid.uuid4())
@@ -319,3 +397,13 @@ def apply_delayed(project_id: int) -> None:
                 rule, groupevent, notification_uuid, rule_fire_history
             ).values():
                 safe_execute(callback, groupevent, futures, _with_transaction=False)
+
+    # Step 8: Clean up Redis buffer data
+    hashes_to_delete = [
+        f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
+    ]
+    buffer.delete_hash(
+        model=Project,
+        filters={"project_id": project_id},
+        fields=hashes_to_delete,
+    )

@@ -45,8 +45,8 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.types.actor import Actor
 from sentry.utils import metrics
-from sentry.utils.actor import ActorTuple
 
 logger = logging.getLogger(__name__)
 
@@ -235,7 +235,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
         if rule.owner_team_id or rule.owner_user_id:
-            rule_data_before["owner"] = ActorTuple.from_id(
+            rule_data_before["owner"] = Actor.from_id(
                 user_id=rule.owner_user_id, team_id=rule.owner_team_id
             )
         rule_data_before["label"] = rule.label
@@ -331,9 +331,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 try:
                     kwargs["owner_user_id"] = None
                     kwargs["owner_team_id"] = None
-                    if owner.type == User:
+                    if owner.is_user:
                         kwargs["owner_user_id"] = owner.id
-                    if owner.type == Team:
+                    if owner.is_team:
                         kwargs["owner_team_id"] = owner.id
                 except (User.DoesNotExist, Team.DoesNotExist):
                     return Response(

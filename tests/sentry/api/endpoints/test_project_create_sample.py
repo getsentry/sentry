@@ -1,9 +1,9 @@
+import orjson
 from django.urls import reverse
 
 from sentry.models.groupinbox import GroupInbox
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -26,7 +26,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
         assert GroupInbox.objects.filter(group=response.data["groupID"]).exists()
 
     def test_project_platform(self):
@@ -42,7 +42,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
 
     def test_cocoa(self):
         project = self.create_project(teams=[self.team], name="foo", platform="cocoa")
@@ -57,7 +57,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
 
     def test_java(self):
         project = self.create_project(teams=[self.team], name="foo", platform="java")
@@ -72,7 +72,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
 
     def test_javascript(self):
         project = self.create_project(teams=[self.team], name="foo", platform="javascript")
@@ -87,7 +87,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
 
     def test_php(self):
         project = self.create_project(teams=[self.team], name="foo", platform="php")
@@ -102,7 +102,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
 
     def test_python(self):
         project = self.create_project(teams=[self.team], name="foo", platform="python")
@@ -117,7 +117,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
 
     def test_reactnative(self):
         project = self.create_project(teams=[self.team], name="foo", platform="react-native")
@@ -132,7 +132,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
 
     def test_ruby(self):
         project = self.create_project(teams=[self.team], name="foo", platform="ruby")
@@ -147,7 +147,7 @@ class ProjectCreateSampleTest(APITestCase):
         response = self.client.post(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert "groupID" in json.loads(response.content)
+        assert "groupID" in orjson.loads(response.content)
 
     def test_attempted_path_traversal_returns_400(self):
         project = self.create_project(teams=[self.team], name="foo", platform="../../../etc/passwd")

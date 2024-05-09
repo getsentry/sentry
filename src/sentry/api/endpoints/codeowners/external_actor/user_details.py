@@ -27,7 +27,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
     }
     owner = ApiOwner.ENTERPRISE
 
-    def convert_args(  # type: ignore[override]
+    def convert_args(
         self,
         request: Request,
         organization_slug: str,
@@ -48,7 +48,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         Update an External User
         `````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           user belongs to.
         :pparam int user_id: the User id.
         :pparam string external_user_id: id of external_user object

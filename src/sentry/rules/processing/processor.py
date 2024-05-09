@@ -10,7 +10,8 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -22,14 +23,17 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
+from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
+from sentry.utils import json
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules")
 
 SLOW_CONDITION_MATCHES = ["event_frequency"]
+PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
 def get_match_function(match_name: str) -> Callable[..., bool] | None:
@@ -240,6 +244,38 @@ class RuleProcessor:
             has_escalated=self.has_escalated,
         )
 
+    def group_conditions_by_speed(
+        self, conditions: list[MutableMapping[str, Any]]
+    ) -> tuple[list[MutableMapping[str, str]], list[EventFrequencyConditionData]]:
+        fast_conditions = []
+        slow_conditions: list[EventFrequencyConditionData] = []
+
+        for condition in conditions:
+            if is_condition_slow(condition):
+                slow_conditions.append(condition)  # type: ignore[arg-type]
+            else:
+                fast_conditions.append(condition)
+
+        return fast_conditions, slow_conditions
+
+    def enqueue_rule(self, rule: Rule) -> None:
+        logger.info(
+            "rule_processor.rule_enqueued",
+            extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
+        )
+        self.buffer = RedisBuffer()
+        self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
+
+        value = json.dumps(
+            {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
+        )
+        self.buffer.push_to_hash(
+            model=Project,
+            filters={"project_id": rule.project.id},
+            field=f"{rule.id}:{self.group.id}",
+            value=value,
+        )
+
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
         If all conditions and filters pass, execute every action.
@@ -277,23 +313,23 @@ class RuleProcessor:
 
         state = self.get_state()
         condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
+        fast_conditions, slow_conditions = self.group_conditions_by_speed(condition_list)
+        process_slow_conditions_later = features.has(
+            "organizations:process-slow-alerts", self.project.organization
+        )
+        condition_list = fast_conditions
+        if not process_slow_conditions_later:
+            condition_list = fast_conditions + slow_conditions  # type: ignore[operator]
 
-        # Sort `condition_list` so that most expensive conditions run last.
-        condition_list.sort(key=lambda condition: is_condition_slow(condition))
-
-        for predicate_list, match, name in (
-            (filter_list, filter_match, "filter"),
-            (condition_list, condition_match, "condition"),
-        ):
-            if not predicate_list:
-                continue
-            predicate_iter = (self.condition_matches(f, state, rule) for f in predicate_list)
-            predicate_func = get_match_function(match)
+        # evaluate all filters and return if they fail, then do the enqueue logic for conditions
+        if filter_list:
+            predicate_iter = (self.condition_matches(f, state, rule) for f in filter_list)
+            predicate_func = get_match_function(filter_match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
                     return
             else:
-                log_string = f"Unsupported {name}_match {match!r} for rule {rule.id}"
+                log_string = f"Unsupported filter_match {filter_match} for rule {rule.id}"
                 logger.error(
                     log_string,
                     filter_match,
@@ -301,6 +337,38 @@ class RuleProcessor:
                     extra={**logging_details},
                 )
                 return
+
+        predicate_func = get_match_function(condition_match)
+        if not predicate_func and (slow_conditions or fast_conditions):
+            log_string = f"Unsupported condition_match {condition_match} for rule {rule.id}"
+            logger.error(
+                log_string,
+                filter_match,
+                rule.id,
+                extra={**logging_details},
+            )
+            return
+
+        if slow_conditions or fast_conditions:
+            predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
+            result = False
+            if predicate_func:
+                result = predicate_func(predicate_iter)
+
+            if condition_match == "any":
+                if not result and slow_conditions and process_slow_conditions_later:
+                    self.enqueue_rule(rule)
+                    return
+                elif not result:
+                    return
+
+            elif condition_match == "all":
+                if not result:
+                    return
+
+                if slow_conditions and process_slow_conditions_later:
+                    self.enqueue_rule(rule)
+                    return
 
         updated = (
             GroupRuleStatus.objects.filter(id=status.id)
@@ -319,7 +387,6 @@ class RuleProcessor:
                 organization_id=rule.project.organization.id,
                 rule_id=rule.id,
             )
-
         notification_uuid = str(uuid.uuid4())
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(

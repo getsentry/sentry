@@ -89,8 +89,8 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_INFO.metrics.titleName,
-    value: DATA_CATEGORY_INFO.metrics.plural,
+    label: DATA_CATEGORY_INFO.metricSecond.titleName,
+    value: DATA_CATEGORY_INFO.metricSecond.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
@@ -118,7 +118,6 @@ const enum SeriesTypes {
   ACCEPTED = 'Accepted',
   DROPPED = 'Dropped',
   PROJECTED = 'Projected',
-  RESERVED = 'Reserved',
   FILTERED = 'Filtered',
 }
 
@@ -361,7 +360,7 @@ function UsageChartBody({
 
   const filteredOptions = useMemo(() => {
     return categoryOptions.filter(option => {
-      if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
+      if (option.value !== DATA_CATEGORY_INFO.metricSecond.plural) {
         return true;
       }
       return (
@@ -413,13 +412,13 @@ function UsageChartBody({
 
   function chartLegendData() {
     const legend: LegendComponentOption['data'] = [
-      chartData.reserved && chartData.reserved.length > 0
-        ? {
-            name: SeriesTypes.RESERVED,
-          }
-        : {
-            name: SeriesTypes.ACCEPTED,
-          },
+      ...(chartData.reserved && chartData.reserved.length > 0
+        ? []
+        : [
+            {
+              name: SeriesTypes.ACCEPTED,
+            },
+          ]),
     ];
 
     if (chartData.filtered && chartData.filtered.length > 0) {
@@ -442,7 +441,9 @@ function UsageChartBody({
 
     if (chartSeries) {
       chartSeries.forEach(chartOption => {
-        legend.push({name: `${chartOption.name}`});
+        if (chartOption.name) {
+          legend.push({name: `${chartOption.name}`});
+        }
       });
     }
 
