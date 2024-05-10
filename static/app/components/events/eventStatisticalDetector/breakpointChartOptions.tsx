@@ -20,25 +20,25 @@ import transformEventStats from 'sentry/views/performance/trends/utils/transform
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 export type EventBreakpointChartData = {
-  chartType: ChartType;
   evidenceData: NormalizedTrendsTransaction;
   percentileData: EventsStatsData | FunctionRegressionPercentileData;
 };
 
 function getBreakpointChartOptionsFromData(
-  {percentileData, chartType, evidenceData}: EventBreakpointChartData,
+  {percentileData, evidenceData}: EventBreakpointChartData,
+  chartType: ChartType,
   theme: Theme
 ) {
-  const TrendFunctionName: Partial<{[key in ChartType]: string}> = {
+  const trendFunctionName: Partial<{[key in ChartType]: string}> = {
     [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: 'transaction.duration',
     [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: 'function.duration',
   };
 
-  const defaultTransform = data => data;
+  const defaultTransform = stats => stats;
 
-  const transformFunctionStats = (data: any) => {
-    const rawData = data?.data?.data?.find(({axis}) => axis === 'p95()');
-    const timestamps = data?.data?.timestamps;
+  const transformFunctionStats = (stats: any) => {
+    const rawData = stats?.data?.data?.find(({axis}) => axis === 'p95()');
+    const timestamps = stats?.data?.timestamps;
     if (!timestamps) {
       return [];
     }
@@ -54,7 +54,7 @@ function getBreakpointChartOptionsFromData(
 
   const transformedSeries = transformEventStats(
     transformFunction[chartType]!(percentileData),
-    generateTrendFunctionAsString(TrendFunctionField.P95, TrendFunctionName[chartType]!)
+    generateTrendFunctionAsString(TrendFunctionField.P95, trendFunctionName[chartType]!)
   );
 
   const intervalSeries = getIntervalLine(

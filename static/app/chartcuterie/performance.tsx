@@ -6,14 +6,13 @@ import getBreakpointChartOptionsFromData, {
 import type {EventsStatsSeries} from 'sentry/types';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {lightTheme as theme} from 'sentry/utils/theme';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 import {slackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
 export const performanceCharts: RenderDescriptor<ChartType>[] = [];
-
-type EndpointRegressionChartData = Omit<EventBreakpointChartData, 'chartType'>;
 
 export type FunctionRegressionPercentileData = {
   data: EventsStatsSeries<'p95()'>;
@@ -38,13 +37,12 @@ type FunctionRegressionChartData = {
 
 performanceCharts.push({
   key: ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
-  getOption: (data: EndpointRegressionChartData) => {
-    const param = {
-      ...data,
-      chartType: ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
-    };
-
-    const {chartOptions, series} = getBreakpointChartOptionsFromData(param, theme);
+  getOption: (data: EventBreakpointChartData) => {
+    const {chartOptions, series} = getBreakpointChartOptionsFromData(
+      data,
+      ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
+      theme
+    );
     const transformedSeries = transformToLineSeries({series});
     const modifiedOptions = modifyOptionsForSlack(chartOptions);
 
@@ -76,10 +74,13 @@ performanceCharts.push({
     const param = {
       percentileData: percentileData as FunctionRegressionPercentileData,
       evidenceData: data.evidenceData,
-      chartType: ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
     };
 
-    const {chartOptions, series} = getBreakpointChartOptionsFromData(param, theme);
+    const {chartOptions, series} = getBreakpointChartOptionsFromData(
+      param,
+      ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
+      theme
+    );
     const transformedSeries = transformToLineSeries({series});
     const modifiedOptions = modifyOptionsForSlack(chartOptions);
 

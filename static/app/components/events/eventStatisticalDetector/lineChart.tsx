@@ -25,7 +25,8 @@ function LineChart({datetime, percentileData, evidenceData, chartType}: ChartPro
 
   const {series, chartOptions} = useMemo(() => {
     return getBreakpointChartOptionsFromData(
-      {percentileData, evidenceData, chartType},
+      {percentileData, evidenceData},
+      chartType,
       theme
     );
   }, [percentileData, evidenceData, chartType, theme]);
