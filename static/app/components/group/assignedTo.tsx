@@ -331,9 +331,6 @@ function AssignedTo({
 export default AssignedTo;
 
 const DropdownButton = styled('div')`
-  appearance: none;
-  border: 0;
-  background: transparent;
   display: flex;
   align-items: center;
   gap: ${space(1)};
