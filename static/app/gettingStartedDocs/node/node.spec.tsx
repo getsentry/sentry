@@ -61,6 +61,13 @@ describe('node onboarding docs', function () {
     });
 
     expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /import \{ nodeProfilingIntegration } from "@sentry\/profiling-node"/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });

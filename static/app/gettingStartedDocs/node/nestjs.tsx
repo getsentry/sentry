@@ -23,7 +23,7 @@ import {
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-${getSentryImportsSnippet('node')}
+${getSentryImportsSnippet('node')}${params.isProfilingSelected ? `\nimport { nodeProfilingIntegration } from "@sentry/profiling-node";` : ''}
 import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
