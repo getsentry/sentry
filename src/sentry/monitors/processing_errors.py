@@ -169,9 +169,6 @@ class CheckinProcessErrorsManager:
     def get_for_monitor(self, monitor: Monitor) -> list[CheckinProcessingError]:
         return self._get_for_entities([self.build_monitor_identifier(monitor)])
 
-    def delete_for_monitor(self, monitor: Monitor, uuid: uuid.UUID):
-        pass
-
     def build_project_identifier(self, project_id: int) -> str:
         return f"project:{project_id}"
 
