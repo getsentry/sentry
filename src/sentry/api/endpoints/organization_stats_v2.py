@@ -170,7 +170,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             if features.has("organizations:metrics-stats", organization):
                 if (
                     request.GET.get("category") == "metrics"
-                    or request.GET.get("category") == "metricSecond"
+                    or request.GET.get("category") == "metricSeconds"
                 ):
                     # TODO(metrics): align project resolution
                     result = run_metrics_outcomes_query(
