@@ -61,7 +61,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
         )
 
         manager.store(processing_error, None)
-        fetched_processing_error = manager.get_for_project(self.project)
+        fetched_processing_error = manager.get_for_projects([self.project])
         assert len(fetched_processing_error) == 1
         self.assert_processing_errors_equal(processing_error, fetched_processing_error[0])
 
@@ -107,7 +107,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
 
     def test_get_for_project(self):
         manager = CheckinProcessErrorsManager()
-        assert len(manager.get_for_project(self.project)) == 0
+        assert len(manager.get_for_projects([self.project])) == 0
 
 
 class HandleProcessingErrorsTest(TestCase):
