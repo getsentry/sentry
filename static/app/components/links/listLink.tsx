@@ -13,10 +13,6 @@ type Props = LinkProps & {
    * Link target. We don't want to expose the ToLocationFunction on this component.
    */
   to: LocationDescriptor;
-  /**
-   * The class to apply when the link is 'active'
-   */
-  activeClassName?: string;
   disabled?: boolean;
   index?: boolean;
   /**
@@ -30,7 +26,6 @@ function ListLink({
   className,
   isActive,
   to,
-  activeClassName = 'active',
   index = false,
   disabled = false,
   ...props
@@ -42,10 +37,7 @@ function ListLink({
   const active = isActive?.(target, index) ?? router.isActive(target, index);
 
   return (
-    <StyledLi
-      className={classNames({[activeClassName]: active}, className)}
-      disabled={disabled}
-    >
+    <StyledLi className={classNames({active}, className)} disabled={disabled}>
       <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
         {children}
       </RouterLink>
