@@ -51,12 +51,8 @@ allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigne
 # these filters are currently not supported in the snuba only search
 # and will use PostgresSnubaQueryExecutor instead of GroupAttributesPostgresSnubaQueryExecutor
 UNSUPPORTED_SNUBA_FILTERS = [
-    "regressed_in_release",
-    "issue.priority",
-    "firstRelease",
-    "release.build",
-    "release.package",
-    "release.dist",
+    "issue.priority",  # coming soon
+    "firstRelease",  # coming soon
 ]
 
 
