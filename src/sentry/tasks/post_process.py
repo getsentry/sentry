@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
+from sentry import features, projectoptions
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -1307,8 +1307,8 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     if not hasattr(event, "occurrence") or event.occurrence is None:
         return False
 
-    if event.occurrence.evidence_data.get("is_spam") is True and options.get(
-        "feedback.spam-detection-actions"
+    if event.occurrence.evidence_data.get("is_spam") is True and features.has(
+        "organizations:user-feedback-spam-filter-actions", job["event"].project.organization
     ):
         metrics.incr("feedback.spam-detection-actions.dont-send-notification")
         return False
