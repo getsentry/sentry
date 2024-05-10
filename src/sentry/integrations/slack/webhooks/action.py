@@ -476,7 +476,7 @@ class SlackActionEndpoint(Endpoint):
             headers = {"content-type": "application/json; charset=utf-8"}
             slack_client.post(
                 "/views.open",
-                data=orjson.dumps(payload).decode(),
+                data=orjson.dumps(payload),
                 headers=headers,
             )
         except ApiError as e:

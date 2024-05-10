@@ -177,7 +177,7 @@ def _import(
     if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
         # Parse the content JSON and remove fields and models that we have marked for deletion in the
         # function.
-        content_as_json = orjson.loads(content)  # type: ignore[arg-type]
+        content_as_json = orjson.loads(content)
 
         shimmed_models = set(DELETED_FIELDS.keys())
         for i, json_model in enumerate(content_as_json):
@@ -190,7 +190,7 @@ def _import(
                 del content_as_json[i]
 
         # Return the content to byte form, as that is what the Django deserializer expects.
-        content = orjson.dumps(content_as_json).decode()
+        content = orjson.dumps(content_as_json)
 
     filters = []
     if filter_by is not None:

@@ -2437,7 +2437,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
-                    body=orjson.dumps(payload).decode(),
+                    body=orjson.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
@@ -2787,7 +2787,7 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event"].data["_metrics"] = event_metrics
 
         # Capture the actual size that goes into node store.
-        event_metrics["bytes.stored.event"] = len(orjson.dumps(dict(job["event"].data.items())))
+        event_metrics["bytes.stored.event"] = len(orjson.dumps(dict(job["event"].data.items())).decode())
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):

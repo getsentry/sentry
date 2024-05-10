@@ -519,7 +519,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def size(self) -> int:
-        return len(orjson.dumps(dict(self.data)).decode())
+        return len(orjson.dumps(self.data).decode())
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
