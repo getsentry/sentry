@@ -150,21 +150,24 @@ node --import ./instrument.mjs app.mjs`;
 export const getSdkInitSnippet = (
   params: DocsParams,
   sdkImport: 'node' | 'aws' | 'gpc' | null
-) => `${sdkImport === null
-  ? ''
-  : sdkImport === 'node'
-    ? getDefaultNodeImports({productSelection: getProductSelectionMap(params)}).join('\n') + '\n'
-    : sdkImport === 'aws'
-      ? getDefaultServerlessImports({
-          productSelection: getProductSelectionMap(params),
-          library: 'aws-serverless',
-        }).join('\n') + '\n'
-      : sdkImport === 'gpc'
+) => `${
+  sdkImport === null
+    ? ''
+    : sdkImport === 'node'
+      ? getDefaultNodeImports({productSelection: getProductSelectionMap(params)}).join(
+          '\n'
+        ) + '\n'
+      : sdkImport === 'aws'
         ? getDefaultServerlessImports({
             productSelection: getProductSelectionMap(params),
-            library: 'google-cloud-serverless',
+            library: 'aws-serverless',
           }).join('\n') + '\n'
-        : ''
+        : sdkImport === 'gpc'
+          ? getDefaultServerlessImports({
+              productSelection: getProductSelectionMap(params),
+              library: 'google-cloud-serverless',
+            }).join('\n') + '\n'
+          : ''
 }
 Sentry.init({
   dsn: "${params.dsn}",
