@@ -107,6 +107,7 @@ class ChunkedFileBlobIndexWrapper:
                 exe.submit(fetch_file, idx.offset, idx.blob.getfile)
 
         mem.flush()
+        mem.close()
         self._curfile = f
 
     def close(self):
