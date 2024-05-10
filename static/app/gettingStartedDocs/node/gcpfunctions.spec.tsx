@@ -17,13 +17,14 @@ describe('gcpfunctions onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          /const Sentry = require\("@sentry\/google-cloud-serverless"\);/
-        )
+    const allMatches = screen.getAllByText(
+      textWithMarkupMatcher(
+        /const Sentry = require\("@sentry\/google-cloud-serverless"\);/
       )
-    ).toBeInTheDocument();
+    );
+    allMatches.forEach(match => {
+      expect(match).toBeInTheDocument();
+    });
   });
 
   it('displays sample rates by default', () => {
