@@ -113,6 +113,8 @@ def map_field_name_from_format_search_filter(field: str) -> str:
     field = field.replace("stack.", "stacktrace.")
     if field == "date":
         return "timestamp"
+    if ATTR_CHOICES.get(field) is not None:
+        return ATTR_CHOICES.get(field).value.event_name
     return field
 
 
@@ -1225,23 +1227,27 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if not isinstance(item, list):
             raw_conditions = [raw_conditions]
 
+        conver_value_to_date = False
         output_conditions = []
         for item in raw_conditions:
-
             lhs = item[0]
-            # do some name mapping for snuba
             if isinstance(lhs, str):
-                lhs = map_field_name_from_format_search_filter(lhs)
-                if ATTR_CHOICES.get(lhs) is not None:
-                    mapped_lhs = ATTR_CHOICES.get(lhs)
-                    lhs = Column(mapped_lhs.value.event_name, joined_entity)
+                lhs = Column(map_field_name_from_format_search_filter(lhs), joined_entity)
             else:
+                # need to convert dates to timestamps
+                if lhs[1][0] == "date":
+                    conver_value_to_date = True
                 # right now we are assuming lhs looks like ['isNull', ['user']]
                 # if there are more complex expressions we will need to handle them
-                lhs = Function(lhs[0], [Column(lhs[1][0], joined_entity)])
+                rhs = [Column(map_field_name_from_format_search_filter(lhs[1][0]), joined_entity)]
+                if len(lhs[1]) > 1:
+                    rhs.append(lhs[1][1])
+                lhs = Function(lhs[0], rhs)
 
             operator = Op(item[1])
             value = item[2]
+            if conver_value_to_date:
+                value = datetime.fromtimestamp(int(value / 1000.0))
             output_conditions.append(Condition(lhs, operator, value))
 
         for entity in [joined_entity, self.entities["attrs"]]:
@@ -1702,11 +1708,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     else:
                         raise InvalidQueryForExecutor(f"Invalid clause {clause}")
                 else:
-                    where_conditions.append(
-                        self.get_basic_event_snuba_condition(
-                            search_filter, joined_entity, organization.id, project_ids, environments
-                        )
+                    conditon = self.get_basic_event_snuba_condition(
+                        search_filter, joined_entity, organization.id, project_ids, environments
                     )
+                    if conditon is not None:
+                        where_conditions.append(conditon)
 
             # handle types based on issue.type and issue.category
             if not is_errors:

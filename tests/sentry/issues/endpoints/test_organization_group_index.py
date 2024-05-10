@@ -3432,7 +3432,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date",
             limit=10,
             query="times_seen:>0 last_seen:-1h date:-1h",
-            # useGroupSnubaDataset=1,
+            useGroupSnubaDataset=1,
         )
 
         assert response.status_code == 200
