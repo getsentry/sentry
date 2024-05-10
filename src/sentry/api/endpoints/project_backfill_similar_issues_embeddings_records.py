@@ -22,5 +22,10 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             "projects:similarity-embeddings-grouping", project
         ) or not is_active_superuser(request):
             return Response(status=404)
-        backfill_seer_grouping_records.delay(project)
+
+        last_processed_id = None
+        if request.data.get("last_processed_id"):
+            last_processed_id = int(request.data["last_processed_id"])
+
+        backfill_seer_grouping_records.delay(project.id, last_processed_id)
         return Response(status=204)
