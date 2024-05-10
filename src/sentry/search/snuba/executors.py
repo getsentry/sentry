@@ -1200,7 +1200,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         Returns the basic lookup for a search filter.
         """
         # note this might hit postgres to do queries on releases
-        raw_conditions = convert_search_filter_to_snuba_query(
+        raw_conditions, projects_to_filter, group_ids = format_search_filter(
             search_filter,
             params={
                 "organization_id": organization_id,
@@ -1217,17 +1217,28 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
         output_conditions = []
         for item in raw_conditions:
-            column_name = item[0]
-            # do some name mapping for snuba
-            column_name = column_name.replace("stack.", "stacktrace.")
-            if ATTR_CHOICES.get(column_name) is not None:
-                raw_column = ATTR_CHOICES.get(column_name)
-                column_name = raw_column.value.event_name
 
-            column = Column(column_name, joined_entity)
+            lhs = item[0]
+            # do some name mapping for snuba
+            if isinstance(lhs, str):
+                lhs = lhs.replace("stack.", "stacktrace.")
+                if ATTR_CHOICES.get(lhs) is not None:
+                    mapped_lhs = ATTR_CHOICES.get(lhs)
+                    lhs = Column(mapped_lhs.value.event_name, joined_entity)
+            else:
+                # right now we are assuming lhs looks like ['isNull', ['user']]
+                # if there are more complex expressions we will need to handle them
+                lhs = Function(lhs[0], [Column(lhs[1][0], joined_entity)])
+
             operator = Op(item[1])
             value = item[2]
-            output_conditions.append(Condition(column, operator, value))
+            output_conditions.append(Condition(lhs, operator, value))
+
+        for entity in [joined_entity, self.entities["attrs"]]:
+            for name, value in [("project_id", projects_to_filter), ("group_id", group_ids)]:
+                if value:
+                    output_conditions.append(Condition(Column(name, entity), Op.IN, value))
+
         if len(output_conditions) == 1:
             return output_conditions[0]
         return BooleanCondition(op=BooleanOp.AND, conditions=output_conditions)
