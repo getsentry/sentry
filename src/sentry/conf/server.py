@@ -1949,6 +1949,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ui": False,
     # Enable User Feedback spam auto filtering feature ingest
     "organizations:user-feedback-spam-filter-ingest": False,
+    # Enable User Feedback spam auto filtering feature actions
+    "organizations:user-feedback-spam-filter-actions": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
     # User Feedback Error Link Ingestion Changes
