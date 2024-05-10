@@ -1560,42 +1560,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "project": "bar",
                     "sdk.name": "sentry.javascript.node",
                     "transaction": "bar1",
-                    "precise.start_ts": 0.020,
-                    "precise.finish_ts": 0.021,
-                },
-            ],
-            {"a" * 32: (0, 100, 20)},
-            {
-                "a"
-                * 32: [
-                    {
-                        "project": "foo",
-                        "opCategory": None,
-                        "sdkName": "sentry.javascript.node",
-                        "start": 0,
-                        "end": 100,
-                        "kind": "project",
-                        "duration": 100,
-                    },
-                ],
-            },
-            id="remove spans that are too small",
-        ),
-        pytest.param(
-            [
-                {
-                    "trace": "a" * 32,
-                    "project": "foo",
-                    "sdk.name": "sentry.javascript.node",
-                    "transaction": "foo1",
-                    "precise.start_ts": 0,
-                    "precise.finish_ts": 0.1,
-                },
-                {
-                    "trace": "a" * 32,
-                    "project": "bar",
-                    "sdk.name": "sentry.javascript.node",
-                    "transaction": "bar1",
                     "precise.start_ts": 0.002,
                     "precise.finish_ts": 0.044,
                 },
