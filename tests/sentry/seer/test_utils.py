@@ -271,7 +271,7 @@ def test_from_raw_nonexistent_group(default_project):
 
 
 @mock.patch("sentry.seer.utils.logger")
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
     expected_return_value = {"success": True}
     mock_seer_request.return_value = HTTPResponse(
@@ -290,7 +290,7 @@ def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
 
 
 @mock.patch("sentry.seer.utils.logger")
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_timeout(mock_seer_request, mock_logger):
     expected_return_value = {"success": False}
     mock_seer_request.side_effect = ReadTimeoutError(
@@ -311,7 +311,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request, mock_logger):
 
 
 @mock.patch("sentry.seer.utils.logger")
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
     expected_return_value = {"success": False}
     mock_seer_request.return_value = HTTPResponse(
@@ -332,7 +332,7 @@ def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
     )
 
 
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_empty_data(mock_seer_request):
     """Test that function handles empty data. This should not happen, but we do not want to error if it does."""
     expected_return_value = {"success": True}
