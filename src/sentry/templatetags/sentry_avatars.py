@@ -55,6 +55,7 @@ def avatar(user, size=36):
         email = user.email
         if user_id:
             email = user.user.email
+
     return {
         "email": email,
         "user_id": user_id,
