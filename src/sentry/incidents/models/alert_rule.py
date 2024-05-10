@@ -320,7 +320,7 @@ class AlertRule(Model):
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 self.snuba_query,
-                query_extra,
+                query_extra=query_extra,
             )
             if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
                 # NOTE: Activated Alert Rules are conditionally subscribed

@@ -21,7 +21,7 @@ export function getStylingSliceName(
 ) {
   if (sliceSecondaryName) {
     // Our color picking relies on the first 4 letters. Since we want to differentiate sdknames and project names we have to include part of the sdk name.
-    return sliceSecondaryName.slice(-2) + (sliceName ?? '');
+    return (sliceName ?? '').slice(0, 1) + sliceSecondaryName.slice(-4);
   }
 
   return sliceName;

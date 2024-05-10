@@ -63,6 +63,7 @@ const NUMERIC_FIELDS = new Set([
   SpanMetricsField.CACHE_ITEM_SIZE,
   SpanIndexedField.RESPONSE_CODE,
   SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.CACHE_ITEM_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
 ]);
