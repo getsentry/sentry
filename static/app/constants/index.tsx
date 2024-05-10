@@ -334,6 +334,18 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profile Seconds'),
     uid: 17,
   },
+  /**
+   * Used to display metrics on the stats page
+   */
+  [DataCategoryExact.METRICS]: {
+    name: DataCategoryExact.METRICS,
+    apiName: 'metrics',
+    plural: 'metrics',
+    displayName: 'metrics',
+    titleName: t('Metrics'),
+    // Metrics has no uid, is only used on stats page
+    uid: -1,
+  },
   [DataCategoryExact.METRIC_SECOND]: {
     name: DataCategoryExact.METRIC_SECOND,
     apiName: 'metricSecond',
