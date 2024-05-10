@@ -231,6 +231,13 @@ class MonitorParams:
         type=str,
         description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
     )
+    PROCESSING_ERROR_ID = OpenApiParameter(
+        name="processing_error_id",
+        location="path",
+        required=False,
+        type=OpenApiTypes.UUID,
+        description="The id of the processing error.",
+    )
 
 
 class EventParams:

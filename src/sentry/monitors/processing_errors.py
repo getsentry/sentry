@@ -169,6 +169,9 @@ class CheckinProcessErrorsManager:
     def get_for_monitor(self, monitor: Monitor) -> list[CheckinProcessingError]:
         return self._get_for_entities([self.build_monitor_identifier(monitor)])
 
+    def delete_for_monitor(self, monitor: Monitor, uuid: uuid.UUID):
+        self._delete_for_entity(self.build_monitor_identifier(monitor), uuid)
+
     def build_project_identifier(self, project_id: int) -> str:
         return f"project:{project_id}"
 
@@ -176,6 +179,9 @@ class CheckinProcessErrorsManager:
         return self._get_for_entities(
             [self.build_project_identifier(project.id) for project in projects]
         )
+
+    def delete_for_project(self, project: Project, uuid: uuid.UUID):
+        self._delete_for_entity(self.build_project_identifier(project.id), uuid)
 
     def _get_for_entities(self, entity_identifiers: list[str]) -> list[CheckinProcessingError]:
         redis = self._get_cluster()
@@ -194,6 +200,12 @@ class CheckinProcessErrorsManager:
         ]
         errors.sort(key=lambda error: error.checkin.ts.timestamp(), reverse=True)
         return errors
+
+    def _delete_for_entity(self, entity_identifier: str, uuid: uuid.UUID) -> None:
+        pipeline = self._get_cluster().pipeline()
+        pipeline.zrem(self.build_set_identifier(entity_identifier), uuid.hex)
+        pipeline.delete(self.build_error_identifier(entity_identifier, uuid))
+        pipeline.execute()
 
 
 def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):

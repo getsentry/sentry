@@ -138,6 +138,25 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(fetched_processing_error) == 1
         self.assert_processing_errors_equal(processing_errors[1], fetched_processing_error[0])
 
+    def test_delete_for_monitor(self):
+        manager = CheckinProcessErrorsManager()
+        monitor = self.create_monitor()
+        processing_error = build_checkin_processing_error()
+        manager.store(processing_error, monitor)
+        assert len(manager.get_for_monitor(monitor)) == 1
+        manager.delete_for_monitor(monitor, processing_error.id)
+        assert len(manager.get_for_monitor(monitor)) == 0
+
+    def test_delete_for_project(self):
+        manager = CheckinProcessErrorsManager()
+        processing_error = build_checkin_processing_error(
+            message_overrides={"project_id": self.project.id},
+        )
+        manager.store(processing_error, None)
+        assert len(manager.get_for_projects([self.project])) == 1
+        manager.delete_for_project(self.project, processing_error.id)
+        assert len(manager.get_for_projects([self.project])) == 0
+
 
 class HandleProcessingErrorsTest(TestCase):
     def test(self):
