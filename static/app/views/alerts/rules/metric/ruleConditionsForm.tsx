@@ -462,10 +462,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         value: ActivationConditionType.RELEASE_CREATION,
                         label: t('New Release'),
                       },
-                      {
-                        value: ActivationConditionType.DEPLOY_CREATION,
-                        label: t('New Deploy'),
-                      },
                     ]}
                     required
                     value={activationCondition}
