@@ -2787,7 +2787,9 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event"].data["_metrics"] = event_metrics
 
         # Capture the actual size that goes into node store.
-        event_metrics["bytes.stored.event"] = len(orjson.dumps(dict(job["event"].data.items())).decode())
+        event_metrics["bytes.stored.event"] = len(
+            orjson.dumps(dict(job["event"].data.items())).decode()
+        )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
