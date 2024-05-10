@@ -315,7 +315,7 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'span',
     plural: 'spans',
     displayName: 'spans',
-    titleName: t('Span'),
+    titleName: t('Spans'),
     uid: 12,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
