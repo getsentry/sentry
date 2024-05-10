@@ -461,6 +461,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "start": int(timestamps[0].timestamp() * 1000),
                                 "end": int(timestamps[0].timestamp() * 1000) + 60_100,
                                 "kind": "project",
+                                "duration": 60_100,
                             },
                             {
                                 "project": project_2.slug,
@@ -469,6 +470,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "start": int(timestamps[1].timestamp() * 1000),
                                 "end": int(timestamps[3].timestamp() * 1000) + 30_003,
                                 "kind": "project",
+                                "duration": 32_003,
                             },
                         ],
                         "spans": [
@@ -514,6 +516,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "start": int(timestamps[4].timestamp() * 1000),
                                 "end": int(timestamps[4].timestamp() * 1000) + 90_123,
                                 "kind": "project",
+                                "duration": 90_123,
                             },
                             {
                                 "project": project_2.slug,
@@ -522,6 +525,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "start": int(timestamps[5].timestamp() * 1000),
                                 "end": int(timestamps[6].timestamp() * 1000) + 20_006,
                                 "kind": "project",
+                                "duration": 21_006,
                             },
                         ],
                         "spans": [
@@ -610,6 +614,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": int(timestamps[4].timestamp() * 1000),
                         "end": int(timestamps[4].timestamp() * 1000) + 90_123,
                         "kind": "project",
+                        "duration": 90_123,
                     },
                     {
                         "project": project_1.slug,
@@ -618,6 +623,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": int(timestamps[7].timestamp() * 1000),
                         "end": int(timestamps[7].timestamp() * 1000) + 1_000,
                         "kind": "project",
+                        "duration": 1_000,
                     },
                     {
                         "project": project_2.slug,
@@ -626,6 +632,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": int(timestamps[5].timestamp() * 1000),
                         "end": int(timestamps[6].timestamp() * 1000) + 20_006,
                         "kind": "project",
+                        "duration": 21_006,
                     },
                     {
                         "project": project_1.slug,
@@ -634,6 +641,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": int(timestamps[8].timestamp() * 1000),
                         "end": int(timestamps[8].timestamp() * 1000) + 3_000,
                         "kind": "project",
+                        "duration": 3_000,
                     },
                 ],
                 "spans": [
@@ -718,6 +726,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "start": int(timestamps[10].timestamp() * 1000),
                                 "end": int(timestamps[10].timestamp() * 1000) + 40_000,
                                 "kind": "project",
+                                "duration": 40_000,
                             },
                             {
                                 "project": project_1.slug,
@@ -726,6 +735,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "start": int(timestamps[11].timestamp() * 1000),
                                 "end": int(timestamps[11].timestamp() * 1000) + 10_000,
                                 "kind": "project",
+                                "duration": 10_000,
                             },
                         ],
                         "spans": [
@@ -814,6 +824,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 100,
                         "kind": "project",
+                        "duration": 100,
                     },
                 ],
             },
@@ -849,6 +860,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 100,
                         "kind": "project",
+                        "duration": 100,
                     },
                     {
                         "project": "bar",
@@ -857,6 +869,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 25,
                         "end": 75,
                         "kind": "project",
+                        "duration": 50,
                     },
                 ],
             },
@@ -900,6 +913,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 50,
                         "kind": "project",
+                        "duration": 50,
                     },
                     {
                         "project": "bar",
@@ -908,6 +922,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 25,
                         "end": 75,
                         "kind": "project",
+                        "duration": 50,
                     },
                     {
                         "project": "baz",
@@ -916,6 +931,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 50,
                         "end": 100,
                         "kind": "project",
+                        "duration": 50,
                     },
                 ],
             },
@@ -951,6 +967,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 25,
                         "kind": "project",
+                        "duration": 25,
                     },
                     {
                         "project": None,
@@ -959,6 +976,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 25,
                         "end": 50,
                         "kind": "missing",
+                        "duration": 25,
                     },
                     {
                         "project": "bar",
@@ -967,6 +985,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 50,
                         "end": 75,
                         "kind": "project",
+                        "duration": 25,
                     },
                 ],
             },
@@ -1002,6 +1021,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 100,
                         "kind": "project",
+                        "duration": 100,
                     },
                 ],
             },
@@ -1037,6 +1057,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 100,
                         "kind": "project",
+                        "duration": 100,
                     },
                 ],
             },
@@ -1072,6 +1093,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 25,
                         "kind": "project",
+                        "duration": 25,
                     },
                     {
                         "project": None,
@@ -1080,6 +1102,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 25,
                         "end": 50,
                         "kind": "missing",
+                        "duration": 25,
                     },
                     {
                         "project": "foo",
@@ -1088,6 +1111,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 50,
                         "end": 75,
                         "kind": "project",
+                        "duration": 25,
                     },
                 ],
             },
@@ -1131,6 +1155,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 100,
                         "kind": "project",
+                        "duration": 100,
                     },
                     {
                         "project": "bar",
@@ -1139,6 +1164,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 20,
                         "end": 80,
                         "kind": "project",
+                        "duration": 60,
                     },
                     {
                         "project": "baz",
@@ -1147,6 +1173,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 40,
                         "end": 60,
                         "kind": "project",
+                        "duration": 20,
                     },
                 ],
             },
@@ -1190,6 +1217,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 100,
                         "kind": "project",
+                        "duration": 100,
                     },
                     {
                         "project": "bar",
@@ -1198,6 +1226,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 25,
                         "end": 50,
                         "kind": "project",
+                        "duration": 25,
                     },
                     {
                         "project": "baz",
@@ -1206,6 +1235,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 50,
                         "end": 75,
                         "kind": "project",
+                        "duration": 25,
                     },
                 ],
             },
@@ -1249,6 +1279,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 50,
                         "kind": "project",
+                        "duration": 50,
                     },
                     {
                         "project": "bar",
@@ -1257,6 +1288,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 20,
                         "end": 30,
                         "kind": "project",
+                        "duration": 10,
                     },
                     {
                         "project": "baz",
@@ -1265,6 +1297,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 50,
                         "end": 75,
                         "kind": "project",
+                        "duration": 25,
                     },
                 ],
             },
@@ -1308,6 +1341,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 50,
                         "kind": "project",
+                        "duration": 50,
                     },
                     {
                         "project": "bar",
@@ -1316,6 +1350,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 20,
                         "end": 30,
                         "kind": "project",
+                        "duration": 10,
                     },
                     {
                         "project": "baz",
@@ -1324,6 +1359,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 40,
                         "end": 60,
                         "kind": "project",
+                        "duration": 20,
                     },
                 ],
             },
@@ -1367,6 +1403,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 50,
                         "kind": "project",
+                        "duration": 50,
                     },
                     {
                         "project": "bar",
@@ -1375,6 +1412,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 10,
                         "end": 20,
                         "kind": "project",
+                        "duration": 10,
                     },
                 ],
             },
@@ -1402,6 +1440,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 0,
                         "end": 50,
                         "kind": "project",
+                        "duration": 50,
                     },
                 ],
             },
@@ -1418,7 +1457,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.05,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 20)},
             {
                 "a"
                 * 32: [
@@ -1427,16 +1466,18 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "opCategory": None,
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
-                        "end": 50,
+                        "end": 40,
                         "kind": "project",
+                        "duration": 50,
                     },
                     {
                         "project": None,
                         "opCategory": None,
                         "sdkName": None,
-                        "start": 50,
+                        "start": 40,
                         "end": 100,
                         "kind": "other",
+                        "duration": 50,
                     },
                 ],
             },
@@ -1478,16 +1519,18 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "opCategory": None,
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
-                        "end": 21,
+                        "end": 20,
                         "kind": "project",
+                        "duration": 23,
                     },
                     {
                         "project": None,
                         "opCategory": None,
                         "sdkName": None,
-                        "start": 21,
+                        "start": 20,
                         "end": 30,
                         "kind": "missing",
+                        "duration": 8,
                     },
                     {
                         "project": "foo",
@@ -1496,10 +1539,100 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "start": 30,
                         "end": 40,
                         "kind": "project",
+                        "duration": 8,
                     },
                 ],
             },
             id="merge quantized spans",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "sdk.name": "sentry.javascript.node",
+                    "transaction": "foo1",
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.1,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "bar",
+                    "sdk.name": "sentry.javascript.node",
+                    "transaction": "bar1",
+                    "precise.start_ts": 0.002,
+                    "precise.finish_ts": 0.044,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "sdk.name": "sentry.javascript.node",
+                    "transaction": "foo1",
+                    "precise.start_ts": 0.007,
+                    "precise.finish_ts": 0.1,
+                },
+            ],
+            {"a" * 32: (0, 100, 20)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "opCategory": None,
+                        "sdkName": "sentry.javascript.node",
+                        "start": 0,
+                        "end": 100,
+                        "kind": "project",
+                        "duration": 100,
+                    },
+                    {
+                        "project": "bar",
+                        "opCategory": None,
+                        "sdkName": "sentry.javascript.node",
+                        "start": 0,
+                        "end": 40,
+                        "kind": "project",
+                        "duration": 42,
+                    },
+                ],
+            },
+            id="resorts spans after quantizing",
+        ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "sdk.name": "sentry.javascript.node",
+                    "transaction": "foo1",
+                    "precise.start_ts": 0,
+                    "precise.finish_ts": 0.051,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "sdk.name": "sentry.javascript.node",
+                    "transaction": "foo1",
+                    "precise.start_ts": 0.069,
+                    "precise.finish_ts": 0.1,
+                },
+            ],
+            {"a" * 32: (0, 100, 20)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "opCategory": None,
+                        "sdkName": "sentry.javascript.node",
+                        "start": 0,
+                        "end": 100,
+                        "kind": "project",
+                        "duration": 82,
+                    },
+                ],
+            },
+            id="merges nearby spans",
         ),
     ],
 )

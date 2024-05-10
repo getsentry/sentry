@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -17,8 +17,8 @@ class AutoSyncNotification(ProjectNotification):
     notification_setting_type_enum = NotificationSettingEnum.DEPLOY
     template_path = "sentry/emails/codeowners-auto-sync-failure"
 
-    def determine_recipients(self) -> list[RpcActor]:
-        return RpcActor.many_from_object(self.organization.get_owners())
+    def determine_recipients(self) -> list[Actor]:
+        return Actor.many_from_object(self.organization.get_owners())
 
     @property
     def reference(self) -> Model | None:
@@ -35,7 +35,7 @@ class AutoSyncNotification(ProjectNotification):
         return {"project_name": self.project.name}
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         context["url"] = self.organization.absolute_url(

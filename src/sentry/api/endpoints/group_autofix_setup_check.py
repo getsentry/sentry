@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import orjson
 import requests
 from django.conf import settings
 from rest_framework.response import Response
@@ -23,7 +24,6 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ def get_repos_and_access(project: Project) -> list[dict]:
     for repo in repos:
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/repo/check-access",
-            data=json.dumps(
+            data=orjson.dumps(
                 {
                     "repo": repo,
                 }

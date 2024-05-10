@@ -7,7 +7,7 @@ from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -17,7 +17,7 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
         self,
         notification: BaseNotification,
         context: Mapping[str, Any],
-        recipient: RpcActor,
+        recipient: Actor,
     ) -> None:
         super().__init__()
         self.notification = notification

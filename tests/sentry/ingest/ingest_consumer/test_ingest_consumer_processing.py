@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Any
 from unittest.mock import Mock
 
+import orjson
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
@@ -30,7 +31,6 @@ from sentry.options import set
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.usage_accountant import accountant
-from sentry.utils import json
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 
@@ -87,7 +87,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
     for _ in range(2):
         process_event(
             {
-                "payload": json.dumps(payload),
+                "payload": orjson.dumps(payload).decode(),
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -137,7 +137,7 @@ def test_transactions_spawn_save_event_transaction(
     start_time = time.time() - 3600
     process_event(
         {
-            "payload": json.dumps(payload),
+            "payload": orjson.dumps(payload).decode(),
             "start_time": start_time,
             "event_id": event_id,
             "project_id": project_id,
@@ -186,7 +186,7 @@ def test_accountant_transaction(default_project):
         },
     }
     payload = get_normalized_event(event, default_project)
-    serialized = json.dumps(payload)
+    serialized = orjson.dumps(payload).decode()
     process_event(
         {
             "payload": serialized,
@@ -239,7 +239,7 @@ def test_feedbacks_spawn_save_event_feedback(
     start_time = time.time() - 3600
     process_event(
         {
-            "payload": json.dumps(payload),
+            "payload": orjson.dumps(payload).decode(),
             "start_time": start_time,
             "event_id": event_id,
             "project_id": project_id,
@@ -291,7 +291,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
     with task_runner():
         process_event(
             {
-                "payload": json.dumps(payload),
+                "payload": orjson.dumps(payload).decode(),
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -361,7 +361,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
 
     process_attachment_chunk(
         {
-            "payload": json.dumps_htmlsafe(obfuscated_view_hierarchy).encode(),
+            "payload": orjson.dumps(obfuscated_view_hierarchy),
             "event_id": event_id,
             "project_id": project_id,
             "id": attachment_id,
@@ -372,7 +372,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
     with task_runner():
         process_event(
             {
-                "payload": json.dumps(payload),
+                "payload": orjson.dumps(payload).decode(),
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -499,14 +499,14 @@ def test_userreport(django_cache, default_project, monkeypatch):
         {
             "type": "user_report",
             "start_time": start_time,
-            "payload": json.dumps(
+            "payload": orjson.dumps(
                 {
                     "name": "Hans Gans",
                     "event_id": event_id,
                     "comments": "hello world",
                     "email": "markus+dontatme@sentry.io",
                 }
-            ),
+            ).decode(),
             "project_id": default_project.id,
         },
         project=default_project,
@@ -530,14 +530,14 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
         {
             "type": "user_report",
             "start_time": start_time,
-            "payload": json.dumps(
+            "payload": orjson.dumps(
                 {
                     "name": "Hans Gans",
                     "event_id": event_id,
                     "comments": "hello world",
                     "email": "markus+dontatme@sentry.io",
                 }
-            ),
+            ).decode(),
             "project_id": default_project.id,
         },
         project=default_project,

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Union, cast
+from typing import Any, Union, cast
 from uuid import uuid4
 
 from django.conf import settings
 
 from sentry.utils import json
-from sentry.utils.json import JSONData
 from sentry.utils.redis import redis_clusters
 
 SLACK_FAILED_MESSAGE = (
@@ -35,7 +34,7 @@ class RedisRuleStatus:
         value = self._format_value(status, rule_id, error_message)
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60)
 
-    def get_value(self) -> JSONData:
+    def get_value(self) -> Any:
         key = self._get_redis_key()
         value = self.client.get(key)
         return json.loads_experimental(

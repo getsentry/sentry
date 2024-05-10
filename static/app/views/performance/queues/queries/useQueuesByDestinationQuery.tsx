@@ -14,25 +14,27 @@ export function useQueuesByDestinationQuery({enabled}: Props) {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DESTINATIONS_CURSOR]);
 
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
-  const response = useSpanMetrics({
-    search: mutableSearch,
-    fields: [
-      'messaging.destination.name',
-      'count()',
-      'count_op(queue.publish)',
-      'count_op(queue.process)',
-      'sum(span.self_time)',
-      'avg(span.self_time)',
-      'avg_if(span.self_time,span.op,queue.publish)',
-      'avg_if(span.self_time,span.op,queue.process)',
-      'avg(messaging.message.receive.latency)',
-    ],
-    enabled,
-    sorts: [],
-    limit: 10,
-    cursor,
-    referrer: 'api.performance.queues.destination-summary',
-  });
+  const response = useSpanMetrics(
+    {
+      search: mutableSearch,
+      fields: [
+        'messaging.destination.name',
+        'count()',
+        'count_op(queue.publish)',
+        'count_op(queue.process)',
+        'sum(span.duration)',
+        'avg(span.duration)',
+        'avg_if(span.duration,span.op,queue.publish)',
+        'avg_if(span.duration,span.op,queue.process)',
+        'avg(messaging.message.receive.latency)',
+      ],
+      enabled,
+      sorts: [],
+      limit: 10,
+      cursor,
+    },
+    'api.performance.queues.destination-summary'
+  );
 
   return response;
 }

@@ -4,9 +4,9 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 export function useHasOrganizationSentAnyReplayEvents() {
   const {projects, fetching} = useProjects();
@@ -21,7 +21,7 @@ export function useHaveSelectedProjectsSentAnyReplayEvents() {
 }
 
 export function useReplayOnboardingSidebarPanel() {
-  const {location} = useRouteContext();
+  const location = useLocation();
   const organization = useOrganization();
 
   useEffect(() => {
