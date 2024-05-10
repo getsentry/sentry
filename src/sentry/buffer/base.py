@@ -41,7 +41,7 @@ class Buffer(Service):
     ) -> dict[str, str]:
         return {}
 
-    def get_set(self, key: str) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         return []
 
     def incr(
@@ -69,12 +69,10 @@ class Buffer(Service):
             }
         )
 
-    # TODO: `partition` is unused, remove after a deploy
-
-    def process_pending(self, partition: int | None = None) -> None:
+    def process_pending(self) -> None:
         return
 
-    def process_batch(self, partition: int | None = None) -> None:
+    def process_batch(self) -> None:
         return
 
     def process(

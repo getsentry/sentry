@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -30,7 +31,7 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
-from sentry.conf.server import SEVERITY_DETECTION_RETRIES
+from sentry.conf.server import SEER_SEVERITY_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -375,8 +376,6 @@ class EventManager:
 
         from sentry_relay.processing import StoreNormalizer
 
-        json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
-
         rust_normalizer = StoreNormalizer(
             project_id=self._project.id if self._project else project_id,
             client_ip=self._client_ip,
@@ -388,13 +387,13 @@ class EventManager:
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
-            json_dumps=json_dumps,
+            json_dumps=orjson.dumps,
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         pre_normalize_type = self._data.get("type")
         self._data = CanonicalKeyDict(
-            rust_normalizer.normalize_event(dict(self._data), json_loads=json_loads)
+            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
         )
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
@@ -2221,8 +2220,8 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEVERITY_DETECTION_URL,
-    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+    settings.SEER_SEVERITY_URL,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
 
@@ -2433,7 +2432,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             with metrics.timer(op):
                 timeout = options.get(
                     "issues.severity.seer-timout",
-                    settings.SEVERITY_DETECTION_TIMEOUT / 1000,
+                    settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
                 response = severity_connection_pool.urlopen(
                     "POST",
@@ -2449,8 +2448,8 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         except MaxRetryError as e:
             logger.warning(
                 "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEVERITY_DETECTION_RETRIES,
-                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                SEER_SEVERITY_RETRIES,
+                "ies" if SEER_SEVERITY_RETRIES > 1 else "y",
                 repr(e.reason),
                 extra=logger_data,
             )

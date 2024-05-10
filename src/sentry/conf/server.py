@@ -1111,12 +1111,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="0", hour="12", day_of_week="saturday"),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-daily-organization-reports": {
-        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-        # Run every 1 hour on business days
-        "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
-        "options": {"expires": 60 * 60 * 3},
-    },
+    # "schedule-daily-organization-reports": {
+    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+    #     # Run every 1 hour on business days
+    #     "schedule": crontab(minute=0, hour="*/1", day_of_week="mon-fri"),
+    #     "options": {"expires": 60 * 60 * 3},
+    # },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1665,7 +1665,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
-    "organizations:multi-region-selector": False,
+    "organizations:multi-region-selector": True,
     # Enable new page filter UI
     "organizations:new-page-filter": True,
     # Display warning banner for every event issue alerts
@@ -3669,15 +3669,24 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # constraints instead of setting the column to not null.
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
-ANOMALY_DETECTION_URL = "http://127.0.0.1:9091"
-ANOMALY_DETECTION_TIMEOUT = 30
+SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
+SEER_DEFAULT_TIMEOUT = 5
 
-# TODO: Once this moves to its own service, this URL will need to be updated
-SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
-SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
-SEVERITY_DETECTION_RETRIES = 1
+SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
-SEER_AUTOFIX_URL = ANOMALY_DETECTION_URL  # In local development this is the same as ANOMALY_DETECTION_URL, for prod check getsentry.
+SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
+SEER_SEVERITY_RETRIES = 1
+
+SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+
+SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_GROUPING_TIMEOUT = 1
+
+SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_ANOMALY_DETECTION_TIMEOUT = 5
+
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3708,7 +3717,7 @@ LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 # We should not run access logging middleware on some endpoints as
 # it is very noisy, and these views are hit by internal services.
-ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/",)
+ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
@@ -3950,6 +3959,11 @@ COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
 # Disable DDM entirely
 SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
+
+SEER_SIMILARITY_MODEL_VERSION = "v0"
+SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
+SEER_MAX_GROUPING_DISTANCE = 0.01
+SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this right now
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

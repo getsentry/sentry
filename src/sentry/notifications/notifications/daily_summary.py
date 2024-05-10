@@ -8,8 +8,8 @@ from django.urls import reverse
 
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.tasks.summaries.utils import DailySummaryProjectContext
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ class DailySummaryNotification(BaseNotification):
     def __init__(
         self,
         organization: Organization,
-        recipient: RpcActor,
+        recipient: Actor,
         provider: ExternalProviders,
         project_context: dict[int, DailySummaryProjectContext],
     ) -> None:
@@ -40,7 +40,7 @@ class DailySummaryNotification(BaseNotification):
     def reference(self) -> Model | None:
         return None
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Actor]]:
         return {self.provider: {self.recipient}}
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
@@ -54,15 +54,15 @@ class DailySummaryNotification(BaseNotification):
     ) -> str:
         return ""
 
-    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
         return f"Daily Summary for Your {self.organization.slug.title()} Projects"
 
-    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return ""
 
-    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         url = self.organization.absolute_url(reverse("sentry-account-settings"))
         return f"Getting this at a funky time? This sends at 4pm for whatever time zone you have set. | <{url}|*Account Settings*>"

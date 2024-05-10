@@ -1,3 +1,4 @@
+import orjson
 from django.http import HttpRequest, HttpResponse
 
 from sentry import eventstore
@@ -7,7 +8,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.grouping_info import get_grouping_info
-from sentry.utils import json
 
 
 @region_silo_endpoint
@@ -31,4 +31,4 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
 
         grouping_info = get_grouping_info(request.GET.get("config", None), project, event)
 
-        return HttpResponse(json.dumps(grouping_info), content_type="application/json")
+        return HttpResponse(orjson.dumps(grouping_info), content_type="application/json")

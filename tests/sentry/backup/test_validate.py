@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
@@ -7,7 +8,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 
 
-def copy_model(model: json.JSONData, new_pk: int) -> json.JSONData:
+def copy_model(model: Any, new_pk: int) -> Any:
     new_model = deepcopy(model)
     new_model["pk"] = new_pk
     return new_model

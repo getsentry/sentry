@@ -7,6 +7,7 @@ from django.conf import settings
 from urllib3 import Retry
 from urllib3.exceptions import ReadTimeoutError
 
+from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VERSION
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
@@ -51,23 +52,26 @@ class BreakpointResponse(TypedDict):
     data: list[BreakpointData]
 
 
-seer_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
+seer_grouping_connection_pool = connection_from_url(
+    settings.SEER_GROUPING_URL,
     retries=Retry(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_GROUPING_TIMEOUT,
 )
 
-seer_staging_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL,
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+seer_breakpoint_connection_pool = connection_from_url(
+    settings.SEER_BREAKPOINT_DETECTION_URL,
+    retries=Retry(
+        total=5,
+        status_forcelist=[408, 429, 502, 503, 504],
+    ),
+    timeout=settings.SEER_BREAKPOINT_DETECTION_TIMEOUT,
 )
-
 
 def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
-    response = seer_connection_pool.urlopen(
+    response = seer_breakpoint_connection_pool.urlopen(
         "POST",
         "/trends/breakpoint-detector",
         body=json.dumps(breakpoint_request),
@@ -103,7 +107,7 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
     group_id: NotRequired[int]  # TODO: Remove this once we stop sending it to seer
-    group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
+    hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class RawSeerSimilarIssueData(TypedDict):
@@ -111,7 +115,7 @@ class RawSeerSimilarIssueData(TypedDict):
     message_distance: float
     should_group: bool
     parent_group_id: NotRequired[int]  # TODO: Remove this once seer stops sending it
-    parent_group_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
+    parent_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
@@ -125,8 +129,9 @@ class SeerSimilarIssueData:
     message_distance: float
     should_group: bool
     parent_group_id: int
+    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
     # TODO: See if we end up needing the hash here
-    parent_group_hash: str | None = None
+    parent_hash: str | None = None
 
     @classmethod
     def from_raw(cls, project_id: int, raw_similar_issue_data: RawSeerSimilarIssueData) -> Self:
@@ -142,12 +147,12 @@ class SeerSimilarIssueData:
 
         """
         similar_issue_data = raw_similar_issue_data
-        parent_group_hash = raw_similar_issue_data.get("parent_group_hash")
+        parent_hash = raw_similar_issue_data.get("parent_hash")
         parent_group_id = raw_similar_issue_data.get("parent_group_id")
 
-        if not parent_group_id and not parent_group_hash:
+        if not parent_group_id and not parent_hash:
             raise IncompleteSeerDataError(
-                "Seer similar issues response missing both `parent_group_id` and `parent_group_hash`"
+                "Seer similar issues response missing both `parent_group_id` and `parent_hash`"
             )
 
         if parent_group_id:
@@ -156,7 +161,7 @@ class SeerSimilarIssueData:
 
         else:
             parent_grouphash = (
-                GroupHash.objects.filter(project_id=project_id, hash=parent_group_hash)
+                GroupHash.objects.filter(project_id=project_id, hash=parent_hash)
                 .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
                 .first()
             )
@@ -192,10 +197,10 @@ class BulkCreateGroupingRecordsResponse(TypedDict):
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
-    """Call /v0/issues/similar-issues endpoint from seer."""
-    response = seer_staging_connection_pool.urlopen(
+    """Request similar issues data from seer and normalize the results."""
+    response = seer_grouping_connection_pool.urlopen(
         "POST",
-        "/v0/issues/similar-issues",
+        SEER_SIMILAR_ISSUES_URL,
         body=json.dumps(similar_issues_request),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
