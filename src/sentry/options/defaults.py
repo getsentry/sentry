@@ -1791,8 +1791,11 @@ register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUT
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Flagpole Rollout
-register("features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.flagpole_rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
