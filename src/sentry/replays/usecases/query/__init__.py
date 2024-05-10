@@ -51,9 +51,6 @@ def handle_viewed_by_me_filters(
     search_filters: Sequence[SearchFilter | str | ParenExpression], request_user_id: int | None
 ) -> Sequence[SearchFilter | str | ParenExpression]:
     """Translate "viewed_by_me" as it's not a valid Snuba field, but a convenience alias for the frontend"""
-    if request_user_id is None:
-        request_user_id = NULL_VIEWED_BY_ID_VALUE
-
     new_filters = []
     for search_filter in search_filters:
         if (
@@ -71,8 +68,18 @@ def handle_viewed_by_me_filters(
             search_filter.value.value, str
         ) or search_filter.value.value.lower() not in ["true", "false"]:
             raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+        value = search_filter.value.value.lower() == "true"
 
-        operator = "=" if search_filter.value.value.lower() == "true" else "!="
+        if request_user_id is None:
+            if value:  # always False -- return nothing
+                return [
+                    SearchFilter(SearchKey("viewed_by_id"), "=", SearchValue(0)),
+                    "AND",
+                    SearchFilter(SearchKey("viewed_by_id"), "!=", SearchValue(0)),
+                ]
+            return []
+
+        operator = "=" if value else "!="
         new_filters.append(
             SearchFilter(
                 SearchKey("viewed_by_id"),
