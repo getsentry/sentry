@@ -204,13 +204,15 @@ export const TreeContainer = styled('div')<{columnCount: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
-  margin-left: -${space(1)};
 `;
 
 export const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};
+  &:first-child {
+    margin-left: -${space(1)};
+  }
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.innerBorder};
     padding-left: ${space(2)};

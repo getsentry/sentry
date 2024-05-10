@@ -174,7 +174,7 @@ function EventTagsTreeRowDropdown({
         {
           key: 'add-to-highlights',
           label: t('Add to event highlights'),
-          hidden: !isProjectAdmin || hideAddHighlightsOption,
+          hidden: hideAddHighlightsOption || !isProjectAdmin,
           onAction: () => {
             saveTag({
               highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
