@@ -85,7 +85,6 @@ LATEST_RELEASE_TTAS = {
     "node-gcpfunctions": 3728,
     "node-koa": 4214,
     "node-nodeawslambda": 3639,
-    "node-serverlesscloud": 11155,
     "objc": 4000209,
     "other": 12019,
     "php": 12112,
