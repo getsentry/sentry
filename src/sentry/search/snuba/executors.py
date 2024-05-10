@@ -1178,16 +1178,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             search_filter.value.raw_value,
         )
 
-    def get_first_seen_filter(
-        self, search_filter: SearchFilter, joined_entity: Entity
-    ) -> Condition:
-        # use the group first seen from the group dataset
-        return Condition(
-            Column("group_first_seen", self.entities["attrs"]),
-            Op(search_filter.operator),
-            search_filter.value.raw_value,
-        )
-
     def get_basic_group_snuba_condition(
         self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
@@ -1196,7 +1186,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         return Condition(
             Column(f"group_{search_filter.key.name}", self.entities["attrs"]),
-            Op.IN,
+            Op(search_filter.operator),
             search_filter.value.raw_value,
         )
 
@@ -1539,7 +1529,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
         "assigned_to": (get_assigned, Clauses.WHERE),
         "message": (get_message_condition, Clauses.WHERE),
-        "first_seen": (get_first_seen_filter, Clauses.WHERE),
+        "first_seen": (get_basic_group_snuba_condition, Clauses.WHERE),
         "last_seen": (get_last_seen_filter, Clauses.HAVING),
         "times_seen": (get_times_seen_filter, Clauses.HAVING),
     }

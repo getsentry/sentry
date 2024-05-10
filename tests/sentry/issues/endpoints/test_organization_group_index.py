@@ -1963,19 +1963,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.data[0]["owners"][2]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.CODEOWNERS]
 
-    def test_filter_not_unresolved(self) -> None:
-        event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date", limit=10, query="!is:unresolved", expand="inbox", collapse="stats"
-        )
-        assert response.status_code == 200
-        assert [int(r["id"]) for r in response.data] == [event.group.id]
-
     def test_default_search(self) -> None:
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -3507,6 +3494,25 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 default_user_id=self.user.id,
                 organization_id=self.organization.id,
             )
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_heavy_filter_not_unresolved(self) -> None:
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query="!is:unresolved",
+            expand="inbox",
+            collapse="stats",
+            useGroupSnubaDataset=1,
+        )
+        assert response.status_code == 200
+        assert [int(r["id"]) for r in response.data] == [event.group.id]
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
