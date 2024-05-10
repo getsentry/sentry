@@ -263,7 +263,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
         return organization.features.includes('session-replay');
       }
-      if (opt.value === DATA_CATEGORY_INFO.metrics.plural) {
+      if (opt.value === DATA_CATEGORY_INFO.metricSecond.plural) {
         return hasMetricStats(organization);
       }
       return true;
@@ -321,7 +321,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
         return organization.features.includes('session-replay');
       }
-      if (opt.value === DATA_CATEGORY_INFO.metrics.plural) {
+      if (opt.value === DATA_CATEGORY_INFO.metricSecond.plural) {
         return hasMetricStats(organization);
       }
       return true;
