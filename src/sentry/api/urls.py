@@ -1699,7 +1699,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-searches",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/sessions/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/sessions/$",
         OrganizationSessionsEndpoint.as_view(),
         name="sentry-api-0-organization-sessions",
     ),
@@ -1900,17 +1900,17 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/stats_v2/$",
         OrganizationStatsEndpointV2.as_view(),
         name="sentry-api-0-organization-stats-v2",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/stats-summary/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/stats-summary/$",
         OrganizationStatsSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-stats-summary",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/teams/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/teams/$",
         OrganizationTeamsEndpoint.as_view(),
         name="sentry-api-0-organization-teams",
     ),
@@ -2138,7 +2138,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-agnostic-rule-conditions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/$",
         ProjectDetailsEndpoint.as_view(),
         name="sentry-api-0-project-details",
     ),
@@ -2298,7 +2298,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-filters",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$",
         ProjectFilterDetailsEndpoint.as_view(),
         name="sentry-api-0-project-filters-details",
     ),
@@ -2327,7 +2327,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-group-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/$",
         ProjectKeysEndpoint.as_view(),
         name="sentry-api-0-project-keys",
     ),
@@ -2431,7 +2431,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-artifact-lookup",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/$",
         ProjectRulesEndpoint.as_view(),
         name="sentry-api-0-project-rules",
     ),
@@ -2476,7 +2476,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-rules-configuration",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/(?P<rule_id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/(?P<rule_id>\d+)/$",
         ProjectRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-details",
     ),
@@ -2591,7 +2591,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-discard-processing-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/ownership/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/ownership/$",
         ProjectOwnershipEndpoint.as_view(),
         name="sentry-api-0-project-ownership",
     ),
