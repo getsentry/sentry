@@ -310,6 +310,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     uid: 10,
   },
+  [DataCategoryExact.SPAN]: {
+    name: DataCategoryExact.SPAN,
+    apiName: 'span',
+    plural: 'spans',
+    displayName: 'spans',
+    titleName: t('Spans'),
+    uid: 12,
+  },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
@@ -318,12 +326,20 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Cron Monitors'),
     uid: 13,
   },
+  [DataCategoryExact.PROFILE_DURATION]: {
+    name: DataCategoryExact.PROFILE_DURATION,
+    apiName: 'profileSeconds',
+    plural: 'profileSeconds',
+    displayName: 'profile seconds',
+    titleName: t('Profile Seconds'),
+    uid: 17,
+  },
   [DataCategoryExact.METRIC_SECOND]: {
     name: DataCategoryExact.METRIC_SECOND,
     apiName: 'metricSecond',
-    plural: 'metrics',
-    displayName: 'metrics',
-    titleName: t('Metrics'),
+    plural: 'metricSeconds',
+    displayName: 'metric hours',
+    titleName: t('Metrics Hours'),
     uid: 19,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;

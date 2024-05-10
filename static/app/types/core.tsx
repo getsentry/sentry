@@ -67,7 +67,6 @@ export type Choice = [
 export type Choices = Choice[];
 
 /**
- * @deprecated in favour of `DataCategoryExact` and `DATA_CATEGORY_INFO`.
  * This legacy type used plurals which will cause compatibility issues when categories
  * become more complex, e.g. processed transactions, session replays. Instead, access these values
  * with `DATA_CATEGORY_INFO[category].plural`, where category is the `DataCategoryExact` enum value.
@@ -80,6 +79,8 @@ export enum DataCategory {
   PROFILES = 'profiles',
   REPLAYS = 'replays',
   MONITOR_SEATS = 'monitorSeats',
+  PROFILE_DURATION = 'profileDuration',
+  SPAN = 'span',
   METRIC_SECOND = 'metricSecond',
 }
 
@@ -98,6 +99,8 @@ export enum DataCategoryExact {
   TRANSACTION_INDEXED = 'transaction_indexed',
   MONITOR = 'monitor',
   MONITOR_SEAT = 'monitorSeat',
+  PROFILE_DURATION = 'profileDuration',
+  SPAN = 'span',
   METRIC_SECOND = 'metricSecond',
 }
 
