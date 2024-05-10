@@ -537,7 +537,7 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
     p.highlightedSliceName
       ? `
         --defaultSlice-opacity: 1.0;
-        --defaultSlice-saturate: saturate(0.5);
+        --defaultSlice-saturate: saturate(0.8);
         --defaultSlice-transform: translateY(0px);
         `
       : `
