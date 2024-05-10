@@ -81,14 +81,14 @@ def backfill_seer_grouping_records(
         .values_list("id", "message", "data")
         .order_by("id")[:BATCH_SIZE]
     )
+    if len(group_id_message_data_batch) == 0:
+        return
+
     group_id_message_batch = {
         group_id: message
         for (group_id, message, data) in group_id_message_data_batch
         if not get_path(data, "metadata", "embeddings_info", "nn_model_version")
     }
-    batch_len = len(group_id_message_batch)
-    if batch_len == 0:
-        return
 
     group_id_batch = list(group_id_message_batch.keys())
     time_now = datetime.now()
@@ -162,7 +162,7 @@ def backfill_seer_grouping_records(
                     }
             Group.objects.bulk_update(groups, ["data"])
 
-        last_processed_id = group_id_message_data_batch[batch_len - 1][0]
+        last_processed_id = group_id_message_data_batch[len(group_id_message_data_batch) - 1][0]
         redis_client.set(
             f"{LAST_PROCESSED_REDIS_KEY}",
             last_processed_id if last_processed_id is not None else 0,

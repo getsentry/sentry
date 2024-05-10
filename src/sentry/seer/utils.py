@@ -7,7 +7,11 @@ from django.conf import settings
 from urllib3 import Retry
 from urllib3.exceptions import ReadTimeoutError
 
-from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VERSION
+from sentry.conf.server import (
+    SEER_GROUPING_RECORDS_URL,
+    SEER_SIMILAR_ISSUES_URL,
+    SEER_SIMILARITY_MODEL_VERSION,
+)
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
@@ -54,10 +58,6 @@ class BreakpointResponse(TypedDict):
 
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
-    retries=Retry(
-        total=5,
-        status_forcelist=[408, 429, 502, 503, 504],
-    ),
     timeout=settings.SEER_GROUPING_TIMEOUT,
 )
 
@@ -256,9 +256,9 @@ def post_bulk_grouping_records(
     }
 
     try:
-        response = seer_staging_connection_pool.urlopen(
+        response = seer_grouping_connection_pool.urlopen(
             "POST",
-            "/v0/issues/similar-issues/grouping-record",
+            SEER_GROUPING_RECORDS_URL,
             body=json.dumps(grouping_records_request),
             headers={"Content-Type": "application/json;charset=utf-8"},
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
