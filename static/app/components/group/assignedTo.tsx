@@ -255,8 +255,6 @@ function AssignedTo({
     };
   }, [api, event, organization, project.slug]);
 
-  useEffect(() => {}, []);
-
   const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
 
   const makeTrigger = (props: any, isOpen: boolean) => {
