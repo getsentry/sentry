@@ -68,18 +68,17 @@ class OccurrenceTestMixin:
         return IssueOccurrence.from_dict(self.build_occurrence_data(**overrides))
 
     def process_occurrence(
-        self, event_data: dict[str, Any] | None = None, **overrides
+        self, event_data: dict[str, Any], **overrides
     ) -> tuple[IssueOccurrence, GroupInfo | None]:
         """
         Testutil to build and process occurrence data instead of going through Kafka.
         This ensures the occurrence data is well-formed.
         """
         occurrence_data = self.build_occurrence_data(**overrides)
-        if event_data:
-            if "event_id" not in event_data:
-                event_data["event_id"] = occurrence_data["event_id"]
-            if "project_id" not in event_data:
-                event_data["project_id"] = occurrence_data["project_id"]
+        if "event_id" not in event_data:
+            event_data["event_id"] = occurrence_data["event_id"]
+        if "project_id" not in event_data:
+            event_data["project_id"] = occurrence_data["project_id"]
         return process_event_and_issue_occurrence(occurrence_data, event_data)
 
 
