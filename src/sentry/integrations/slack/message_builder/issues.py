@@ -328,8 +328,6 @@ def get_suspect_commit_text(group: Group) -> str | None:
     pull_request = PullRequest.objects.filter(
         merge_commit_sha=commit.key, organization_id=group.project.organization_id
     ).first()
-    if not pull_request:
-        return None
 
     author = commit.author
     commit_id = commit.key
