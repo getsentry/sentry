@@ -379,11 +379,10 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
     from sentry.services import hybrid_cloud as hybrid_cloud_service_pkg
 
     # Forcibly import all service packages to ensure the global registry is fully populated
-    for (importer, name, is_pkg) in pkgutil.iter_modules(hybrid_cloud_service_pkg.__path__):
-        if is_pkg:
-            module = importer.find_module(name)  # type: ignore[call-arg] mypy infers union but we only get one side of it
-            if module:
-                module.load_module(name)
+    for (_, name, _) in pkgutil.iter_modules(
+        hybrid_cloud_service_pkg.__path__, prefix=f"{hybrid_cloud_service_pkg.__name__}."
+    ):
+        __import__(name)
 
     for service_obj in _global_service_registry.values():
         yield from service_obj.get_all_signatures()
