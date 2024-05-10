@@ -434,10 +434,11 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
         # Same as previous test, but this time with monitors created after
         # the tombstone has been processed
+        start_id = monitor.id + 10
         affected_monitors.extend(
             [
                 Monitor.objects.create(
-                    id=10 + i * 2,  # Ensure that each monitor is in its own batch
+                    id=start_id + i * 2,  # Ensure that each monitor is in its own batch
                     organization_id=organization.id,
                     project_id=project.id,
                     slug=f"test-monitor-{i}",
