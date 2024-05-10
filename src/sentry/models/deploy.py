@@ -1,24 +1,62 @@
-from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_model
-
-"""
-sentry.models.deploy
-~~~~~~~~~~~~~~~~~~~~
-"""
-
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    region_silo_model,
 )
+from sentry.db.models.manager import BaseManager
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.locks import locks
+from sentry.models.environment import Environment
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import TimedRetryPolicy
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+    from sentry.models.release import Release
+    from sentry.snuba.models import QuerySubscription
+
+
+class DeployModelManager(BaseManager["Deploy"]):
+    @staticmethod
+    def subscribe_project_to_alert_rule(
+        project: Project, release: Release, env_id: int, activator: str, trigger: str
+    ) -> list[QuerySubscription]:
+        """
+        TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
+
+        NOTE: import AlertRule model here to avoid circular dependency
+        """
+        from sentry.incidents.models.alert_rule import AlertRule
+
+        query_extra = f"release:{release.version} and env_id:{env_id}"
+        return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
+            project=project,
+            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
+            query_extra=query_extra,
+            origin=trigger,
+            activator=activator,
+        )
+
+    def post_save(self, instance, created, **kwargs):
+        if created:
+            release = instance.release
+            projects = release.projects.all()
+            env_id = instance.environment_id
+            for project in projects:
+                self.subscribe_project_to_alert_rule(
+                    project=project,
+                    release=release,
+                    env_id=env_id,
+                    trigger="deploy.post_save",
+                )
 
 
 @region_silo_model
@@ -33,6 +71,8 @@ class Deploy(Model):
     name = models.CharField(max_length=64, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     notified = models.BooleanField(null=True, db_index=True, default=False)
+
+    objects: ClassVar[DeployModelManager] = DeployModelManager()
 
     class Meta:
         app_label = "sentry"
@@ -49,7 +89,6 @@ class Deploy(Model):
         if they haven't been sent
         """
         from sentry.models.activity import Activity
-        from sentry.models.environment import Environment
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
