@@ -6,6 +6,7 @@ import EventTagsTreeRow, {
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
@@ -131,8 +132,15 @@ function TagTreeColumns({
   ...props
 }: EventTagsTreeProps & {columnCount: number}) {
   const organization = useOrganization();
-  const {data: project} = useDetailedProject({orgSlug: organization.slug, projectSlug});
+  const {data: project, isLoading} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug,
+  });
   const assembledColumns = useMemo(() => {
+    if (isLoading) {
+      return <TreeLoadingIndicator hideMessage />;
+    }
+
     if (!project) {
       return [];
     }
@@ -182,7 +190,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [meta, tags, props, columnCount, project]);
+  }, [columnCount, isLoading, project, props, tags, meta]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
@@ -222,6 +230,10 @@ export const TreeColumn = styled('div')`
     border-right: 1px solid ${p => p.theme.innerBorder};
     padding-right: ${space(2)};
   }
+`;
+
+export const TreeLoadingIndicator = styled(LoadingIndicator)`
+  grid-column: 1 /-1;
 `;
 
 export default EventTagsTree;
