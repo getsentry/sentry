@@ -5,7 +5,6 @@ import logging
 import uuid
 from datetime import timedelta
 from enum import Enum
-from itertools import chain
 from typing import Any, TypedDict
 
 from django.conf import settings
@@ -22,7 +21,7 @@ from sentry.utils import json, metrics, redis
 logger = logging.getLogger(__name__)
 
 MAX_ERRORS_PER_SET = 10
-MONITOR_ERRORS_LIFETIME = timedelta(days=1)
+MONITOR_ERRORS_LIFETIME = timedelta(days=7)
 
 
 class ProcessingErrorType(Enum):
@@ -142,19 +141,27 @@ class CheckinProcessErrorsManager:
             except Monitor.DoesNotExist:
                 pass
         if monitor:
-            error_identifier = self.build_monitor_identifier(monitor)
+            entity_identifier = self.build_monitor_identifier(monitor)
         else:
-            error_identifier = self.build_project_identifier(error.checkin.message["project_id"])
+            entity_identifier = self.build_project_identifier(error.checkin.message["project_id"])
 
-        error_key = f"monitors.processing_errors.{error_identifier}"
+        error_set_key = self.build_set_identifier(entity_identifier)
+        error_key = self.build_error_identifier(entity_identifier, error.id)
         serialized_error = json.dumps(error.to_dict())
         redis_client = self._get_cluster()
         pipeline = redis_client.pipeline(transaction=False)
-        pipeline.zadd(error_key, {serialized_error: error.checkin.ts.timestamp()})
+        pipeline.zadd(error_set_key, {error.id.hex: error.checkin.ts.timestamp()})
+        pipeline.set(error_key, serialized_error, ex=MONITOR_ERRORS_LIFETIME)
         # Cap the error list to the `MAX_ERRORS_PER_SET` most recent errors
-        pipeline.zremrangebyrank(error_key, 0, -(MAX_ERRORS_PER_SET + 1))
-        pipeline.expire(error_key, MONITOR_ERRORS_LIFETIME)
+        pipeline.zremrangebyrank(error_set_key, 0, -(MAX_ERRORS_PER_SET + 1))
+        pipeline.expire(error_set_key, MONITOR_ERRORS_LIFETIME)
         pipeline.execute()
+
+    def build_set_identifier(self, entity_identifier: str) -> str:
+        return f"monitors.processing_errors_set.{entity_identifier}"
+
+    def build_error_identifier(self, entity_identifier: str, uuid: uuid.UUID) -> str:
+        return f"monitors.processing_errors.{entity_identifier}.{uuid.hex}"
 
     def build_monitor_identifier(self, monitor: Monitor) -> str:
         return f"monitor:{monitor.id}"
@@ -170,16 +177,20 @@ class CheckinProcessErrorsManager:
             [self.build_project_identifier(project.id) for project in projects]
         )
 
-    def _get_for_entities(self, identifiers: list[str]) -> list[CheckinProcessingError]:
+    def _get_for_entities(self, entity_identifiers: list[str]) -> list[CheckinProcessingError]:
         redis = self._get_cluster()
         pipeline = redis.pipeline()
-        for identifier in identifiers:
-            pipeline.zrange(
-                f"monitors.processing_errors.{identifier}", 0, MAX_ERRORS_PER_SET, desc=True
-            )
+        for identifier in entity_identifiers:
+            pipeline.zrange(self.build_set_identifier(identifier), 0, MAX_ERRORS_PER_SET, desc=True)
+        error_identifiers = [
+            self.build_error_identifier(entity_identifier, uuid.UUID(error_identifier))
+            for entity_identifier, error_identifiers in zip(entity_identifiers, pipeline.execute())
+            for error_identifier in error_identifiers
+        ]
         errors = [
             CheckinProcessingError.from_dict(json.loads(raw_error))
-            for raw_error in chain(*pipeline.execute())
+            for raw_error in redis.mget(error_identifiers)
+            if raw_error is not None
         ]
         errors.sort(key=lambda error: error.checkin.ts.timestamp(), reverse=True)
         return errors
