@@ -1574,6 +1574,12 @@ function buildRoutes() {
           <IndexRoute
             component={make(() => import('sentry/views/performance/mobile/ui'))}
           />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/performance/mobile/ui/screenSummary')
+            )}
+          />
         </Route>
       </Route>
       <Route path="traces/">
