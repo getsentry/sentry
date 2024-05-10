@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest import mock
 
 import pytest
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.enhancer.matchers import create_match_frame
+from sentry.grouping.enhancer.matchers import _cached, create_match_frame
 
 
 def dump_obj(obj):
@@ -494,3 +495,17 @@ def test_app_no_matches(frame):
     enhancements = Enhancements.from_config_string("app:no +app")
     enhancements.apply_modifications_to_frame([frame], "native", {})
     assert frame.get("in_app")
+
+
+def test_cached_with_kwargs():
+    """Order of kwargs should not matter"""
+
+    foo = mock.Mock()
+
+    cache: dict[object, object] = {}
+    _cached(cache, foo, kw1=1, kw2=2)
+    assert foo.call_count == 1
+
+    # Call with different kwargs order - call_count is still one:
+    _cached(cache, foo, kw2=2, kw1=1)
+    assert foo.call_count == 1

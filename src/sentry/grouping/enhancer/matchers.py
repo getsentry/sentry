@@ -4,11 +4,27 @@ from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils import metrics
-from sentry.utils.functional import cached
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
 from .exceptions import InvalidEnhancerConfig
+
+
+def _cached(cache, function, *args, **kwargs):
+    """Calls ``function`` or retrieves its return value from the ``cache``.
+
+    This is similar to ``functools.cache``, but uses a custom cache instead
+    of a global one. The cache can be shared between multiple functions.
+    """
+    key = (function, args, tuple(sorted(kwargs.items())))
+
+    if key in cache:
+        rv = cache[key]
+    else:
+        rv = cache[key] = function(*args)
+
+    return rv
+
 
 MATCH_KEYS = {
     "path": "p",
@@ -190,7 +206,7 @@ class FrameMatch(Match):
 
 
 def path_like_match(pattern, value):
-    """Stand-alone function for use with ``cached``"""
+    """Stand-alone function for use with ``_cached``"""
     if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
         return True
     if not value.startswith(b"/") and glob_match(
@@ -213,7 +229,7 @@ class PathLikeMatch(FrameMatch):
         if value is None:
             return False
 
-        return cached(cache, path_like_match, self._encoded_pattern, value)
+        return _cached(cache, path_like_match, self._encoded_pattern, value)
 
 
 class PackageMatch(PathLikeMatch):
@@ -254,7 +270,7 @@ class FrameFieldMatch(FrameMatch):
         if field == self._encoded_pattern:
             return True
 
-        return cached(cache, glob_match, field, self._encoded_pattern)
+        return _cached(cache, glob_match, field, self._encoded_pattern)
 
 
 class FunctionMatch(FrameFieldMatch):
@@ -281,7 +297,7 @@ class ExceptionFieldMatch(FrameMatch):
 
     def _positive_frame_match(self, frame_data, exception_data, cache):
         field = get_path(exception_data, *self.field_path) or "<unknown>"
-        return cached(cache, glob_match, field, self._encoded_pattern)
+        return _cached(cache, glob_match, field, self._encoded_pattern)
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):
