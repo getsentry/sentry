@@ -86,6 +86,19 @@ class PullRequest(Model):
         text = f"{self.message} {self.title}"
         return find_referenced_groups(text, self.organization_id)
 
+    def get_external_url(self) -> str:
+        from sentry.models.repository import Repository
+        from sentry.plugins.base import bindings
+
+        repository = Repository.objects.get(id=self.repository_id)
+
+        provider_id = repository.provider
+        if not provider_id or not provider_id.startswith("integrations:"):
+            return None
+        provider_cls = bindings.get("integration-repository.provider").get(provider_id)
+        provider = provider_cls(provider_id)
+        return provider.pull_request_url(repository, self)
+
 
 @region_silo_model
 class PullRequestCommit(Model):
