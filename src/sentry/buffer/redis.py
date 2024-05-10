@@ -66,7 +66,7 @@ class BufferHookRegistry:
     def add_handler(self, key: BufferHookEvent, func: Callable[..., Any]) -> None:
         self._registry[key] = func
 
-    def has(self, key: BufferHookEvent):
+    def has(self, key: BufferHookEvent) -> bool:
         return self._registry.get(key) is not None
 
     def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
