@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.http.request import HttpRequest
 from django.urls import reverse
+from django.utils.functional import classproperty
 from django.utils.translation import gettext_lazy as _
 from fido2 import cbor
 from fido2.client import ClientData
@@ -19,7 +20,6 @@ from sentry import options
 from sentry.auth.authenticators.base import EnrollmentStatus
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
-from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
