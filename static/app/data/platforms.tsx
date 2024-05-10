@@ -404,6 +404,20 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/express/',
   },
   {
+    id: 'node-fastify',
+    name: 'Fastify',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/fastify/',
+  },
+  {
+    id: 'node-hapi',
+    name: 'Hapi',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/',
+  },
+  {
     id: 'node-gcpfunctions',
     name: 'Google Cloud Functions (Node)',
     type: 'framework',
@@ -416,6 +430,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/koa/',
+  },
+  {
+    id: 'node-nestjs',
+    name: 'Nest.js',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/',
   },
   {
     id: 'php',
