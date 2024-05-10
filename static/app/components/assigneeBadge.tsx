@@ -44,7 +44,11 @@ export function AssigneeBadge({
             marginLeft: actor.type === 'team' ? space(0.5) : space(0),
           }}
         />
-        {showLabel && <div>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</div>}
+        {showLabel && (
+          <div
+            style={{color: theme.textColor}}
+          >{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</div>
+        )}
         <Chevron direction={chevronDirection} size="small" />
       </Fragment>
     );
@@ -82,7 +86,7 @@ export function AssigneeBadge({
         </TooltipWrapper>
       }
     >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} style={{color: theme.textColor}} />
+      <StyledTag icon={makeAssignedIcon(assignedTo)} />
     </Tooltip>
   ) : (
     <Tooltip
