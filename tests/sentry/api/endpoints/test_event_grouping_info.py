@@ -32,7 +32,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         url = reverse(
             "sentry-api-0-event-grouping-info",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
@@ -51,7 +51,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         url = reverse(
             "sentry-api-0-event-grouping-info",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
@@ -69,7 +69,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         url = reverse(
             "sentry-api-0-event-grouping-info",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
@@ -100,7 +100,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         url = reverse(
             "sentry-api-0-event-grouping-info",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "event_id": "fake-event-id",
             },

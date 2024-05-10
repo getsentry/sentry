@@ -189,7 +189,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List an Organization's Members",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -299,7 +299,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Add a Member to an Organization",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
         ],
         request=OrganizationMemberRequestSerializer,
         responses={
