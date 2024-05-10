@@ -177,7 +177,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 result = inbox_search(**query_kwargs)
             else:
 
-                def use_group_snuba_dataset():
+                def use_group_snuba_dataset() -> bool:
                     # if useGroupSnubaDataset we consider using the snuba dataset
                     if not request.GET.get("useGroupSnubaDataset"):
                         return False
