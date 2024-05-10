@@ -96,4 +96,6 @@ class FeatureHandlerStrategy(Enum):
     REMOTE = 2
     """Handle the feature using a remote flag management service"""
     OPTIONS = 3
-    """Handle the feature using options"""
+    """Handle the feature using options. see https://develop.sentry.dev/feature-flags/#building-your-options-based-feature
+    for more information.
+    """
