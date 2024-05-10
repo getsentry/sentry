@@ -990,11 +990,11 @@ def process_replay_link(job: PostProcessJob) -> None:
 
 
 def process_rules(job: PostProcessJob) -> None:
-    from sentry.buffer.redis import BufferHookEvent, BufferHookRegistry
+    from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
     from sentry.rules.processing.delayed_processing import process_delayed_alert_conditions
 
-    if not BufferHookRegistry._registry.get(BufferHookEvent.FLUSH):
-        BufferHookRegistry.add_callback(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
+    if not redis_buffer_registry.has(BufferHookEvent.FLUSH):
+        redis_buffer_registry.add_callback(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
 
     if job["is_reprocessed"]:
         return
