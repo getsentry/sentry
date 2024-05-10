@@ -140,7 +140,7 @@ class ArtifactLookupTest(APITestCase):
         self.login_as(user=self.user)
 
         url = reverse(
-            "sentry-api-0-project-artifact-lookup",
+            "organization_id_or_slug",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
@@ -205,7 +205,7 @@ class ArtifactLookupTest(APITestCase):
         self.login_as(user=self.user)
 
         url = reverse(
-            "sentry-api-0-project-artifact-lookup",
+            "organization_id_or_slug",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
@@ -245,7 +245,7 @@ class ArtifactLookupTest(APITestCase):
         self.login_as(user=self.user)
 
         url = reverse(
-            "sentry-api-0-project-artifact-lookup",
+            "organization_id_or_slug",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
@@ -266,7 +266,7 @@ class ArtifactLookupTest(APITestCase):
         self.login_as(user=self.user)
 
         url = reverse(
-            "sentry-api-0-project-artifact-lookup",
+            "organization_id_or_slug",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
@@ -356,7 +356,7 @@ class ArtifactLookupTest(APITestCase):
         self.login_as(user=self.user)
 
         url = reverse(
-            "sentry-api-0-project-artifact-lookup",
+            "organization_id_or_slug",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
@@ -504,7 +504,7 @@ class ArtifactLookupTest(APITestCase):
             self.login_as(user=self.user)
 
             url = reverse(
-                "sentry-api-0-project-artifact-lookup",
+                "organization_id_or_slug",
                 kwargs={
                     "organization_slug": self.project.organization.slug,
                     "project_id_or_slug": self.project.slug,
@@ -575,7 +575,7 @@ class ArtifactLookupTest(APITestCase):
             self.login_as(user=self.user)
 
             url = reverse(
-                "sentry-api-0-project-artifact-lookup",
+                "organization_id_or_slug",
                 kwargs={
                     "organization_slug": self.project.organization.slug,
                     "project_id_or_slug": self.project.slug,
@@ -635,7 +635,7 @@ class ArtifactLookupTest(APITestCase):
         self.login_as(user=self.user)
 
         url = reverse(
-            "sentry-api-0-project-artifact-lookup",
+            "organization_id_or_slug",
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
@@ -657,7 +657,7 @@ class ArtifactLookupTest(APITestCase):
         other_org = self.create_organization(name="other-org", owner=other_user)
         other_project = self.create_project(organization=other_org)
         url = reverse(
-            "sentry-api-0-project-artifact-lookup",
+            "organization_id_or_slug",
             kwargs={
                 "organization_slug": other_org.slug,
                 "project_id_or_slug": other_project.slug,

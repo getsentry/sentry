@@ -105,7 +105,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization_id_or_slugn.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )
@@ -314,24 +314,24 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         bundle_file.putfile(compressed)
 
         artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
+            organization_id_or_slugn_id=self.organization_id_or_slugn.id,
             bundle_id=uuid4(),
             file=bundle_file,
             artifact_count=2,
         )
         ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
+            organization_id_or_slugn_id=self.organization_id_or_slugn.id,
             project_id=self.project.id,
             artifact_bundle=artifact_bundle,
         )
         DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
+            organization_id_or_slugn_id=self.organization_id_or_slugn.id,
             debug_id=debug_id,
             artifact_bundle=artifact_bundle,
             source_file_type=SourceFileType.MINIFIED_SOURCE.value,
         )
         DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
+            organization_id_or_slugn_id=self.organization_id_or_slugn.id,
             debug_id=debug_id,
             artifact_bundle=artifact_bundle,
             source_file_type=SourceFileType.SOURCE_MAP.value,
