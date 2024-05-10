@@ -514,7 +514,8 @@ function ProviderNonMemo({
             // common to both
             root,
           })
-        : new VideoReplayer(videoEvents, {
+        : // If the replay has no gestures, we should hide the rrweb canvas
+          new VideoReplayer(videoEvents, {
             videoApiPrefix: `/api/0/projects/${
               organization.slug
             }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
