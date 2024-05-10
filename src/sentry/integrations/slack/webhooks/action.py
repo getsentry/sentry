@@ -39,7 +39,6 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum
-from sentry.utils import json
 
 from ..utils import logger
 
@@ -425,7 +424,7 @@ class SlackActionEndpoint(Endpoint):
                 headers = {"content-type": "application/json; charset=utf-8"}
                 slack_client.post(
                     "/views.open",
-                    data=json.orjson.dumps(payload).decode(),
+                    data=orjson.dumps(payload).decode(),
                     headers=headers,
                 )
             except ApiError as e:
