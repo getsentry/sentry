@@ -175,8 +175,8 @@ class FingerprintingRules:
     def __init__(
         self,
         rules: Sequence[Rule],
-        changelog: Sequence[object] = None,
-        version: int = None,
+        changelog: Sequence[object] | None = None,
+        version: int | None = None,
         bases: Sequence[object] | None = None,
     ) -> None:
         if version is None:
@@ -196,7 +196,7 @@ class FingerprintingRules:
 
     def get_fingerprint_values_for_event(self, event: dict[str, object]) -> None | object:
         if not (self.bases or self.rules):
-            return
+            return None
         access = EventAccess(event)
         for rule in self.iter_rules():
             new_values = rule.get_fingerprint_values_for_event_access(access)
@@ -311,7 +311,7 @@ class Match:
         self.negated = negated
 
     @property
-    def match_group(self) -> list[dict[str, str]]:
+    def match_group(self) -> str:
         if self.key == "message":
             return "toplevel"
         if self.key in ("logger", "level"):
@@ -328,7 +328,7 @@ class Match:
             return "release"
         return "frames"
 
-    def matches(self, values: dict[str, object]) -> None:
+    def matches(self, values: dict[str, object]) -> bool:
         rv = self._positive_match(values)
         if self.negated:
             rv = not rv
@@ -440,7 +440,7 @@ class Rule:
                 if all(x.matches(values) for x in matchers):
                     break
             else:
-                return
+                return None
 
         return self.fingerprint, self.attributes
 
@@ -473,7 +473,7 @@ class Rule:
         return cls._from_config_structure(json)
 
     @property
-    def text(self) -> list[dict[str, str]]:
+    def text(self) -> str:
         return (
             '%s -> "%s" %s'
             % (
@@ -561,10 +561,10 @@ class FingerprintingVisitor(NodeVisitorBase):
             raise InvalidFingerprintingConfig("Unknown attribute '%s'" % key)
         return (key, value)
 
-    def visit_quoted(self, node: NodeVisitorBase, _: Sequence[object]) -> None:
+    def visit_quoted(self, node: NodeVisitorBase, _: Sequence[object]) -> str:
         return unescape_string(node.text[1:-1])
 
-    def visit_unquoted(self, node: NodeVisitorBase, _: Sequence[object]) -> None:
+    def visit_unquoted(self, node: NodeVisitorBase, _: Sequence[object]) -> str:
         return node.text
 
     visit_unquoted_no_comma = visit_unquoted
@@ -572,10 +572,10 @@ class FingerprintingVisitor(NodeVisitorBase):
     def generic_visit(self, _: NodeVisitorBase, children: Sequence[object]) -> None:
         return children
 
-    def visit_key(self, node: NodeVisitorBase, _: Sequence[object]) -> None:
+    def visit_key(self, node: NodeVisitorBase, _: Sequence[object]) -> str:
         return node.text
 
-    def visit_quoted_key(self, node: NodeVisitorBase, _: Sequence[object]) -> None:
+    def visit_quoted_key(self, node: NodeVisitorBase, _: Sequence[object]) -> str:
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
 
