@@ -18,7 +18,6 @@ describe('Related Issues View', function () {
   const group2 = '20';
   // query=issue.id:[15,20] -> query=issue.id%3A%5B15%2C20%5D
   const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/?query=issue.id%3A%5B${group1}%2C${group2}%5D`;
-  // const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/?query=issue.id:[${group1},${group2}]`;
 
   const params = {groupId: groupId};
   const errorType = 'RuntimeError';
