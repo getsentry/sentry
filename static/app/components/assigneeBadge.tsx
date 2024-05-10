@@ -10,12 +10,12 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Actor} from 'sentry/types';
+import type {Actor, SuggestedOwnerReason} from 'sentry/types';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
-  assignmentReason?: string;
+  assignmentReason?: SuggestedOwnerReason;
   chevronDirection?: 'up' | 'down';
   loading?: boolean;
   showLabel?: boolean;
@@ -30,6 +30,17 @@ export function AssigneeBadge({
   chevronDirection = 'down',
   loading = false,
 }: AssigneeBadgeProps) {
+  const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
+    suspectCommit: tct('Based on [commit:commit data]', {
+      commit: (
+        <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
+      ),
+    }),
+    ownershipRule: t('Matching Issue Owners Rule'),
+    projectOwnership: t('Matching Issue Owners Rule'),
+    codeowners: t('Matching Codeowners Rule'),
+  };
+
   const makeAssignedIcon = (actor: Actor) => {
     return (
       <Fragment>
@@ -38,6 +49,7 @@ export function AssigneeBadge({
           className="avatar"
           size={AVATAR_SIZE}
           hasTooltip={false}
+          data-test-id="assigned-avatar"
           // Team avatars need extra left margin since the
           // square team avatar is being fit into a rounded borders
           style={{
@@ -82,7 +94,9 @@ export function AssigneeBadge({
         <TooltipWrapper>
           {t('Assigned to ')}
           {assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name}
-          {assignmentReason && <TooltipSubtext>{assignmentReason}</TooltipSubtext>}
+          {assignmentReason && (
+            <TooltipSubtext>{suggestedReasons[assignmentReason]}</TooltipSubtext>
+          )}
         </TooltipWrapper>
       }
     >

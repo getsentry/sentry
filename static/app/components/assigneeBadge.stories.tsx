@@ -48,7 +48,11 @@ export default storyBook(AssigneeBadge, story => {
     return (
       <Fragment>
         <p onClick={() => setChevron1Toggle(chevron1Toggle === 'up' ? 'down' : 'up')}>
-          <AssigneeBadge assignedTo={teamActor} chevronDirection={chevron1Toggle} />
+          <AssigneeBadge
+            assignmentReason="suspectCommit"
+            assignedTo={teamActor}
+            chevronDirection={chevron1Toggle}
+          />
         </p>
         <p onClick={() => setChevron2Toggle(chevron2Toggle === 'up' ? 'down' : 'up')}>
           <AssigneeBadge
