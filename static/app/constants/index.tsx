@@ -337,7 +337,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.METRIC_SECOND]: {
     name: DataCategoryExact.METRIC_SECOND,
     apiName: 'metricSecond',
-    plural: 'metric hours',
+    plural: 'metricSeconds',
     displayName: 'metric hours',
     titleName: t('Metrics Hours'),
     uid: 19,
