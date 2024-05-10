@@ -5,10 +5,10 @@ from html import escape
 from typing import ClassVar, Union
 
 from django.conf import settings
+from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 
 from sentry.utils.canonical import get_canonical_name
-from sentry.utils.decorators import classproperty
 from sentry.utils.imports import import_string
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path, safe_execute
