@@ -80,7 +80,7 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
   ${p => `
     transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
   `}
-  transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export function TraceBreakdownRenderer({
@@ -107,6 +107,7 @@ export function TraceBreakdownRenderer({
             sliceName={breakdown.project}
             sliceStart={breakdown.start}
             sliceEnd={breakdown.end}
+            sliceDurationReal={breakdown.duration}
             sliceSecondaryName={breakdown.sdkName}
             trace={trace}
             theme={theme}
@@ -136,6 +137,7 @@ export function SpanBreakdownSliceRenderer({
   sliceName,
   sliceStart,
   sliceEnd,
+  sliceDurationReal,
   sliceSecondaryName,
   onMouseEnter,
   offset,
@@ -148,6 +150,7 @@ export function SpanBreakdownSliceRenderer({
   theme: Theme;
   trace: TraceResult<Field>;
   offset?: number;
+  sliceDurationReal?: number;
 }) {
   const traceSliceSize = (trace.end - trace.start) / BREAKDOWN_NUM_SLICES;
   const traceDuration = BREAKDOWN_NUM_SLICES * traceSliceSize;
@@ -184,7 +187,10 @@ export function SpanBreakdownSliceRenderer({
               <Subtext>({getShortenedSdkName(sliceSecondaryName)})</Subtext>
             </FlexContainer>
             <div>
-              <PerformanceDuration milliseconds={sliceDuration} abbreviation />
+              <PerformanceDuration
+                milliseconds={sliceDurationReal ?? sliceDuration}
+                abbreviation
+              />
             </div>
           </div>
         }
