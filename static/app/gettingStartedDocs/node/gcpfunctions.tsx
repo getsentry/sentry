@@ -62,7 +62,9 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'json',
-          configurations: getInstallConfig(params, {basePackage: '@sentry/google-cloud-functions'})
+          configurations: getInstallConfig(params, {
+            basePackage: '@sentry/google-cloud-functions',
+          }),
         },
       ],
     },
@@ -113,7 +115,9 @@ const customMetricsOnboarding: OnboardingConfig = {
           codePackage: <code />,
         }
       ),
-      configurations: getInstallConfig(params, {basePackage: '@sentry/google-cloud-functions'}),
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/google-cloud-functions',
+      }),
     },
   ],
   configure: params => [

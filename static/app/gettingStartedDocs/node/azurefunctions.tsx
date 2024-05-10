@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getInstallConfig,getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
+import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -58,7 +58,7 @@ const onboarding: OnboardingConfig = {
         {
           language: 'javascript',
           code: getSdkSetupSnippet(params),
-        }
+        },
       ],
     },
     getUploadSourceMapsStep({
