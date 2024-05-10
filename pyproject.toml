@@ -651,6 +651,7 @@ module = [
     "tests.sentry.issues.test_ignored",
     "tests.sentry.issues.test_ingest",
     "tests.sentry.issues.test_issue_occurrence",
+    "tests.sentry.issues.test_issue_velocity",
     "tests.sentry.issues.test_json_schemas",
     "tests.sentry.issues.test_merge",
     "tests.sentry.issues.test_occurrence_consumer",
