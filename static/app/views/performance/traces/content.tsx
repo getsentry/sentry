@@ -529,6 +529,7 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
   ${p =>
     p.highlightedSliceName
       ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
+         --highlightedSlice-${p.highlightedSliceName}-saturate: saturate(1.0);
          --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
        `
       : null}
@@ -536,10 +537,12 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
     p.highlightedSliceName
       ? `
         --defaultSlice-opacity: 1.0;
+        --defaultSlice-saturate: saturate(0.5);
         --defaultSlice-transform: translateY(0px);
         `
       : `
         --defaultSlice-opacity: 1.0;
+        --defaultSlice-saturate: saturate(1.0);
         --defaultSlice-transform: translateY(0px);
         `}
 `;
