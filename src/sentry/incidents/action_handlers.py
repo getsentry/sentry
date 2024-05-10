@@ -19,11 +19,11 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.snuba.metrics import format_mri_field, is_mri_field
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -128,7 +128,7 @@ class EmailActionHandler(ActionHandler):
             users = None
             out = get_notification_recipients(
                 recipients=list(
-                    RpcActor(id=member.user_id, actor_type=ActorType.USER)
+                    Actor(id=member.user_id, actor_type=ActorType.USER)
                     for member in target.member_set
                 ),
                 type=NotificationSettingEnum.ISSUE_ALERTS,

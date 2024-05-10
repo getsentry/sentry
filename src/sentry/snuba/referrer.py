@@ -489,6 +489,15 @@ class Referrer(Enum):
         "api.performance.http.samples-panel-response-code-samples"
     )
 
+    # Performance Span Summary Page and Span Metrics
+    API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA = "api.performance.span-summary-header-data"
+    API_PERFORMANCE_SPAN_SUMMARY_TABLE = "api.performance.span-summary-table"
+    API_PERFORMANCE_SPAN_SUMMARY_DURATION_CHART = "api.performance.span-summary-duration-chart"
+    API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART = "api.performance.span-summary-throughput-chart"
+    API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART = (
+        "api.performance.span-summary-transaction-throughput-chart"
+    )
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from time import time
 from typing import Any
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
@@ -26,7 +27,7 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.dates import to_datetime
 from sentry.utils.safe import safe_execute
@@ -303,14 +304,13 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
 
 @sentry_sdk.tracing.trace
 def normalize_event(data: Any) -> Any:
-    json_loads, json_dumps = json.methods_for_experiment("relay.enable-orjson")
     normalizer = StoreNormalizer(
         remove_other=False,
         is_renormalize=True,
-        json_dumps=json_dumps,
+        json_dumps=orjson.dumps,
         **DEFAULT_STORE_NORMALIZER_ARGS,
     )
-    return normalizer.normalize_event(dict(data), json_loads=json_loads)
+    return normalizer.normalize_event(dict(data), json_loads=orjson.loads)
 
 
 def do_process_event(

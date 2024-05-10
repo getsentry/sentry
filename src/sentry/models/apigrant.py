@@ -1,6 +1,6 @@
 import secrets
 from datetime import timedelta
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db import models
 from django.utils import timezone
@@ -10,7 +10,6 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import ArrayField, FlexibleForeignKey, Model, control_silo_model
-from sentry.utils.json import JSONData
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 
@@ -86,7 +85,7 @@ class ApiGrant(Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

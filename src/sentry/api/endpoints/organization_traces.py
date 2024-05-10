@@ -4,7 +4,7 @@ import math
 from collections import defaultdict
 from collections.abc import Callable, Mapping, MutableMapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -40,6 +40,8 @@ class TraceInterval(TypedDict):
     end: int
     kind: Literal["project", "missing", "other"]
     opCategory: str | None
+    duration: int
+    components: NotRequired[list[tuple[int, int]]]
 
 
 class TraceResult(TypedDict):
@@ -357,12 +359,17 @@ class TraceSamplesExecutor:
                 return min_timestamp, max_timestamp, [], []
         else:
             # No user queries so take the first N trace ids as our list
+            min_timestamp = snuba_params.end
+            max_timestamp = snuba_params.start
+            assert min_timestamp is not None
+            assert max_timestamp is not None
+
             trace_ids = trace_ids[: self.limit]
             timestamps = timestamps[: self.limit]
             for timestamp in timestamps:
                 if timestamp < min_timestamp:
                     min_timestamp = timestamp
-                if timestamp < max_timestamp:
+                if timestamp > max_timestamp:
                     max_timestamp = timestamp
 
         self.refine_params(min_timestamp, max_timestamp)
@@ -962,25 +969,29 @@ class TraceSamplesExecutor:
 def quantize_range(span_start, span_end, trace_range):
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
-    min_duration = trace_range["min"]
 
-    span_duration = span_end - span_start
+    bin_size = trace_range["min"]
 
-    if min_duration > 0:
-        rounded_start = (
-            round((span_start - trace_start) / min_duration) * min_duration + trace_start
-        )
+    if bin_size > 0:
+        rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
+        rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
+
+        # ensure minimum of 1 width
+        if rounded_start == rounded_end:
+            rounded_end += bin_size
     else:
         rounded_start = span_start
+        rounded_end = span_end
+
+    if span_start <= trace_start:
+        rounded_start = trace_start
 
     # To avoid creating gaps at the end of the trace,
     # do not adjust the end if it's at the trace end.
     if span_end >= trace_end:
-        rounded_end = span_end
-    else:
-        rounded_end = rounded_start + span_duration
+        rounded_end = trace_end
 
-    return rounded_start, rounded_end
+    return int(rounded_start), int(rounded_end)
 
 
 def process_breakdowns(data, traces_range):
@@ -996,13 +1007,6 @@ def process_breakdowns(data, traces_range):
         )
 
     def breakdown_push(trace, interval):
-        # Clip the intervals os that it is within range of the trace
-        if trace_range := traces_range.get(trace):
-            start = trace_range["start"]
-            end = trace_range["end"]
-            interval["start"] = clip(interval["start"], start, end)
-            interval["end"] = clip(interval["end"], start, end)
-
         breakdown = breakdowns[trace]
 
         # Find the last interval. If there is an interval on the stack, it
@@ -1024,6 +1028,10 @@ def process_breakdowns(data, traces_range):
                     "opCategory": None,
                     "start": last_interval["end"],
                     "end": interval["start"],
+                    "duration": 0,
+                    "components": [
+                        (last_interval["components"][-1][1], interval["components"][0][0]),
+                    ],
                 }
             )
 
@@ -1035,6 +1043,21 @@ def process_breakdowns(data, traces_range):
             # update the end of this interval and it will
             # be updated in the breakdown as well
             last_interval["end"] = max(interval["end"], last_interval["end"])
+
+            # need to update the components of the last interval by merging
+            # current interval into it
+            last_component = last_interval["components"][-1]
+            # there should always be 1 component in the current interval
+            assert len(interval["components"]) == 1
+            cur_component = interval["components"][0]
+            if last_component[1] >= cur_component[0]:
+                last_interval["components"][-1] = (
+                    last_component[0],
+                    max(last_component[1], cur_component[1]),
+                )
+            else:
+                last_interval["components"].extend(interval["components"])
+
             return
 
         # Make sure to push the breakdown before the stack. This is because
@@ -1063,23 +1086,51 @@ def process_breakdowns(data, traces_range):
 
     for row in data:
         trace = row["trace"]
-
         precise_start = int(row["precise.start_ts"] * 1000)
         precise_end = int(row["precise.finish_ts"] * 1000)
 
-        span_start, span_end = quantize_range(
+        trace_range = traces_range[trace]
+        trace_start = trace_range["start"]
+        trace_end = trace_range["end"]
+
+        # Clip the intervals os that it is within range of the trace
+        precise_start = clip(precise_start, trace_start, trace_end)
+        precise_end = clip(precise_end, trace_start, trace_end)
+
+        quantized_start, quantized_end = quantize_range(
             precise_start,
             precise_end,
             traces_range[trace],
         )
+        row["precise.start_ts"] = precise_start
+        row["precise.finish_ts"] = precise_end
+        row["quantized.start_ts"] = quantized_start
+        row["quantized.finish_ts"] = quantized_end
+
+    data.sort(key=lambda row: (row["quantized.start_ts"], -row["quantized.finish_ts"]))
+
+    last_timestamp_per_trace: dict[str, int] = defaultdict(int)
+
+    for row in data:
+        trace = row["trace"]
+
+        last_timestamp_per_trace["trace"] = max(
+            row["precise.finish_ts"], last_timestamp_per_trace["trace"]
+        )
+
+        if row["quantized.start_ts"] == row["quantized.finish_ts"]:
+            # after quantizing, this span is far too small to render, so remove it
+            continue
 
         cur: TraceInterval = {
             "kind": "project",
             "project": row["project"],
             "sdkName": row["sdk.name"],
             "opCategory": row.get("span.category"),
-            "start": span_start,
-            "end": span_end,
+            "start": row["quantized.start_ts"],
+            "end": row["quantized.finish_ts"],
+            "duration": 0,
+            "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
         }
 
         # Clear the stack of any intervals that end before the current interval
@@ -1097,13 +1148,16 @@ def process_breakdowns(data, traces_range):
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
 
+        other_start = trace_range["start"]
+        other_end = trace_range["end"]
         other: TraceInterval = {
             "kind": "other",
             "project": None,
             "sdkName": None,
             "opCategory": None,
-            "start": trace_range["start"],
-            "end": trace_range["end"],
+            "start": other_start,
+            "end": other_end,
+            "duration": 0,
         }
 
         # Clear the remaining intervals on the stack to find the latest end time
@@ -1112,9 +1166,25 @@ def process_breakdowns(data, traces_range):
         while stacks[trace]:
             interval = stack_pop(trace)
             other["start"] = max(other["start"], interval["end"])
+            # other["start"] = max(other["start"], interval["components"][-1][1])
+            last_component = interval["components"][-1]
+            other_start = max(other_start, last_component[1])
+
+        other["components"] = [(other_start, other_end)]
 
         if other["start"] < other["end"]:
             breakdown_push(trace, other)
+
+    for breakdown in breakdowns.values():
+        for interval in breakdown:
+            components = interval.pop("components", [])
+            component_duration = sum(component[1] - component[0] for component in components)
+            interval_duration = interval["end"] - interval["start"]
+
+            # in the event we don't have a duration from the components, we fall back to the interval
+            interval["duration"] = (
+                component_duration if component_duration > 0 else interval_duration
+            )
 
     return breakdowns
 

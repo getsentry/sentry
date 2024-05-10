@@ -1,14 +1,14 @@
+import {useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -27,6 +27,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceResult} from './content';
 import type {Field} from './data';
+import {getShortenedSdkName, getStylingSliceName} from './utils';
 
 interface ProjectRendererProps {
   projectSlug: string;
@@ -52,26 +53,29 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
   );
 }
 
-export const TraceBreakdownContainer = styled('div')`
+export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   position: relative;
   display: flex;
-  min-width: 150px;
-  height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
+  min-width: 200px;
+  height: 15px;
   background-color: ${p => p.theme.gray100};
+  ${p => `--hoveredSlice-${p.hoveredIndex ?? -1}-translateY: translateY(-3px)`};
 `;
 
 const RectangleTraceBreakdown = styled(RowRectangle)<{
   sliceColor: string;
   sliceName: string | null;
+  offset?: number;
 }>`
   background-color: ${p => p.sliceColor};
   position: relative;
   width: 100%;
+  height: 15px;
   ${p => `
     opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
   `}
   ${p => `
-    transform: var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0));
+    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
   `}
   transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
@@ -85,21 +89,33 @@ export function TraceBreakdownRenderer({
   trace: TraceResult<Field>;
 }) {
   const theme = useTheme();
+  const [hoveredIndex, setHoveredIndex] = useState(-1);
 
   return (
-    <TraceBreakdownContainer data-test-id="relative-ops-breakdown">
-      {trace.breakdowns.map(breakdown => {
+    <TraceBreakdownContainer
+      data-test-id="relative-ops-breakdown"
+      hoveredIndex={hoveredIndex}
+      onMouseLeave={() => setHoveredIndex(-1)}
+    >
+      {trace.breakdowns.map((breakdown, index) => {
         return (
           <SpanBreakdownSliceRenderer
             key={breakdown.start + (breakdown.project ?? t('missing instrumentation'))}
             sliceName={breakdown.project}
             sliceStart={breakdown.start}
             sliceEnd={breakdown.end}
+            sliceSecondaryName={breakdown.sdkName}
             trace={trace}
             theme={theme}
-            onMouseEnter={() =>
-              breakdown.project ? setHighlightedSliceName(breakdown.project) : null
-            }
+            offset={index}
+            onMouseEnter={() => {
+              setHoveredIndex(index);
+              breakdown.project
+                ? setHighlightedSliceName(
+                    getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
+                  )
+                : null;
+            }}
           />
         );
       })}
@@ -107,43 +123,48 @@ export function TraceBreakdownRenderer({
   );
 }
 
-const BREAKDOWN_BAR_SIZE = 150;
-const BREAKDOWN_QUANTIZE_STEP = 3;
+const BREAKDOWN_BAR_SIZE = 200;
+const BREAKDOWN_QUANTIZE_STEP = 5;
+const BREAKDOWN_BAR_WIDTH = BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP;
+
 export function SpanBreakdownSliceRenderer({
   trace,
   theme,
   sliceName,
   sliceStart,
   sliceEnd,
+  sliceSecondaryName,
   onMouseEnter,
+  offset,
 }: {
   onMouseEnter: () => void;
   sliceEnd: number;
   sliceName: string | null;
+  sliceSecondaryName: string | null;
   sliceStart: number;
   theme: Theme;
   trace: TraceResult<Field>;
+  offset?: number;
 }) {
-  const traceDuration = trace.end - trace.start;
+  const traceDuration =
+    Math.floor((trace.end - trace.start) / BREAKDOWN_BAR_WIDTH) * BREAKDOWN_BAR_WIDTH;
 
   const sliceDuration = sliceEnd - sliceStart;
 
   if (sliceDuration <= 0) {
     return null;
   }
-  const sliceColor = sliceName ? pickBarColor(sliceName) : theme.gray100;
+
+  const stylingSliceName = getStylingSliceName(sliceName, sliceSecondaryName);
+  const sliceColor = stylingSliceName ? pickBarColor(stylingSliceName) : theme.gray100;
+
   const sliceWidth =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.ceil(
-      (BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * (sliceDuration / traceDuration)
-    );
+    Math.ceil(BREAKDOWN_BAR_WIDTH * (sliceDuration / traceDuration));
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.floor(
-      ((BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * relativeSliceStart) /
-        traceDuration
-    ); // 150px wide breakdown.
+    Math.floor((BREAKDOWN_BAR_WIDTH * relativeSliceStart) / traceDuration);
   return (
     <BreakdownSlice
       sliceName={sliceName}
@@ -156,7 +177,8 @@ export function SpanBreakdownSliceRenderer({
           <div>
             <FlexContainer>
               {sliceName ? <ProjectRenderer projectSlug={sliceName} hideName /> : null}
-              <div>{sliceName}</div>
+              <strong>{sliceName}</strong>
+              <Subtext>({getShortenedSdkName(sliceSecondaryName)})</Subtext>
             </FlexContainer>
             <div>
               <PerformanceDuration milliseconds={sliceDuration} abbreviation />
@@ -165,12 +187,20 @@ export function SpanBreakdownSliceRenderer({
         }
         containerDisplayMode="block"
       >
-        <RectangleTraceBreakdown sliceColor={sliceColor} sliceName={sliceName} />
+        <RectangleTraceBreakdown
+          sliceColor={sliceColor}
+          sliceName={stylingSliceName}
+          offset={offset}
+        />
       </Tooltip>
     </BreakdownSlice>
   );
 }
 
+const Subtext = styled('span')`
+  font-weight: 400;
+  color: ${p => p.theme.gray300};
+`;
 const FlexContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -249,7 +279,11 @@ export function TraceIdRenderer({
     transactionId
   );
 
-  return <Link to={target}>{getShortEventId(traceId)}</Link>;
+  return (
+    <Link to={target} style={{minWidth: '66px', textAlign: 'right'}}>
+      {getShortEventId(traceId)}
+    </Link>
+  );
 }
 
 interface TransactionRendererProps {
@@ -283,28 +317,39 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
 
   const issueCount = trace.numErrors + trace.numOccurrences;
 
+  const issueText = issueCount >= 100 ? '99+' : issueCount === 0 ? '\u2014' : issueCount;
+
   return (
     <LinkButton
       to={normalizeUrl({
         pathname: `/organizations/${organization.slug}/issues`,
         query: {
-          query: `is:unresolved trace:"${trace.trace}"`,
+          query: `trace:"${trace.trace}"`,
         },
       })}
       size="xs"
       icon={<IconIssues size="xs" />}
-      style={{minHeight: '20px', height: '20px'}}
+      disabled={issueCount === 0}
+      style={{minHeight: '24px', height: '24px', minWidth: '44px'}}
     >
-      {issueCount !== undefined ? (
-        issueCount
-      ) : (
-        <LoadingIndicator
-          size={12}
-          mini
-          style={{height: '12px', width: '12px', margin: 0, marginRight: 0}}
-        />
-      )}
-      {issueCount === 100 && '+'}
+      {issueText}
     </LinkButton>
+  );
+}
+
+export function SpanTimeRenderer({
+  timestamp,
+  tooltipShowSeconds,
+}: {
+  timestamp: number;
+  tooltipShowSeconds?: boolean;
+}) {
+  const date = new Date(timestamp);
+  return (
+    <TimeSince
+      unitStyle="extraShort"
+      date={date}
+      tooltipShowSeconds={tooltipShowSeconds}
+    />
   );
 }
