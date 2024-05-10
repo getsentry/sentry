@@ -19,7 +19,7 @@ describe('awslambda onboarding docs', function () {
     // Includes import statement
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/const Sentry = require\("@sentry\/serverless"\);/)
+        textWithMarkupMatcher(/const Sentry = require\("@sentry\/aws-serverless"\);/)
       )
     ).toBeInTheDocument();
   });
