@@ -287,7 +287,7 @@ def test_format_bytes():
     assert format_bytes(3000000000) == "2.79 GB"
     assert format_bytes(3000000000000) == "2.73 TB"
 
-    assert format_bytes(3000000000000, units=["B", "KB", "MB", "GB"]) == "2793.97 GB"
+    assert format_bytes(3000000000000, units=("B", "KB", "MB", "GB")) == "2793.97 GB"
 
 
 def test_format_grouped_length():
