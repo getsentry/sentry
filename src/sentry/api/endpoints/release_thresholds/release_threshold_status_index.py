@@ -97,7 +97,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
     @extend_schema(
         operation_id="Retrieve Statuses of Release Thresholds (Alpha)",
-        parameters=[GlobalParams.ORG_SLUG, ReleaseThresholdStatusIndexSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseThresholdStatusIndexSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer(

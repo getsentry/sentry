@@ -22,7 +22,7 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
     def get(
         self,
         request: Request,
-        organization_slug: int | str | None = None,
+        organization_id_or_slug: int | str | None = None,
         share_id: str | None = None,
     ) -> Response:
         """
@@ -45,13 +45,13 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
         except Group.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # Checks if the organization_slug (eventually renamed to organization_id_or_slug) matches the group organization's id or slug
-        if organization_slug:
-            if str(organization_slug).isdecimal():
-                if int(organization_slug) != group.organization.id:
+        # Checks if the organization_id_or_slug matches the group organization's id or slug
+        if organization_id_or_slug:
+            if str(organization_id_or_slug).isdecimal():
+                if int(organization_id_or_slug) != group.organization.id:
                     raise ResourceDoesNotExist
             else:
-                if organization_slug != group.organization.slug:
+                if organization_id_or_slug != group.organization.slug:
                     raise ResourceDoesNotExist
 
         if group.organization.flags.disable_shared_issues:

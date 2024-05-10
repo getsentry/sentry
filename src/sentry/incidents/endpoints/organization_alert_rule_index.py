@@ -422,7 +422,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
 
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -449,7 +449,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
 
     @extend_schema(
         operation_id="Create a Metric Alert Rule for an Organization",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=OrganizationAlertRuleIndexPostSerializer,
         responses={
             201: AlertRuleSerializer,
