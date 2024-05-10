@@ -125,6 +125,7 @@ export function TraceBreakdownRenderer({
 
 const BREAKDOWN_BAR_SIZE = 200;
 const BREAKDOWN_QUANTIZE_STEP = 5;
+const BREAKDOWN_BAR_WIDTH = BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP;
 
 export function SpanBreakdownSliceRenderer({
   trace,
@@ -145,7 +146,8 @@ export function SpanBreakdownSliceRenderer({
   trace: TraceResult<Field>;
   offset?: number;
 }) {
-  const traceDuration = trace.end - trace.start;
+  const traceDuration =
+    Math.floor((trace.end - trace.start) / BREAKDOWN_BAR_WIDTH) * BREAKDOWN_BAR_WIDTH;
 
   const sliceDuration = sliceEnd - sliceStart;
 
@@ -158,16 +160,11 @@ export function SpanBreakdownSliceRenderer({
 
   const sliceWidth =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.ceil(
-      (BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * (sliceDuration / traceDuration)
-    );
+    Math.ceil(BREAKDOWN_BAR_WIDTH * (sliceDuration / traceDuration));
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.floor(
-      ((BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * relativeSliceStart) /
-        traceDuration
-    );
+    Math.floor((BREAKDOWN_BAR_WIDTH * relativeSliceStart) / traceDuration);
   return (
     <BreakdownSlice
       sliceName={sliceName}
