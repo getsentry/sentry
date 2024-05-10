@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0718_delete_timebox_columns"),
+        ("sentry", "0719_querysubscription_timebox_column_deletion_db"),
     ]
 
     operations = [
