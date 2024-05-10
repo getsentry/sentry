@@ -1457,7 +1457,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.05,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 20)},
             {
                 "a"
                 * 32: [
@@ -1466,7 +1466,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "opCategory": None,
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
-                        "end": 50,
+                        "end": 40,
                         "kind": "project",
                         "duration": 50,
                     },
@@ -1474,7 +1474,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": None,
                         "opCategory": None,
                         "sdkName": None,
-                        "start": 50,
+                        "start": 40,
                         "end": 100,
                         "kind": "other",
                         "duration": 50,
@@ -1544,42 +1544,6 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 ],
             },
             id="merge quantized spans",
-        ),
-        pytest.param(
-            [
-                {
-                    "trace": "a" * 32,
-                    "project": "foo",
-                    "sdk.name": "sentry.javascript.node",
-                    "transaction": "foo1",
-                    "precise.start_ts": 0,
-                    "precise.finish_ts": 0.1,
-                },
-                {
-                    "trace": "a" * 32,
-                    "project": "bar",
-                    "sdk.name": "sentry.javascript.node",
-                    "transaction": "bar1",
-                    "precise.start_ts": 0.020,
-                    "precise.finish_ts": 0.021,
-                },
-            ],
-            {"a" * 32: (0, 100, 20)},
-            {
-                "a"
-                * 32: [
-                    {
-                        "project": "foo",
-                        "opCategory": None,
-                        "sdkName": "sentry.javascript.node",
-                        "start": 0,
-                        "end": 100,
-                        "kind": "project",
-                        "duration": 100,
-                    },
-                ],
-            },
-            id="remove spans that are too small",
         ),
         pytest.param(
             [
