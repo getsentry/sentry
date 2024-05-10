@@ -12,19 +12,13 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
-import {
-  getInstallConfig,
-  getNodeRunCommandSnippet,
-  getSdkInitSnippet,
-  getSentryImportsSnippet,
-} from 'sentry/utils/gettingStartedDocs/node';
+import {getInstallConfig,getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = () => `
+const getSdkSetupSnippet = (params: Params) => `
 "use strict";
-
-${getSentryImportsSnippet('node')}
+${getSdkInitSnippet(params, 'node')}
 
 module.exports = async function (context, req) {
   try {
@@ -52,47 +46,19 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
-      ),
+      description: t('To set up Sentry error logging for an Azure Function:'),
       configurations: [
         {
-          description: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
-            {code: <code />}
-          ),
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              code: getSdkInitSnippet(params, 'node'),
-            },
-          ],
-        },
-        {
-          description: tct(
-            'Modify the Node.js command to include the [code1:--require] option. This preloads [code2:instrument.(js|mjs)] at startup.',
-            {code1: <code />, code2: <code />}
-          ),
-          code: [
-            {
-              label: 'Bash',
-              value: 'bash',
-              language: 'bash',
-              code: getNodeRunCommandSnippet(),
-            },
-          ],
-        },
-        {
+          language: 'javascript',
           description: tct(
             'Note: You need to call both [captureExceptionCode:captureException] and [flushCode:flush] for captured events to be successfully delivered to Sentry.',
             {captureExceptionCode: <code />, flushCode: <code />}
           ),
-          language: 'javascript',
-          code: getSdkSetupSnippet(),
         },
+        {
+          language: 'javascript',
+          code: getSdkSetupSnippet(params),
+        }
       ],
     },
     getUploadSourceMapsStep({

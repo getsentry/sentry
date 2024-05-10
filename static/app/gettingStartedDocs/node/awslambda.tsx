@@ -14,15 +14,13 @@ import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/getting
 import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
-  getNodeRunCommandSnippet,
   getSdkInitSnippet,
-  getSentryImportsSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = () => `
-${getSentryImportsSnippet('aws-serverless')}
+const getSdkSetupSnippet = (params: Params) => `
+${getSdkInitSnippet(params, 'aws')}
 
 exports.handler = Sentry.wrapHandler(async (event, context) => {
   // Your handler code
@@ -54,52 +52,16 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
+      description: tct(
+        "Wrap your lambda handler with Sentry's [code:wraphandler] function:",
+        {
+          code: <code />,
+        }
       ),
       configurations: [
         {
-          description: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
-            {code: <code />}
-          ),
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              code: getSdkInitSnippet(params, 'aws'),
-            },
-          ],
-        },
-        {
-          description: tct(
-            'Modify the Node.js command to include the [code1:--require] option. This preloads [code2:instrument.(js|mjs)] at startup.',
-            {code1: <code />, code2: <code />}
-          ),
-          code: [
-            {
-              label: 'Bash',
-              value: 'bash',
-              language: 'bash',
-              code: getNodeRunCommandSnippet(),
-            },
-          ],
-        },
-        {
-          description: tct(
-            "Wrap your lambda handler with Sentry's [code:wraphandler] function:",
-            {code: <code />}
-          ),
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getSdkSetupSnippet(),
-            },
-          ],
+          language: 'javascript',
+          code: getSdkSetupSnippet(params),
         },
       ],
     },
