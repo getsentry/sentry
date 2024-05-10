@@ -33,7 +33,6 @@ from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
-from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
@@ -828,9 +827,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             try:
                 kwargs["owner_user_id"] = None
                 kwargs["owner_team_id"] = None
-                if owner.actor_type == ActorType.USER:
+                if owner.is_user:
                     kwargs["owner_user_id"] = owner.id
-                if owner.actor_type == ActorType.TEAM:
+                if owner.is_team:
                     kwargs["owner_team_id"] = owner.id
             except (User.DoesNotExist, Team.DoesNotExist):
                 return Response(

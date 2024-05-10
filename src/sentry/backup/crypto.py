@@ -4,7 +4,7 @@ import io
 import tarfile
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import IO, NamedTuple
+from typing import IO, Any, NamedTuple
 
 import orjson
 from cryptography.fernet import Fernet
@@ -116,7 +116,7 @@ class GCPKMSEncryptor(Encryptor):
         return public_key.pem.encode("utf-8")
 
 
-def create_encrypted_export_tarball(json_export: json.JSONData, encryptor: Encryptor) -> io.BytesIO:
+def create_encrypted_export_tarball(json_export: Any, encryptor: Encryptor) -> io.BytesIO:
     """
     Generate a tarball with 3 files:
 

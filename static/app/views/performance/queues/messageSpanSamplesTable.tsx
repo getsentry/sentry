@@ -28,14 +28,14 @@ type DataRowKeys =
   | SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanIndexedField.MESSAGING_MESSAGE_ID
   | SpanIndexedField.TRACE_STATUS
-  | SpanIndexedField.SPAN_SELF_TIME;
+  | SpanIndexedField.SPAN_DURATION;
 
 type ColumnKeys =
   | SpanIndexedField.ID
   | SpanIndexedField.MESSAGING_MESSAGE_ID
   | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
   | SpanIndexedField.TRACE_STATUS
-  | SpanIndexedField.SPAN_SELF_TIME;
+  | SpanIndexedField.SPAN_DURATION;
 
 type DataRow = Pick<IndexedResponse, DataRowKeys>;
 
@@ -53,8 +53,8 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.SPAN_SELF_TIME,
-    name: t('Processing Latency'),
+    key: SpanIndexedField.SPAN_DURATION,
+    name: t('Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   {

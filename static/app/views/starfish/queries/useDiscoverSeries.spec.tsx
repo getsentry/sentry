@@ -63,10 +63,13 @@ describe('useSpanMetricsSeries', () => {
 
     const {result} = renderHook(
       ({filters, enabled}) =>
-        useSpanMetricsSeries({
-          search: MutableSearch.fromQueryObject(filters),
-          enabled,
-        }),
+        useSpanMetricsSeries(
+          {
+            search: MutableSearch.fromQueryObject(filters),
+            enabled,
+          },
+          'span-metrics-series'
+        ),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -98,7 +101,10 @@ describe('useSpanMetricsSeries', () => {
 
     const {result} = renderHook(
       ({filters, yAxis}) =>
-        useSpanMetricsSeries({search: MutableSearch.fromQueryObject(filters), yAxis}),
+        useSpanMetricsSeries(
+          {search: MutableSearch.fromQueryObject(filters), yAxis},
+          'span-metrics-series'
+        ),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -141,12 +147,15 @@ describe('useSpanMetricsSeries', () => {
       body: {},
     });
 
-    const {rerender} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
-      wrapper: Wrapper,
-      initialProps: {
-        yAxis: ['avg(span.self_time)', 'spm()'] as SpanMetricsProperty[],
-      },
-    });
+    const {rerender} = renderHook(
+      ({yAxis}) => useSpanMetricsSeries({yAxis}, 'span-metrics-series'),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          yAxis: ['avg(span.self_time)', 'spm()'] as SpanMetricsProperty[],
+        },
+      }
+    );
 
     expect(eventsRequest).toHaveBeenLastCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -189,12 +198,15 @@ describe('useSpanMetricsSeries', () => {
       },
     });
 
-    const {result} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
-      wrapper: Wrapper,
-      initialProps: {
-        yAxis: ['spm()'] as SpanMetricsProperty[],
-      },
-    });
+    const {result} = renderHook(
+      ({yAxis}) => useSpanMetricsSeries({yAxis}, 'span-metrics-series'),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          yAxis: ['spm()'] as SpanMetricsProperty[],
+        },
+      }
+    );
 
     await waitFor(() => expect(result.current.isLoading).toEqual(false));
 
@@ -229,15 +241,18 @@ describe('useSpanMetricsSeries', () => {
       },
     });
 
-    const {result} = renderHook(({yAxis}) => useSpanMetricsSeries({yAxis}), {
-      wrapper: Wrapper,
-      initialProps: {
-        yAxis: [
-          'http_response_rate(3)',
-          'http_response_rate(4)',
-        ] as SpanMetricsProperty[],
-      },
-    });
+    const {result} = renderHook(
+      ({yAxis}) => useSpanMetricsSeries({yAxis}, 'span-metrics-series'),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          yAxis: [
+            'http_response_rate(3)',
+            'http_response_rate(4)',
+          ] as SpanMetricsProperty[],
+        },
+      }
+    );
 
     await waitFor(() => expect(result.current.isLoading).toEqual(false));
 

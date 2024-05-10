@@ -2,6 +2,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+
 import docs from './apple-macos';
 
 describe('apple-macos onboarding docs', function () {
@@ -27,5 +29,28 @@ describe('apple-macos onboarding docs', function () {
         )
       )
     ).toBeInTheDocument();
+  });
+
+  it('renders performance onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
+    });
+
+    expect(
+      await screen.findAllByText(textWithMarkupMatcher(/options.tracesSampleRate/))
+    ).toHaveLength(2);
+  });
+
+  it('renders profiling onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.PROFILING,
+      ],
+    });
+
+    expect(
+      await screen.findAllByText(textWithMarkupMatcher(/options.profilesSampleRate/))
+    ).toHaveLength(2);
   });
 });

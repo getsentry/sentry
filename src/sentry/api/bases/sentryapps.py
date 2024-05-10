@@ -325,22 +325,24 @@ class SentryAppInstallationsPermission(SentryPermission):
 class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationsPermission,)
 
-    def convert_args(self, request: Request, organization_slug, *args, **kwargs):
+    def convert_args(self, request: Request, organization_id_or_slug, *args, **kwargs):
         extra_args = {}
         # We need to pass user_id if the user is not a superuser
         if not is_active_superuser(request):
             extra_args["user_id"] = request.user.id
 
         if (
-            id_or_slug_path_params_enabled(self.convert_args.__qualname__, str(organization_slug))
-            and str(organization_slug).isdecimal()
+            id_or_slug_path_params_enabled(
+                self.convert_args.__qualname__, str(organization_id_or_slug)
+            )
+            and str(organization_id_or_slug).isdecimal()
         ):
             organization = organization_service.get_org_by_id(
-                id=int(organization_slug), **extra_args
+                id=int(organization_id_or_slug), **extra_args
             )
         else:
             organization = organization_service.get_org_by_slug(
-                slug=organization_slug, **extra_args
+                slug=str(organization_id_or_slug), **extra_args
             )
 
         if organization is None:

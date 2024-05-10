@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import orjson
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard
@@ -12,7 +14,6 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
-from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
@@ -128,7 +129,7 @@ class DashboardListSerializer(Serializer):
                 "layout": None,
             }
             if widget.get("detail"):
-                detail = json.loads(widget["detail"])
+                detail = orjson.loads(widget["detail"])
                 if detail.get("layout"):
                     widget_preview["layout"] = detail["layout"]
 

@@ -23,7 +23,6 @@ from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import OutboxCategory
 from sentry.types.region import find_all_region_names
 from sentry.types.token import AuthTokenType
-from sentry.utils.json import JSONData
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 TOKEN_REDACTED = "***REDACTED***"
@@ -322,7 +321,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

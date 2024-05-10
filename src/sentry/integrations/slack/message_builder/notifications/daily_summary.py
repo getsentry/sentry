@@ -14,10 +14,9 @@ from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.tasks.summaries.utils import COMPARISON_PERIOD
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import SlackNotificationsMessageBuilder
@@ -30,7 +29,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         self,
         notification: BaseNotification,
         context: Mapping[str, Any],
-        recipient: RpcActor,
+        recipient: Actor,
     ) -> None:
         super().__init__(notification, context, recipient)
         self.notification = notification
@@ -53,8 +52,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
     def linkify_release(self, release, organization):
         path = f"/releases/{release.version}/"
         url = organization.absolute_url(path)
-        json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
-        release_description = parse_release(release.version, json_loads=json_loads).get(
+        release_description = parse_release(release.version, json_loads=orjson.loads).get(
             "description"
         )
         return f":rocket: *<{url}|Release {release_description}>*\n"
