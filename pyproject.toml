@@ -565,6 +565,7 @@ module = [
     "sentry.issues.endpoints.group_events",
     "sentry.issues.endpoints.organization_activity",
     "sentry.issues.endpoints.organization_release_previous_commits",
+    "sentry.issues.endpoints.organization_searches",
     "sentry.issues.endpoints.project_stacktrace_link",
     "sentry.issues.escalating_group_forecast",
     "sentry.issues.escalating_issues_alg",
