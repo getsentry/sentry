@@ -31,10 +31,10 @@ function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
     visualMap: options.options?.visualMap,
   };
 }
-type FunctionRegressionChartData = Omit<
-  EventBreakpointChartData,
-  'chartType' | 'percentileData'
-> & {rawResponse: any};
+type FunctionRegressionChartData = {
+  evidenceData: NormalizedTrendsTransaction;
+  rawResponse: any;
+};
 
 performanceCharts.push({
   key: ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
