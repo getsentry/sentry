@@ -88,6 +88,10 @@ export interface AssigneeSelectorDropdownProps {
    */
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
   /**
+   * Additional styles to apply to the dropdown
+   */
+  style?: React.CSSProperties;
+  /**
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
@@ -199,6 +203,7 @@ export default function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
+  style,
   trigger,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
@@ -539,6 +544,7 @@ export default function AssigneeSelectorDropdown({
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
+        style={style}
         trigger={trigger ?? makeTrigger}
         menuFooter={makeFooterInviteButton()}
       />
