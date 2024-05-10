@@ -86,7 +86,7 @@ class PullRequest(Model):
         text = f"{self.message} {self.title}"
         return find_referenced_groups(text, self.organization_id)
 
-    def get_external_url(self) -> str:
+    def get_external_url(self) -> str | None:
         from sentry.models.repository import Repository
         from sentry.plugins.base import bindings
 
