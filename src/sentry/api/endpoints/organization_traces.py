@@ -723,7 +723,7 @@ class TraceSamplesExecutor:
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
-            orderby=["precise.start_ts", "precise.finish_ts"],
+            orderby=["precise.start_ts", "-precise.finish_ts"],
             # limit the number of segments we fetch per trace so a single
             # large trace does not result in the rest being blank
             limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
@@ -765,7 +765,7 @@ class TraceSamplesExecutor:
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
-            orderby=["precise.start_ts", "precise.finish_ts"],
+            orderby=["precise.start_ts", "-precise.finish_ts"],
             # limit the number of segments we fetch per trace so a single
             # large trace does not result in the rest being blank
             limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
@@ -1116,7 +1116,14 @@ def process_breakdowns(data, traces_range):
         row["quantized.start_ts"] = quantized_start
         row["quantized.finish_ts"] = quantized_end
 
-    data.sort(key=lambda row: (row["quantized.start_ts"], -row["quantized.finish_ts"]))
+    data.sort(
+        key=lambda row: (
+            row["quantized.start_ts"],
+            row["precise.start_ts"],
+            -row["quantized.finish_ts"],
+            -row["precise.finish_ts"],
+        )
+    )
 
     last_timestamp_per_trace: dict[str, int] = defaultdict(int)
 
