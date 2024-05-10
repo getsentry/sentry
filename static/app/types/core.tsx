@@ -101,6 +101,11 @@ export enum DataCategoryExact {
   MONITOR_SEAT = 'monitorSeat',
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
+  /**
+   * Metrics does not actually exist as a data category, but is used on the stats page.
+   * See metricSecond instead.
+   */
+  METRICS = 'metrics',
   METRIC_SECOND = 'metricSecond',
 }
 
