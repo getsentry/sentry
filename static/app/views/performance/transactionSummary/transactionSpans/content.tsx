@@ -36,14 +36,6 @@ import {
   SPAN_SORT_OPTIONS,
   SPAN_SORT_TO_FIELDS,
 } from './utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
-import {useLocation} from 'sentry/utils/useLocation';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
 
 const ANALYTICS_VALUES = {
@@ -195,6 +187,8 @@ function SpansContent(props: Props) {
 // TODO: Temporary component while we make the switch to spans only. Will fully replace the old Spans tab when GA'd
 function SpansContentV2(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === projectId);
 
   function handleChange(key: string) {
     return function (value: string | undefined) {
@@ -252,7 +246,7 @@ function SpansContentV2(props: Props) {
       /> */}
       </FilterActions>
 
-      <SpanMetricsTable />
+      <SpanMetricsTable project={project} transactionName={''} />
     </Layout.Main>
   );
 }

@@ -1,14 +1,11 @@
 import {Fragment} from 'react';
 import {Link, browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
-import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
@@ -18,12 +15,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
-import {useParams} from 'sentry/utils/useParams';
-import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import {
-  SpanIndexedField,
   type SpanMetricsQueryFilters,
   SpanMetricsField,
   type MetricsResponse,
@@ -31,9 +25,9 @@ import {
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {TableColumn} from 'sentry/views/discover/table/types';
+
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 type DataRowKeys =
   | SpanMetricsField.SPAN_OP
@@ -114,20 +108,23 @@ export default function SpanMetricsTable(props: Props) {
 
   const sort = useSpansTabTableSort();
 
-  const {data, isLoading, pageLinks} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      SpanMetricsField.SPAN_OP,
-      SpanMetricsField.SPAN_DESCRIPTION,
-      SpanMetricsField.SPAN_GROUP,
-      `spm()`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-    ],
-    sorts: [sort],
-    cursor: spansCursor,
-    limit: LIMIT,
-  });
+  const {data, isLoading, pageLinks} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        SpanMetricsField.SPAN_OP,
+        SpanMetricsField.SPAN_DESCRIPTION,
+        SpanMetricsField.SPAN_GROUP,
+        `spm()`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+      ],
+      sorts: [sort],
+      cursor: spansCursor,
+      limit: LIMIT,
+    },
+    ''
+  );
 
   console.dir(data);
 
