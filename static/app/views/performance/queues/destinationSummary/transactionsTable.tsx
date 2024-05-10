@@ -148,7 +148,7 @@ function renderBodyCell(
   }
 
   if (key === 'transaction') {
-    return <TransactionCell transaction={row[key]} />;
+    return <TransactionCell transaction={row[key]} op={op} />;
   }
 
   if (!meta?.fields) {
@@ -179,12 +179,13 @@ function renderBodyCell(
   });
 }
 
-function TransactionCell({transaction}: {transaction: string}) {
+function TransactionCell({transaction, op}: {op: string; transaction: string}) {
   const organization = useOrganization();
   const {query} = useLocation();
   const queryString = {
     ...query,
     transaction,
+    op,
   };
   return (
     <NoOverflow>
