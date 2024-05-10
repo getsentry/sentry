@@ -303,6 +303,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
 
+    @override_options({"issues.group_attributes.send_kafka": True})
     def test_trace_search(self) -> None:
         event = self.store_event(
             data={
@@ -325,6 +326,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_success_response(
             sort_by="date", query="is:unresolved trace:a7d67cf796774551a95be6543cacd459"
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+
+        response = self.get_success_response(
+            sort_by="date",
+            query="is:unresolved trace:a7d67cf796774551a95be6543cacd459",
+            useGroupSnubaDataset=1,
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
@@ -675,6 +684,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(group=[group.id])
         assert response.status_code == 403
 
+    @override_options({"issues.group_attributes.send_kafka": True})
     def test_lookup_by_first_release(self) -> None:
         self.login_as(self.user)
         project = self.project
@@ -694,6 +704,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         with self.feature("organizations:global-views"):
             response = self.get_success_response(
                 **{"query": 'first-release:"%s"' % release.version}
+            )
+        issues = json.loads(response.content)
+        assert len(issues) == 2
+        assert int(issues[0]["id"]) == event2.group.id
+        assert int(issues[1]["id"]) == event.group.id
+
+        with self.feature("organizations:global-views"):
+            response = self.get_success_response(
+                **{"query": 'first-release:"%s"' % release.version}, useGroupSnubaDataset=1
             )
         issues = json.loads(response.content)
         assert len(issues) == 2
