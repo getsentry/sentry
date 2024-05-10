@@ -17,7 +17,8 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getSdkInitSnippet,
-  getSentryImportsSnippet} from 'sentry/utils/gettingStartedDocs/node';
+  getSentryImportsSnippet,
+} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -58,10 +59,9 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Initialize Sentry in your [code:main.ts/js] file:",
-        {code: <code />}
-      ),
+      description: tct('Initialize Sentry in your [code:main.ts/js] file:', {
+        code: <code />,
+      }),
       configurations: [
         {
           language: 'javascript',
