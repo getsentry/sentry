@@ -2,7 +2,6 @@ import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
-import * as qs from 'query-string';
 
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -24,14 +23,12 @@ type Props = LinkProps & {
    * Should be should be supplied by the parent component
    */
   isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
-  query?: string;
 };
 
 function ListLink({
   children,
   className,
   isActive,
-  query,
   to,
   activeClassName = 'active',
   index = false,
@@ -39,8 +36,7 @@ function ListLink({
   ...props
 }: Props) {
   const router = useRouter();
-  const queryData = query ? qs.parse(query) : undefined;
-  const targetLocation = typeof to === 'string' ? {pathname: to, query: queryData} : to;
+  const targetLocation = typeof to === 'string' ? {pathname: to} : to;
   const target = normalizeUrl(targetLocation);
 
   const active = isActive?.(target, index) ?? router.isActive(target, index);
