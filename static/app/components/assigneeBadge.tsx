@@ -5,16 +5,19 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Tag from 'sentry/components/badge/tag';
 import {Chevron} from 'sentry/components/chevron';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
+import {lightTheme as theme} from 'sentry/utils/theme';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignmentReason?: string;
   chevronDirection?: 'up' | 'down';
+  loading?: boolean;
   showLabel?: boolean;
 };
 
@@ -25,6 +28,7 @@ export function AssigneeBadge({
   assignmentReason,
   showLabel = false,
   chevronDirection = 'down',
+  loading = false,
 }: AssigneeBadgeProps) {
   const makeAssignedIcon = (actor: Actor) => {
     return (
@@ -36,15 +40,23 @@ export function AssigneeBadge({
           hasTooltip={false}
           // Team avatars need extra left margin since the
           // square team avatar is being fit into a rounded borders
-          style={{marginLeft: actor.type === 'team' ? space(0.5) : space(0)}}
+          style={{
+            marginLeft: actor.type === 'team' ? space(0.5) : space(0),
+          }}
         />
-        {showLabel && (
-          <Fragment>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</Fragment>
-        )}
+        {showLabel && <div>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</div>}
         <Chevron direction={chevronDirection} size="small" />
       </Fragment>
     );
   };
+
+  const loadingIcon = (
+    <Fragment>
+      <StyledLoadingIndicator mini hideMessage relative size={AVATAR_SIZE} />
+      {showLabel && 'Loading...'}
+      <Chevron direction={chevronDirection} size="small" />
+    </Fragment>
+  );
 
   const unassignedIcon = (
     <Fragment>
@@ -58,7 +70,9 @@ export function AssigneeBadge({
     </Fragment>
   );
 
-  return assignedTo ? (
+  return loading ? (
+    <StyledTag icon={loadingIcon} />
+  ) : assignedTo ? (
     <Tooltip
       title={
         <TooltipWrapper>
@@ -68,7 +82,7 @@ export function AssigneeBadge({
         </TooltipWrapper>
       }
     >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} />
+      <StyledTag icon={makeAssignedIcon(assignedTo)} style={{color: theme.textColor}} />
     </Tooltip>
   ) : (
     <Tooltip
@@ -93,6 +107,11 @@ export function AssigneeBadge({
   );
 }
 
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: inline-flex;
+  align-items: center;
+`;
+
 const TooltipWrapper = styled('div')`
   text-align: left;
 `;
@@ -107,6 +126,7 @@ const StyledTag = styled(Tag)`
     height: 24px;
     padding: ${space(0.5)};
   }
+  color: ${p => p.theme.subText};
   cursor: pointer;
 `;
 

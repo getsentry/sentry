@@ -7,9 +7,10 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 export default storyBook(AssigneeBadge, story => {
-  story('User Assignee Exists (no label)', () => {
+  story('User Assignee', () => {
     const user = useUser();
-    const [chevronToggle, setChevronToggle] = useState<'up' | 'down'>('down');
+    const [chevron1Toggle, setChevron1Toggle] = useState<'up' | 'down'>('down');
+    const [chevron2Toggle, setChevron2Toggle] = useState<'up' | 'down'>('down');
     const userActor: Actor = {
       type: 'user',
       id: user.id,
@@ -18,32 +19,18 @@ export default storyBook(AssigneeBadge, story => {
     };
 
     return (
-      <div onClick={() => setChevronToggle(chevronToggle === 'up' ? 'down' : 'up')}>
-        <AssigneeBadge assignedTo={userActor} chevronDirection={chevronToggle} />
-      </div>
-    );
-  });
-
-  story('User Assignee Exists (with label)', () => {
-    const user = useUser();
-    const [chevronToggle, setChevronToggle] = useState<'up' | 'down'>('down');
-
-    const userActor: Actor = {
-      type: 'user',
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    };
-
-    return (
-      <div onClick={() => setChevronToggle(chevronToggle === 'up' ? 'down' : 'up')}>
-        {' '}
-        <AssigneeBadge
-          assignedTo={userActor}
-          showLabel
-          chevronDirection={chevronToggle}
-        />
-      </div>
+      <Fragment>
+        <p onClick={() => setChevron1Toggle(chevron1Toggle === 'up' ? 'down' : 'up')}>
+          <AssigneeBadge assignedTo={userActor} chevronDirection={chevron1Toggle} />
+        </p>
+        <p onClick={() => setChevron2Toggle(chevron2Toggle === 'up' ? 'down' : 'up')}>
+          <AssigneeBadge
+            showLabel
+            assignedTo={userActor}
+            chevronDirection={chevron2Toggle}
+          />
+        </p>
+      </Fragment>
     );
   });
 
@@ -74,26 +61,36 @@ export default storyBook(AssigneeBadge, story => {
     );
   });
 
-  story('Assignee Does Not Exist (no label)', () => {
-    const [chevronToggle, setChevronToggle] = useState<'up' | 'down'>('down');
+  story('Unassigned', () => {
+    const [chevron1Toggle, setChevron1Toggle] = useState<'up' | 'down'>('down');
+    const [chevron2Toggle, setChevron2Toggle] = useState<'up' | 'down'>('down');
 
     return (
-      <div onClick={() => setChevronToggle(chevronToggle === 'up' ? 'down' : 'up')}>
-        <AssigneeBadge assignedTo={undefined} chevronDirection={chevronToggle} />
-      </div>
+      <Fragment>
+        <p onClick={() => setChevron1Toggle(chevron1Toggle === 'up' ? 'down' : 'up')}>
+          <AssigneeBadge assignedTo={undefined} chevronDirection={chevron1Toggle} />
+        </p>
+        <p onClick={() => setChevron2Toggle(chevron2Toggle === 'up' ? 'down' : 'up')}>
+          <AssigneeBadge
+            showLabel
+            assignedTo={undefined}
+            chevronDirection={chevron2Toggle}
+          />
+        </p>
+      </Fragment>
     );
   });
 
-  story('Assignee Does Not Exist (with label)', () => {
-    const [chevronToggle, setChevronToggle] = useState<'up' | 'down'>('down');
+  story('Loading', () => {
     return (
-      <div onClick={() => setChevronToggle(chevronToggle === 'up' ? 'down' : 'up')}>
-        <AssigneeBadge
-          assignedTo={undefined}
-          showLabel
-          chevronDirection={chevronToggle}
-        />
-      </div>
+      <Fragment>
+        <p>
+          <AssigneeBadge loading />
+        </p>
+        <p>
+          <AssigneeBadge showLabel loading />
+        </p>
+      </Fragment>
     );
   });
 });
