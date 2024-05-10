@@ -146,6 +146,9 @@ from sentry.monitors.endpoints.project_monitor_details import ProjectMonitorDeta
 from sentry.monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
+from sentry.monitors.endpoints.project_monitor_processing_errors_index import (
+    ProjectMonitorProcessingErrorsIndexEndpoint,
+)
 from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
@@ -644,6 +647,7 @@ from .endpoints.userroles_details import UserRoleDetailsEndpoint
 from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
+
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -2746,6 +2750,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
         ProjectMonitorEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-environment-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/processing-errors/$",
+        ProjectMonitorProcessingErrorsIndexEndpoint.as_view(),
+        name="sentry-api-0-project-monitor-processing-errors-index",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/stats/$",
