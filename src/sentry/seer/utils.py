@@ -70,6 +70,7 @@ seer_breakpoint_connection_pool = connection_from_url(
     timeout=settings.SEER_BREAKPOINT_DETECTION_TIMEOUT,
 )
 
+
 def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     response = seer_breakpoint_connection_pool.urlopen(
         "POST",
