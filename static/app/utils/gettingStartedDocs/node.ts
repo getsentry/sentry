@@ -144,26 +144,28 @@ node --require ./instrument.js app.js
 node --import ./instrument.mjs app.mjs`;
 }
 
+/**
+ *  Returns the init() with the necessary imports. It is possible to omit the imports.
+ */
 export const getSdkInitSnippet = (
   params: DocsParams,
-  sdkImport: 'node' | 'aws' | 'gpc'
-) => `
-${
-  sdkImport === 'node'
-    ? getDefaultNodeImports({productSelection: getProductSelectionMap(params)}).join('\n')
+  sdkImport: 'node' | 'aws' | 'gpc' | null
+) => `${sdkImport === null
+  ? ''
+  : sdkImport === 'node'
+    ? getDefaultNodeImports({productSelection: getProductSelectionMap(params)}).join('\n') + '\n'
     : sdkImport === 'aws'
       ? getDefaultServerlessImports({
           productSelection: getProductSelectionMap(params),
           library: 'aws-serverless',
-        }).join('\n')
+        }).join('\n') + '\n'
       : sdkImport === 'gpc'
         ? getDefaultServerlessImports({
             productSelection: getProductSelectionMap(params),
             library: 'google-cloud-serverless',
-          }).join('\n')
+          }).join('\n') + '\n'
         : ''
 }
-
 Sentry.init({
   dsn: "${params.dsn}",
   ${
