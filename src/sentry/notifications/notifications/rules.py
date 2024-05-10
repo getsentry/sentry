@@ -19,6 +19,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
 )
 from sentry.notifications.utils import (
+    get_commits,
     get_generic_data,
     get_group_settings_link,
     get_integration_link,
@@ -169,6 +170,7 @@ class AlertRuleNotification(ProjectNotification):
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
+            "commits": get_commits(self.project, self.event),
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack", self.notification_uuid),
             "notification_reason": notification_reason,
