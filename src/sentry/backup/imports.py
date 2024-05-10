@@ -168,7 +168,7 @@ def _import(
     # TODO(getsentry#team-ospo/190): Reading the entire export into memory as a string is quite
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
-    content = (
+    content: bytes | str = (
         decrypt_encrypted_tarball(src, decryptor)
         if decryptor is not None
         else src.read().decode("utf-8")
