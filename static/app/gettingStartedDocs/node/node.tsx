@@ -18,6 +18,8 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getSdkInitSnippet,
+  getNodeRunCommandSnippet,
+  getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;

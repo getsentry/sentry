@@ -17,6 +17,9 @@ import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeRunCommandSnippet,
+  getSdkInitSnippet,
+  getSentryImportsSnippet,
   getSdkInitSnippet,
   getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';

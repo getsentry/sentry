@@ -20,6 +20,9 @@ import {
   getInstallConfig,
   getSdkInitSnippet,
   getSentryImportSnippet,
+  getNodeRunCommandSnippet,
+  getSdkInitSnippet,
+  getSentryImportsSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
