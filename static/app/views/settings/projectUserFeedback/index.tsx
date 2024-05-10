@@ -33,6 +33,18 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
     });
   };
 
+  window.sentryEmbedCallback = function (embed) {
+    // Mock the embed's submit xhr to always be successful
+    // NOTE: this will not have errors if the form is empty
+    embed.submit = function (_body) {
+      this._submitInProgress = true;
+      window.setTimeout(() => {
+        this._submitInProgress = false;
+        this.onSuccess();
+      }, 500);
+    };
+  };
+
   return (
     <SentryDocumentTitle title={t('User Feedback')} projectSlug={project.slug}>
       <SettingsPageHeader

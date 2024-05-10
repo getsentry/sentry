@@ -40,7 +40,9 @@ describe('ProjectUserFeedback', function () {
       method: 'PUT',
     });
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Show Sentry Branding in Crash Report Modal'})
+    );
 
     expect(mock).toHaveBeenCalledWith(
       url,
