@@ -343,6 +343,40 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["time_spent_percentage(local)"] is None
         assert meta["dataset"] == "spansMetrics"
 
+    def test_time_spent_percentage_on_span_duration(self):
+        for _ in range(4):
+            self.store_span_metric(
+                1,
+                internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+                tags={"transaction": "foo_transaction"},
+                timestamp=self.min_ago,
+            )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": ["transaction", "time_spent_percentage(app,span.duration)"],
+                "query": "",
+                "orderby": ["-time_spent_percentage(app,span.duration)"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["time_spent_percentage(app,span.duration)"] == 0.8
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[1]["time_spent_percentage(app,span.duration)"] == 0.2
+        assert data[1]["transaction"] == "bar_transaction"
+        assert meta["dataset"] == "spansMetrics"
+
     def test_http_error_rate_and_count(self):
         for _ in range(4):
             self.store_span_metric(
@@ -1635,6 +1669,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_time_spent_percentage_local(self):
         super().test_time_spent_percentage_local()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_time_spent_percentage_on_span_duration(self):
+        super().test_time_spent_percentage_on_span_duration()
 
     @pytest.mark.xfail(reason="Cannot group by function 'if'")
     def test_span_module(self):
