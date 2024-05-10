@@ -28,8 +28,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
@@ -824,18 +822,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         owner = data.get("owner")
         if owner:
-            try:
-                kwargs["owner_user_id"] = None
-                kwargs["owner_team_id"] = None
-                if owner.is_user:
-                    kwargs["owner_user_id"] = owner.id
-                if owner.is_team:
-                    kwargs["owner_team_id"] = owner.id
-            except (User.DoesNotExist, Team.DoesNotExist):
-                return Response(
-                    "Could not resolve owner",
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            kwargs["owner"] = owner
 
         if data.get("pending_save"):
             client = RedisRuleStatus()

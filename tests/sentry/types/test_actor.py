@@ -78,10 +78,10 @@ def test_from_id():
     assert actor.id == 11
     assert actor.actor_type == ActorType.USER
 
+    assert Actor.from_id(user_id=None) is None
+
     with pytest.raises(Actor.InvalidActor):
         Actor.from_id(user_id=11, team_id=99)
-    with pytest.raises(Actor.InvalidActor):
-        Actor.from_id(user_id=None)
 
 
 @django_db_all(transaction=True)

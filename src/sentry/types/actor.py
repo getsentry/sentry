@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Iterable, MutableMapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Union, overload
+from typing import TYPE_CHECKING, Any, Protocol, Union, overload
 
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
@@ -201,14 +201,14 @@ class Actor(RpcModel):
             raise cls.InvalidActor(f"Unable to resolve actor identifier: {e}")
 
     @classmethod
-    def from_id(cls, user_id: int | None = None, team_id: int | None = None) -> "Actor":
+    def from_id(cls, user_id: int | None = None, team_id: int | None = None) -> "Actor | None":
         if user_id and team_id:
             raise cls.InvalidActor("You can only provide one of user_id and team_id")
         if user_id:
             return cls(id=user_id, actor_type=ActorType.USER)
         if team_id:
             return cls(id=team_id, actor_type=ActorType.TEAM)
-        raise cls.InvalidActor("You must provide one of user_id and team_id")
+        return None
 
     def __post_init__(self) -> None:
         if not self.is_team and self.slug is not None:
@@ -257,6 +257,18 @@ class Actor(RpcModel):
     @property
     def is_user(self) -> bool:
         return self.actor_type == ActorType.USER
+
+
+class ActorOwned(Protocol):
+    """Protocol for objects that are owned by Actor but need to store ownership in discrete columns"""
+
+    @property
+    def owner(self) -> Actor | None:
+        ...
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        ...
 
 
 def parse_and_validate_actor(actor_identifier: str | None, organization_id: int) -> Actor | None:
