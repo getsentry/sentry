@@ -660,6 +660,7 @@ module = [
     "tests.sentry.issues.test_ongoing",
     "tests.sentry.issues.test_priority",
     "tests.sentry.issues.test_producer",
+    "tests.sentry.issues.test_run",
     "tests.sentry.issues.test_search_issues_dataset",
     "tests.sentry.issues.test_status_change",
     "tests.sentry.issues.test_status_change_consumer",
