@@ -2,6 +2,7 @@ import type {LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {Organization, OrganizationSummary} from 'sentry/types';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {
   EventLite,
   TraceError,
@@ -41,7 +42,7 @@ export function getTraceDetailsUrl(
       ),
       query: {
         ...queryParams,
-        timestamp,
+        timestamp: getTimeStampFromTableDateField(timestamp),
         eventId,
       },
     };
