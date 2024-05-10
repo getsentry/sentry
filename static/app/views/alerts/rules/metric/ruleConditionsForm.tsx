@@ -431,7 +431,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ? null
                   : onMonitorTypeSelect({
                       monitorType: MonitorType.CONTINUOUS,
-                      activationCondition,
                     })
               }
             >
@@ -447,7 +446,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ? null
                   : onMonitorTypeSelect({
                       monitorType: MonitorType.ACTIVATED,
-                      activationCondition,
                     })
               }
             >
@@ -463,10 +461,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                       {
                         value: ActivationConditionType.RELEASE_CREATION,
                         label: t('New Release'),
-                      },
-                      {
-                        value: ActivationConditionType.DEPLOY_CREATION,
-                        label: t('New Deploy'),
                       },
                     ]}
                     required
