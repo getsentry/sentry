@@ -156,16 +156,6 @@ def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = F
         return loads(data, skip_trace)
 
 
-def _isinstance_namedtuple(obj: object) -> bool:
-    return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
-
-
-def orjson_dumps_default(data: Any) -> Any:
-    if _isinstance_namedtuple(data):
-        return list(data)
-    raise TypeError
-
-
 # dumps JSON with `orjson` or the default function depending on `option_name`
 # TODO: remove this when orjson experiment is successful
 def dumps_experimental(option_name: str, data: Any) -> str:
