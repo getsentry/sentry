@@ -106,6 +106,16 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
 ]
 
 
+def map_field_name_from_format_search_filter(field: str) -> str:
+    """
+    Maps the field name we get from the format_search_filter to the field used in Suba
+    """
+    field = field.replace("stack.", "stacktrace.")
+    if field == "date":
+        return "timestamp"
+    return field
+
+
 @dataclass
 class TrendsParams:
     # (event or issue age_hours) / (event or issue halflife hours)
@@ -1221,7 +1231,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             lhs = item[0]
             # do some name mapping for snuba
             if isinstance(lhs, str):
-                lhs = lhs.replace("stack.", "stacktrace.")
+                lhs = map_field_name_from_format_search_filter(lhs)
                 if ATTR_CHOICES.get(lhs) is not None:
                     mapped_lhs = ATTR_CHOICES.get(lhs)
                     lhs = Column(mapped_lhs.value.event_name, joined_entity)

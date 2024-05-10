@@ -3431,8 +3431,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query="times_seen:>0 last_seen:-1h",
-            useGroupSnubaDataset=1,
+            query="times_seen:>0 last_seen:-1h date:-1h",
+            # useGroupSnubaDataset=1,
         )
 
         assert response.status_code == 200
