@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -146,7 +147,7 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
         self.run_attr_test(self.group, ["status", "last_seen"], "status")
         self.run_attr_test(self.group, ["status", "substatus"], "status-substatus")
 
-    def run_attr_test(self, group, update_fields, expected_str):
+    def run_attr_test(self, group: Group, update_fields: Sequence[str], expected_str: str) -> None:
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed, patch(
@@ -196,7 +197,9 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
             "status-substatus",
         )
 
-    def run_attr_test(self, groups, update_fields, expected_str):
+    def run_attr_test(
+        self, groups: list[Group], update_fields: dict[str, int], expected_str: str
+    ) -> None:
         groups.sort(key=lambda g: g.id)
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
