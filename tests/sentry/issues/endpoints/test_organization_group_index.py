@@ -3501,7 +3501,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    def assertNoResolution(self, group) -> None:
+    def assertNoResolution(self, group: Group) -> None:
         assert not GroupResolution.objects.filter(group=group).exists()
 
     def test_global_resolve(self) -> None:
