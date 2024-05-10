@@ -612,6 +612,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response["X-Sentry-Direct-Hit"] == "1"
 
+    @override_options({"issues.group_attributes.send_kafka": True})
     def test_lookup_by_multiple_short_id_alias(self) -> None:
         self.login_as(self.user)
         project = self.project
@@ -628,6 +629,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(
                 query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
                 shortIdLookup=1,
+            )
+        assert len(response.data) == 2
+        assert response.get("X-Sentry-Direct-Hit") != "1"
+
+        with self.feature("organizations:global-views"):
+            response = self.get_success_response(
+                query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
+                shortIdLookup=1,
+                useGroupSnubaDataset=1,
             )
         assert len(response.data) == 2
         assert response.get("X-Sentry-Direct-Hit") != "1"

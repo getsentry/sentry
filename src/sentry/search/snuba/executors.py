@@ -115,6 +115,8 @@ def map_field_name_from_format_search_filter(field: str) -> str:
         return "timestamp"
     if field == "trace":
         return "trace_id"
+    if field == "issue.id":
+        return "group_id"
     if ATTR_CHOICES.get(field) is not None:
         return ATTR_CHOICES.get(field).value.event_name
     return field
