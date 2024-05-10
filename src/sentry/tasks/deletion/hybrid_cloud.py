@@ -61,6 +61,10 @@ def get_watermark(prefix: str, field: HybridCloudForeignKey) -> tuple[int, str]:
 def set_watermark(
     prefix: str, field: HybridCloudForeignKey, value: int, prev_transaction_id: str
 ) -> None:
+    if field.name == "owner_user_id":
+        import logging
+
+        logging.info("setting watermark prefix=%s value=%s", prefix, value)
     with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
         client.set(
             get_watermark_key(prefix, field),
@@ -278,9 +282,7 @@ def _process_tombstone_reconciliation(
     )
     has_more = watermark_batch.has_more
     if "Monitor" in model.__name__:
-        logging.info(
-            "watermark status model=%s field=%s batch=%s", model.__name__, field, watermark_batch
-        )
+        logging.info("watermark status field=%s prefix=%s batch=%s", field, prefix, watermark_batch)
 
     if watermark_batch.low < watermark_batch.up:
         to_delete_ids, oldest_seen = _get_model_ids_for_tombstone_cascade(
@@ -444,7 +446,7 @@ def get_ids_cross_db_for_row_watermark(
         affected_rows.extend(fk_to_model_id_map[object_id])
         oldest_seen = min(oldest_seen, created_at)
 
-    logging.info("affected_rows %s", [affected_rows, oldest_seen])
+    logging.info("affected_rows %s", affected_rows)
     return affected_rows, oldest_seen
 
 
