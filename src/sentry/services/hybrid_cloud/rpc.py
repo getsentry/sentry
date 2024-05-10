@@ -379,7 +379,7 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
     from sentry.services import hybrid_cloud as hybrid_cloud_service_pkg
 
     # Forcibly import all service packages to ensure the global registry is fully populated
-    for (_, name, _) in pkgutil.iter_modules(
+    for _, name, _ in pkgutil.walk_packages(
         hybrid_cloud_service_pkg.__path__, prefix=f"{hybrid_cloud_service_pkg.__name__}."
     ):
         __import__(name)
