@@ -19,7 +19,7 @@ describe('gcpfunctions onboarding docs', function () {
     // Includes import statement
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/const Sentry = require\("@sentry\/serverless"\);/)
+        textWithMarkupMatcher(/const Sentry = require\("@sentry\/google-cloud-serverless"\);/)
       )
     ).toBeInTheDocument();
   });
