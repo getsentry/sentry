@@ -63,12 +63,8 @@ class BufferHookRegistry:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
 
-    def add_handler(self, key: BufferHookEvent) -> Callable[..., Any]:
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            self._registry[key] = func
-            return func
-
-        return decorator
+    def add_handler(self, key: BufferHookEvent, func: Callable[..., Any]) -> None:
+        self._registry[key] = func
 
     def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
         try:
