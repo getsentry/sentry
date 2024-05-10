@@ -10,13 +10,8 @@ import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/c
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
-import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
-import {
-  type DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -111,10 +106,10 @@ export default function SpanSummaryTable(props: Props) {
   } = useIndexedSpans({
     fields: [
       SpanIndexedField.ID,
-      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.TIMESTAMP,
       SpanIndexedField.SPAN_DURATION,
       SpanIndexedField.TRACE,
+      SpanIndexedField.SEGMENT_ID,
     ],
     search: MutableSearch.fromQueryObject(filters),
     limit: LIMIT,
@@ -123,60 +118,36 @@ export default function SpanSummaryTable(props: Props) {
     cursor: spansCursor,
   });
 
-  const transactionIds = rowData?.map(row => row[SpanIndexedField.TRANSACTION_ID]);
-
-  const eventView = EventView.fromNewQueryWithLocation(
-    {
-      name: 'Transaction Durations',
-      query: MutableSearch.fromQueryObject({
-        project: project?.slug,
-        id: `[${transactionIds?.join() ?? ''}]`,
-      }).formatString(),
-      fields: ['id', 'transaction.duration'],
-      version: 2,
-    },
-    location
-  );
+  const segmentIds = rowData?.map(row => row.segment_id);
 
   const {
+    data: transactionDurations,
     isLoading: isTxnDurationDataLoading,
-    data: txnDurationData,
     isError: isTxnDurationError,
-  } = useGenericDiscoverQuery<
-    {
-      data: any[];
-      meta: MetaType;
-    },
-    DiscoverQueryProps
-  >({
-    route: 'events',
-    eventView,
-    location,
-    orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...eventView.getEventsAPIPayload(location),
-      interval: eventView.interval,
+  } = useIndexedSpans({
+    fields: [SpanIndexedField.SEGMENT_ID, SpanIndexedField.SPAN_DURATION],
+    search: MutableSearch.fromQueryObject({
+      project: project?.slug,
+      segment_id: `[${segmentIds?.join() ?? ''}]`,
+      'span.is_segment': 1,
     }),
     limit: LIMIT,
-    options: {
-      refetchOnWindowFocus: false,
-      enabled: Boolean(rowData),
-    },
     referrer: SpanSummaryReferrer.SPAN_SUMMARY_TABLE,
+    enabled: Boolean(segmentIds),
   });
 
   // Restructure the transaction durations into a map for faster lookup
   const transactionDurationMap = {};
-  txnDurationData?.data.forEach(datum => {
-    transactionDurationMap[datum.id] = datum['transaction.duration'];
+  transactionDurations?.forEach(datum => {
+    transactionDurationMap[datum.segment_id] = datum['span.duration'];
   });
 
   const mergedData: DataRow[] =
     rowData?.map((row: Pick<IndexedResponse, DataRowKeys>) => {
-      const transactionId = row[SpanIndexedField.TRANSACTION_ID];
+      const segmentId = row.segment_id;
       const newRow = {
         ...row,
-        'transaction.duration': transactionDurationMap[transactionId],
+        'transaction.duration': transactionDurationMap[segmentId],
       };
       return newRow;
     }) ?? [];

@@ -163,6 +163,7 @@ export enum SpanIndexedField {
   SPAN_DESCRIPTION = 'span.description',
   SPAN_OP = 'span.op',
   ID = 'span_id',
+  SEGMENT_ID = 'segment_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
   TRACE = 'trace',
@@ -202,6 +203,7 @@ export type IndexedResponse = {
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
   [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SEGMENT_ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
