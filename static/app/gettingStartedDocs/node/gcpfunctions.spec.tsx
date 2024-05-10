@@ -18,8 +18,9 @@ describe('gcpfunctions onboarding docs', function () {
 
     // Includes import statement
     const allMatches = screen.getAllByText(
-      textWithMarkupMatcher(
-        /const Sentry = require\("@sentry\/google-cloud-serverless"\);/
+        textWithMarkupMatcher(
+          /const Sentry = require\("@sentry\/google-cloud-serverless"\);/
+
       )
     );
     allMatches.forEach(match => {
