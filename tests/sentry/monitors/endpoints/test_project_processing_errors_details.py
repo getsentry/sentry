@@ -29,3 +29,17 @@ class ProjectProcessingErrorsDetailsEndpointTest(MonitorTestCase, APITestCase):
         assert len(manager.get_for_projects([self.project])) == 1
         self.get_success_response(self.organization.slug, self.project.slug, monitor_error.id)
         assert len(manager.get_for_projects([self.project])) == 0
+
+    def test_invalid_project(self):
+        manager = CheckinProcessErrorsManager()
+        monitor_error = build_checkin_processing_error(
+            [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
+            message_overrides={"project_id": self.project.id},
+        )
+        unrelated_project = self.create_project()
+        manager.store(monitor_error, None)
+        assert len(manager.get_for_projects([self.project])) == 1
+        self.get_error_response(
+            self.organization.slug, unrelated_project.slug, monitor_error.id, status_code=400
+        )
+        assert len(manager.get_for_projects([self.project])) == 1

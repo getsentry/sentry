@@ -146,9 +146,6 @@ from sentry.monitors.endpoints.project_monitor_details import ProjectMonitorDeta
 from sentry.monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
-from sentry.monitors.endpoints.project_monitor_processing_errors_details import (
-    ProjectMonitorProcessingErrorsDetailsEndpoint,
-)
 from sentry.monitors.endpoints.project_monitor_processing_errors_index import (
     ProjectMonitorProcessingErrorsIndexEndpoint,
 )
@@ -2769,11 +2766,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/(?P<uuid>[^\/]+)/$",
         ProjectProcessingErrorsDetailsEndpoint.as_view(),
         name="sentry-api-0-project-processing-errors-details",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/processing-errors/(?P<uuid>[^\/]+)/$",
-        ProjectMonitorProcessingErrorsDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-monitor-processing-errors-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/processing-errors/$",
