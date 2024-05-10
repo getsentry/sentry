@@ -646,6 +646,7 @@ module = [
     "tests.sentry.issues.endpoints.test_project_stacktrace_link",
     "tests.sentry.issues.endpoints.test_source_map_debug",
     "tests.sentry.issues.test_attributes",
+    "tests.sentry.issues.test_escalating",
     "tests.sentry.issues.test_escalating_issues_alg",
     "tests.sentry.issues.test_group_attributes_dataset",
     "tests.sentry.issues.test_grouptype",
