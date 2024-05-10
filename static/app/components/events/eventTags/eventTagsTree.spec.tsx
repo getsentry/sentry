@@ -123,7 +123,7 @@ describe('EventTagsTree', function () {
       organization,
       router,
     });
-    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     await assertNewTagsView();
@@ -134,7 +134,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization: featuredOrganization,
     });
-    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     await assertNewTagsView();
@@ -163,7 +163,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
       organization: featuredOrganization,
     });
-    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     const versionText = screen.getByText<
@@ -238,7 +238,7 @@ describe('EventTagsTree', function () {
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization: featuredOrganization,
       });
-      await expect(mockDetailedProject).toHaveBeenCalled();
+      expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       const dropdown = screen.getByLabelText('Tag Actions Menu');
@@ -286,7 +286,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
       organization: featuredOrganization,
     });
-    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     // Should only be one dropdown, others have errors
@@ -309,7 +309,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
       organization: featuredOrganization,
     });
-    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByText('boring-tag', {selector: 'div'})).toBeInTheDocument();
