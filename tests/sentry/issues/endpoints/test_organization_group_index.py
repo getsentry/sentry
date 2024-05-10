@@ -3420,6 +3420,24 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event2.group.id
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_heavy_search_aggregate_stats_regression_test(self):
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query="times_seen:>0 last_seen:-1h",
+            useGroupSnubaDataset=1,
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"

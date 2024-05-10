@@ -1148,6 +1148,15 @@ class InvalidQueryForExecutor(Exception):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    def get_times_seen_filter(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        return Condition(
+            Function("count", []),
+            Op(search_filter.operator),
+            search_filter.value.raw_value,
+        )
+
     def get_last_seen_filter(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
         # get the max timestamp of the error/search_issue event
         return Condition(
@@ -1504,6 +1513,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "message": (get_message_condition, Clauses.WHERE),
         "first_seen": (get_first_seen_filter, Clauses.WHERE),
         "last_seen": (get_last_seen_filter, Clauses.HAVING),
+        "times_seen": (get_times_seen_filter, Clauses.HAVING),
     }
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
