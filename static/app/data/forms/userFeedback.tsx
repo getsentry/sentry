@@ -40,6 +40,15 @@ const formGroups: JsonFormObject[] = [
           ),
         getData: data => ({options: data}),
       },
+      {
+        name: 'sentry:feedback_ai_spam_detection',
+        type: 'boolean',
+
+        // additional data/props that is related to rendering of form field rather than data
+        label: 'Enable Spam Detection',
+        help: 'Toggles whether or not to enable auto spam detection in User Feedback.',
+        getData: data => ({options: data}),
+      },
     ],
   },
 ];
