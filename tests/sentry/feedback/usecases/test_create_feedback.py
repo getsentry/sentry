@@ -546,7 +546,7 @@ def test_create_feedback_spam_detection_adds_field(
                     mock_produce_occurrence_to_kafka.call_args_list[1]
                     .kwargs["status_change"]
                     .new_status
-                    == GroupStatus.RESOLVED
+                    == GroupStatus.IGNORED
                 )
 
             if not (expected_result and feature_flag):
