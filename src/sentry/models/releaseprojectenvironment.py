@@ -34,7 +34,7 @@ class ReleaseStages(str, Enum):
 class ReleaseProjectEnvironmentManager(BaseManager["ReleaseProjectEnvironment"]):
     @staticmethod
     def subscribe_project_to_alert_rule(
-        project: Project, release: Release, environment: Environment, activator: str, trigger: str
+        project: Project, release: Release, environment: Environment, trigger: str
     ) -> list[QuerySubscription]:
         """
         TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
@@ -44,6 +44,8 @@ class ReleaseProjectEnvironmentManager(BaseManager["ReleaseProjectEnvironment"])
         from sentry.incidents.models.alert_rule import AlertRule
 
         query_extra = f"release:{release.version} and environment:{environment.name}"
+        # TODO: parse activator on the client to derive release version / environment name
+        activator = f"release:{release.version} and environment:{environment.name}"
         return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
             project=project,
             activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
