@@ -1,8 +1,9 @@
 from sentry.api.serializers import serialize
 from sentry.monitors.processing_errors import (
+    CheckinInvalidGuid,
     CheckinProcessErrorsManager,
-    ProcessingError,
-    ProcessingErrorType,
+    MonitorDisabled,
+    OrganizationKillswitchEnabled,
 )
 from sentry.monitors.testutils import build_checkin_processing_error
 from sentry.testutils.cases import APITestCase, MonitorTestCase
@@ -28,18 +29,18 @@ class ProjectMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APITestCa
         manager = CheckinProcessErrorsManager()
         monitor_errors = [
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
+                [CheckinInvalidGuid()],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED, {"some": "data"})],
+                [MonitorDisabled()],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
         ]
         project_error = build_checkin_processing_error(
-            [ProcessingError(ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED)],
+            [OrganizationKillswitchEnabled()],
             message_overrides={"project_id": self.project.id},
         )
 

@@ -30,9 +30,19 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.processing_errors import (
+    CheckinEnvironmentMismatch,
     CheckinValidationError,
-    ProcessingError,
-    ProcessingErrorType,
+    CheckinValidationFailed,
+    MonitorDisabled,
+    MonitorDisabledNoQuota,
+    MonitorEnviromentRateLimited,
+    MonitorEnvironmentLimitExceeded,
+    MonitorInvalidConfig,
+    MonitorInvalidEnvironment,
+    MonitorLimitExceeded,
+    MonitorNotFound,
+    MonitorOverQuota,
+    OrganizationKillswitchEnabled,
 )
 from sentry.monitors.types import CheckinItem
 from sentry.testutils.cases import TestCase
@@ -594,9 +604,7 @@ class MonitorConsumerTest(TestCase):
             self.send_checkin(
                 "my-monitor",
                 ts=now,
-                expected_error=CheckinValidationError(
-                    [ProcessingError(ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED)]
-                ),
+                expected_error=CheckinValidationError([MonitorEnviromentRateLimited()]),
             )
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
@@ -628,8 +636,7 @@ class MonitorConsumerTest(TestCase):
             environment="test",
             expected_error=CheckinValidationError(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
+                    CheckinEnvironmentMismatch(
                         {"existing_environment": "production"},
                     )
                 ],
@@ -654,8 +661,7 @@ class MonitorConsumerTest(TestCase):
             duration=-(1.0 / 1000),
             expected_error=CheckinValidationError(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                    CheckinValidationFailed(
                         {
                             "errors": {
                                 "duration": [
@@ -676,8 +682,7 @@ class MonitorConsumerTest(TestCase):
             duration=((BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000),
             expected_error=CheckinValidationError(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                    CheckinValidationFailed(
                         {
                             "errors": {
                                 "duration": [
@@ -699,8 +704,7 @@ class MonitorConsumerTest(TestCase):
             duration=-(1.0 / 1000),
             expected_error=CheckinValidationError(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                    CheckinValidationFailed(
                         {
                             "errors": {
                                 "duration": [
@@ -720,8 +724,7 @@ class MonitorConsumerTest(TestCase):
             duration=(BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000,
             expected_error=CheckinValidationError(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                    CheckinValidationFailed(
                         {
                             "errors": {
                                 "duration": [
@@ -829,8 +832,7 @@ class MonitorConsumerTest(TestCase):
             environment="my-environment",
             expected_error=CheckinValidationError(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.MONITOR_INVALID_CONFIG,
+                    MonitorInvalidConfig(
                         {
                             "errors": {
                                 "schedule": [
@@ -842,7 +844,7 @@ class MonitorConsumerTest(TestCase):
                             }
                         },
                     ),
-                    ProcessingError(ProcessingErrorType.MONITOR_NOT_FOUND),
+                    MonitorNotFound(),
                 ],
             ),
         )
@@ -856,8 +858,7 @@ class MonitorConsumerTest(TestCase):
             environment="my-environment",
             expected_error=CheckinValidationError(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.MONITOR_INVALID_CONFIG,
+                    MonitorInvalidConfig(
                         {
                             "errors": {
                                 "schedule": [
@@ -866,7 +867,7 @@ class MonitorConsumerTest(TestCase):
                             },
                         },
                     ),
-                    ProcessingError(ProcessingErrorType.MONITOR_NOT_FOUND),
+                    MonitorNotFound(),
                 ],
             ),
         )
@@ -880,8 +881,7 @@ class MonitorConsumerTest(TestCase):
             if i > settings.MAX_MONITORS_PER_ORG:
                 expected_error = CheckinValidationError(
                     [
-                        ProcessingError(
-                            ProcessingErrorType.MONITOR_LIMIT_EXCEEDED,
+                        MonitorLimitExceeded(
                             {
                                 "reason": f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
                             },
@@ -905,8 +905,7 @@ class MonitorConsumerTest(TestCase):
             if i > settings.MAX_ENVIRONMENTS_PER_MONITOR:
                 expected_error = CheckinValidationError(
                     [
-                        ProcessingError(
-                            ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED,
+                        MonitorEnvironmentLimitExceeded(
                             {
                                 "reason": f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
                             },
@@ -936,12 +935,7 @@ class MonitorConsumerTest(TestCase):
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment=f"my-environment-{invalid_name}",
             expected_error=CheckinValidationError(
-                [
-                    ProcessingError(
-                        ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT,
-                        {"reason": "Environment name too long"},
-                    )
-                ],
+                [MonitorInvalidEnvironment({"reason": "Environment name too long"})]
             ),
             expected_monitor_slug=monitor_slug,
         )
@@ -956,10 +950,7 @@ class MonitorConsumerTest(TestCase):
         monitor = self._create_monitor(status=ObjectStatus.DISABLED, slug="my-monitor")
         self.send_checkin(
             "my-monitor",
-            expected_error=CheckinValidationError(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED)],
-                monitor=monitor,
-            ),
+            expected_error=CheckinValidationError([MonitorDisabled()], monitor=monitor),
         )
 
         checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
@@ -976,7 +967,7 @@ class MonitorConsumerTest(TestCase):
             self.send_checkin(
                 monitor.slug,
                 expected_error=CheckinValidationError(
-                    [ProcessingError(ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED)],
+                    [OrganizationKillswitchEnabled()],
                 ),
             )
 
@@ -1050,7 +1041,7 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(
             monitor.slug,
             expected_error=CheckinValidationError(
-                [ProcessingError(ProcessingErrorType.MONITOR_OVER_QUOTA)],
+                [MonitorOverQuota()],
             ),
         )
 
@@ -1108,9 +1099,7 @@ class MonitorConsumerTest(TestCase):
             "my-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment="my-environment",
-            expected_error=CheckinValidationError(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA)],
-            ),
+            expected_error=CheckinValidationError([MonitorDisabledNoQuota()]),
             expected_monitor_slug="my-monitor",
         )
 

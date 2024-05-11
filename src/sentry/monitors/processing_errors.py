@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import abc
 import dataclasses
 import logging
 import uuid
+from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
 from itertools import chain
-from typing import Any, TypedDict
+from typing import Generic, TypedDict, TypeVar
 
 from django.conf import settings
 from redis.client import StrictRedis
@@ -61,34 +63,170 @@ class ProcessingErrorType(Enum):
 
 
 class CheckinValidationError(Exception):
-    def __init__(self, processing_errors: list[ProcessingError], monitor: Monitor | None = None):
+    def __init__(
+        self, processing_errors: list[ProcessingErrorBase], monitor: Monitor | None = None
+    ):
         # Monitor is optional, since we don't always have the monitor related to the checkin available
         self.processing_errors = processing_errors
         self.monitor = monitor
 
 
-class ProcessingErrorData(TypedDict):
+T = TypeVar("T", bound=Mapping[str, object])
+
+
+class ProcessingErrorData(TypedDict, Generic[T]):
     type: str
-    data: dict[str, Any]
+    data: T
 
 
-@dataclasses.dataclass(frozen=True)
-class ProcessingError:
+class ProcessingErrorRegistry(Generic[T]):
+    registry: dict[ProcessingErrorType, type[ProcessingErrorBase[T]]]
+
+    def __init__(self):
+        self.registry = {}
+
+    def register(self, type: ProcessingErrorType, error_cls: type[ProcessingErrorBase[T]]):
+        self.registry[type] = error_cls
+
+    def get(self, type: ProcessingErrorType) -> type[ProcessingErrorBase[T]]:
+        return self.registry[type]
+
+
+processing_error_registry: ProcessingErrorRegistry = ProcessingErrorRegistry()
+
+
+class ProcessingErrorBase(abc.ABC, Generic[T]):
+    data: T
     type: ProcessingErrorType
-    data: dict[str, Any] = dataclasses.field(default_factory=dict)
 
-    def to_dict(self) -> ProcessingErrorData:
+    def __init__(self, data: T):
+        self.data = data
+
+    def to_dict(self) -> ProcessingErrorData[T]:
         return {
             "type": self.type.name,
             "data": self.data,
         }
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__()
+        if hasattr(cls, "type"):
+            processing_error_registry.register(cls.type, cls)
+
     @classmethod
-    def from_dict(cls, processing_error_data: ProcessingErrorData) -> ProcessingError:
-        return cls(
-            ProcessingErrorType[processing_error_data["type"]],
-            processing_error_data["data"],
+    def from_dict(cls, processing_error_data: ProcessingErrorData[T]) -> ProcessingErrorBase[T]:
+        error_cls = processing_error_registry.get(
+            ProcessingErrorType[processing_error_data["type"]]
         )
+        return error_cls(processing_error_data["data"])
+
+    def __eq__(self, other):
+        if isinstance(other, ProcessingErrorBase):
+            return self.type == other.type and self.data == other.data
+        return False
+
+
+class ProcessingErrorNoData(ProcessingErrorBase[Mapping[str, object]]):
+    def __init__(self, data=None):
+        if data is None:
+            data = {}
+        self.data = data
+
+
+class CheckinEnvironmentMismatchData(TypedDict):
+    existing_environment: str
+
+
+class CheckinEnvironmentMismatch(ProcessingErrorBase[CheckinEnvironmentMismatchData]):
+    type = ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH
+
+
+class CheckinFinished(ProcessingErrorNoData):
+    type = ProcessingErrorType.CHECKIN_FINISHED
+
+
+class CheckinGuidProjectMismatchData(TypedDict):
+    guid: str
+
+
+class CheckinGuidProjectMismatch(ProcessingErrorBase[CheckinGuidProjectMismatchData]):
+    type = ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH
+
+
+class CheckinInvalidDurationData(TypedDict):
+    duration: str
+
+
+class CheckinInvalidDuration(ProcessingErrorBase[CheckinInvalidDurationData]):
+    type = ProcessingErrorType.CHECKIN_INVALID_DURATION
+
+
+class CheckinInvalidGuid(ProcessingErrorNoData):
+    type = ProcessingErrorType.CHECKIN_INVALID_GUID
+
+
+class CheckinValidationFailedData(TypedDict):
+    errors: list[str]
+
+
+class CheckinValidationFailed(ProcessingErrorBase[CheckinValidationFailedData]):
+    type = ProcessingErrorType.CHECKIN_VALIDATION_FAILED
+
+
+class MonitorDisabled(ProcessingErrorNoData):
+    type = ProcessingErrorType.MONITOR_DISABLED
+
+
+class MonitorDisabledNoQuota(ProcessingErrorNoData):
+    type = ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA
+
+
+class MonitorInvalidConfigData(TypedDict):
+    errors: list[dict[str, list[str]]]
+
+
+class MonitorInvalidConfig(ProcessingErrorBase[MonitorInvalidConfigData]):
+    type = ProcessingErrorType.MONITOR_INVALID_CONFIG
+
+
+class MonitorInvalidEnvironmentData(TypedDict):
+    reason: str
+
+
+class MonitorInvalidEnvironment(ProcessingErrorBase[MonitorInvalidEnvironmentData]):
+    type = ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT
+
+
+class MonitorLimitExceededData(TypedDict):
+    reason: str
+
+
+class MonitorLimitExceeded(ProcessingErrorBase[MonitorLimitExceededData]):
+    type = ProcessingErrorType.MONITOR_LIMIT_EXCEEDED
+
+
+class MonitorNotFound(ProcessingErrorNoData):
+    type = ProcessingErrorType.MONITOR_NOT_FOUND
+
+
+class MonitorOverQuota(ProcessingErrorNoData):
+    type = ProcessingErrorType.MONITOR_OVER_QUOTA
+
+
+class MonitorEnvironmentLimitExceededData(TypedDict):
+    reason: str
+
+
+class MonitorEnvironmentLimitExceeded(ProcessingErrorBase[MonitorEnvironmentLimitExceededData]):
+    type = ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED
+
+
+class MonitorEnviromentRateLimited(ProcessingErrorNoData):
+    type = ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED
+
+
+class OrganizationKillswitchEnabled(ProcessingErrorNoData):
+    type = ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED
 
 
 class CheckinProcessingErrorData(TypedDict):
@@ -99,7 +237,7 @@ class CheckinProcessingErrorData(TypedDict):
 
 @dataclasses.dataclass(frozen=True)
 class CheckinProcessingError:
-    errors: list[ProcessingError]
+    errors: list[ProcessingErrorBase]
     checkin: CheckinItem
     id: uuid.UUID = dataclasses.field(default_factory=uuid.uuid4)
 
@@ -113,7 +251,7 @@ class CheckinProcessingError:
     @classmethod
     def from_dict(cls, data: CheckinProcessingErrorData) -> CheckinProcessingError:
         return cls(
-            errors=[ProcessingError.from_dict(error) for error in data["errors"]],
+            errors=[ProcessingErrorBase.from_dict(error) for error in data["errors"]],
             checkin=CheckinItem.from_dict(data["checkin"]),
             id=uuid.UUID(data["id"]),
         )

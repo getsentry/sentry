@@ -1,8 +1,4 @@
-from sentry.monitors.processing_errors import (
-    CheckinProcessErrorsManager,
-    ProcessingError,
-    ProcessingErrorType,
-)
+from sentry.monitors.processing_errors import CheckinInvalidGuid, CheckinProcessErrorsManager
 from sentry.monitors.testutils import build_checkin_processing_error
 from sentry.testutils.cases import APITestCase, MonitorTestCase
 
@@ -21,7 +17,7 @@ class ProjectProcessingErrorsDetailsEndpointTest(MonitorTestCase, APITestCase):
     def test(self):
         manager = CheckinProcessErrorsManager()
         monitor_error = build_checkin_processing_error(
-            [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
+            [CheckinInvalidGuid()],
             message_overrides={"project_id": self.project.id},
         )
 
@@ -33,7 +29,7 @@ class ProjectProcessingErrorsDetailsEndpointTest(MonitorTestCase, APITestCase):
     def test_invalid_project(self):
         manager = CheckinProcessErrorsManager()
         monitor_error = build_checkin_processing_error(
-            [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
+            [CheckinInvalidGuid()],
             message_overrides={"project_id": self.project.id},
         )
         unrelated_project = self.create_project()
