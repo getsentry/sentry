@@ -18,7 +18,7 @@ from sentry.utils import json
 from sentry.utils.types import NonNone
 
 
-@mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_breakpoint_connection_pool.urlopen")
 def test_detect_breakpoints(mock_urlopen):
     data = {
         "data": [
@@ -50,7 +50,7 @@ def test_detect_breakpoints(mock_urlopen):
     ],
 )
 @mock.patch("sentry_sdk.capture_exception")
-@mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_breakpoint_connection_pool.urlopen")
 def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, status):
     mock_urlopen.return_value = HTTPResponse(body, status=status)
 
@@ -60,7 +60,7 @@ def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, s
 
 # TODO: Remove once switch is complete
 @django_db_all
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_simple_similar_issues_embeddings_only_group_id_returned(
     mock_seer_request, default_project
 ):
@@ -89,7 +89,7 @@ def test_simple_similar_issues_embeddings_only_group_id_returned(
 
 
 @django_db_all
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, default_project):
     """Test that valid responses are decoded and returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
@@ -125,7 +125,7 @@ def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, 
 
 # TODO: Remove once switch is complete
 @django_db_all
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, default_project):
     """Test that valid responses are decoded and returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
@@ -154,7 +154,7 @@ def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, defau
 
 
 @django_db_all
-@mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
     """Test that empty responses are returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)

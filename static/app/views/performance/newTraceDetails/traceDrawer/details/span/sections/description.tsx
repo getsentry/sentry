@@ -1,7 +1,9 @@
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -12,13 +14,16 @@ import type {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {
-  Frame,
-  SpanDescription as DBQueryDescription,
-} from 'sentry/views/starfish/components/spanDescription';
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 import {TraceDrawerComponents} from '../../styles';
+
+const formatter = new SQLishFormatter();
 
 export function SpanDescription({
   node,
@@ -36,7 +41,18 @@ export function SpanDescription({
     span.sentry_tags?.category
   );
 
-  if (![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)) {
+  const formattedDescription = useMemo(() => {
+    if (resolvedModule !== ModuleName.DB) {
+      return span.description ?? '';
+    }
+
+    return formatter.toString(span.description ?? '');
+  }, [span.description, resolvedModule]);
+
+  if (
+    !formattedDescription ||
+    ![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)
+  ) {
     return null;
   }
 
@@ -66,15 +82,26 @@ export function SpanDescription({
 
   const value =
     resolvedModule === ModuleName.DB ? (
-      <SpanDescriptionWrapper>
-        <DBQueryDescription
-          groupId={span.sentry_tags?.group ?? ''}
-          op={span.op ?? ''}
-          preliminaryDescription={span.description}
-        />
-      </SpanDescriptionWrapper>
+      <Fragment>
+        <CodeSnippet language="sql" isRounded={false}>
+          {formattedDescription}
+        </CodeSnippet>
+        {span?.data?.['code.filepath'] ? (
+          <StackTraceMiniFrame
+            projectId={span.event.projectID}
+            eventId={span.event.eventID}
+            frame={{
+              filename: span?.data?.['code.filepath'],
+              lineNo: span?.data?.['code.lineno'],
+              function: span?.data?.['code.function'],
+            }}
+          />
+        ) : (
+          <MissingFrame />
+        )}
+      </Fragment>
     ) : (
-      span.description
+      formattedDescription
     );
 
   const title =
@@ -106,12 +133,6 @@ const TitleContainer = styled('div')`
   align-items: center;
   margin-bottom: ${space(0.5)};
   justify-content: space-between;
-`;
-
-const SpanDescriptionWrapper = styled('div')`
-  ${Frame} {
-    border: none;
-  }
 `;
 
 const ButtonGroup = styled('div')`

@@ -360,7 +360,7 @@ export function ReplayCell({
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
           {project ? project.slug : null}
-          <Link to={detailsTab} onClick={trackNavigationEvent}>
+          <Link to={detailsTab()} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
           <Row gap={0.5}>
@@ -382,7 +382,7 @@ export function ReplayCell({
               replay.user.display_name || t('Anonymous User')
             ) : (
               <MainLink
-                to={detailsTab}
+                to={detailsTab()}
                 onClick={trackNavigationEvent}
                 data-has-viewed={replay.has_viewed}
               >

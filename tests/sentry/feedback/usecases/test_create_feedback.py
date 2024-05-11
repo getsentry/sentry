@@ -39,7 +39,6 @@ def llm_settings(set_sentry_option):
             "llm.usecases.options",
             {"spamdetection": {"provider": "openai", "options": {"model": "gpt-4-turbo-1.0"}}},
         ),
-        set_sentry_option("feedback.spam-detection-actions", True),
     ):
         yield
 
@@ -462,94 +461,96 @@ def test_create_feedback_spam_detection_adds_field(
     monkeypatch,
     feature_flag,
 ):
-    with Feature({"organizations:user-feedback-spam-filter-ingest": feature_flag}):
-        event = {
-            "project_id": default_project.id,
-            "request": {
-                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
-                "headers": {
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-                },
-            },
-            "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
-            "timestamp": 1698255009.574,
-            "received": "2021-10-24T22:23:29.574000+00:00",
-            "environment": "prod",
-            "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
-            "user": {
-                "ip_address": "72.164.175.154",
-                "email": "josh.ferge@sentry.io",
-                "id": 880461,
-                "isStaff": False,
-                "name": "Josh Ferge",
-            },
-            "contexts": {
-                "feedback": {
-                    "contact_email": "josh.ferge@sentry.io",
-                    "name": "Josh Ferge",
-                    "message": input_message,
-                    "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+    with Feature({"organizations:user-feedback-spam-filter-actions": True}):
+
+        with Feature({"organizations:user-feedback-spam-filter-ingest": feature_flag}):
+            event = {
+                "project_id": default_project.id,
+                "request": {
                     "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                    "headers": {
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+                    },
                 },
-            },
-            "breadcrumbs": [],
-            "platform": "javascript",
-        }
+                "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+                "timestamp": 1698255009.574,
+                "received": "2021-10-24T22:23:29.574000+00:00",
+                "environment": "prod",
+                "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+                "user": {
+                    "ip_address": "72.164.175.154",
+                    "email": "josh.ferge@sentry.io",
+                    "id": 880461,
+                    "isStaff": False,
+                    "name": "Josh Ferge",
+                },
+                "contexts": {
+                    "feedback": {
+                        "contact_email": "josh.ferge@sentry.io",
+                        "name": "Josh Ferge",
+                        "message": input_message,
+                        "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                        "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                    },
+                },
+                "breadcrumbs": [],
+                "platform": "javascript",
+            }
 
-        def dummy_response(*args, **kwargs):
-            return ChatCompletion(
-                id="test",
-                choices=[
-                    Choice(
-                        index=0,
-                        message=ChatCompletionMessage(
-                            content=(
-                                "spam"
-                                if kwargs["messages"][1]["content"] == "This is definitely spam,"
-                                else "not spam"
+            def dummy_response(*args, **kwargs):
+                return ChatCompletion(
+                    id="test",
+                    choices=[
+                        Choice(
+                            index=0,
+                            message=ChatCompletionMessage(
+                                content=(
+                                    "spam"
+                                    if "This is definitely spam" in kwargs["messages"][0]["content"]
+                                    else "not spam"
+                                ),
+                                role="assistant",
                             ),
-                            role="assistant",
-                        ),
-                        finish_reason="stop",
-                    )
-                ],
-                created=time.time(),
-                model="gpt3.5-trubo",
-                object="chat.completion",
+                            finish_reason="stop",
+                        )
+                    ],
+                    created=time.time(),
+                    model="gpt3.5-trubo",
+                    object="chat.completion",
+                )
+
+            mock_openai = Mock()
+            mock_openai().chat.completions.create = dummy_response
+
+            monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
+
+            create_feedback_issue(
+                event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
-        mock_openai = Mock()
-        mock_openai().chat.completions.create = dummy_response
-
-        monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
-
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
-
-        # Check if the 'is_spam' evidence in the Kafka message matches the expected result
-        is_spam_evidence = [
-            evidence.value
-            for evidence in mock_produce_occurrence_to_kafka.call_args_list[0]
-            .kwargs["occurrence"]
-            .evidence_display
-            if evidence.name == "is_spam"
-        ]
-        found_is_spam = is_spam_evidence[0] if is_spam_evidence else None
-        assert (
-            found_is_spam == expected_result
-        ), f"Expected {expected_result} but found {found_is_spam} for {input_message} and feature flag {feature_flag}"
-
-        if expected_result and feature_flag:
+            # Check if the 'is_spam' evidence in the Kafka message matches the expected result
+            is_spam_evidence = [
+                evidence.value
+                for evidence in mock_produce_occurrence_to_kafka.call_args_list[0]
+                .kwargs["occurrence"]
+                .evidence_display
+                if evidence.name == "is_spam"
+            ]
+            found_is_spam = is_spam_evidence[0] if is_spam_evidence else None
             assert (
-                mock_produce_occurrence_to_kafka.call_args_list[1]
-                .kwargs["status_change"]
-                .new_status
-                == GroupStatus.RESOLVED
-            )
+                found_is_spam == expected_result
+            ), f"Expected {expected_result} but found {found_is_spam} for {input_message} and feature flag {feature_flag}"
 
-        if not (expected_result and feature_flag):
-            assert mock_produce_occurrence_to_kafka.call_count == 1
+            if expected_result and feature_flag:
+                assert (
+                    mock_produce_occurrence_to_kafka.call_args_list[1]
+                    .kwargs["status_change"]
+                    .new_status
+                    == GroupStatus.RESOLVED
+                )
+
+            if not (expected_result and feature_flag):
+                assert mock_produce_occurrence_to_kafka.call_count == 1
 
 
 @django_db_all
@@ -603,7 +604,7 @@ def test_create_feedback_spam_detection_option_false(
                         message=ChatCompletionMessage(
                             content=(
                                 "spam"
-                                if kwargs["messages"][1]["content"] == "This is definitely spam"
+                                if kwargs["messages"][0]["content"] == "This is definitely spam"
                                 else "not spam"
                             ),
                             role="assistant",

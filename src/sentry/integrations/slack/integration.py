@@ -21,7 +21,6 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import JSONData
 
 from .client import SlackClient
 from .notifications import SlackNotifyBasicMixin
@@ -132,7 +131,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view]
 
-    def _get_team_info(self, access_token: str) -> JSONData:
+    def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation
         headers = {"Authorization": f"Bearer {access_token}"}
         try:

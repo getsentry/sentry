@@ -37,7 +37,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-codeowners-details",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "codeowners_id": self.codeowners.id,
             },
@@ -71,7 +71,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-codeowners-details",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "codeowners_id": 1000,
             },
@@ -155,7 +155,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
             url = reverse(
                 "sentry-api-0-project-codeowners-details",
                 kwargs={
-                    "organization_slug": self.organization.slug,
+                    "organization_id_or_slug": self.organization.slug,
                     "project_id_or_slug": self.project.slug,
                     "codeowners_id": codeowners.id,
                 },

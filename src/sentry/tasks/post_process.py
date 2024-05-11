@@ -30,12 +30,13 @@ from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
-from sentry.utils.services import build_instance_from_options
+from sentry.utils.services import build_instance_from_options_of_type
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
@@ -48,7 +49,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
+locks = LockManager(
+    build_instance_from_options_of_type(
+        LockBackend, settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS
+    )
+)
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
@@ -216,12 +221,6 @@ def handle_owner_assignment(job):
 
             event = job["event"]
             project, group = event.project, event.group
-            basic_logging_details = {
-                "event": event.event_id,
-                "group": event.group_id,
-                "project": event.project_id,
-                "organization": event.project.organization_id,
-            }
             # We want to debounce owner assignment when:
             # - GroupOwner of type Ownership Rule || CodeOwner exist with TTL 1 day
             # - we tried to calculate and could not find issue owners with TTL 1 day
@@ -233,13 +232,6 @@ def handle_owner_assignment(job):
                         group_id=group.id,
                         organization_id=event.project.organization_id,
                     ):
-                        logger.info(
-                            "handle_owner_assignment.ratelimited",
-                            extra={
-                                **basic_logging_details,
-                                "reason": "ratelimited",
-                            },
-                        )
                         metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
                         return
 
