@@ -143,4 +143,14 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         stacklevel: int = 0,
     ) -> None:
-        pass
+        self._primary_backend.event(
+            title,
+            message,
+            alert_type,
+            aggregation_key,
+            source_type_name,
+            priority,
+            instance,
+            tags,
+            stacklevel + 1,
+        )
