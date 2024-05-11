@@ -1,8 +1,7 @@
 from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.types.actor import Actor
 
 
 class TestCreator(TestCase):
@@ -13,11 +12,9 @@ class TestCreator(TestCase):
             teams=[self.create_team()], name="foo", fire_project_created=True
         )
 
-        with assume_test_silo_mode_of(User):
-            self.user = User.objects.get(id=self.user.id)
         self.creator = Creator(
             name="New Cool Rule",
-            owner_user_id=self.user.id,
+            owner=Actor.from_id(user_id=self.user.id),
             project=self.project,
             action_match="all",
             filter_match="any",

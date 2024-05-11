@@ -20,12 +20,12 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -52,6 +52,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const isOpen = useIsSelectedFeedback({feedbackItem});
     const {feedbackHasReplay} = useReplayCountForFeedbacks();
     const hasReplayId = feedbackHasReplay(feedbackItem.id);
+    const location = useLocation();
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
     const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
@@ -64,16 +65,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
         <ThemeProvider theme={theme}>
           <LinkedFeedbackCard
             data-selected={isOpen}
-            to={() => {
-              const location = browserHistory.getCurrentLocation();
-              return {
-                pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-                query: {
-                  ...location.query,
-                  referrer: 'feedback_list_page',
-                  feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
-                },
-              };
+            to={{
+              pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+              query: {
+                ...location.query,
+                referrer: 'feedback_list_page',
+                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
+              },
             }}
             onClick={() => {
               trackAnalytics('feedback.list-item-selected', {organization});

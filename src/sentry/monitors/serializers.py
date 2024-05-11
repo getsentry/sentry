@@ -17,6 +17,7 @@ from sentry.monitors.models import (
     MonitorIncident,
     MonitorStatus,
 )
+from sentry.monitors.processing_errors import CheckinProcessingError, CheckinProcessingErrorData
 from sentry.monitors.utils import fetch_associated_groups
 from sentry.monitors.validators import IntervalNames
 from sentry.types.actor import Actor
@@ -184,10 +185,12 @@ class MonitorSerializer(Serializer):
         actors.extend(
             [Actor.from_id(team_id=m.owner_team_id) for m in item_list if m.owner_team_id]
         )
+        filtered_actors = list(filter(None, actors))
 
-        actors_serialized = serialize(Actor.resolve_many(actors), user, ActorSerializer())
+        actors_serialized = serialize(Actor.resolve_many(filtered_actors), user, ActorSerializer())
         actor_data = {
-            actor: serialized_actor for actor, serialized_actor in zip(actors, actors_serialized)
+            actor: serialized_actor
+            for actor, serialized_actor in zip(filtered_actors, actors_serialized)
         }
 
         monitor_environments = (
@@ -346,3 +349,11 @@ class MonitorCheckInSerializer(Serializer):
             return False
 
         return key in self.expand
+
+
+@register(CheckinProcessingError)
+class CheckinProcessingErrorSerializer(Serializer):
+    def serialize(
+        self, obj: CheckinProcessingError, attrs, user, **kwargs
+    ) -> CheckinProcessingErrorData:
+        return obj.to_dict()

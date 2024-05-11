@@ -379,6 +379,7 @@ export interface TraceResult<F extends string> {
 }
 
 interface TraceBreakdownBase {
+  duration: number; // Contains the accurate duration for display. Start and end may be quantized.
   end: number;
   opCategory: string | null;
   sdkName: string | null;
@@ -529,6 +530,7 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
   ${p =>
     p.highlightedSliceName
       ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
+         --highlightedSlice-${p.highlightedSliceName}-saturate: saturate(1.0) contrast(1.0);
          --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
        `
       : null}
@@ -536,10 +538,12 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
     p.highlightedSliceName
       ? `
         --defaultSlice-opacity: 1.0;
+        --defaultSlice-saturate: saturate(0.7) contrast(0.9) brightness(1.2);
         --defaultSlice-transform: translateY(0px);
         `
       : `
         --defaultSlice-opacity: 1.0;
+        --defaultSlice-saturate: saturate(1.0) contrast(1.0);
         --defaultSlice-transform: translateY(0px);
         `}
 `;

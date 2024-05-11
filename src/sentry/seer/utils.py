@@ -6,6 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
+from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VERSION
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
@@ -46,27 +47,27 @@ class BreakpointResponse(TypedDict):
     data: list[BreakpointData]
 
 
-seer_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
+seer_grouping_connection_pool = connection_from_url(
+    settings.SEER_GROUPING_URL,
     retries=Retry(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_GROUPING_TIMEOUT,
 )
 
-seer_staging_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL,
+seer_breakpoint_connection_pool = connection_from_url(
+    settings.SEER_BREAKPOINT_DETECTION_URL,
     retries=Retry(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_BREAKPOINT_DETECTION_TIMEOUT,
 )
 
 
 def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
-    response = seer_connection_pool.urlopen(
+    response = seer_breakpoint_connection_pool.urlopen(
         "POST",
         "/trends/breakpoint-detector",
         body=json.dumps(breakpoint_request),
@@ -124,6 +125,7 @@ class SeerSimilarIssueData:
     message_distance: float
     should_group: bool
     parent_group_id: int
+    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
     # TODO: See if we end up needing the hash here
     parent_hash: str | None = None
 
@@ -175,10 +177,10 @@ class SeerSimilarIssueData:
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
-    """Call /v0/issues/similar-issues endpoint from seer."""
-    response = seer_staging_connection_pool.urlopen(
+    """Request similar issues data from seer and normalize the results."""
+    response = seer_grouping_connection_pool.urlopen(
         "POST",
-        "/v0/issues/similar-issues",
+        SEER_SIMILAR_ISSUES_URL,
         body=json.dumps(similar_issues_request),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
