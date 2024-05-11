@@ -65,15 +65,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
         <ThemeProvider theme={theme}>
           <LinkedFeedbackCard
             data-selected={isOpen}
-            to={() => {
-              return {
-                pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-                query: {
-                  ...location.query,
-                  referrer: 'feedback_list_page',
-                  feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
-                },
-              };
+            to={{
+              pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+              query: {
+                ...location.query,
+                referrer: 'feedback_list_page',
+                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
+              },
             }}
             onClick={() => {
               trackAnalytics('feedback.list-item-selected', {organization});
