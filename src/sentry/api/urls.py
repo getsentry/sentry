@@ -1812,7 +1812,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-release-threshold-statuses",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/stats/$",
         OrganizationReleasesStatsEndpoint.as_view(),
         name="sentry-api-0-organization-releases-stats",
     ),
