@@ -2841,11 +2841,12 @@ class PostProcessGroupFeedbackTest(
         group_event.occurrence = occurrence
         return group_event
 
-    @override_options({"feedback.spam-detection-actions": True})
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(FeedbackGroup.build_post_process_group_feature_name()):
+        with self.feature(FeedbackGroup.build_post_process_group_feature_name()), self.feature(
+            "organizations:user-feedback-spam-filter-actions"
+        ):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,
