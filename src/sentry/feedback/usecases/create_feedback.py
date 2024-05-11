@@ -359,7 +359,7 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
             status_change=StatusChangeMessage(
                 fingerprint=issue_fingerprint,
                 project_id=project.id,
-                new_status=GroupStatus.RESOLVED,
+                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
                 new_substatus=None,
             ),
         )
