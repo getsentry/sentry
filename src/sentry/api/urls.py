@@ -1796,12 +1796,12 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-plugins-configs",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/$",
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/release-thresholds/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/release-thresholds/$",
         ReleaseThresholdIndexEndpoint.as_view(),
         name="sentry-api-0-organization-release-thresholds",
     ),
@@ -1817,32 +1817,32 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-releases-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",
         OrganizationReleaseDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-release-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/meta/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/meta/$",
         OrganizationReleaseMetaEndpoint.as_view(),
         name="sentry-api-0-organization-release-meta",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/assemble/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/assemble/$",
         OrganizationReleaseAssembleEndpoint.as_view(),
         name="sentry-api-0-organization-release-assemble",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
         OrganizationReleaseFilesEndpoint.as_view(),
         name="sentry-api-0-organization-release-files",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
         OrganizationReleaseFileDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-release-file-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$",
         CommitFileChangeEndpoint.as_view(),
         name="sentry-api-0-release-commitfilechange",
     ),
