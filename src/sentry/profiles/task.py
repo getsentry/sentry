@@ -996,7 +996,8 @@ def _track_outcome(
 def _insert_vroom_profile(profile: Profile) -> bool:
     with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
         try:
-            response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
+            path = "/chunk" if profile.get("version") == "2" else "/profile"
+            response = get_from_profiling_service(method="POST", path=path, json_data=profile)
 
             if response.status == 204:
                 return True
