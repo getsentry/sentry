@@ -2245,7 +2245,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-event-file-committers",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/json/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/json/$",
         EventJsonEndpoint.as_view(),
         name="sentry-api-0-event-json",
     ),
