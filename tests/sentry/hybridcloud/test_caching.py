@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from random import Random
 
 from django.core.cache import cache
@@ -20,7 +21,7 @@ from sentry.types.region import get_local_region
 
 
 @django_db_all(transaction=True)
-def test_caching_function():
+def test_caching_function() -> None:
     cache.clear()
 
     @back_with_silo_cache(base_key="my-test-key", silo_mode=SiloMode.REGION, t=RpcUser)
@@ -56,7 +57,7 @@ def test_caching_function():
 
 @control_silo_test
 @django_db_all(transaction=True)
-def test_caching_function_control():
+def test_caching_function_control() -> None:
     cache.clear()
 
     @back_with_silo_cache(
@@ -93,7 +94,7 @@ def test_caching_function_control():
 
 @control_silo_test
 @django_db_all(transaction=True)
-def test_caching_function_none_value():
+def test_caching_function_none_value() -> None:
     cache.clear()
 
     @back_with_silo_cache(
@@ -111,13 +112,13 @@ def test_caching_function_none_value():
 
 @django_db_all(transaction=True)
 @no_silo_test
-def test_cache_versioning():
+def test_cache_versioning() -> None:
     cache.clear()
 
     shared_key = "my-key"
     true_value = "a"
 
-    def reader():
+    def reader() -> Iterator[None]:
         nonlocal true_value
         last_length = 0
 
@@ -136,7 +137,7 @@ def test_cache_versioning():
                 yield from CacheBackend.set_cache(shared_key, copied_local_value, version)
                 last_length = len(copied_local_value)
 
-    def writer():
+    def writer() -> Iterator[None]:
         nonlocal true_value
         while True:
             for i in range(5):
@@ -144,7 +145,7 @@ def test_cache_versioning():
             true_value += "a"
             yield from CacheBackend.delete_cache(shared_key, SiloMode.REGION)
 
-    def cache_death_event():
+    def cache_death_event() -> Iterator[None]:
         while True:
             for i in range(20):
                 yield

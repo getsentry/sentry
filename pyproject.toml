@@ -639,6 +639,7 @@ module = [
     "sentry_plugins.base",
     "tests.sentry.api.endpoints.issues.*",
     "tests.sentry.grouping.test_fingerprinting",
+    "tests.sentry.hybridcloud.*",
     "tests.sentry.issues",
     "tests.sentry.issues.endpoints",
     "tests.sentry.issues.endpoints.test_actionable_items",
