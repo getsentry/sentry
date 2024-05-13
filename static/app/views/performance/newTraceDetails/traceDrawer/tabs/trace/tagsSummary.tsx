@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {isEmpty} from 'lodash/isEmpty';
 
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
 import type {ApiResult} from 'sentry/api';
@@ -84,6 +85,7 @@ function TagRow(props: TagProps) {
 
     return segment;
   });
+
   // Ensure we don't show >100% if there's a slight mismatch between the facets
   // endpoint and the totals endpoint
   const maxTotalValues =
@@ -115,7 +117,7 @@ export function TagsSummary(props: TagSummaryProps) {
     if (!data) {
       return [];
     }
-    return data.pages.flatMap(([pageData]) => pageData);
+    return data.pages.flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData));
   }, [data]);
 
   return (
