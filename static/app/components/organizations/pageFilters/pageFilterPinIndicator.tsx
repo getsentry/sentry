@@ -20,7 +20,7 @@ function PageFilterPinIndicator({children, filter}: Props) {
       {children}
       {pinned && (
         <IndicatorWrap aria-label={t('Filter applied across pages')}>
-          <StyledIconLock size="xs" isSolid />
+          <StyledIconLock size="xs" locked />
         </IndicatorWrap>
       )}
     </Wrap>
