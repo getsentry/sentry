@@ -296,7 +296,7 @@ class MarkFailedTestCase(TestCase):
                 ],
                 "type": MonitorIncidentType.type_id,
                 "level": "error",
-                "culprit": "incident",
+                "culprit": "",
             },
         ) == dict(occurrence)
 
