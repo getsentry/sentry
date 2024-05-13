@@ -513,22 +513,20 @@ export default function AssigneeSelectorDropdown({
     );
   };
 
-  const makeFooterInviteButton = () => {
-    return (
-      <Button
-        size="xs"
-        aria-label={t('Invite Member')}
-        disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-          event.preventDefault();
-          openInviteMembersModal({source: 'assignee_selector'});
-        }}
-        icon={<IconAdd isCircled />}
-      >
-        {t('Invite Member')}
-      </Button>
-    );
-  };
+  const footerInviteButton = (
+    <Button
+      size="xs"
+      aria-label={t('Invite Member')}
+      disabled={loading}
+      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        event.preventDefault();
+        openInviteMembersModal({source: 'assignee_selector'});
+      }}
+      icon={<IconAdd isCircled />}
+    >
+      {t('Invite Member')}
+    </Button>
+  );
 
   return (
     <AssigneeWrapper>
@@ -551,7 +549,7 @@ export default function AssigneeSelectorDropdown({
         onChange={handleSelect}
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
-        menuFooter={makeFooterInviteButton()}
+        menuFooter={footerInviteButton}
       />
     </AssigneeWrapper>
   );
