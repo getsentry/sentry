@@ -36,8 +36,9 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
     def initialize(self, live_server, reset_snuba):
         self.project.update_option("sentry:builtin_symbol_sources", [])
 
-        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.url-prefix": live_server.url}
+        with (
+            patch("sentry.auth.system.is_internal_ip", return_value=True),
+            self.options({"system.url-prefix": live_server.url}),
         ):
             # Run test case
             yield
@@ -162,9 +163,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
-        features = dict(self._FEATURES)
-        features["organizations:reprocessing-v2"] = True
-        with self.feature(features):
+        with self.feature(self._FEATURES):
             with open(get_fixture_path("native", "windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
