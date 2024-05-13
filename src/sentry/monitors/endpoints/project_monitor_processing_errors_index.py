@@ -9,12 +9,13 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.monitors.endpoints.base import ProjectMonitorEndpoint
 from sentry.monitors.processing_errors import (
     CheckinProcessErrorsManager,
     CheckinProcessingErrorData,
 )
 from sentry.utils.auth import AuthenticatedHttpRequest
+
+from .base import ProjectMonitorEndpoint
 
 
 @region_silo_endpoint
