@@ -1,3 +1,4 @@
+import {ChartType} from 'sentry/chartcuterie/types';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import type {Event, EventsStatsData} from 'sentry/types';
@@ -80,6 +81,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
           percentileData={data?.['p95(transaction.duration)']?.data ?? []}
           evidenceData={normalizedOccurrenceEvent}
           datetime={datetime}
+          chartType={ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION}
         />
       </TransitionChart>
     </DataSection>
