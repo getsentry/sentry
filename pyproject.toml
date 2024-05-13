@@ -636,7 +636,8 @@ module = [
     "sentry.tasks.commit_context",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
-    "sentry.utils.actor",
+    "sentry.types.actor",
+    "sentry.types.region",
     "sentry.utils.arroyo",
     "sentry.utils.assets",
     "sentry.utils.audit",
@@ -699,6 +700,8 @@ module = [
     "tests.sentry.relay.config.test_metric_extraction",
     "tests.sentry.services.hybrid_cloud.*",
     "tests.sentry.tasks.test_on_demand_metrics",
+    "tests.sentry.types.test_actor",
+    "tests.sentry.types.test_region",
     "tools.*",
 ]
 disallow_any_generics = true
