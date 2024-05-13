@@ -13,6 +13,7 @@ from sentry.db import models
 from sentry.models.email import Email
 from sentry.models.options.option import Option
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
@@ -210,9 +211,20 @@ class FilteringTests(ExportTestCase):
         a_b = self.create_exhaustive_user("user_a_and_b")
         b_c = self.create_exhaustive_user("user_b_and_c")
         a_b_c = self.create_exhaustive_user("user_all", email="shared@example.com")
-        self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
-        self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
-        self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+        org_a = self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
+        org_b = self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
+        org_c = self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+
+        # Add an invited email to each org.
+        OrganizationMember.objects.create(
+            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(
@@ -246,9 +258,20 @@ class FilteringTests(ExportTestCase):
         a_b = self.create_exhaustive_user("user_a_and_b")
         b_c = self.create_exhaustive_user("user_b_and_c")
         a_b_c = self.create_exhaustive_user("user_all", email="shared@example.com")
-        self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
-        self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
-        self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+        org_a = self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
+        org_b = self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
+        org_c = self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+
+        # Add an invited email to each org.
+        OrganizationMember.objects.create(
+            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(
@@ -282,9 +305,20 @@ class FilteringTests(ExportTestCase):
         a_b = self.create_exhaustive_user("user_a_and_b")
         b_c = self.create_exhaustive_user("user_b_and_c")
         a_b_c = self.create_exhaustive_user("user_all")
-        self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
-        self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
-        self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+        org_a = self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
+        org_b = self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
+        org_c = self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+
+        # Add an invited email to each org.
+        OrganizationMember.objects.create(
+            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(
