@@ -221,7 +221,7 @@ describe('Performance > Web Vitals', function () {
     beforeEach(() => {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
     });
 
@@ -237,7 +237,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
@@ -252,7 +252,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -267,7 +267,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -283,7 +283,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -299,7 +299,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
@@ -331,7 +331,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       await waitForElementToBeRemoved(() =>
@@ -354,7 +354,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       await waitForElementToBeRemoved(() =>
