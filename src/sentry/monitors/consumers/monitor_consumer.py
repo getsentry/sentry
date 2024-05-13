@@ -25,6 +25,7 @@ from sentry_sdk.tracing import Span, Transaction
 from sentry import quotas, ratelimits
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
@@ -822,7 +823,8 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                     )
                 else:
                     txn.set_tag("outcome", "create_new_checkin")
-                    signal_first_checkin(project, monitor)
+                    with in_test_hide_transaction_boundary():
+                        signal_first_checkin(project, monitor)
                     metrics.incr(
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "created_new_checkin"},

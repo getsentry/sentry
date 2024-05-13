@@ -207,3 +207,22 @@ class SiloRouter:
         # Assume migrations with no model routing or hints need to run on
         # the default database.
         return db == "default"
+
+
+class TestSiloMultiDatabaseRouter(SiloRouter):
+    """Silo router used in CI"""
+
+    secondary_db_models = {
+        "sentry_monitor",
+        "sentry_monitorcheckin",
+        "sentry_monitorlocation",
+        "sentry_monitorenvironment",
+        "sentry_monitorincident",
+        "sentry_monitorenvbrokendetection",
+    }
+
+    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str) -> str | None:
+        connection = super()._resolve_silo_connection(silo_modes=silo_modes, table=table)
+        if table in self.secondary_db_models:
+            return "secondary"
+        return connection
