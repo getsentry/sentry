@@ -424,9 +424,6 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         assert Monitor.objects.filter(id=monitor.id).exists()
         assert monitor.owner_user_id == user.id
 
-        import logging
-
-        logging.info("> Run for first monitor userid=%s", user_id)
         self.run_hybrid_cloud_fk_jobs()
 
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
@@ -449,8 +446,6 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
             ]
         )
 
-        logging.info("monitor ids to update %s", [m.id for m in affected_monitors])
-        logging.info("> Run for monitors created after tombstone process userid=%s", user_id)
         self.run_hybrid_cloud_fk_jobs()
 
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
