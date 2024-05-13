@@ -143,8 +143,9 @@ function DefaultGroupEventDetailsContent({
         ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
         .flatMap(x => x.data.values ?? [])
         .some(({value}) => {
-          const lowerText = value.toLowerCase();
+          const lowerText = value?.toLowerCase();
           return (
+            lowerText &&
             (lowerText.includes('api key') || lowerText.includes('429')) &&
             (lowerText.includes('openai') ||
               lowerText.includes('anthropic') ||
