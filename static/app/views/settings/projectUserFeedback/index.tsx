@@ -34,6 +34,8 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
     });
   };
 
+  // We need this mock here, otherwise the demo crash modal report will send to Sentry.
+  // We also need to unset window.sentryEmbedCallback, otherwise if we get a legit crash modal in our app this code would gobble it up.
   useEffect(() => {
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
