@@ -138,7 +138,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[transaction, t('Screen Loads')].join(' — ')}
-      baseURL="/performance/browser/app-startup"
+      baseURL="/performance/mobile/ui/spans"
       features={['spans-first-ui', 'starfish-mobile-ui-module']}
     >
       <ScreenSummary />
