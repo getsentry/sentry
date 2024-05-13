@@ -168,20 +168,20 @@ class CustomerDomainMiddlewareTest(TestCase):
 class OrganizationTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request, organization_slug):
+    def get(self, request, organization_id_or_slug):
         return Response(
             {
-                "organization_id_or_slug": organization_slug,
+                "organization_id_or_slug": organization_id_or_slug,
                 "subdomain": request.subdomain,
                 "activeorg": request.session.get("activeorg", None),
             }
         )
 
-    def post(self, request, organization_slug):
-        request.session["activeorg"] = organization_slug
+    def post(self, request, organization_id_or_slug):
+        request.session["activeorg"] = organization_id_or_slug
         return Response(
             {
-                "organization_id_or_slug": organization_slug,
+                "organization_id_or_slug": organization_id_or_slug,
                 "subdomain": request.subdomain,
                 "activeorg": request.session.get("activeorg", None),
             }
@@ -203,12 +203,12 @@ class OrganizationIdOrSlugTestEndpoint(Endpoint):
 
 urlpatterns = [
     re_path(
-        r"^api/0/(?P<organization_slug>[^\/]+)/$",
+        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/$",
         OrganizationTestEndpoint.as_view(),
         name="org-events-endpoint",
     ),
     re_path(
-        r"^api/0/(?P<organization_slug>[^\/]+)/nameless/$",
+        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/nameless/$",
         OrganizationTestEndpoint.as_view(),
     ),
     re_path(
