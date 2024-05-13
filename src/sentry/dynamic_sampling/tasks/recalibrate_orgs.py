@@ -22,6 +22,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
     has_dynamic_sampling,
+    sample_function,
 )
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
@@ -92,20 +93,24 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
         default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
     )
     if success:
-        log_sample_rate_source(
-            org_id,
-            None,
-            "recalibrate_orgs",
-            "sliding_window_org",
-            target_sample_rate,
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=None,
+            used_for="recalibrate_orgs",
+            source="sliding_window_org",
+            sample_rate=target_sample_rate,
         )
     else:
-        log_sample_rate_source(
-            org_id,
-            None,
-            "recalibrate_orgs",
-            "blended_sample_rate",
-            target_sample_rate,
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=None,
+            used_for="recalibrate_orgs",
+            source="blended_sample_rate",
+            sample_rate=target_sample_rate,
         )
 
     # If we didn't find any sample rate, we can't recalibrate the organization.

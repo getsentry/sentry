@@ -43,6 +43,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
     has_dynamic_sampling,
+    sample_function,
 )
 from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
@@ -177,16 +178,24 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(organization_id=org_id),
     )
     if success:
-        log_sample_rate_source(
-            org_id,
-            project_id,
-            "boost_low_volume_transactions",
-            "boost_low_volume_projects",
-            sample_rate,
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=project_id,
+            used_for="boost_low_volume_transactions",
+            source="boost_low_volume_projects",
+            sample_rate=sample_rate,
         )
     else:
-        log_sample_rate_source(
-            org_id, project_id, "boost_low_volume_transactions", "blended_sample_rate", sample_rate
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=project_id,
+            used_for="boost_low_volume_transactions",
+            source="blended_sample_rate",
+            sample_rate=sample_rate,
         )
 
     if sample_rate is None:

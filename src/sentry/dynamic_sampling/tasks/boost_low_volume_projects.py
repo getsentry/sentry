@@ -55,6 +55,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
     has_dynamic_sampling,
+    sample_function,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -271,12 +272,24 @@ def adjust_sample_rates_of_projects(
         default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
     )
     if success:
-        log_sample_rate_source(
-            org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=None,
+            used_for="boost_low_volume_projects",
+            source="sliding_window_org",
+            sample_rate=sample_rate,
         )
     else:
-        log_sample_rate_source(
-            org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=None,
+            used_for="boost_low_volume_projects",
+            source="blended_sample_rate",
+            sample_rate=sample_rate,
         )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.

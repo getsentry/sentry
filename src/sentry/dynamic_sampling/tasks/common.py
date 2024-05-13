@@ -676,7 +676,7 @@ def compute_sliding_window_sample_rate(
     # We want to log the monthly volume for observability purposes.
     sample_function(
         function=log_extrapolated_monthly_volume,
-        sample_rate=0.1,
+        _sample_rate=0.1,
         org_id=org_id,
         project_id=project_id,
         volume=total_root_count,
