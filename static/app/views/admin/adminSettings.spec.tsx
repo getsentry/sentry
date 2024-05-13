@@ -111,6 +111,10 @@ describe('AdminSettings', function () {
           },
         },
       });
+      MockApiClient.addMockResponse({
+        url: '/internal/packages/',
+        body: {},
+      });
     });
 
     it('renders', function () {
