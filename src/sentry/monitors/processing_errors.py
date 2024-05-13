@@ -5,6 +5,7 @@ import logging
 import uuid
 from datetime import timedelta
 from enum import Enum
+from itertools import chain
 from typing import Any, TypedDict
 
 from django.conf import settings
@@ -21,7 +22,7 @@ from sentry.utils import json, metrics, redis
 logger = logging.getLogger(__name__)
 
 MAX_ERRORS_PER_SET = 10
-MONITOR_ERRORS_LIFETIME = timedelta(days=1)
+MONITOR_ERRORS_LIFETIME = timedelta(days=7)
 
 
 class ProcessingErrorType(Enum):
@@ -126,11 +127,17 @@ class CheckinProcessingError:
         return False
 
 
+class InvalidProjectError(Exception):
+    pass
+
+
 class CheckinProcessErrorsManager:
     def _get_cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    def store(self, error: CheckinProcessingError, monitor: Monitor | None):
+    def _get_entity_identifier_from_error(
+        self, error: CheckinProcessingError, monitor: Monitor | None = None
+    ) -> str:
         if monitor is None:
             # Attempt to get the monitor from the checkin info if we failed to retrieve it during ingestion
             try:
@@ -141,37 +148,82 @@ class CheckinProcessErrorsManager:
             except Monitor.DoesNotExist:
                 pass
         if monitor:
-            error_identifier = self.build_monitor_identifier(monitor)
+            entity_identifier = self.build_monitor_identifier(monitor)
         else:
-            error_identifier = self.build_project_identifier(error.checkin.message["project_id"])
+            entity_identifier = self.build_project_identifier(error.checkin.message["project_id"])
 
-        error_key = f"monitors.processing_errors.{error_identifier}"
+        return entity_identifier
+
+    def store(self, error: CheckinProcessingError, monitor: Monitor | None):
+        entity_identifier = self._get_entity_identifier_from_error(error, monitor)
+        error_set_key = self.build_set_identifier(entity_identifier)
+        error_key = self.build_error_identifier(error.id)
         serialized_error = json.dumps(error.to_dict())
         redis_client = self._get_cluster()
         pipeline = redis_client.pipeline(transaction=False)
-        pipeline.zadd(error_key, {serialized_error: error.checkin.ts.timestamp()})
+        pipeline.zadd(error_set_key, {error.id.hex: error.checkin.ts.timestamp()})
+        pipeline.set(error_key, serialized_error, ex=MONITOR_ERRORS_LIFETIME)
         # Cap the error list to the `MAX_ERRORS_PER_SET` most recent errors
-        pipeline.zremrangebyrank(error_key, 0, -(MAX_ERRORS_PER_SET + 1))
-        pipeline.expire(error_key, MONITOR_ERRORS_LIFETIME)
+        pipeline.zremrangebyrank(error_set_key, 0, -(MAX_ERRORS_PER_SET + 1))
+        pipeline.expire(error_set_key, MONITOR_ERRORS_LIFETIME)
         pipeline.execute()
+
+    def build_set_identifier(self, entity_identifier: str) -> str:
+        return f"monitors.processing_errors_set.{entity_identifier}"
+
+    def build_error_identifier(self, uuid: uuid.UUID) -> str:
+        return f"monitors.processing_errors.{uuid.hex}"
 
     def build_monitor_identifier(self, monitor: Monitor) -> str:
         return f"monitor:{monitor.id}"
 
     def get_for_monitor(self, monitor: Monitor) -> list[CheckinProcessingError]:
-        return self._get_for_entity(self.build_monitor_identifier(monitor))
+        return self._get_for_entities([self.build_monitor_identifier(monitor)])
 
     def build_project_identifier(self, project_id: int) -> str:
         return f"project:{project_id}"
 
-    def get_for_project(self, project: Project) -> list[CheckinProcessingError]:
-        return self._get_for_entity(self.build_project_identifier(project.id))
+    def get_for_projects(self, projects: list[Project]) -> list[CheckinProcessingError]:
+        return self._get_for_entities(
+            [self.build_project_identifier(project.id) for project in projects]
+        )
 
-    def _get_for_entity(self, identifier: str) -> list[CheckinProcessingError]:
+    def delete(self, project: Project, uuid: uuid.UUID):
+        error_identifier = self.build_error_identifier(uuid)
         redis = self._get_cluster()
-        error_key = f"monitors.processing_errors.{identifier}"
-        raw_errors = redis.zrange(error_key, 0, MAX_ERRORS_PER_SET, desc=True)
-        return [CheckinProcessingError.from_dict(json.loads(raw_error)) for raw_error in raw_errors]
+        raw_error = redis.get(error_identifier)
+        if raw_error is None:
+            return
+        error = CheckinProcessingError.from_dict(json.loads(raw_error))
+        if error.checkin.message["project_id"] != project.id:
+            # TODO: Better exception class
+            raise InvalidProjectError()
+
+        entity_identifier = self._get_entity_identifier_from_error(error)
+        self._delete_for_entity(entity_identifier, uuid)
+
+    def _get_for_entities(self, entity_identifiers: list[str]) -> list[CheckinProcessingError]:
+        redis = self._get_cluster()
+        pipeline = redis.pipeline()
+        for identifier in entity_identifiers:
+            pipeline.zrange(self.build_set_identifier(identifier), 0, MAX_ERRORS_PER_SET, desc=True)
+        error_identifiers = [
+            self.build_error_identifier(uuid.UUID(error_identifier))
+            for error_identifier in chain(*pipeline.execute())
+        ]
+        errors = [
+            CheckinProcessingError.from_dict(json.loads(raw_error))
+            for raw_error in redis.mget(error_identifiers)
+            if raw_error is not None
+        ]
+        errors.sort(key=lambda error: error.checkin.ts.timestamp(), reverse=True)
+        return errors
+
+    def _delete_for_entity(self, entity_identifier: str, uuid: uuid.UUID) -> None:
+        pipeline = self._get_cluster().pipeline()
+        pipeline.zrem(self.build_set_identifier(entity_identifier), uuid.hex)
+        pipeline.delete(self.build_error_identifier(uuid))
+        pipeline.execute()
 
 
 def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):

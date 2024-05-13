@@ -25,8 +25,6 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/^\/?accept-terms\/[^\/]*\/?$/, '/accept-terms/'],
 ];
 
-type LocationTarget = ((location: Location) => LocationDescriptor) | LocationDescriptor;
-
 type NormalizeUrlOptions = {
   forceCustomerDomain: boolean;
 };
@@ -43,16 +41,16 @@ export function normalizeUrl(
 ): LocationDescriptor;
 
 export function normalizeUrl(
-  path: LocationTarget,
+  path: LocationDescriptor,
   location?: Location,
   options?: NormalizeUrlOptions
-): LocationTarget;
+): LocationDescriptor;
 
 export function normalizeUrl(
-  path: LocationTarget,
+  path: LocationDescriptor,
   location?: Location | NormalizeUrlOptions,
   options?: NormalizeUrlOptions
-): LocationTarget {
+): LocationDescriptor {
   if (location && 'forceCustomerDomain' in location) {
     options = location;
     location = undefined;
@@ -62,15 +60,7 @@ export function normalizeUrl(
     return path;
   }
 
-  let resolved: LocationDescriptor;
-  if (typeof path === 'function') {
-    if (!location) {
-      throw new Error('Cannot resolve function URL without a location');
-    }
-    resolved = path(location);
-  } else {
-    resolved = path;
-  }
+  let resolved = path;
 
   if (typeof resolved === 'string') {
     for (const patternData of NORMALIZE_PATTERNS) {

@@ -56,13 +56,45 @@ type AssignableTeam = {
 };
 
 export interface AssigneeSelectorDropdownProps {
+  /**
+   * The group (issue) that the assignee selector is for
+   * TODO: generalize this for alerts
+   */
   group: Group;
+  /**
+   * If true, there will be a loading indicator in the menu header.
+   */
   loading: boolean;
+  /**
+   * Optional list of members to populate the dropdown with.
+   */
   memberList?: User[];
+  /**
+   * If true, the chevron to open the dropdown will not be shown
+   */
   noDropdown?: boolean;
+  /**
+   * Callback for when an assignee is selected from the dropdown.
+   * The parent component should update the group with the new assignee
+   * in this callback.
+   */
   onAssign?: (assignedActor: AssignableEntity | null) => void;
+  /**
+   * Callback for when the assignee is cleared
+   */
   onClear?: (clearedAssignee: User | Actor) => void;
+  /**
+   * Optional list of suggested owners of the group
+   */
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
+  /**
+   * Optional trigger for the assignee selector. If nothing passed in,
+   * the default trigger will be used
+   */
+  trigger?: (
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
+  ) => React.ReactNode;
 }
 
 export function AssigneeAvatar({
@@ -167,6 +199,7 @@ export default function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
+  trigger,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
@@ -506,7 +539,7 @@ export default function AssigneeSelectorDropdown({
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
-        trigger={makeTrigger}
+        trigger={trigger ?? makeTrigger}
         menuFooter={makeFooterInviteButton()}
       />
     </AssigneeWrapper>

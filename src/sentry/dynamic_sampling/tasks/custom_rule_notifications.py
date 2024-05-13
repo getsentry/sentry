@@ -10,7 +10,6 @@ from django.http import QueryDict
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.tasks.common import TimedIterator, to_context_iterator
 from sentry.dynamic_sampling.tasks.constants import MAX_TASK_SECONDS
-from sentry.dynamic_sampling.tasks.logging import log_custom_rule_progress
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
@@ -98,16 +97,7 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         referrer="dynamic_sampling.tasks.custom_rule_notifications",
     )
 
-    samples_count = result["data"][0]["count"]
-    log_custom_rule_progress(
-        org_id=rule.organization.id,
-        project_ids=[project.id for project in projects],
-        rule_id=rule.id,
-        samples_count=samples_count,
-        min_samples_count=MIN_SAMPLES_FOR_NOTIFICATION,
-    )
-
-    return samples_count
+    return result["data"][0]["count"]
 
 
 def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None:

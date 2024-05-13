@@ -650,14 +650,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("integrations.slack.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("auth.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("backup.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("event-manager.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("eventstore.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("relay.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1791,8 +1783,11 @@ register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUT
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Flagpole Rollout
-register("features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.flagpole_rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1867,9 +1862,6 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
-
-# Turns on and off the running for dynamic sampling collect_orgs.
-register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
 # Sets the timeout for webhooks
 register(

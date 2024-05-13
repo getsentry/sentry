@@ -224,7 +224,7 @@ class ReleaseFileUpdateTest(APITestCase):
         self.login_as(user=self.user)
         self.create_release_archive()
 
-        id = urlsafe_b64encode(b"_~/index.js")
+        id = urlsafe_b64encode(b"_~/index.js").decode()
 
         url = reverse(
             "sentry-api-0-project-release-file-details",
@@ -302,10 +302,10 @@ class ReleaseFileDeleteTest(APITestCase):
         assert response.status_code == 204
         assert self.release.count_artifacts() == 1
 
-        response = self.client.delete(url(urlsafe_b64encode(b"invalid_id")))
+        response = self.client.delete(url(urlsafe_b64encode(b"invalid_id").decode()))
         assert response.status_code == 404
         assert self.release.count_artifacts() == 1
 
-        response = self.client.delete(url(urlsafe_b64encode(b"_~/does_not_exist.js")))
+        response = self.client.delete(url(urlsafe_b64encode(b"_~/does_not_exist.js").decode()))
         assert response.status_code == 404
         assert self.release.count_artifacts() == 1
