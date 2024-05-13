@@ -64,11 +64,11 @@ jobs:
           mkdir schemas
           sentry rpcschema --partial > schemas/new_schema.json
 
-      - name: Dump RPC schema for merge-base version
+      - name: Dump RPC schema for master
         id: oldschema
         if: steps.changes.outputs.api_docs == 'true'
         run: |
-          git checkout `git merge-base origin/${{ github.base_ref }} origin/${{ github.head_ref }}`
+          git checkout master
           sentry rpcschema --partial > schemas/old_schema.json
 
       - name: Invoke oasdiff on RPC schemas
