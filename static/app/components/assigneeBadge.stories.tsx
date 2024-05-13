@@ -1,12 +1,13 @@
 import {Fragment, useState} from 'react';
+import {uuid4} from '@sentry/utils';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import storyBook from 'sentry/stories/storyBook';
-import type {Actor} from 'sentry/types';
+import type {Actor, Team} from 'sentry/types';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
-export default storyBook(AssigneeBadge, story => {
+export default storyBook('AssigneeBadge', story => {
   story('User Assignee', () => {
     const user = useUser();
     const [chevron1Toggle, setChevron1Toggle] = useState<'up' | 'down'>('down');
@@ -39,10 +40,30 @@ export default storyBook(AssigneeBadge, story => {
     const [chevron1Toggle, setChevron1Toggle] = useState<'up' | 'down'>('down');
     const [chevron2Toggle, setChevron2Toggle] = useState<'up' | 'down'>('down');
 
+    const team: Team =
+      teams.length > 0
+        ? teams[0]
+        : {
+            id: '1',
+            slug: 'team-slug',
+            name: 'Team Name',
+            access: ['team:read'],
+            teamRole: null,
+            isMember: true,
+            memberCount: 0,
+            avatar: {avatarType: 'letter_avatar', avatarUuid: uuid4()},
+            flags: {
+              'idp:provisioned': false,
+            },
+            externalTeams: [],
+            hasAccess: false,
+            isPending: false,
+          };
+
     const teamActor: Actor = {
       type: 'team',
-      id: teams[0].id,
-      name: teams[0].name,
+      id: team.id,
+      name: team.name,
     };
 
     return (
