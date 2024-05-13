@@ -1988,24 +1988,6 @@ register(
 )
 
 register(
-    "delightful_metrics.allow_all_incr",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_timing",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_gauge",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "delightful_metrics.emit_gauges",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
