@@ -58,3 +58,28 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
         run: |
           npx json-diff@0.5.4 --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json
+
+      # Do RPC compatibility checks. Combined with public API audits
+      # to avoid workflow/job setup overhead.
+      - name: Dump RPC schema for new version
+        id: newschema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          mkdir schemas
+          sentry rpcschema --partial > schemas/new_schema.json
+
+      - name: Dump RPC schema for merge-base version
+        id: oldschema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          git checkout `git merge-base origin/${{ github.base_ref }} origin/${{ github.head_ref }}`
+          sentry rpcschema --partial > schemas/old_schema.json
+
+      - name: Invoke oasdiff on two outputs
+        uses: oasdiff/oasdiff-action/breaking@fc826b9f0d21b85b085842521c7a8cc445412c08 # v0.0.19
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          base: ./schemas/old_schema.json
+          revision: ./schemas/new_schema.json
+          format: 'text'
+          fail-on-diff: true
