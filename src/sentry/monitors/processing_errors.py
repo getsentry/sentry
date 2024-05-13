@@ -5,6 +5,7 @@ import logging
 import uuid
 from datetime import timedelta
 from enum import Enum
+from itertools import chain
 from typing import Any, TypedDict
 
 from django.conf import settings
@@ -126,11 +127,17 @@ class CheckinProcessingError:
         return False
 
 
+class InvalidProjectError(Exception):
+    pass
+
+
 class CheckinProcessErrorsManager:
     def _get_cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    def store(self, error: CheckinProcessingError, monitor: Monitor | None):
+    def _get_entity_identifier_from_error(
+        self, error: CheckinProcessingError, monitor: Monitor | None = None
+    ) -> str:
         if monitor is None:
             # Attempt to get the monitor from the checkin info if we failed to retrieve it during ingestion
             try:
@@ -145,8 +152,12 @@ class CheckinProcessErrorsManager:
         else:
             entity_identifier = self.build_project_identifier(error.checkin.message["project_id"])
 
+        return entity_identifier
+
+    def store(self, error: CheckinProcessingError, monitor: Monitor | None):
+        entity_identifier = self._get_entity_identifier_from_error(error, monitor)
         error_set_key = self.build_set_identifier(entity_identifier)
-        error_key = self.build_error_identifier(entity_identifier, error.id)
+        error_key = self.build_error_identifier(error.id)
         serialized_error = json.dumps(error.to_dict())
         redis_client = self._get_cluster()
         pipeline = redis_client.pipeline(transaction=False)
@@ -160,8 +171,8 @@ class CheckinProcessErrorsManager:
     def build_set_identifier(self, entity_identifier: str) -> str:
         return f"monitors.processing_errors_set.{entity_identifier}"
 
-    def build_error_identifier(self, entity_identifier: str, uuid: uuid.UUID) -> str:
-        return f"monitors.processing_errors.{entity_identifier}.{uuid.hex}"
+    def build_error_identifier(self, uuid: uuid.UUID) -> str:
+        return f"monitors.processing_errors.{uuid.hex}"
 
     def build_monitor_identifier(self, monitor: Monitor) -> str:
         return f"monitor:{monitor.id}"
@@ -177,15 +188,28 @@ class CheckinProcessErrorsManager:
             [self.build_project_identifier(project.id) for project in projects]
         )
 
+    def delete(self, project: Project, uuid: uuid.UUID):
+        error_identifier = self.build_error_identifier(uuid)
+        redis = self._get_cluster()
+        raw_error = redis.get(error_identifier)
+        if raw_error is None:
+            return
+        error = CheckinProcessingError.from_dict(json.loads(raw_error))
+        if error.checkin.message["project_id"] != project.id:
+            # TODO: Better exception class
+            raise InvalidProjectError()
+
+        entity_identifier = self._get_entity_identifier_from_error(error)
+        self._delete_for_entity(entity_identifier, uuid)
+
     def _get_for_entities(self, entity_identifiers: list[str]) -> list[CheckinProcessingError]:
         redis = self._get_cluster()
         pipeline = redis.pipeline()
         for identifier in entity_identifiers:
             pipeline.zrange(self.build_set_identifier(identifier), 0, MAX_ERRORS_PER_SET, desc=True)
         error_identifiers = [
-            self.build_error_identifier(entity_identifier, uuid.UUID(error_identifier))
-            for entity_identifier, error_identifiers in zip(entity_identifiers, pipeline.execute())
-            for error_identifier in error_identifiers
+            self.build_error_identifier(uuid.UUID(error_identifier))
+            for error_identifier in chain(*pipeline.execute())
         ]
         errors = [
             CheckinProcessingError.from_dict(json.loads(raw_error))
@@ -194,6 +218,12 @@ class CheckinProcessErrorsManager:
         ]
         errors.sort(key=lambda error: error.checkin.ts.timestamp(), reverse=True)
         return errors
+
+    def _delete_for_entity(self, entity_identifier: str, uuid: uuid.UUID) -> None:
+        pipeline = self._get_cluster().pipeline()
+        pipeline.zrem(self.build_set_identifier(entity_identifier), uuid.hex)
+        pipeline.delete(self.build_error_identifier(uuid))
+        pipeline.execute()
 
 
 def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):

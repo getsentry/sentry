@@ -5,7 +5,7 @@ interface RoutingContextValue {
 }
 
 const DEFAULT_VALUE = {
-  baseURL: '/starfish',
+  baseURL: '/performance',
 };
 
 const RoutingContext = createContext<RoutingContextValue>(DEFAULT_VALUE);
