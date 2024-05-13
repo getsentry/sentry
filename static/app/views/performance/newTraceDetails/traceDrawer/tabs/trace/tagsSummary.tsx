@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import {isEmpty} from 'lodash/isEmpty';
+import isEmpty from 'lodash/isEmpty';
 
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
 import type {ApiResult} from 'sentry/api';
