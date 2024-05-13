@@ -1,5 +1,3 @@
-import type {ComponentProps} from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -11,7 +9,7 @@ import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext
 interface Props {
   baseURL: string;
   children: React.ReactNode;
-  features: ComponentProps<typeof Feature>['features'];
+  features: string;
   title: string;
 }
 
