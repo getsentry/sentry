@@ -43,6 +43,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
+          moduleName="sampleModule"
           transactionMethod="GET"
           transactionName="/endpoint"
         />
@@ -55,6 +56,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
+          moduleName="sampleModule"
           transactionMethod="GET"
           transactionName="/endpoint"
         />
@@ -68,6 +70,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
+          moduleName="sampleModule"
           transactionMethod="GET"
           transactionName="/endpoint"
         />
@@ -89,6 +92,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
+          moduleName="sampleModule"
           transactionMethod="GET"
           transactionName="/endpoint"
           columnOrder={[
@@ -137,6 +141,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
+          moduleName="sampleModule"
           transactionMethod="GET"
           transactionName="/endpoint"
         />
