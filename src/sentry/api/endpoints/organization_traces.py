@@ -972,14 +972,12 @@ def quantize_range(span_start, span_end, trace_range):
 
     bin_size = trace_range["min"]
 
-    span_duration = span_end - span_start
-
     if bin_size > 0:
         rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
         rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
 
-        # if the span is at least the min duration, ensure it spans 1 bin
-        if rounded_start == rounded_end and span_duration >= (bin_size * 0.1):
+        # ensure minimum of 1 width
+        if rounded_start == rounded_end:
             rounded_end += bin_size
     else:
         rounded_start = span_start
@@ -1150,13 +1148,15 @@ def process_breakdowns(data, traces_range):
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
 
+        other_start = trace_range["start"]
+        other_end = trace_range["end"]
         other: TraceInterval = {
             "kind": "other",
             "project": None,
             "sdkName": None,
             "opCategory": None,
-            "start": trace_range["start"],
-            "end": trace_range["end"],
+            "start": other_start,
+            "end": other_end,
             "duration": 0,
         }
 
@@ -1165,8 +1165,12 @@ def process_breakdowns(data, traces_range):
         # of the trace that was not covered by one of the intervals.
         while stacks[trace]:
             interval = stack_pop(trace)
-            # use the end time of the last component of the interval
-            other["start"] = max(other["start"], interval["components"][-1][1])
+            other["start"] = max(other["start"], interval["end"])
+            # other["start"] = max(other["start"], interval["components"][-1][1])
+            last_component = interval["components"][-1]
+            other_start = max(other_start, last_component[1])
+
+        other["components"] = [(other_start, other_end)]
 
         if other["start"] < other["end"]:
             breakdown_push(trace, other)
