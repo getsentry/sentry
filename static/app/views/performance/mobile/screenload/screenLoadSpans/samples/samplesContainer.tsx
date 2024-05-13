@@ -24,7 +24,7 @@ import {
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -182,7 +182,7 @@ export function ScreenLoadSampleContainer({
         onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
         groupId={groupId}
         transactionName={transactionName}
-        moduleName="screenLoad"
+        moduleName={ModuleName.SCREEN}
         release={release}
         columnOrder={[
           {

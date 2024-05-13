@@ -7,7 +7,7 @@ import {
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 import SampleTable from './sampleTable';
 
@@ -43,7 +43,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
-          moduleName="sampleModule"
+          moduleName={ModuleName.OTHER}
           transactionMethod="GET"
           transactionName="/endpoint"
         />
@@ -56,7 +56,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
-          moduleName="sampleModule"
+          moduleName={ModuleName.OTHER}
           transactionMethod="GET"
           transactionName="/endpoint"
         />
@@ -70,7 +70,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
-          moduleName="sampleModule"
+          moduleName={ModuleName.OTHER}
           transactionMethod="GET"
           transactionName="/endpoint"
         />
@@ -92,7 +92,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
-          moduleName="sampleModule"
+          moduleName={ModuleName.OTHER}
           transactionMethod="GET"
           transactionName="/endpoint"
           columnOrder={[
@@ -141,7 +141,7 @@ describe('SampleTable', function () {
       const container = render(
         <SampleTable
           groupId="groupId123"
-          moduleName="sampleModule"
+          moduleName={ModuleName.OTHER}
           transactionMethod="GET"
           transactionName="/endpoint"
         />

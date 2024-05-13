@@ -16,7 +16,7 @@ import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {ModuleName, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -27,7 +27,7 @@ const SpanSamplesTableContainer = styled('div')`
 
 type Props = {
   groupId: string;
-  moduleName: string;
+  moduleName: ModuleName;
   transactionName: string;
   additionalFields?: string[];
   additionalFilters?: Record<string, string>;
