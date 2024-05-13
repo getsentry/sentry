@@ -9,6 +9,8 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -24,12 +26,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
-  MetricsResponse,
+  SpanMetricsResponse,
   | 'project.id'
   | 'span.description'
   | 'span.group'
@@ -37,10 +39,15 @@ type Row = Pick<
   | 'avg(span.duration)'
   | 'sum(span.duration)'
   | 'ai_total_tokens_used()'
+  | 'ai_total_tokens_used(c:spans/ai.total_cost@usd)'
 >;
 
 type Column = GridColumnHeader<
-  'span.description' | 'spm()' | 'avg(span.duration)' | 'ai_total_tokens_used()'
+  | 'span.description'
+  | 'spm()'
+  | 'avg(span.duration)'
+  | 'ai_total_tokens_used()'
+  | 'ai_total_tokens_used(c:spans/ai.total_cost@usd)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -52,6 +59,11 @@ const COLUMN_ORDER: Column[] = [
   {
     key: 'ai_total_tokens_used()',
     name: t('Total tokens used'),
+    width: 180,
+  },
+  {
+    key: 'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+    name: t('Total cost'),
     width: 180,
   },
   {
@@ -87,46 +99,60 @@ export function PipelinesTable() {
   if (!sort) {
     sort = {field: 'spm()', kind: 'desc'};
   }
-  const {data, isLoading, meta, pageLinks, error} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({
-      'span.category': 'ai.pipeline',
-      'span.description': spanDescription ? `*${spanDescription}*` : undefined,
-    }),
-    fields: [
-      'project.id',
-      'span.group',
-      'span.description',
-      'spm()',
-      'avg(span.duration)',
-      'sum(span.duration)',
-      'ai_total_tokens_used()', // this is zero initially and overwritten below.
-    ],
-    sorts: [sort],
-    limit: 25,
-    cursor,
-    referrer: 'api.ai-pipelines.view',
-  });
 
-  const {
-    data: tokensUsedData,
-    isLoading: tokensUsedLoading,
-    error: tokensUsedError,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({
-      'span.ai.pipeline.group': (data as Row[])?.map(x => x['span.group']).join(','),
-      'span.category': 'ai',
-    }),
-    fields: ['span.ai.pipeline.group', 'ai_total_tokens_used()'],
-  });
-  if (!tokensUsedLoading) {
-    for (const tokenUsedRow of tokensUsedData) {
-      const groupId = tokenUsedRow['span.ai.pipeline.group'];
-      const tokensUsed = tokenUsedRow['ai_total_tokens_used()'];
-      data
-        .filter(x => x['span.group'] === groupId)
-        .forEach(x => (x['ai_total_tokens_used()'] = tokensUsed));
+  const {data, isLoading, meta, pageLinks, error} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({
+        'span.category': 'ai.pipeline',
+        'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+      }),
+      fields: [
+        'project.id',
+        'span.group',
+        'span.description',
+        'spm()',
+        'avg(span.duration)',
+        'sum(span.duration)',
+      ],
+      sorts: [sort],
+      limit: 25,
+      cursor,
+    },
+    'api.ai-pipelines.view'
+  );
+
+  const {data: tokensUsedData, isLoading: tokensUsedLoading} = useSpanMetrics(
+    {
+      search: new MutableSearch(
+        `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
+      ),
+      fields: [
+        'span.ai.pipeline.group',
+        'ai_total_tokens_used()',
+        'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+      ],
+    },
+    'api.performance.ai-analytics.token-usage-chart'
+  );
+
+  const rows: Row[] = (data as Row[]).map(baseRow => {
+    const row: Row = {
+      ...baseRow,
+      'ai_total_tokens_used()': 0,
+      'ai_total_tokens_used(c:spans/ai.total_cost@usd)': 0,
+    };
+    if (!tokensUsedLoading) {
+      const tokenUsedDataPoint = tokensUsedData.find(
+        tokenRow => tokenRow['span.ai.pipeline.group'] === row['span.group']
+      );
+      if (tokenUsedDataPoint) {
+        row['ai_total_tokens_used()'] = tokenUsedDataPoint['ai_total_tokens_used()'];
+        row['ai_total_tokens_used(c:spans/ai.total_cost@usd)'] =
+          tokenUsedDataPoint['ai_total_tokens_used(c:spans/ai.total_cost@usd)'];
+      }
     }
-  }
+    return row;
+  });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
@@ -149,7 +175,7 @@ export function PipelinesTable() {
   return (
     <VisuallyCompleteWithData
       id="PipelinesTable"
-      hasData={data.length > 0}
+      hasData={rows.length > 0}
       isLoading={isLoading}
     >
       <Container>
@@ -160,8 +186,8 @@ export function PipelinesTable() {
         />
         <GridEditable
           isLoading={isLoading}
-          error={error ?? tokensUsedError}
-          data={data}
+          error={error}
+          data={rows}
           columnOrder={COLUMN_ORDER}
           columnSortBy={[
             {
@@ -210,6 +236,26 @@ function renderBodyCell(
       >
         {row['span.description']}
       </Link>
+    );
+  }
+  if (column.key === 'ai_total_tokens_used(c:spans/ai.total_cost@usd)') {
+    const cost = row['ai_total_tokens_used(c:spans/ai.total_cost@usd)'];
+    if (cost) {
+      if (cost < 0.01) {
+        return <span>US {cost * 100}¢</span>;
+      }
+      return <span>US${cost}</span>;
+    }
+    return (
+      <span>
+        Unknown{' '}
+        <Tooltip
+          title="Cost can only be calculated for certain OpenAI and Anthropic models, other providers aren't yet supported."
+          isHoverable
+        >
+          <IconInfo size="xs" />
+        </Tooltip>
+      </span>
     );
   }
 

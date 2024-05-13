@@ -122,7 +122,6 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.sentryfunction import SentryFunction
 from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -1778,17 +1777,6 @@ class Factories:
             type=ActivityType.NOTE.value,
             user_id=user.id,
             data=data,
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_sentry_function(name, code, **kwargs):
-        return SentryFunction.objects.create(
-            name=name,
-            code=code,
-            slug=slugify(name),
-            external_id=slugify(name) + "-" + uuid4().hex,
-            **kwargs,
         )
 
     @staticmethod

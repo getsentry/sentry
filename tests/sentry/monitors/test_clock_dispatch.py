@@ -7,7 +7,6 @@ from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.monitors.clock_dispatch import _dispatch_tick, try_monitor_clock_tick
-from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
@@ -18,28 +17,25 @@ def test_monitor_task_trigger(dispatch_tick):
     # Assumes a single partition for simplicitly. Multi-partition cases are
     # covered in further test cases.
 
-    # First checkin triggers tasks
+    # First checkin triggers dispatch
     try_monitor_clock_tick(ts=now, partition=0)
     assert dispatch_tick.call_count == 1
 
-    # 5 seconds later does NOT trigger the task
+    # 5 seconds later does NOT trigger the dispatch
     try_monitor_clock_tick(ts=now + timedelta(seconds=5), partition=0)
     assert dispatch_tick.call_count == 1
 
-    # a minute later DOES trigger the task
+    # a minute later DOES trigger the dispatch
     try_monitor_clock_tick(ts=now + timedelta(minutes=1), partition=0)
     assert dispatch_tick.call_count == 2
 
-    # Same time does NOT trigger the task
+    # Same time does NOT trigger the dispatch
     try_monitor_clock_tick(ts=now + timedelta(minutes=1), partition=0)
     assert dispatch_tick.call_count == 2
 
-    # A skipped minute triggers the task AND captures an error
-    with mock.patch("sentry_sdk.capture_message") as capture_message:
-        assert capture_message.call_count == 0
-        try_monitor_clock_tick(ts=now + timedelta(minutes=3, seconds=5), partition=0)
-        assert dispatch_tick.call_count == 3
-        capture_message.assert_called_with("Monitor task dispatch minute skipped")
+    # A skipped minute triggers the dispatch multiple times
+    try_monitor_clock_tick(ts=now + timedelta(minutes=3, seconds=5), partition=0)
+    assert dispatch_tick.call_count == 4
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
@@ -52,7 +48,7 @@ def test_monitor_task_trigger_partition_desync(dispatch_tick):
     now = timezone.now().replace(second=0, microsecond=0)
 
     # First message in partition 0 with timestamp just after the minute
-    # boundary triggers the task
+    # boundary triggers the dispatch
     try_monitor_clock_tick(ts=now + timedelta(seconds=1), partition=0)
     assert dispatch_tick.call_count == 1
 
@@ -63,7 +59,7 @@ def test_monitor_task_trigger_partition_desync(dispatch_tick):
     assert dispatch_tick.call_count == 1
 
     # Third message in partition 1 again just after the minute boundary does
-    # NOT trigger the task, we've already ticked at that time.
+    # NOT trigger the dispatch, we've already ticked at that time.
     try_monitor_clock_tick(ts=now + timedelta(seconds=1), partition=1)
     assert dispatch_tick.call_count == 1
 
@@ -105,7 +101,8 @@ def test_monitor_task_trigger_partition_sync(dispatch_tick):
 def test_monitor_task_trigger_partition_tick_skip(dispatch_tick):
     """
     In a scenario where all partitions move multiple ticks past the slowest
-    partition we may end up skipping a tick.
+    partition we may end up skipping a tick. In this scenario we will backfill
+    those ticks
     """
     now = timezone.now().replace(second=0, microsecond=0)
 
@@ -127,30 +124,16 @@ def test_monitor_task_trigger_partition_tick_skip(dispatch_tick):
     try_monitor_clock_tick(ts=now + timedelta(minutes=3), partition=2)
     assert dispatch_tick.call_count == 1
 
-    # Slowest partition catches up, but has a timestamp gap, capture the fact
-    # that we skipped a minute
-    with mock.patch("sentry_sdk.capture_message") as capture_message:
-        assert capture_message.call_count == 0
-        try_monitor_clock_tick(ts=now + timedelta(minutes=2), partition=3)
-        capture_message.assert_called_with("Monitor task dispatch minute skipped")
+    # Slowest partition catches up, but has a timestamp gap
+    try_monitor_clock_tick(ts=now + timedelta(minutes=2), partition=3)
 
-    # XXX(epurkhiser): Another approach we could take here is to detect the
-    # skipped minute and generate a tick for that minute, since we know
-    # processed past that minute.
-    #
-    # This still could be a problem though since it may mean we will not
-    # produce missed check-ins since the monitor already may have already
-    # checked-in after and moved the `next_checkin_latest` forward.
-    #
-    # In practice this should almost never happen since we have a high volume of
-
-    assert dispatch_tick.call_count == 2
-    assert dispatch_tick.mock_calls[1] == mock.call(now + timedelta(minutes=2))
+    assert dispatch_tick.call_count == 3
+    assert dispatch_tick.mock_calls[1] == mock.call(now + timedelta(minutes=1))
+    assert dispatch_tick.mock_calls[2] == mock.call(now + timedelta(minutes=2))
 
 
 @override_settings(KAFKA_TOPIC_OVERRIDES={"monitors-clock-tick": "clock-tick-test-topic"})
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-@override_options({"crons.use_clock_pulse_consumer": True})
 @mock.patch("sentry.monitors.clock_dispatch._clock_tick_producer")
 def test_dispatch_to_kafka(clock_tick_producer_mock):
     now = timezone.now().replace(second=0, microsecond=0)

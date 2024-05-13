@@ -2140,7 +2140,7 @@ function getRelatedPerformanceIssuesFromTransaction(
     return [];
   }
 
-  if (!node?.value?.performance_issues?.length && !node?.value?.errors?.length) {
+  if (!node?.value?.performance_issues?.length) {
     return [];
   }
 

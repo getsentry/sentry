@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DurationUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -25,11 +25,12 @@ import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/messageSp
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 // We're defining our own query filter here, apart from settings.ts because the spans endpoint doesn't accept IN operations
-const DEFAULT_QUERY_FILTER = 'span.op:queue.task.celery OR span.op:queue.submit.celery';
+const DEFAULT_QUERY_FILTER = 'span.op:queue.process OR span.op:queue.publish';
 
 export function MessageConsumerSamplesPanel() {
   const router = useRouter();
@@ -58,9 +59,9 @@ export function MessageConsumerSamplesPanel() {
 
   const isPanelOpen = Boolean(detailKey);
 
-  // TODO: This should also filter on destination
   const search = new MutableSearch(DEFAULT_QUERY_FILTER);
   search.addFilterValue('transaction', query.transaction);
+  search.addFilterValue('messaging.destination.name', query.destination);
 
   const {data: transactionMetrics, isFetching: aretransactionMetricsFetching} =
     useQueuesMetricsQuery({
@@ -69,17 +70,22 @@ export function MessageConsumerSamplesPanel() {
       enabled: isPanelOpen,
     });
 
+  const avg = transactionMetrics?.[0]?.['avg(span.duration)'];
+
   const {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search,
-    yAxis: [`avg(span.self_time)`],
-    enabled: isPanelOpen,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search,
+      yAxis: [`avg(span.duration)`],
+      enabled: isPanelOpen,
+    },
+    'api.performance.queues.avg-duration-chart'
+  );
 
-  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
+  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
 
   const {
     data: durationSamplesData,
@@ -91,17 +97,28 @@ export function MessageConsumerSamplesPanel() {
     min: 0,
     max: durationAxisMax,
     enabled: isPanelOpen && durationAxisMax > 0,
+    fields: [
+      SpanIndexedField.TRACE,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+      SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+      SpanIndexedField.MESSAGING_MESSAGE_ID,
+      SpanIndexedField.TRACE_STATUS,
+      SpanIndexedField.SPAN_DURATION,
+    ],
   });
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     durationSamplesData,
-    transactionMetrics?.[0]?.['avg(span.self_time)'],
-    highlightedSpanId
+    transactionMetrics?.[0]?.['avg(span.duration)'],
+    highlightedSpanId,
+    'span.duration'
   );
 
   const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
     return durationSamplesData.find(
-      s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
+      s => s.timestamp === dataPoint.name && s['span.duration'] === dataPoint.value
     );
   };
 
@@ -168,16 +185,14 @@ export function MessageConsumerSamplesPanel() {
               />
               <MetricReadout
                 title={t('Avg Time In Queue')}
-                value={undefined}
+                value={transactionMetrics[0]?.['avg(messaging.message.receive.latency)']}
                 unit={DurationUnit.MILLISECOND}
                 isLoading={false}
               />
               <MetricReadout
                 title={t('Avg Processing Latency')}
                 value={
-                  transactionMetrics[0]?.[
-                    'avg_if(span.self_time,span.op,queue.task.celery)'
-                  ]
+                  transactionMetrics[0]?.['avg_if(span.duration,span.op,queue.process)']
                 }
                 unit={DurationUnit.MILLISECOND}
                 isLoading={false}
@@ -188,8 +203,8 @@ export function MessageConsumerSamplesPanel() {
             <DurationChart
               series={[
                 {
-                  ...durationData[`avg(span.self_time)`],
-                  markLine: AverageValueMarkLine(),
+                  ...durationData[`avg(span.duration)`],
+                  markLine: AverageValueMarkLine({value: avg}),
                 },
               ]}
               scatterPlot={sampledSpanDataSeries}
@@ -220,9 +235,13 @@ export function MessageConsumerSamplesPanel() {
               // Samples endpoint doesn't provide meta data, so we need to provide it here
               meta={{
                 fields: {
-                  'span.self_time': 'duration',
+                  'span.duration': 'duration',
+                  'measurements.messaging.message.body.size': 'size',
                 },
-                units: {},
+                units: {
+                  'span.duration': DurationUnit.MILLISECOND,
+                  'measurements.messaging.message.body.size': SizeUnit.BYTE,
+                },
               }}
             />
           </ModuleLayout.Full>

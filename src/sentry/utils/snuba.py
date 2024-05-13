@@ -116,6 +116,7 @@ SPAN_COLUMN_MAP = {
     "parent_span": "parent_span_id",
     "platform": "platform",
     "project": "project_id",
+    "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
     "span.domain": "domain",
@@ -157,6 +158,7 @@ SPAN_COLUMN_MAP = {
     "sdk.name": "sentry_tags[sdk.name]",
     "trace.status": "sentry_tags[trace.status]",
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
+    "messaging.message.id": "sentry_tags[messaging.message.id]",
     "tags.key": "tags.key",
 }
 
@@ -1018,7 +1020,10 @@ def _bulk_snuba_query(
 
         if response.status != 200:
             _log_request_query(snuba_param_list[index][0])
-
+            metrics.incr(
+                "snuba.client.api.error",
+                tags={"status_code": response.status, "referrer": query_referrer},
+            )
             if body.get("error"):
                 error = body["error"]
                 if response.status == 429:

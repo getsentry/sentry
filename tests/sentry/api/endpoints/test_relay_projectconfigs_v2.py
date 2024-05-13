@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+import orjson
 import pytest
 from django.urls import reverse
 
@@ -11,7 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json, safe
+from sentry.utils import safe
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -56,7 +57,7 @@ def call_endpoint(client, relay, private_key, default_projectkey):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        return json.loads(resp.content), resp.status_code
+        return orjson.loads(resp.content), resp.status_code
 
     return inner
 

@@ -11,7 +11,7 @@ from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.fields import SnQLStringArg
+from sentry.search.events.fields import SnQLStringArg, get_function_alias
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
@@ -155,9 +155,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.self_time",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS.union(
-                                    constants.SPAN_METRIC_BYTES_COLUMNS
-                                ),
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                                | constants.SPAN_METRIC_BYTES_COLUMNS
+                                | constants.SPAN_METRIC_COUNT_COLUMNS,
                             ),
                         ),
                     ],
@@ -307,7 +307,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     optional_args=[
                         fields.with_default(
                             "app", fields.SnQLStringArg("scope", allowed_strings=["app", "local"])
-                        )
+                        ),
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     snql_distribution=self._resolve_time_spent_percentage,
                     default_result_type="percentage",
@@ -655,7 +661,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_total_span_duration(self, alias: str, scope: str) -> SelectType:
+    def _resolve_total_span_duration(self, alias: str, scope: str, column: str) -> SelectType:
         """This calculates the total time, and based on the scope will return
         either the apps total time or whatever other local scope/filters are
         applied.
@@ -669,7 +675,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             params={},
             snuba_params=self.builder.params,
             query=self.builder.query if scope == "local" else None,
-            selected_columns=["sum(span.self_time)"],
+            selected_columns=[f"sum({column})"],
         )
         sentry_sdk.set_tag("query.resolved_total", scope)
 
@@ -681,16 +687,16 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         if len(results["data"]) != 1:
             self.total_span_duration = 0
             return Function("toFloat64", [0], alias)
-        self.total_span_duration = results["data"][0]["sum_span_self_time"]
+        self.total_span_duration = results["data"][0][get_function_alias(f"sum({column})")]
         return Function("toFloat64", [self.total_span_duration], alias)
 
     def _resolve_time_spent_percentage(
         self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
     ) -> SelectType:
         total_time = self._resolve_total_span_duration(
-            constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"]
+            constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"], args["column"]
         )
-        metric_id = self.resolve_metric("span.self_time")
+        metric_id = self.resolve_metric(args["column"])
 
         return function_aliases.resolve_division(
             Function(

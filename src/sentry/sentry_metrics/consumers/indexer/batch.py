@@ -168,8 +168,7 @@ class IndexerBatch:
     ) -> ParsedMessage:
         assert isinstance(msg.value, BrokerValue)
         try:
-            with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-                parsed_payload: ParsedMessage = orjson.loads(msg.payload.value.decode())
+            parsed_payload: ParsedMessage = orjson.loads(msg.payload.value)
         except orjson.JSONDecodeError:
             logger.exception(
                 "process_messages.invalid_json",

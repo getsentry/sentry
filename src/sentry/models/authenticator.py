@@ -17,6 +17,8 @@ from sentry.auth.authenticators import (
     available_authenticators,
 )
 from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -191,3 +193,12 @@ class Authenticator(ControlOutboxProducingModel):
 
     def __repr__(self):
         return f"<Authenticator user={self.user.email!r} interface={self.interface.interface_id!r}>"
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "config"), lambda _: '""')

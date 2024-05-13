@@ -21,6 +21,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.user import User
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
@@ -460,6 +461,23 @@ class Fixtures:
     def create_user_option(self, *args, **kwargs):
         return Factories.create_user_option(*args, **kwargs)
 
+    def create_monitor(self, **kwargs):
+        if "owner_user_id" not in kwargs:
+            kwargs["owner_user_id"] = self.user.id
+
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
+            **kwargs,
+        )
+
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
@@ -567,9 +585,6 @@ class Fixtures:
 
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
-
-    def create_sentry_function(self, *args, **kwargs):
-        return Factories.create_sentry_function(*args, **kwargs)
 
     def create_saved_search(self, *args, **kwargs):
         return Factories.create_saved_search(*args, **kwargs)

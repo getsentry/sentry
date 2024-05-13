@@ -1,6 +1,7 @@
 from unittest.mock import patch
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 from django.db import router
 from django.urls import reverse
@@ -33,7 +34,6 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
 
@@ -86,7 +86,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "blocks": [
                 {
                     "type": "section",
-                    "block_id": json.dumps({"issue": group_id}),
+                    "block_id": orjson.dumps({"issue": group_id}).decode(),
                     "text": {"type": "mrkdwn", "text": "boop", "verbatim": False},
                 },
             ],
@@ -172,12 +172,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert data["trigger_id"] == self.trigger_id
         assert "view" in data
 
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
+        view = orjson.loads(data["view"])
+        private_metadata = orjson.loads(view["private_metadata"])
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -192,7 +192,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
-                private_metadata=json.dumps(private_metadata),
+                private_metadata=orjson.dumps(private_metadata).decode(),
                 selected_option=selected_option,
             )
 
@@ -237,12 +237,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert data["trigger_id"] == self.trigger_id
         assert "view" in data
 
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
+        view = orjson.loads(data["view"])
+        private_metadata = orjson.loads(view["private_metadata"])
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -257,7 +257,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
-                private_metadata=json.dumps(private_metadata),
+                private_metadata=orjson.dumps(private_metadata).decode(),
                 selected_option=selected_option,
             )
 
@@ -292,7 +292,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                 action_data=[status_action],
                 original_message=self.original_message,
                 type="interactive_message",
-                callback_id=json.dumps({"issue": self.group.id}),
+                callback_id=orjson.dumps({"issue": self.group.id}).decode(),
             )
             self.group = Group.objects.get(id=self.group.id)
 
@@ -317,7 +317,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                 action_data=[status_action],
                 original_message=self.original_message,
                 type="interactive_message",
-                callback_id=json.dumps({"issue": self.group.id}),
+                callback_id=orjson.dumps({"issue": self.group.id}).decode(),
             )
             self.group = Group.objects.get(id=self.group.id)
 
@@ -338,7 +338,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -347,7 +347,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":red_circle:" in update_data["blocks"][0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_archive_issue_until_escalating_block_kit_improvements(self):
         original_message = self.get_original_message_block_kit(self.group.id)
         self.archive_issue_block_kit(original_message, "ignored:archived_until_escalating")
@@ -356,7 +356,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -376,7 +376,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -393,7 +393,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_snooze = GroupSnooze.objects.get(group=self.group)
         assert group_snooze.count == 10
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -413,7 +413,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_snooze = GroupSnooze.objects.get(group=self.group)
         assert group_snooze.count == 100
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -428,7 +428,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -444,7 +444,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -494,7 +494,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -518,7 +518,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -648,7 +648,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_assign_issue_block_kit_improvements(self):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
@@ -947,8 +947,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             assert data["trigger_id"][0] == self.trigger_id
             assert "dialog" in data
 
-            dialog = json.loads(data["dialog"][0])
-            callback_data = json.loads(dialog["callback_id"])
+            dialog = orjson.loads(data["dialog"][0])
+            callback_data = orjson.loads(dialog["callback_id"])
             assert int(callback_data["issue"]) == self.group.id
             assert callback_data["orig_response_url"] == self.response_url
 
@@ -972,7 +972,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         assert self.group.get_status() == GroupStatus.RESOLVED
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -987,7 +987,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -995,7 +995,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":red_circle:" in update_data["blocks"][0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_resolve_issue_block_kit_improvements(self):
         original_message = self.get_original_message_block_kit(self.group.id)
         self.resolve_issue_block_kit(original_message, "resolved")
@@ -1004,7 +1004,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -1012,7 +1012,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":white_circle:" in update_data["blocks"][0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_resolve_perf_issue_block_kit_improvements(self):
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 
@@ -1034,7 +1034,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert (
@@ -1056,7 +1056,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -1094,8 +1094,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             assert data["trigger_id"][0] == self.trigger_id
             assert "dialog" in data
 
-            dialog = json.loads(data["dialog"][0])
-            callback_data = json.loads(dialog["callback_id"])
+            dialog = orjson.loads(data["dialog"][0])
+            callback_data = orjson.loads(dialog["callback_id"])
             assert int(callback_data["issue"]) == self.group.id
             assert callback_data["orig_response_url"] == self.response_url
 
@@ -1119,7 +1119,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.RESOLVED
 
-            update_data = json.loads(responses.calls[1].request.body)
+            update_data = orjson.loads(responses.calls[1].request.body)
             expect_status = f"*Issue resolved by <@{self.external_id}>*"
             assert self.notification_text in update_data["blocks"][1]["text"]["text"]
             assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
@@ -1141,7 +1141,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.release == release
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -1165,7 +1165,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.release == release
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -1187,7 +1187,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_next_release
         assert resolution.release == release
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -1210,7 +1210,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_next_release
         assert resolution.release == release
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -1254,12 +1254,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert data["trigger_id"] == self.trigger_id
         assert "view" in data
 
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
+        view = orjson.loads(data["view"])
+        private_metadata = orjson.loads(view["private_metadata"])
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1275,7 +1275,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
-                private_metadata=json.dumps(private_metadata),
+                private_metadata=orjson.dumps(private_metadata).decode(),
                 selected_option="ignored:archived_forever",
             )
         assert resp.status_code == 200, resp.content
@@ -1284,7 +1284,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = json.loads(responses.calls[1].request.body)
+        update_data = orjson.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
@@ -1363,12 +1363,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert data["trigger_id"] == self.trigger_id
         assert "view" in data
 
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
+        view = orjson.loads(data["view"])
+        private_metadata = orjson.loads(view["private_metadata"])
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1383,7 +1383,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
-                private_metadata=json.dumps(private_metadata),
+                private_metadata=orjson.dumps(private_metadata).decode(),
                 selected_option="ignored:archived_forever",
                 slack_user={"id": user2_identity.external_id},
             )
@@ -1434,12 +1434,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert data["trigger_id"] == self.trigger_id
         assert "view" in data
 
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
+        view = orjson.loads(data["view"])
+        private_metadata = orjson.loads(view["private_metadata"])
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1455,7 +1455,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
-                private_metadata=json.dumps(private_metadata),
+                private_metadata=orjson.dumps(private_metadata).decode(),
                 selected_option="ignored:archived_until_escalating",
                 slack_user={"id": user2_identity.external_id},
             )
@@ -1497,8 +1497,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             assert data["trigger_id"][0] == self.trigger_id
             assert "dialog" in data
 
-            dialog = json.loads(data["dialog"][0])
-            callback_data = json.loads(dialog["callback_id"])
+            dialog = orjson.loads(data["dialog"][0])
+            callback_data = orjson.loads(dialog["callback_id"])
             assert int(callback_data["issue"]) == self.group.id
             assert callback_data["orig_response_url"] == self.response_url
 
@@ -1578,12 +1578,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert data["trigger_id"] == self.trigger_id
         assert "view" in data
 
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
+        view = orjson.loads(data["view"])
+        private_metadata = orjson.loads(view["private_metadata"])
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1605,7 +1605,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         with self.feature("organizations:slack-block-kit"):
             response = self.post_webhook_block_kit(
                 type="view_submission",
-                private_metadata=json.dumps(private_metadata),
+                private_metadata=orjson.dumps(private_metadata).decode(),
                 selected_option="resolved",
             )
 
@@ -1642,12 +1642,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert data["trigger_id"] == self.trigger_id
         assert "view" in data
 
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
+        view = orjson.loads(data["view"])
+        private_metadata = orjson.loads(view["private_metadata"])
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1669,7 +1669,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         with self.feature("organizations:slack-block-kit"):
             response = self.post_webhook_block_kit(
                 type="view_submission",
-                private_metadata=json.dumps(private_metadata),
+                private_metadata=orjson.dumps(private_metadata).decode(),
                 selected_option="resolved",
             )
 
@@ -1717,7 +1717,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             ],
         }
 
-        payload = {"payload": json.dumps(payload)}
+        payload = {"payload": orjson.dumps(payload).decode()}
 
         resp = self.client.post("/extensions/slack/action/", data=payload)
         assert resp.status_code == 200
@@ -1733,7 +1733,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         self.assert_org_member_mapping(org_member=member)
 
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
@@ -1760,7 +1762,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
 
         resp = self.post_webhook(action_data=[{"value": "reject_member"}], callback_id=callback_id)
 
@@ -1784,7 +1788,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             invite_status=InviteStatus.APPROVED.value,
         )
 
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
 
         resp = self.post_webhook(action_data=[{"value": "reject_member"}], callback_id=callback_id)
 
@@ -1804,7 +1810,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
         member.delete()
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
@@ -1821,7 +1829,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             inviter_id=other_user.id,
             invite_status=InviteStatus.APPROVED.value,
         )
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
@@ -1839,7 +1849,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
@@ -1867,7 +1879,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
@@ -1886,7 +1900,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             inviter_id=other_user.id,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
-        callback_id = json.dumps({"member_id": member.id, "member_email": "hello@sentry.io"})
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
 
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 

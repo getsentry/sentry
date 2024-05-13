@@ -26,7 +26,7 @@ from sentry.integrations.slack.message_builder.time_utils import time_since
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
-    MonitorCheckInFailure,
+    MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
@@ -41,7 +41,6 @@ from sentry.models.user import User
 from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -49,6 +48,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -102,6 +102,7 @@ def build_test_message_blocks(
         for k, v in tags.items():
             if k == "release":
                 v = format_release_tag(v, group)
+            v = v.replace("`", "")
             tags_text += f"{k}: `{v}`  "
 
         tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
@@ -272,7 +273,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "tags": {"foo": "bar"},
+                "tags": {"escape": "`room`", "foo": "bar"},
                 "timestamp": iso_format(before_now(minutes=1)),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
@@ -285,7 +286,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        more_tags = {"foo": "bar"}
+        more_tags = {"escape": "`room`", "foo": "bar"}
         notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
@@ -295,7 +296,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}
+            group, event.for_group(group), tags={"foo", "escape"}
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -316,7 +317,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}, notes=notes
+            group, event.for_group(group), tags={"foo", "escape"}, notes=notes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -692,7 +693,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)
         ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=RpcActor.from_object(self.team)
+            issue_alert_group, recipient=Actor.from_object(self.team)
         ).build()
         assert isinstance(ret, dict)
         has_actions = False
@@ -709,7 +710,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             project=self.project, group=issue_alert_group, user_id=self.user.id
         )
         ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=RpcActor.from_object(self.team)
+            issue_alert_group, recipient=Actor.from_object(self.team)
         ).build()
         assert isinstance(ret, dict)
         assert (
@@ -1154,7 +1155,7 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
         ) == ([], "", False)
 
-    @with_feature("organizations:slack-improvements")
+    @with_feature("organizations:slack-thread-issue-alert")
     def test_identity_and_action_has_action(self):
         # returns True to indicate to use the white circle emoji
         group = self.create_group(project=self.project)
@@ -1320,7 +1321,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             type=PerformanceP95EndpointRegressionGroupType.type_id
         )
 
-        self.cron_issue = self.create_group(type=MonitorCheckInFailure.type_id)
+        self.cron_issue = self.create_group(type=MonitorIncidentType.type_id)
         self.feedback_issue = self.create_group(
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )

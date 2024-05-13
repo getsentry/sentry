@@ -30,10 +30,11 @@ describe('latencyChart', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           yAxis: [
-            'avg_if(span.self_time,span.op,queue.submit.celery)',
-            'avg_if(span.self_time,span.op,queue.task.celery)',
-            'count_op(queue.submit.celery)',
-            'count_op(queue.task.celery)',
+            'avg_if(span.duration,span.op,queue.publish)',
+            'avg_if(span.duration,span.op,queue.process)',
+            'avg(messaging.message.receive.latency)',
+            'count_op(queue.publish)',
+            'count_op(queue.process)',
           ],
         }),
       })

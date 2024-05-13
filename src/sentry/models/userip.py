@@ -1,12 +1,20 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    get_model_name,
+)
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.models.user import User
@@ -102,6 +110,17 @@ class UserIP(Model):
         # `--merge_users=true` case is handled in the `normalize_before_relocation_import()` method
         # above).
         return (userip.pk, ImportKind.Inserted)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        # Always use British Columbia for fake IP geo data, cause why not.
+        sanitizer.set_string(json, SanitizableField(model_name, "country_code"), lambda _: "CA")
+        sanitizer.set_string(json, SanitizableField(model_name, "region_code"), lambda _: "BC")
 
 
 def _perform_log(user: User | RpcUser, ip_address: str):

@@ -209,38 +209,16 @@ function buildRoutes() {
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/data-export/:dataExportId"
-          component={withDomainRequired(
-            make(() => import('sentry/views/dataExport/dataDownload'))
-          )}
-          key="orgless-data-export-route"
-        />
-      )}
       <Route
-        path="/organizations/:orgId/data-export/:dataExportId"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/dataExport/dataDownload'))
-        )}
-        key="org-data-export"
+        path="/data-export/:dataExportId"
+        component={make(() => import('sentry/views/dataExport/dataDownload'))}
+        withOrgPath
       />
       <Route component={errorHandler(OrganizationContainer)}>
-        {USING_CUSTOMER_DOMAIN && (
-          <Route
-            path="/disabled-member/"
-            component={withDomainRequired(
-              make(() => import('sentry/views/disabledMember'))
-            )}
-            key="orgless-disabled-member-route"
-          />
-        )}
         <Route
-          path="/organizations/:orgId/disabled-member/"
-          component={withDomainRedirect(
-            make(() => import('sentry/views/disabledMember'))
-          )}
-          key="org-disabled-member"
+          path="/disabled-member/"
+          component={make(() => import('sentry/views/disabledMember'))}
+          withOrgPath
         />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
@@ -298,17 +276,10 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/stories/"
-          component={make(() => import('sentry/views/stories/index'))}
-          key="orgless-stories"
-        />
-      )}
       <Route
-        path="/organizations/:orgId/stories/"
-        component={withDomainRedirect(make(() => import('sentry/views/stories/index')))}
-        key="org-stories"
+        path="/stories/"
+        component={make(() => import('sentry/views/stories/index'))}
+        withOrgPath
       />
     </Fragment>
   );
@@ -936,7 +907,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route path="developer-settings/" name={t('Custom Integrations')}>
         <IndexRoute
           component={make(
@@ -983,28 +953,6 @@ function buildRoutes() {
               )
           )}
         />
-        <Route path="sentry-functions/" name={t('Sentry Functions')}>
-          <Route
-            path="new/"
-            name={t('Create Sentry Function')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-                )
-            )}
-          />
-          <Route
-            path=":functionSlug/"
-            name={t('Edit Sentry Function')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-                )
-            )}
-          />
-        </Route>
       </Route>
       <Route path="auth-tokens/" name={t('Auth Tokens')}>
         <IndexRoute
@@ -1626,6 +1574,12 @@ function buildRoutes() {
           <IndexRoute
             component={make(() => import('sentry/views/performance/mobile/ui'))}
           />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/performance/mobile/ui/screenSummary')
+            )}
+          />
         </Route>
       </Route>
       <Route path="traces/">
@@ -1757,12 +1711,9 @@ function buildRoutes() {
   );
 
   const issueListRoutes = (
-    <Route
-      path="/issues/(searches/:searchId/)"
-      component={errorHandler(IssueListContainer)}
-      withOrgPath
-    >
+    <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
       <IndexRoute component={errorHandler(IssueListOverview)} />
+      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
     </Route>
   );
 

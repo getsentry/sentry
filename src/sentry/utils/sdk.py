@@ -53,6 +53,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.save_event_transaction": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
@@ -73,17 +74,12 @@ SAMPLED_TASKS = {
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.monitors.tasks.check_missing": 1.0,
-    "sentry.monitors.tasks.mark_environment_missing": 0.05,
-    "sentry.monitors.tasks.check_timeout": 1.0,
-    "sentry.monitors.tasks.mark_checkin_timeout": 0.05,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
-    "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
 }
@@ -238,7 +234,10 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
     if not event["measurements"]:
         event["measurements"] = {}
-    event["measurements"]["num_of_spans"] = {"value": num_of_spans}
+    event["measurements"]["num_of_spans"] = {
+        "value": num_of_spans,
+        "unit": None,
+    }
     return event
 
 

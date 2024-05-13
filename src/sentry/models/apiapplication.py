@@ -1,5 +1,5 @@
 import secrets
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 from urllib.parse import urlparse
 
 import petname
@@ -7,6 +7,8 @@ from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -128,3 +130,16 @@ class ApiApplication(Model):
             "allowed_origins": self.allowed_origins,
             "status": self.status,
         }
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "allowed_origins"), lambda _: "")
+        sanitizer.set_string(
+            json, SanitizableField(model_name, "client_id"), lambda _: generate_token()
+        )
+        sanitizer.set_string(json, SanitizableField(model_name, "redirect_uris"), lambda _: "")
