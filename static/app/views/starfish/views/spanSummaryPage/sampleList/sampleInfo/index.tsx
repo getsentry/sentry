@@ -6,7 +6,7 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
@@ -31,18 +31,20 @@ function SampleInfo(props: Props) {
     ribbonFilters['transaction.method'] = transactionMethod;
   }
 
-  const {data, error, isLoading} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(ribbonFilters),
-    fields: [
-      SpanMetricsField.SPAN_OP,
-      'spm()',
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      'time_spent_percentage()',
-    ],
-    enabled: Object.values(ribbonFilters).every(value => Boolean(value)),
-    referrer: 'api.starfish.span-summary-panel-metrics',
-  });
+  const {data, error, isLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(ribbonFilters),
+      fields: [
+        SpanMetricsField.SPAN_OP,
+        'spm()',
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        'time_spent_percentage()',
+      ],
+      enabled: Object.values(ribbonFilters).every(value => Boolean(value)),
+    },
+    'api.starfish.span-summary-panel-metrics'
+  );
 
   const spanMetrics = data[0] ?? {};
 

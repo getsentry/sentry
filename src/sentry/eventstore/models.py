@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from hashlib import md5
 from typing import TYPE_CHECKING, Any, Optional, cast
 
+import orjson
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -25,7 +26,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
-from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
@@ -368,7 +368,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
                 return rv
 
         # Create fresh hashes
-        flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
+        from sentry.grouping.api import sort_grouping_variants
+
+        variants = self.get_grouping_variants(force_config)
+        flat_variants, hierarchical_variants = sort_grouping_variants(variants)
         flat_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
         hierarchical_hashes, tree_labels = self._hashes_from_sorted_grouping_variants(
             hierarchical_variants
@@ -386,17 +389,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
             hashes=flat_hashes,
             hierarchical_hashes=hierarchical_hashes,
             tree_labels=tree_labels,
-            variants=[*flat_variants, *hierarchical_variants],
+            variants=variants,
         )
-
-    def get_sorted_grouping_variants(
-        self, force_config: StrategyConfiguration | None = None
-    ) -> tuple[KeyedVariants, KeyedVariants]:
-        """Get grouping variants sorted into flat and hierarchical variants"""
-        from sentry.grouping.api import sort_grouping_variants
-
-        variants = self.get_grouping_variants(force_config)
-        return sort_grouping_variants(variants)
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(
@@ -525,7 +519,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def size(self) -> int:
-        return len(json.dumps_experimental("eventstore.enable-orjson", dict(self.data)))
+        return len(orjson.dumps(dict(self.data)).decode())
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")

@@ -39,7 +39,7 @@ from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
-from sentry.utils.actor import ActorTuple
+from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -301,8 +301,10 @@ class Monitor(Model):
         return super().save(*args, **kwargs)
 
     @property
-    def owner_actor(self) -> ActorTuple | None:
-        return ActorTuple.from_id(self.owner_user_id, self.owner_team_id)
+    def owner_actor(self) -> Actor | None:
+        if not (self.owner_user_id or self.owner_team_id):
+            return None
+        return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
 
     @property
     def schedule(self) -> CrontabSchedule | IntervalSchedule:

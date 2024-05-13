@@ -32,8 +32,8 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
@@ -79,51 +79,59 @@ export function HTTPLandingPage() {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: ['spm()'],
-    referrer: Referrer.LANDING_THROUGHPUT_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['spm()'],
+    },
+    Referrer.LANDING_THROUGHPUT_CHART
+  );
 
   const {
     isLoading: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: [`avg(span.self_time)`],
-    referrer: Referrer.LANDING_DURATION_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: [`avg(span.self_time)`],
+    },
+    Referrer.LANDING_DURATION_CHART
+  );
 
   const {
     isLoading: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: Referrer.LANDING_RESPONSE_CODE_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+    },
+    Referrer.LANDING_RESPONSE_CODE_CHART
+  );
 
-  const domainsListResponse = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(tableFilters),
-    fields: [
-      'project',
-      'project.id',
-      'span.domain',
-      'spm()',
-      'http_response_rate(3)',
-      'http_response_rate(4)',
-      'http_response_rate(5)',
-      'avg(span.self_time)',
-      'sum(span.self_time)',
-      'time_spent_percentage()',
-    ],
-    sorts: [sort],
-    limit: DOMAIN_TABLE_ROW_COUNT,
-    cursor,
-    referrer: Referrer.LANDING_DOMAINS_LIST,
-  });
+  const domainsListResponse = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(tableFilters),
+      fields: [
+        'project',
+        'project.id',
+        'span.domain',
+        'spm()',
+        'http_response_rate(3)',
+        'http_response_rate(4)',
+        'http_response_rate(5)',
+        'avg(span.self_time)',
+        'sum(span.self_time)',
+        'time_spent_percentage()',
+      ],
+      sorts: [sort],
+      limit: DOMAIN_TABLE_ROW_COUNT,
+      cursor,
+    },
+    Referrer.LANDING_DOMAINS_LIST
+  );
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 

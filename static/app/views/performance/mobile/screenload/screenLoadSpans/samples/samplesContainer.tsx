@@ -22,9 +22,9 @@ import {
   PLATFORM_QUERY_PARAM,
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -96,12 +96,14 @@ export function ScreenLoadSampleContainer({
     filters['span.op'] = spanOp;
   }
 
-  const {data} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
-    fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
-    enabled: Boolean(groupId) && Boolean(transactionName),
-    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
-  });
+  const {data} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+      fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
+      enabled: Boolean(groupId) && Boolean(transactionName),
+    },
+    'api.starfish.span-summary-panel-samples-table-avg'
+  );
 
   const spanMetrics = data[0] ?? {};
 
@@ -180,6 +182,7 @@ export function ScreenLoadSampleContainer({
         onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
         groupId={groupId}
         transactionName={transactionName}
+        moduleName={ModuleName.SCREEN}
         release={release}
         columnOrder={[
           {

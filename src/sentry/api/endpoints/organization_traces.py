@@ -1,9 +1,10 @@
 import dataclasses
+import itertools
 import math
 from collections import defaultdict
 from collections.abc import Callable, Mapping, MutableMapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -34,10 +35,14 @@ MAX_SNUBA_RESULTS = 10_000
 
 class TraceInterval(TypedDict):
     project: str | None
+    sdkName: str | None
     start: int
     end: int
     kind: Literal["project", "missing", "other"]
     opCategory: str | None
+    duration: int
+    isRoot: bool
+    components: NotRequired[list[tuple[int, int]]]
 
 
 class TraceResult(TypedDict):
@@ -68,6 +73,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
     )
     suggestedQuery = serializers.CharField(required=False)
     minBreakdownDuration = serializers.IntegerField(default=0, min_value=0)
+    minBreakdownPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -108,6 +114,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             max_spans_per_trace=serialized["maxSpansPerTrace"],
             breakdown_categories=serialized.get("breakdownCategory", []),
             min_breakdown_duration=serialized["minBreakdownDuration"],
+            min_breakdown_percentage=serialized["minBreakdownPercentage"],
             get_all_projects=lambda: self.get_projects(
                 request,
                 organization,
@@ -148,6 +155,7 @@ class TraceSamplesExecutor:
         max_spans_per_trace: int,
         breakdown_categories: list[str],
         min_breakdown_duration: int,
+        min_breakdown_percentage: float,
         get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
@@ -162,6 +170,7 @@ class TraceSamplesExecutor:
         self.max_spans_per_trace = max_spans_per_trace
         self.breakdown_categories = breakdown_categories
         self.min_breakdown_duration = min_breakdown_duration
+        self.min_breakdown_percentage = min_breakdown_percentage
         self.get_all_projects = get_all_projects
         self._all_projects: list[Project] | None = None
 
@@ -351,12 +360,17 @@ class TraceSamplesExecutor:
                 return min_timestamp, max_timestamp, [], []
         else:
             # No user queries so take the first N trace ids as our list
+            min_timestamp = snuba_params.end
+            max_timestamp = snuba_params.start
+            assert min_timestamp is not None
+            assert max_timestamp is not None
+
             trace_ids = trace_ids[: self.limit]
             timestamps = timestamps[: self.limit]
             for timestamp in timestamps:
                 if timestamp < min_timestamp:
                     min_timestamp = timestamp
-                if timestamp < max_timestamp:
+                if timestamp > max_timestamp:
                     max_timestamp = timestamp
 
         self.refine_params(min_timestamp, max_timestamp)
@@ -608,13 +622,22 @@ class TraceSamplesExecutor:
     ) -> list[TraceResult]:
         # mapping of trace id to a tuple of start/finish times
         traces_range = {
-            row["trace"]: (row["first_seen()"], row["last_seen()"])
+            row["trace"]: {
+                "start": row["first_seen()"],
+                "end": row["last_seen()"],
+                "min": int(
+                    self.min_breakdown_percentage * (row["last_seen()"] - row["first_seen()"])
+                ),
+            }
             for row in traces_metas_results["data"]
         }
 
         spans = [
-            *traces_breakdown_projects_results["data"],
-            *traces_breakdown_categories_results["data"],
+            span
+            for span in itertools.chain(
+                traces_breakdown_projects_results["data"],
+                traces_breakdown_categories_results["data"],
+            )
         ]
         spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
 
@@ -623,6 +646,8 @@ class TraceSamplesExecutor:
         # mapping of trace id to a tuple of project slug + transaction name
         traces_names: MutableMapping[str, tuple[str, str]] = {}
         for row in traces_breakdown_projects_results["data"]:
+            if row["trace"] in traces_names:
+                continue
             # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
             # So make sure to handle both in case something changes.
             if not row["parent_span"] or int(row["parent_span"], 16) == 0:
@@ -692,12 +717,13 @@ class TraceSamplesExecutor:
             selected_columns=[
                 "trace",
                 "project",
+                "sdk.name",
                 "parent_span",
                 "transaction",
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
-            orderby=["precise.start_ts", "precise.finish_ts"],
+            orderby=["precise.start_ts", "-precise.finish_ts"],
             # limit the number of segments we fetch per trace so a single
             # large trace does not result in the rest being blank
             limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
@@ -734,10 +760,12 @@ class TraceSamplesExecutor:
                 "project",
                 "transaction",
                 "span.category",
+                "sdk.name",
+                "parent_span",
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
-            orderby=["precise.start_ts", "precise.finish_ts"],
+            orderby=["precise.start_ts", "-precise.finish_ts"],
             # limit the number of segments we fetch per trace so a single
             # large trace does not result in the rest being blank
             limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
@@ -940,24 +968,52 @@ class TraceSamplesExecutor:
         return suggested_spans_query
 
 
+def quantize_range(span_start, span_end, trace_range):
+    trace_start = trace_range["start"]
+    trace_end = trace_range["end"]
+
+    bin_size = trace_range["min"]
+
+    if bin_size > 0:
+        rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
+        rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
+
+        # ensure minimum of 1 width
+        if rounded_start == rounded_end:
+            rounded_end += bin_size
+    else:
+        rounded_start = span_start
+        rounded_end = span_end
+
+    if span_start <= trace_start:
+        rounded_start = trace_start
+
+    # To avoid creating gaps at the end of the trace,
+    # do not adjust the end if it's at the trace end.
+    if span_end >= trace_end:
+        rounded_end = trace_end
+
+    return int(rounded_start), int(rounded_end)
+
+
 def process_breakdowns(data, traces_range):
     breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
     stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
 
     def should_merge(interval_a, interval_b):
         return (
-            interval_a["end"] >= interval_b["start"]
+            # only merge intervals that have parent spans, i.e. those that aren't the trace root
+            not interval_a["isRoot"]
+            and not interval_b["isRoot"]
+            # only merge intervals that overlap
+            and interval_a["end"] >= interval_b["start"]
+            # only merge intervals that are part of the same service
             and interval_a["project"] == interval_b["project"]
+            and interval_a["sdkName"] == interval_b["sdkName"]
             and interval_a["opCategory"] == interval_b["opCategory"]
         )
 
     def breakdown_push(trace, interval):
-        # Clip the intervals os that it is within range of the trace
-        if trace_range := traces_range.get(trace):
-            left, right = trace_range
-            interval["start"] = clip(interval["start"], left, right)
-            interval["end"] = clip(interval["end"], left, right)
-
         breakdown = breakdowns[trace]
 
         # Find the last interval. If there is an interval on the stack, it
@@ -975,20 +1031,42 @@ def process_breakdowns(data, traces_range):
                 {
                     "kind": "missing",
                     "project": None,
+                    "sdkName": None,
                     "opCategory": None,
                     "start": last_interval["end"],
                     "end": interval["start"],
+                    "duration": 0,
+                    "components": [
+                        (last_interval["components"][-1][1], interval["components"][0][0]),
+                    ],
+                    "isRoot": False,
                 }
             )
 
         breakdown.append(interval)
 
     def stack_push(trace, interval):
-        last_interval = stack_peek(trace)
-        if last_interval and should_merge(last_interval, interval):
+        for last_interval in reversed(stacks[trace]):
+            if not should_merge(last_interval, interval):
+                continue
             # update the end of this interval and it will
             # be updated in the breakdown as well
             last_interval["end"] = max(interval["end"], last_interval["end"])
+
+            # need to update the components of the last interval by merging
+            # current interval into it
+            last_component = last_interval["components"][-1]
+            # there should always be 1 component in the current interval
+            assert len(interval["components"]) == 1
+            cur_component = interval["components"][0]
+            if last_component[1] >= cur_component[0]:
+                last_interval["components"][-1] = (
+                    last_component[0],
+                    max(last_component[1], cur_component[1]),
+                )
+            else:
+                last_interval["components"].extend(interval["components"])
+
             return
 
         # Make sure to push the breakdown before the stack. This is because
@@ -1017,13 +1095,59 @@ def process_breakdowns(data, traces_range):
 
     for row in data:
         trace = row["trace"]
+        precise_start = int(row["precise.start_ts"] * 1000)
+        precise_end = int(row["precise.finish_ts"] * 1000)
+
+        trace_range = traces_range[trace]
+        trace_start = trace_range["start"]
+        trace_end = trace_range["end"]
+
+        # Clip the intervals os that it is within range of the trace
+        precise_start = clip(precise_start, trace_start, trace_end)
+        precise_end = clip(precise_end, trace_start, trace_end)
+
+        quantized_start, quantized_end = quantize_range(
+            precise_start,
+            precise_end,
+            traces_range[trace],
+        )
+        row["precise.start_ts"] = precise_start
+        row["precise.finish_ts"] = precise_end
+        row["quantized.start_ts"] = quantized_start
+        row["quantized.finish_ts"] = quantized_end
+
+    data.sort(
+        key=lambda row: (
+            row["quantized.start_ts"],
+            row["precise.start_ts"],
+            -row["quantized.finish_ts"],
+            -row["precise.finish_ts"],
+        )
+    )
+
+    last_timestamp_per_trace: dict[str, int] = defaultdict(int)
+
+    for row in data:
+        trace = row["trace"]
+
+        last_timestamp_per_trace["trace"] = max(
+            row["precise.finish_ts"], last_timestamp_per_trace["trace"]
+        )
+
+        if row["quantized.start_ts"] == row["quantized.finish_ts"]:
+            # after quantizing, this span is far too small to render, so remove it
+            continue
 
         cur: TraceInterval = {
             "kind": "project",
             "project": row["project"],
+            "sdkName": row["sdk.name"],
             "opCategory": row.get("span.category"),
-            "start": int(row["precise.start_ts"] * 1000),
-            "end": int(row["precise.finish_ts"] * 1000),
+            "start": row["quantized.start_ts"],
+            "end": row["quantized.finish_ts"],
+            "duration": 0,
+            "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
+            "isRoot": not bool(row.get("parent_span")),
         }
 
         # Clear the stack of any intervals that end before the current interval
@@ -1032,21 +1156,21 @@ def process_breakdowns(data, traces_range):
 
         stack_push(trace, cur)
 
-        # Clear the stack of any intervals that end before the current interval
-        # ends. Here we do not need to push them to the breakdowns because
-        # that time has already be attributed to the most recent interval.
-        stack_clear(trace, until=cur["end"])
-
-    for trace, (trace_start, trace_end) in traces_range.items():
+    for trace, trace_range in traces_range.items():
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
 
+        other_start = trace_range["start"]
+        other_end = trace_range["end"]
         other: TraceInterval = {
-            "project": None,
-            "opCategory": None,
-            "start": trace_start,
-            "end": trace_end,
             "kind": "other",
+            "project": None,
+            "sdkName": None,
+            "opCategory": None,
+            "start": other_start,
+            "end": other_end,
+            "duration": 0,
+            "isRoot": False,
         }
 
         # Clear the remaining intervals on the stack to find the latest end time
@@ -1055,9 +1179,25 @@ def process_breakdowns(data, traces_range):
         while stacks[trace]:
             interval = stack_pop(trace)
             other["start"] = max(other["start"], interval["end"])
+            # other["start"] = max(other["start"], interval["components"][-1][1])
+            last_component = interval["components"][-1]
+            other_start = max(other_start, last_component[1])
+
+        other["components"] = [(other_start, other_end)]
 
         if other["start"] < other["end"]:
             breakdown_push(trace, other)
+
+    for breakdown in breakdowns.values():
+        for interval in breakdown:
+            components = interval.pop("components", [])
+            component_duration = sum(component[1] - component[0] for component in components)
+            interval_duration = interval["end"] - interval["start"]
+
+            # in the event we don't have a duration from the components, we fall back to the interval
+            interval["duration"] = (
+                component_duration if component_duration > 0 else interval_duration
+            )
 
     return breakdowns
 

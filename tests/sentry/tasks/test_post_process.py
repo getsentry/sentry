@@ -1333,8 +1333,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
-    @patch("sentry.tasks.post_process.logger")
-    def test_issue_owners_should_ratelimit(self, mock_logger):
+    @patch("sentry.utils.metrics.incr")
+    def test_issue_owners_should_ratelimit(self, mock_incr):
         cache.set(
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
             (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
@@ -1354,17 +1354,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        expected_extra = {
-            "event": event.event_id,
-            "group": event.group_id,
-            "project": event.project_id,
-            "organization": event.project.organization_id,
-            "reason": "ratelimited",
-        }
-        mock_logger.info.assert_any_call(
-            "handle_owner_assignment.ratelimited", extra=expected_extra
-        )
-        mock_logger.reset_mock()
+        mock_incr.assert_any_call("sentry.task.post_process.handle_owner_assignment.ratelimited")
+        mock_incr.reset_mock()
 
         # Raise this organization's ratelimit
         with self.feature("organizations:increased-issue-owners-rate-limit"):
@@ -1375,12 +1366,10 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
                 event=event,
             )
             with pytest.raises(AssertionError):
-                mock_logger.info.assert_any_call(
-                    "handle_owner_assignment.ratelimited", extra=expected_extra
+                mock_incr.assert_any_call(
+                    "sentry.task.post_process.handle_owner_assignment.ratelimited"
                 )
-
-        # Still enforce the raised limit
-        mock_logger.reset_mock()
+        mock_incr.reset_mock()
         cache.set(
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
             (
@@ -1395,8 +1384,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
                 is_new_group_environment=False,
                 event=event,
             )
-            mock_logger.info.assert_any_call(
-                "handle_owner_assignment.ratelimited", extra=expected_extra
+            mock_incr.assert_any_call(
+                "sentry.task.post_process.handle_owner_assignment.ratelimited"
             )
 
 
@@ -1578,9 +1567,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
     def test_invalidates_snooze_issue_platform(self, mock_processor, mock_send_unignored_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
-        should_detect_escalation = group.issue_type.should_detect_escalation(
-            self.project.organization
-        )
+        should_detect_escalation = group.issue_type.should_detect_escalation()
 
         # Check for has_reappeared=False if is_new=True
         self.call_post_process_group(
@@ -2854,11 +2841,12 @@ class PostProcessGroupFeedbackTest(
         group_event.occurrence = occurrence
         return group_event
 
-    @override_options({"feedback.spam-detection-actions": True})
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(FeedbackGroup.build_post_process_group_feature_name()):
+        with self.feature(FeedbackGroup.build_post_process_group_feature_name()), self.feature(
+            "organizations:user-feedback-spam-filter-actions"
+        ):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,

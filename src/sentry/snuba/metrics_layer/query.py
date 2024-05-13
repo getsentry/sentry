@@ -634,7 +634,7 @@ def _query_meta_table(
 
 def fetch_metric_tag_values(
     org_id: int,
-    project_id: int,
+    project_ids: list[int],
     use_case_id: UseCaseID,
     mri: str,
     tag_key: str,
@@ -662,7 +662,7 @@ def fetch_metric_tag_values(
     metric_id, tag_key_id = resolved
 
     conditions = [
-        Condition(Column("project_id"), Op.EQ, project_id),
+        Condition(Column("project_id"), Op.IN, project_ids),
         Condition(Column("metric_id"), Op.EQ, metric_id),
         Condition(Column("tag_key"), Op.EQ, tag_key_id),
         Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
@@ -687,7 +687,6 @@ def fetch_metric_tag_values(
         query=tag_values_query,
         tenant_ids={
             "organization_id": org_id,
-            "project_id": project_id,
             "referrer": "generic_metrics_meta_tag_values",
         },
     )

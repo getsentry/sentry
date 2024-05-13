@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import type {
   MetricsSummary,
@@ -318,14 +317,6 @@ function DeviationRenderer({
   const theme = useTheme();
   const parsedMRI = parseMRI(mri);
   const type = parsedMRI?.type ?? 'c';
-
-  if (!totalAvg) {
-    return (
-      <ValueCell>
-        <LoadingPanel height="20px" />
-      </ValueCell>
-    );
-  }
 
   if (
     !defined(totalAvg) ||

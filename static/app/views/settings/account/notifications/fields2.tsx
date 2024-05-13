@@ -76,7 +76,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Error, transaction, and attachment quota limits.'),
+    help: t('Error, transaction, replay, attachment, and cron monitor quota limits.'),
   },
   reports: {
     name: 'reports',
@@ -127,6 +127,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   },
 };
 
+// TODO(isabella): Once spend vis notifs are GA, remove this
 // partial field definition for quota sub-categories
 export const QUOTA_FIELDS = [
   {
@@ -192,7 +193,7 @@ export const QUOTA_FIELDS = [
     name: 'quotaMonitorSeats',
     label: t('Cron Monitors'),
     help: tct(
-      'Receive notifications about your cron monitors quotas. [learnMore:Learn more]',
+      'Receive notifications about your cron monitor quotas. [learnMore:Learn more]',
       {
         learnMore: <ExternalLink href={getDocsLinkForEventType('monitorSeat')} />,
       }
@@ -216,4 +217,22 @@ export const QUOTA_FIELDS = [
       ['never', t('Off')],
     ] as const,
   },
+];
+
+export const SPEND_FIELDS = [
+  {
+    name: 'quotaWarnings',
+    label: t('Spend Notifications'),
+    help: tct(
+      'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={'#'} />, // TODO(isabella): replace with proper link
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  ...QUOTA_FIELDS.slice(1),
 ];
