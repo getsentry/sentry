@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -80,11 +81,7 @@ function ResourceSummary() {
     ) ||
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
-      baseURL="/performance/browser/resources"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -154,14 +151,26 @@ function ResourceSummary() {
           />
         </Layout.Main>
       </Layout.Body>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
+      baseURL="/performance/browser/resources"
+      features="spans-first-ui"
+    >
+      <ResourceSummary />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const HeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
 `;
-
-export default ResourceSummary;

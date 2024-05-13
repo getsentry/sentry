@@ -354,7 +354,7 @@ const MetricsRibbon = styled('div')`
   gap: ${space(4)};
 `;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       baseURL="/performance/http"
@@ -366,4 +366,4 @@ function LandingPageWithProviders() {
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

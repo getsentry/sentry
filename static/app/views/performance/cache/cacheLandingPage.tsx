@@ -202,7 +202,7 @@ export function CacheLandingPage() {
   );
 }
 
-export function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -213,6 +213,8 @@ export function LandingPageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const combineMeta = (
   meta1?: EventsMetaType,
@@ -247,5 +249,3 @@ const DEFAULT_SORT = {
 };
 
 const TRANSACTIONS_TABLE_ROW_COUNT = 20;
-
-export default LandingPageWithProviders;
