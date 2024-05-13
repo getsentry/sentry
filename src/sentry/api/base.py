@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import quote as urlquote
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
@@ -32,9 +33,8 @@ from sentry.auth import access
 from sentry.auth.staff import has_staff_option
 from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -343,8 +343,8 @@ class Endpoint(APIView):
             return
 
         try:
-            request.json_body = json.loads(request.body)
-        except json.JSONDecodeError:
+            request.json_body = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             return
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
@@ -460,8 +460,14 @@ class Endpoint(APIView):
         # Only enforced in dev environment
         if settings.ENFORCE_PAGINATION:
             if request.method.lower() == "get":
-                # Response can either be Response or HttpResponse, check if it's value is an array
-                if hasattr(self.response, "data") and isinstance(self.response.data, list):
+                status = getattr(self.response, "status_code", 0)
+                # Response can either be Response or HttpResponse, check if
+                # it's value is an array and that it was an OK response
+                if (
+                    200 <= status < 300
+                    and hasattr(self.response, "data")
+                    and isinstance(self.response.data, list)
+                ):
                     # if not paginated and not in  settings.SENTRY_API_PAGINATION_ALLOWLIST, raise error
                     if (
                         handler.__self__.__class__.__name__

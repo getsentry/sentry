@@ -1,17 +1,20 @@
-import {type IndexedProperty, SpanIndexedField} from 'sentry/views/starfish/types';
+export const FIELDS = [
+  'project',
+  'transaction.id',
+  'id',
+  'timestamp',
+  'span.op',
+  'sdk.name',
+  'span.description',
+  'span.duration',
+  'span.self_time',
+  'precise.start_ts',
+  'precise.finish_ts',
+  'is_transaction',
+] as const;
 
-export const fields: IndexedProperty[] = [
-  SpanIndexedField.PROJECT,
-  SpanIndexedField.ID,
-  SpanIndexedField.TRANSACTION_ID,
-  SpanIndexedField.TRACE,
-  SpanIndexedField.SPAN_OP,
-  SpanIndexedField.SPAN_DESCRIPTION,
-  SpanIndexedField.TRANSACTION_OP,
-  SpanIndexedField.TRANSACTION,
-  SpanIndexedField.SPAN_DURATION,
-  SpanIndexedField.SPAN_SELF_TIME,
-  SpanIndexedField.TIMESTAMP,
-];
+export type Field = (typeof FIELDS)[number];
 
-export type Field = (typeof fields)[number];
+export type Sort = Field | `-${Field}`;
+
+export const SORTS: Sort[] = ['-is_transaction', '-span.self_time'];

@@ -1,11 +1,42 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {MetricsSummary} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  MetricsQueryApiResponse,
+  MetricsQueryApiResponseLastMeta,
+} from 'sentry/types/metrics';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 
+const organization = OrganizationFixture({features: ['custom-metrics']});
+
 describe('CustomMetricsEventData', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/metrics/query/`,
+      method: 'POST',
+      body: {
+        data: [[{by: {}, series: [], totals: 2}]],
+        meta: [
+          [
+            {
+              unit: 'nanoseconds',
+              scaling_factor: 1000000,
+              group_bys: {},
+              limit: null,
+              order: 'asc',
+            } as MetricsQueryApiResponseLastMeta,
+          ],
+        ],
+        end: '2023-09-01T01:00:00Z',
+        intervals: [],
+        start: '2023-09-01T00:00:00Z',
+      } satisfies MetricsQueryApiResponse,
+    });
+  });
+
   it('renders empty (no feature flag)', () => {
     const metricsSummary: MetricsSummary = {
       'd:custom/my.metric@second': [
@@ -20,19 +51,24 @@ describe('CustomMetricsEventData', () => {
         },
       ],
     };
+
     const {container} = render(
       <CustomMetricsEventData
         metricsSummary={metricsSummary}
         startTimestamp={1706189398.176}
+        projectId="1"
       />
     );
     expect(container).toBeEmptyDOMElement();
   });
 
   it('renders empty (no data)', () => {
-    const organization = OrganizationFixture({features: ['ddm-ui']});
     const {container} = render(
-      <CustomMetricsEventData metricsSummary={{}} startTimestamp={1706189398.176} />,
+      <CustomMetricsEventData
+        metricsSummary={{}}
+        startTimestamp={1706189398.176}
+        projectId="1"
+      />,
       {
         organization,
       }
@@ -41,7 +77,6 @@ describe('CustomMetricsEventData', () => {
   });
 
   it('renders (all information)', () => {
-    const organization = OrganizationFixture({features: ['ddm-ui']});
     const metricsSummary: MetricsSummary = {
       'd:custom/my.metric@second': [
         {
@@ -60,6 +95,7 @@ describe('CustomMetricsEventData', () => {
       <CustomMetricsEventData
         metricsSummary={metricsSummary}
         startTimestamp={1706189398.176}
+        projectId="1"
       />,
       {
         organization,
@@ -68,66 +104,15 @@ describe('CustomMetricsEventData', () => {
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('my.metric')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Metrics'})).toBeInTheDocument();
+    expect(screen.getByText(/Name:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'my.metric'})).toBeInTheDocument();
 
-    expect(screen.getByText('Stats')).toBeInTheDocument();
-    expect(screen.getByText(/Type: distribution/)).toBeInTheDocument();
-    expect(screen.getByText(/Count: 2/)).toBeInTheDocument();
-    expect(screen.getByText(/Min: 1s/)).toBeInTheDocument();
-    expect(screen.getByText(/Max: 2s/)).toBeInTheDocument();
-    expect(screen.getByText(/Sum: 3s/)).toBeInTheDocument();
-    expect(screen.getByText(/Avg: 1\.5s/)).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher(/Value: 1\.5s/))).toBeInTheDocument();
 
-    expect(screen.getByText('Tags')).toBeInTheDocument();
-    expect(screen.getByText('foo')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'bar'})).toBeInTheDocument();
-  });
-
-  it('renders (count === 1)', () => {
-    const organization = OrganizationFixture({features: ['ddm-ui']});
-    const metricsSummary: MetricsSummary = {
-      'd:custom/my.metric@second': [
-        {
-          count: 1,
-          min: 2,
-          max: 2,
-          sum: 2,
-          tags: {
-            foo: 'bar',
-          },
-        },
-      ],
-    };
-
-    render(
-      <CustomMetricsEventData
-        metricsSummary={metricsSummary}
-        startTimestamp={1706189398.176}
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
-
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('my.metric')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Metrics'})).toBeInTheDocument();
-
-    expect(screen.getByText('Stats')).toBeInTheDocument();
-    expect(screen.getByText(/Type: distribution/)).toBeInTheDocument();
-    expect(screen.getByText(/Value: 2s/)).toBeInTheDocument();
-
-    expect(screen.getByText('Tags')).toBeInTheDocument();
-    expect(screen.getByText('foo')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'bar'})).toBeInTheDocument();
+    expect(screen.getByText(/Tags: foo:bar/)).toBeInTheDocument();
   });
 
   it('renders (counter metric)', () => {
-    const organization = OrganizationFixture({features: ['ddm-ui']});
     const metricsSummary: MetricsSummary = {
       'c:custom/my.metric@second': [
         {
@@ -146,29 +131,22 @@ describe('CustomMetricsEventData', () => {
       <CustomMetricsEventData
         metricsSummary={metricsSummary}
         startTimestamp={1706189398.176}
+        projectId="1"
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('my.metric')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Metrics'})).toBeInTheDocument();
+    expect(screen.getByText(/Name:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'my.metric'})).toBeInTheDocument();
 
-    expect(screen.getByText('Stats')).toBeInTheDocument();
-    expect(screen.getByText(/Type: counter/)).toBeInTheDocument();
-    expect(screen.getByText(/Count: 1/)).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher(/Count: 1/))).toBeInTheDocument();
 
-    expect(screen.getByText('Tags')).toBeInTheDocument();
-    expect(screen.getByText('foo')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'bar'})).toBeInTheDocument();
+    expect(screen.getByText(/Tags: foo:bar/)).toBeInTheDocument();
   });
 
-  it('renders (no tags)', () => {
-    const organization = OrganizationFixture({features: ['ddm-ui']});
+  it('renders (no tags)', async () => {
     const metricsSummary: MetricsSummary = {
       'c:custom/my.metric@second': [
         {
@@ -185,6 +163,7 @@ describe('CustomMetricsEventData', () => {
       <CustomMetricsEventData
         metricsSummary={metricsSummary}
         startTimestamp={1706189398.176}
+        projectId="1"
       />,
       {
         organization,
@@ -193,19 +172,16 @@ describe('CustomMetricsEventData', () => {
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('my.metric')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Metrics'})).toBeInTheDocument();
+    expect(screen.getByText(/Name:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'my.metric'})).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher(/Count: 1/))).toBeInTheDocument();
 
-    expect(screen.getByText('Stats')).toBeInTheDocument();
-    expect(screen.getByText(/Type: counter/)).toBeInTheDocument();
-    expect(screen.getByText(/Count: 1/)).toBeInTheDocument();
-
-    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/Tags: \(none\)/))
+    ).toBeInTheDocument();
   });
 
-  it('renders (empty tags)', () => {
-    const organization = OrganizationFixture({features: ['ddm-ui']});
+  it('renders (empty tags)', async () => {
     const metricsSummary: MetricsSummary = {
       'c:custom/my.metric@second': [
         {
@@ -222,6 +198,7 @@ describe('CustomMetricsEventData', () => {
       <CustomMetricsEventData
         metricsSummary={metricsSummary}
         startTimestamp={1706189398.176}
+        projectId="1"
       />,
       {
         organization,
@@ -230,19 +207,60 @@ describe('CustomMetricsEventData', () => {
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('my.metric')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Metrics'})).toBeInTheDocument();
+    expect(screen.getByText(/Name:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'my.metric'})).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher(/Count: 1/))).toBeInTheDocument();
 
-    expect(screen.getByText('Stats')).toBeInTheDocument();
-    expect(screen.getByText(/Type: counter/)).toBeInTheDocument();
-    expect(screen.getByText(/Count: 1/)).toBeInTheDocument();
-
-    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/Tags: \(none\)/))
+    ).toBeInTheDocument();
   });
 
   it('renders (multiple)', () => {
-    const organization = OrganizationFixture({features: ['ddm-ui']});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/metrics/query/`,
+      method: 'POST',
+      body: {
+        data: [
+          [{by: {}, series: [], totals: 2}],
+          [{by: {}, series: [], totals: 2}],
+          [{by: {}, series: [], totals: 2}],
+        ],
+        meta: [
+          [
+            {
+              unit: 'nanoseconds',
+              scaling_factor: 1000000,
+              group_bys: {},
+              limit: null,
+              order: 'asc',
+            } as MetricsQueryApiResponseLastMeta,
+          ],
+          [
+            {
+              unit: 'nanoseconds',
+              scaling_factor: null,
+              group_bys: {},
+              limit: null,
+              order: 'asc',
+            } as MetricsQueryApiResponseLastMeta,
+          ],
+          [
+            {
+              unit: 'nanoseconds',
+              scaling_factor: 1000000,
+              group_bys: {},
+              limit: null,
+              order: 'asc',
+            } as MetricsQueryApiResponseLastMeta,
+          ],
+        ],
+        end: '2023-09-01T01:00:00Z',
+        intervals: [],
+        start: '2023-09-01T00:00:00Z',
+      } satisfies MetricsQueryApiResponse,
+    });
+
     const metricsSummary: MetricsSummary = {
       'd:custom/my.distribution@second': [
         {
@@ -279,6 +297,7 @@ describe('CustomMetricsEventData', () => {
       <CustomMetricsEventData
         metricsSummary={metricsSummary}
         startTimestamp={1706189398.176}
+        projectId="1"
       />,
       {
         organization,
@@ -287,8 +306,8 @@ describe('CustomMetricsEventData', () => {
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
-    expect(screen.getAllByText('Name')).toHaveLength(3);
-    expect(screen.getAllByText('my.distribution')).toHaveLength(2);
-    expect(screen.getAllByText('my.counter')).toHaveLength(1);
+    expect(screen.getAllByText(/Name:/)).toHaveLength(1);
+    expect(screen.getAllByRole('link', {name: 'my.distribution'})).toHaveLength(2);
+    expect(screen.getAllByRole('link', {name: 'my.counter'})).toHaveLength(1);
   });
 });

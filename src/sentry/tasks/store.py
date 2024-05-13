@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from time import time
 from typing import Any
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
@@ -20,10 +21,9 @@ from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, cre
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models.activity import Activity
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -35,9 +35,6 @@ from sentry.utils.sdk import set_current_event_project
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
-
-# Is reprocessing on or off by default?
-REPROCESSING_DEFAULT = False
 
 
 class RetryProcessing(Exception):
@@ -308,9 +305,12 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
 @sentry_sdk.tracing.trace
 def normalize_event(data: Any) -> Any:
     normalizer = StoreNormalizer(
-        remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
+        remove_other=False,
+        is_renormalize=True,
+        json_dumps=orjson.dumps,
+        **DEFAULT_STORE_NORMALIZER_ARGS,
     )
-    return normalizer.normalize_event(dict(data))
+    return normalizer.normalize_event(dict(data), json_loads=orjson.loads)
 
 
 def do_process_event(
@@ -574,7 +574,7 @@ def process_event_from_reprocessing(
 
 
 @sentry_sdk.tracing.trace
-def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bool = False) -> None:
+def delete_raw_event(project_id: int, event_id: str | None) -> None:
     set_current_event_project(project_id)
 
     if event_id is None:
@@ -589,18 +589,12 @@ def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bo
 
     # Clear the sent notification if we reprocessed everything
     # successfully and reprocessing is enabled
-    reprocessing_active = ProjectOption.objects.filter(
-        project_id=project_id, key="sentry:reprocessing_active"
-    ).exists()
-    if reprocessing_active:
-        sent_notification = ProjectOption.objects.filter(
-            project_id=project_id, key="sentry:sent_failed_event_hint"
-        ).exists()
-        if sent_notification:
-            if ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).exists():
-                ProjectOption.objects.update_value(
-                    project_id=project_id, key="sentry:sent_failed_event_hint", value=False
-                )
+    reprocessing_active = reprocessing.is_active(project_id)
+    if reprocessing_active and reprocessing.did_send_notification(project_id):
+        # XXX: We just `delete`d all the `ReprocessingReport`s a few lines above.
+        # The only way this can ever be true here is if we have a race?
+        if ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).exists():
+            reprocessing.mark_notification_sent(project_id, False)
 
 
 @sentry_sdk.tracing.trace
@@ -630,9 +624,7 @@ def create_failed_event(
     if reprocessing2.is_reprocessed_event(data):
         return False
 
-    reprocessing_active = ProjectOption.objects.get_value(
-        project_id, "sentry:reprocessing_active", REPROCESSING_DEFAULT
-    )
+    reprocessing_active = reprocessing.is_active(project_id)
 
     # In case there is reprocessing active but the current reprocessing
     # revision is already different than when we started, we want to
@@ -647,18 +639,14 @@ def create_failed_event(
 
     # The first time we encounter a failed event and the hint was cleared
     # we send a notification.
-    sent_notification = ProjectOption.objects.get_value(
-        project_id, "sentry:sent_failed_event_hint", False
-    )
-    if not sent_notification:
-        project = Project.objects.get_from_cache(id=project_id)
+    if not reprocessing.did_send_notification(project_id):
         Activity.objects.create(
             type=ActivityType.NEW_PROCESSING_ISSUES.value,
-            project=project,
+            project_id=project_id,
             datetime=to_datetime(start_time),
             data={"reprocessing_active": reprocessing_active, "issues": issues},
         ).send_notification()
-        ProjectOption.objects.set_value(project, "sentry:sent_failed_event_hint", True)
+        reprocessing.mark_notification_sent(project_id, True)
 
     # If reprocessing is not active we bail now without creating the
     # processing issues
@@ -743,7 +731,7 @@ def _do_save_event(
         # reprocessing.  If the data cannot be found we want to assume
         # that we need to delete the raw event.
         if not data or reprocessing.event_supports_reprocessing(data):
-            delete_raw_event(project_id, event_id, allow_hint_clear=True)
+            delete_raw_event(project_id, event_id)
 
         # This covers two cases: where data is None because we did not manage
         # to fetch it from the default cache or the empty dictionary was

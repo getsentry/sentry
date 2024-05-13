@@ -1,10 +1,10 @@
-from sentry.db.models import region_silo_only_model
+from sentry.db.models import region_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.tasks.files import delete_file_region
 
 
-@region_silo_only_model
+@region_silo_model
 class FileBlob(AbstractFileBlob):
     class Meta:
         app_label = "sentry"

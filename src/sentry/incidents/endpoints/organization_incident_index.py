@@ -97,11 +97,9 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             except InvalidParams as err:
                 return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
 
-            team_filter_query = Q(
-                alert_rule__owner_id__in=teams_query.values_list("actor_id", flat=True)
-            )
+            team_filter_query = Q(alert_rule__team_id__in=teams_query.values_list("id", flat=True))
             if unassigned:
-                team_filter_query = team_filter_query | Q(alert_rule__owner_id=None)
+                team_filter_query = team_filter_query | Q(alert_rule__team_id__isnull=True)
 
             incidents = incidents.filter(team_filter_query)
 

@@ -11,13 +11,10 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {
-  GroupStatusResolution,
-  IgnoredStatusDetails,
-  SelectValue,
-} from 'sentry/types';
-import {GroupStatus, GroupSubstatus} from 'sentry/types';
-import {getDuration} from 'sentry/utils/formatters';
+import type {SelectValue} from 'sentry/types/core';
+import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import getDuration from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;
 

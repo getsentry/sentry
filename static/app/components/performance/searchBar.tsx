@@ -1,5 +1,4 @@
 import {useCallback, useRef, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -8,6 +7,8 @@ import {getSearchGroupWithItemMarkedActive} from 'sentry/components/smartSearchB
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -227,6 +228,14 @@ function SearchBar(props: SearchBarProps) {
 
     browserHistory.push(normalizeUrl(next));
   };
+  const logDocsOpenedEvent = () => {
+    trackAnalytics('search.docs_opened', {
+      organization,
+      search_type: 'performance',
+      search_source: 'performance_landing',
+      query: props.query,
+    });
+  };
 
   return (
     <Container
@@ -248,6 +257,7 @@ function SearchBar(props: SearchBarProps) {
           items={searchResults}
           onClick={handleChooseItem}
           onIconClick={handleClickItemIcon}
+          onDocsOpen={() => logDocsOpenedEvent()}
         />
       )}
     </Container>

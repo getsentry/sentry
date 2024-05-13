@@ -9,7 +9,7 @@ from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
@@ -61,13 +61,12 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-class PerformanceEventTestMixin(
-    BaseSDKCrashDetectionMixin, SnubaTestCase, PerfIssueTransactionTestMixin
-):
+class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
     def test_performance_event_not_detected(self, mock_sdk_crash_reporter):
         fingerprint = "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
-        event = self.store_transaction(
+        event = store_transaction(
+            test_case=self,
             project_id=self.project.id,
             user_id="hi",
             fingerprint=[fingerprint],
@@ -81,7 +80,8 @@ class PerformanceEventTestMixin(
     def test_performance_event_increments_counter(self, incr, mock_sdk_crash_reporter):
         fingerprint = "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
-        event = self.store_transaction(
+        event = store_transaction(
+            test_case=self,
             project_id=self.project.id,
             user_id="hi",
             fingerprint=[fingerprint],
@@ -172,42 +172,37 @@ class SDKCrashDetectionTest(
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
 
+@pytest.mark.parametrize(
+    ["sample_rate", "random_value", "sampled"],
+    [
+        (0.0, 0.0001, False),
+        (0.0, 0.5, False),
+        (1.0, 0.0001, True),
+        (1.0, 0.9999, True),
+        (0.1, 0.0001, True),
+        (0.1, 0.09, True),
+        (0.1, 0.1, True),
+        (0.1, 0.11, False),
+        (0.1, 0.5, False),
+        (0.1, 0.999, False),
+    ],
+)
 @django_db_all
 @pytest.mark.snuba
-@patch("random.random", return_value=0.0)
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-def test_sample_is_rate_zero(mock_sdk_crash_reporter, mock_random, store_event):
+def test_sample_rate(mock_sdk_crash_reporter, store_event, sample_rate, random_value, sampled):
     event = store_event(data=get_crash_event())
 
-    configs = build_sdk_configs()
-    configs[0].sample_rate = 0.0
+    with patch("random.random", return_value=random_value):
+        configs = build_sdk_configs()
+        configs[0].sample_rate = sample_rate
 
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+        sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
-    assert mock_sdk_crash_reporter.report.call_count == 0
-
-
-@django_db_all
-@pytest.mark.snuba
-@patch("random.random", return_value=0.1)
-@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-def test_sampling_rate(mock_sdk_crash_reporter, mock_random, store_event):
-    event = store_event(data=get_crash_event())
-
-    configs = build_sdk_configs()
-
-    # not sampled
-    configs[0].sample_rate = 0.09
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
-
-    configs[0].sample_rate = 0.1
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
-
-    # sampled
-    configs[0].sample_rate = 0.11
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
-
-    assert mock_sdk_crash_reporter.report.call_count == 1
+        if sampled:
+            assert mock_sdk_crash_reporter.report.call_count == 1
+        else:
+            assert mock_sdk_crash_reporter.report.call_count == 0
 
 
 @django_db_all

@@ -12,7 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
@@ -65,14 +65,16 @@ function SampleTable({
     filters.release = release;
   }
 
-  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
-    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
-      Boolean(value)
-    ),
-    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
-  });
+  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+      fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+      enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+        Boolean(value)
+      ),
+    },
+    'api.starfish.span-summary-panel-samples-table-avg'
+  );
 
   const spanMetrics = data[0] ?? {};
 

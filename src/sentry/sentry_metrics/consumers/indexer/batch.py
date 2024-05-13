@@ -18,6 +18,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
+from sentry.features.rollout import in_random_rollout
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
@@ -167,8 +168,7 @@ class IndexerBatch:
     ) -> ParsedMessage:
         assert isinstance(msg.value, BrokerValue)
         try:
-            with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-                parsed_payload: ParsedMessage = orjson.loads(msg.payload.value.decode())
+            parsed_payload: ParsedMessage = orjson.loads(msg.payload.value)
         except orjson.JSONDecodeError:
             logger.exception(
                 "process_messages.invalid_json",
@@ -499,9 +499,14 @@ class IndexerBatch:
                 with metrics.timer(
                     "metrics_consumer.reconstruct_messages.build_new_payload.json_step"
                 ):
+                    if in_random_rollout("sentry-metrics.indexer.reconstruct.enable-orjson"):
+                        serialized_msg = orjson.dumps(new_payload_value)
+                    else:
+                        serialized_msg = rapidjson.dumps(new_payload_value).encode()
+
                     kafka_payload = KafkaPayload(
                         key=message.payload.key,
-                        value=rapidjson.dumps(new_payload_value).encode(),
+                        value=serialized_msg,
                         headers=[
                             *message.payload.headers,
                             ("mapping_sources", mapping_header_content),

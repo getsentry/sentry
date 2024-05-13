@@ -1,8 +1,9 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import useCleanQueryParamsOnRouteLeave, {
   handleRouteLeave,

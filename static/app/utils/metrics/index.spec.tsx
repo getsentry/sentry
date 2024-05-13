@@ -4,8 +4,8 @@ import type {MetricsOperation} from 'sentry/types';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,
-  getDDMInterval,
   getFormattedMQL,
+  getMetricsInterval,
   isFormattedMQL,
 } from 'sentry/utils/metrics';
 
@@ -14,7 +14,7 @@ describe('getDDMInterval', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-31'};
     const useCase = 'sessions';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('2h');
   });
@@ -26,7 +26,7 @@ describe('getDDMInterval', () => {
     };
     const useCase = 'custom';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('10s');
   });
@@ -35,7 +35,7 @@ describe('getDDMInterval', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T01:05:00.000Z'};
     const useCase = 'sessions';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('1m');
   });

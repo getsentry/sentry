@@ -35,10 +35,6 @@ const OnboardingCTAHook = HookOrDefault({
   hookName: 'component:replay-onboarding-cta',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
-const OnboardingCTAButton = HookOrDefault({
-  hookName: 'component:replay-onboarding-cta-button',
-  defaultComponent: null,
-});
 
 const OnboardingAlertHook = HookOrDefault({
   hookName: 'component:replay-onboarding-alert',
@@ -272,7 +268,6 @@ export function SetupReplaysCTA({
       </p>
       <ButtonList gap={1}>
         {renderCTA()}
-        <OnboardingCTAButton />
         <Button
           href="https://docs.sentry.io/product/session-replay/getting-started/"
           external
@@ -288,7 +283,7 @@ export function SetupReplaysCTA({
             isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
-                <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
+                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23699186513947-Session-Replay-FAQ" />
               ),
             })}
           />

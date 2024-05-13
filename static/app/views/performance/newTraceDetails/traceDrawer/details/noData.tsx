@@ -1,20 +1,32 @@
 import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   makeTraceNodeBarColor,
   type NoDataNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {Row} from 'sentry/views/performance/traceDetails/styles';
 
 export function NoDataDetails(props: TraceTreeNodeDetailsProps<NoDataNode>) {
   const theme = useTheme();
+
+  const items: SectionCardKeyValueList = [
+    {
+      key: 'data_quality',
+      subject: t('Data quality'),
+      value: tct(
+        'The cause of missing data could be misconfiguration or lack of instrumentation. Send us [feedback] if you are having trouble figuring this out.',
+        {feedback: <InlineFeedbackLink />}
+      ),
+    },
+  ];
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -28,23 +40,14 @@ export function NoDataDetails(props: TraceTreeNodeDetailsProps<NoDataNode>) {
           <div style={{fontWeight: 'bold'}}>{t('Empty')}</div>
         </TraceDrawerComponents.IconTitleWrapper>
 
-        <TraceDrawerComponents.Actions>
-          <Button size="xs" onClick={_e => props.onTabScrollToNode(props.node)}>
-            {t('Show in view')}
-          </Button>
-        </TraceDrawerComponents.Actions>
+        <TraceDrawerComponents.NodeActions
+          organization={props.organization}
+          node={props.node}
+          onTabScrollToNode={props.onTabScrollToNode}
+        />
       </TraceDrawerComponents.HeaderContainer>
 
-      <TraceDrawerComponents.Table className="table key-value">
-        <tbody>
-          <Row title={t('Data quality')}>
-            {tct(
-              'The cause of missing data could be misconfiguration or lack of instrumentation. Send us [feedback] if you are having trouble figuring this out.',
-              {feedback: <InlineFeedbackLink />}
-            )}
-          </Row>
-        </tbody>
-      </TraceDrawerComponents.Table>
+      <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
     </TraceDrawerComponents.DetailContainer>
   );
 }

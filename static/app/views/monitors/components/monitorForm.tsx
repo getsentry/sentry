@@ -21,7 +21,7 @@ import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
@@ -229,7 +229,6 @@ function MonitorForm({
   ];
 
   const hasIssuePlatform = organization.features.includes('issue-platform');
-  const hasOwnership = organization.features.includes('crons-ownership');
 
   return (
     <Form
@@ -464,28 +463,24 @@ function MonitorForm({
             </InputGroup>
           </Fragment>
         )}
-        {hasOwnership && (
-          <Fragment>
-            <StyledListItem>{t('Set Owner')}</StyledListItem>
-            <ListItemSubText>
-              {t(
-                'Choose a team or member as the monitor owner. Issues created will be automatically assigned to the owner.'
-              )}
-            </ListItemSubText>
-            <InputGroup>
-              <Panel>
-                <PanelBody>
-                  <SentryMemberTeamSelectorField
-                    name="owner"
-                    label={t('Owner')}
-                    help={t('Automatically assign issues to a team or user.')}
-                    menuPlacement="auto"
-                  />
-                </PanelBody>
-              </Panel>
-            </InputGroup>
-          </Fragment>
-        )}
+        <StyledListItem>{t('Set Owner')}</StyledListItem>
+        <ListItemSubText>
+          {t(
+            'Choose a team or member as the monitor owner. Issues created will be automatically assigned to the owner.'
+          )}
+        </ListItemSubText>
+        <InputGroup>
+          <Panel>
+            <PanelBody>
+              <SentryMemberTeamSelectorField
+                name="owner"
+                label={t('Owner')}
+                help={t('Automatically assign issues to a team or user.')}
+                menuPlacement="auto"
+              />
+            </PanelBody>
+          </Panel>
+        </InputGroup>
         <StyledListItem>{t('Notifications')}</StyledListItem>
         <ListItemSubText>
           {t('Configure who to notify upon issue creation and when.')}
@@ -504,13 +499,21 @@ function MonitorForm({
                   {t('Customize this monitors notification configuration in Alerts')}
                 </AlertLink>
               )}
-              <SentryMemberTeamSelectorField
-                label={t('Notify')}
-                help={t('Send notifications to a member or team.')}
-                name="alertRule.targets"
-                multiple
-                menuPlacement="auto"
-              />
+              <Observer>
+                {() => {
+                  const projectSlug = form.current.getValue('project')?.toString();
+                  return (
+                    <SentryMemberTeamSelectorField
+                      label={t('Notify')}
+                      help={t('Send notifications to a member or team.')}
+                      name="alertRule.targets"
+                      memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
+                      multiple
+                      menuPlacement="auto"
+                    />
+                  );
+                }}
+              </Observer>
               <Observer>
                 {() => {
                   const selectedAssignee = form.current.getValue('alertRule.targets');

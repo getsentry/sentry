@@ -20,8 +20,8 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications.service import notifications_service
+from sentry.types.actor import Actor, ActorType
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -84,8 +84,12 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
             project = Project.objects.select_related("organization").get(id=id)
         except Project.DoesNotExist:
             raise NotFound()
-        if project.organization.slug != organization_slug:
-            raise NotFound()
+        if str(organization_slug).isdecimal():
+            if project.organization.id != int(organization_slug):
+                raise NotFound()
+        else:
+            if project.organization.slug != organization_slug:
+                raise NotFound()
         if not OrganizationMember.objects.filter(
             user_id=request.user.pk, organization_id=project.organization_id
         ).exists():
@@ -99,7 +103,7 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
 
     def unsubscribe(self, request: Request, instance: Project):
         notifications_service.update_notification_options(
-            actor=RpcActor(id=request.user.pk, actor_type=ActorType.USER),
+            actor=Actor(id=request.user.pk, actor_type=ActorType.USER),
             type=NotificationSettingEnum.ISSUE_ALERTS,
             scope_type=NotificationScopeEnum.PROJECT,
             scope_identifier=instance.id,
@@ -116,8 +120,13 @@ class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
             issue = Group.objects.get_from_cache(id=issue_id)
         except Group.DoesNotExist:
             raise NotFound()
-        if issue.organization.slug != organization_slug:
-            raise NotFound()
+        if str(organization_slug).isdecimal():
+            if issue.organization.id != int(organization_slug):
+                raise NotFound()
+        else:
+            if issue.organization.slug != organization_slug:
+                raise NotFound()
+
         if not OrganizationMember.objects.filter(
             user_id=request.user.pk, organization=issue.organization
         ).exists():

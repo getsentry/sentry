@@ -42,7 +42,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               >
                 {t('Search Support, Docs and More')}
               </SidebarMenuItem>
-              <SidebarMenuItem href="https://help.sentry.io/">
+              <SidebarMenuItem href="https://sentry.zendesk.com/hc/en-us">
                 {t('Visit Help Center')}
               </SidebarMenuItem>
               <SidebarMenuItem href="https://discord.com/invite/sentry">

@@ -1,6 +1,6 @@
-import type {RefObject} from 'react';
+import {type RefObject, useCallback, useState} from 'react';
+import {useResizeObserver} from '@react-aria/utils';
 
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -94,6 +94,11 @@ export const TagFilterData = {
     'url',
   ]),
   [TagFilter.OTHER]: new Set([
+    /* Monitors */
+    'monitor.slug',
+    'monitor.incident',
+    'monitor.id',
+    'monitor.status',
     /* SDK (maybe?) */
     'handled',
     'level',
@@ -156,6 +161,7 @@ export function useHasNewTagsUI() {
   const organization = useOrganization();
   return (
     location.query.tagsTree === '1' ||
+    location.query.traceView === '1' ||
     organization.features.includes('event-tags-tree-ui')
   );
 }
@@ -172,10 +178,23 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
  * rendered in the page contents, modals, and asides, we can't rely on window breakpoint to
  * accurately describe the available space.
  */
-export function useIssueDetailsColumnCount(containerRef: RefObject<HTMLElement>): number {
-  const {width} = useDimensions<HTMLElement>({elementRef: containerRef});
-  const breakPoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
-    ({minWidth}) => width >= minWidth
-  );
-  return breakPoint?.columnCount ?? 1;
+export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): number {
+  const calculateColumnCount = useCallback(() => {
+    const width = elementRef.current?.clientWidth || 0;
+    const breakpoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
+      ({minWidth}) => width >= minWidth
+    );
+    return breakpoint?.columnCount ?? 1;
+  }, [elementRef]);
+
+  const [columnCount, setColumnCount] = useState(calculateColumnCount());
+
+  const onResize = useCallback(() => {
+    const count = calculateColumnCount();
+    setColumnCount(count);
+  }, [calculateColumnCount]);
+
+  useResizeObserver({ref: elementRef, onResize});
+
+  return columnCount;
 }

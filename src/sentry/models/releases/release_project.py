@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
-from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
@@ -12,7 +11,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
@@ -41,28 +40,29 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
     @staticmethod
-    def _subscribe_project_to_alert_rule(
+    def subscribe_project_to_alert_rule(
         project: Project, release: Release, trigger: str
     ) -> list[QuerySubscription]:
         """
         TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
+
         NOTE: import AlertRule model here to avoid circular dependency
-        TODO: move once AlertRule has been split into separate subdirectory files
         """
         from sentry.incidents.models.alert_rule import AlertRule
 
-        query_extra = f"release:{release.version} AND event.timestamp:>{timezone.now().isoformat()}"
+        query_extra = f"release:{release.version}"
         return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
             project=project,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
             query_extra=query_extra,
-            trigger=trigger,
+            origin=trigger,
+            activator=release.version,
         )
 
     def post_save(self, instance, created, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
         if created:
-            self._subscribe_project_to_alert_rule(
+            self.subscribe_project_to_alert_rule(
                 project=instance.project,
                 release=instance.release,
                 trigger="releaseproject.post_save",
@@ -72,7 +72,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         self._on_post(project=instance.project, trigger="releaseproject.post_delete")
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

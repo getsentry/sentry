@@ -11,7 +11,7 @@ from django.utils.timezone import is_aware
 
 from sentry import nodestore
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
-from sentry.utils.actor import ActorTuple
+from sentry.types.actor import Actor
 from sentry.utils.dates import parse_timestamp
 
 DEFAULT_LEVEL = "info"
@@ -41,7 +41,7 @@ class IssueOccurrenceData(TypedDict):
     assignee: NotRequired[str | None]
     """
     Who to assign the issue to when creating a new issue. Has no effect on existing issues.
-    In the format of an Actor identifier, as defined in `ActorTuple.from_actor_identifier`
+    In the format of an Actor identifier, as defined in `Actor.from_identifier`
     """
 
 
@@ -95,7 +95,7 @@ class IssueOccurrence:
     level: str
     culprit: str
     initial_issue_priority: int | None = None
-    assignee: ActorTuple | None = None
+    assignee: Actor | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -139,7 +139,7 @@ class IssueOccurrence:
             # Note that this can cause IO, but in practice this will happen only the first time that
             # the occurrence is sent to the issue platform. We then translate to the id and store
             # that, so subsequent fetches won't cause IO.
-            assignee = ActorTuple.from_actor_identifier(data.get("assignee"))
+            assignee = Actor.from_identifier(data.get("assignee"))
         except ValidationError:
             logging.exception("Failed to parse assignee actor identifier")
         except Exception:

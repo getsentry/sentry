@@ -25,8 +25,8 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     JSONField,
     Model,
-    control_silo_only_model,
-    region_silo_only_model,
+    control_silo_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
@@ -36,7 +36,8 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
 )
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
@@ -90,7 +91,7 @@ class OutboxCategory(IntEnum):
     API_KEY_UPDATE = 28
     PARTNER_ACCOUNT_UPDATE = 29
     SENTRY_APP_UPDATE = 30
-    ACTOR_UPDATE = 31
+    ACTOR_UPDATE = 31  # Deprecated
     API_TOKEN_UPDATE = 32
     ORG_AUTH_TOKEN_UPDATE = 33
     ISSUE_COMMENT_UPDATE = 34
@@ -739,7 +740,7 @@ class RegionOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
-@region_silo_only_model
+@region_silo_model
 class RegionOutbox(RegionOutboxBase):
     class Meta:
         app_label = "sentry"
@@ -795,7 +796,7 @@ class ControlOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
-@control_silo_only_model
+@control_silo_model
 class ControlOutbox(ControlOutboxBase):
     class Meta:
         app_label = "sentry"

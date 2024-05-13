@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+import orjson
 import pytest
 from django.urls import reverse
 
@@ -11,7 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json, safe
+from sentry.utils import safe
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -56,7 +57,7 @@ def call_endpoint(client, relay, private_key, default_projectkey):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        return json.loads(resp.content), resp.status_code
+        return orjson.loads(resp.content), resp.status_code
 
     return inner
 
@@ -346,18 +347,14 @@ def test_relay_disabled_key(
 
 
 @django_db_all
-@pytest.mark.parametrize("drop_sessions", [False, True])
-def test_session_metrics_extraction(call_endpoint, task_runner, drop_sessions):
-    with Feature({"organizations:metrics-extraction": True}), Feature(
-        {"organizations:release-health-drop-sessions": drop_sessions}
-    ):
-        with task_runner():
-            result, status_code = call_endpoint(full_config=True)
-            assert status_code < 400
+def test_session_metrics_extraction(call_endpoint, task_runner):
+    with task_runner():
+        result, status_code = call_endpoint(full_config=True)
+        assert status_code < 400
 
-        for config in result["configs"].values():
-            config = config["config"]
-            assert config["sessionMetrics"] == {"version": 1}
+    for config in result["configs"].values():
+        config = config["config"]
+        assert config["sessionMetrics"] == {"version": 1}
 
 
 @django_db_all
@@ -369,13 +366,12 @@ def test_session_metrics_abnormal_mechanism_tag_extraction(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
     ):
-        with Feature({"organizations:metrics-extraction": True}):
-            with task_runner():
-                result, status_code = call_endpoint(full_config=True)
-                assert status_code < 400
+        with task_runner():
+            result, status_code = call_endpoint(full_config=True)
+            assert status_code < 400
 
-            for config in result["configs"].values():
-                config = config["config"]
-                assert config["sessionMetrics"] == {
-                    "version": 2 if abnormal_mechanism_rollout else 1,
-                }
+        for config in result["configs"].values():
+            config = config["config"]
+            assert config["sessionMetrics"] == {
+                "version": 2 if abnormal_mechanism_rollout else 1,
+            }

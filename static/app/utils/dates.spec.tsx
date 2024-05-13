@@ -3,7 +3,6 @@ import {UserFixture} from 'sentry-fixture/user';
 import ConfigStore from 'sentry/stores/configStore';
 import {
   getTimeFormat,
-  intervalToMilliseconds,
   parsePeriodToHours,
   setDateToTime,
   shouldUse24Hours,
@@ -27,25 +26,6 @@ describe('utils.dates', function () {
       const date = new Date();
       const newDate = setDateToTime(date, '11:11:11', {local: true});
       expect(newDate).toEqual(new Date(1508166671000));
-    });
-  });
-
-  describe('intervalToMilliseconds()', function () {
-    it('can convert standard formats', function () {
-      expect(intervalToMilliseconds('24h')).toBe(86400000);
-      expect(intervalToMilliseconds('30m')).toBe(1800000);
-      expect(intervalToMilliseconds('15m')).toBe(900000);
-      expect(intervalToMilliseconds('5m')).toBe(300000);
-      expect(intervalToMilliseconds('1m')).toBe(60000);
-    });
-
-    it('can convert arbitrary formats', function () {
-      expect(intervalToMilliseconds('8w')).toBe(4838400000);
-      expect(intervalToMilliseconds('30d')).toBe(2592000000);
-      expect(intervalToMilliseconds('7d')).toBe(604800000);
-      expect(intervalToMilliseconds('1d')).toBe(86400000);
-      expect(intervalToMilliseconds('1h')).toBe(3600000);
-      expect(intervalToMilliseconds('2m')).toBe(120000);
     });
   });
 

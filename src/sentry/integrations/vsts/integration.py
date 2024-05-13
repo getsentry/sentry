@@ -41,10 +41,9 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationProviderError,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import VstsApiClient, VstsSetupApiClient
@@ -610,7 +609,7 @@ class AccountConfigView(PipelineView):
                 return account
         return None
 
-    def get_accounts(self, access_token: str, user_id: int) -> JSONData | None:
+    def get_accounts(self, access_token: str, user_id: int) -> Any | None:
         url = (
             f"https://app.vssps.visualstudio.com/_apis/accounts?memberId={user_id}&api-version=4.1"
         )

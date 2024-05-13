@@ -1,5 +1,4 @@
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -20,19 +19,20 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
-import {IconAdd, IconDownload} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDashboardImportFeature} from 'sentry/utils/metrics/features';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {openDashboardImport} from '../../metrics/dashboardImportModal';
 import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
@@ -316,17 +316,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                         toggle={this.toggleTemplates}
                       />
                     </TemplateSwitch>
-                    {hasDashboardImportFeature(organization) && (
-                      <Button
-                        onClick={() => {
-                          openDashboardImport(organization);
-                        }}
-                        size="sm"
-                        icon={<IconDownload />}
-                      >
-                        {t('Import Dashboard')}
-                      </Button>
-                    )}
+                    <DashboardImportButton />
                     <Button
                       data-test-id="dashboard-create"
                       onClick={event => {

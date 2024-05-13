@@ -50,7 +50,7 @@
           "type": "valueNumber",
           "unit": null,
           "value": "100",
-          "parsed": {"value": 100, "unit": null}
+          "parsed": {"value": 100}
         }
       },
       {"type": "spaces", "value": ""}
@@ -107,7 +107,7 @@
           "type": "valueNumber",
           "unit": null,
           "value": "100",
-          "parsed": {"value": 100, "unit": null}
+          "parsed": {"value": 100}
         }
       },
       {"type": "spaces", "value": ""}
@@ -164,7 +164,7 @@
           "type": "valueNumber",
           "unit": null,
           "value": "100",
-          "parsed": {"value": 100, "unit": null}
+          "parsed": {"value": 100}
         }
       },
       {"type": "spaces", "value": ""}

@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
@@ -205,10 +205,12 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 2 requests should be sent.
-    await screen.findByTestId('child');
+    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(error).toEqual('Bad request data');
+    });
     expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
-    expect(error).toEqual('Bad request data');
   });
 
   it('adjusts interval based on date window', async function () {
