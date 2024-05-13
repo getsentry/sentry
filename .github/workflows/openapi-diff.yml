@@ -71,7 +71,7 @@ jobs:
           git checkout `git merge-base origin/${{ github.base_ref }} origin/${{ github.head_ref }}`
           sentry rpcschema --partial > schemas/old_schema.json
 
-      - name: Invoke oasdiff on two outputs
+      - name: Invoke oasdiff on RPC schemas
         uses: oasdiff/oasdiff-action/breaking@fc826b9f0d21b85b085842521c7a8cc445412c08 # v0.0.19
         if: steps.changes.outputs.api_docs == 'true'
         with:
