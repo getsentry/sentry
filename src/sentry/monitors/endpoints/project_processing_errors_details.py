@@ -20,8 +20,9 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.models.project import Project
-from sentry.monitors.endpoints.base import ProjectMonitorPermission
 from sentry.monitors.processing_errors import CheckinProcessErrorsManager, InvalidProjectError
+
+from .base import ProjectMonitorPermission
 
 
 @region_silo_endpoint
