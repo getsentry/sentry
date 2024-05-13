@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CurrencyUnit, DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
@@ -32,12 +33,13 @@ import {
 interface Props {
   params: {
     groupId: string;
+    'span.description'?: string;
   };
 }
 
 export function AiMonitoringPage({params}: Props) {
   const organization = useOrganization();
-  const {groupId} = params;
+  const {groupId, 'span.description': spanDescription} = params;
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -49,7 +51,6 @@ export function AiMonitoringPage({params}: Props) {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
         SpanMetricsField.SPAN_OP,
-        SpanMetricsField.SPAN_DESCRIPTION,
         'count()',
         `${SpanFunction.SPM}()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
@@ -90,7 +91,7 @@ export function AiMonitoringPage({params}: Props) {
                   label: t('AI Monitoring'),
                 },
                 {
-                  label: spanMetrics['span.description'] ?? t('(no name)'),
+                  label: spanDescription ?? t('(no name)'),
                   to: normalizeUrl(`/organizations/${organization.slug}/ai-monitoring`),
                 },
               ]}
@@ -162,9 +163,13 @@ export function AiMonitoringPage({params}: Props) {
 }
 
 function PageWithProviders({params}: Props) {
+  const location = useLocation<Props['params']>();
+
+  const {'span.description': spanDescription} = location.query;
+
   return (
     <ModulePageProviders
-      title={[t('AI Monitoring'), t('Pipeline Details')].join(' — ')}
+      title={[spanDescription ?? t('(no name)'), t('Pipeline Details')].join(' — ')}
       baseURL="/ai-monitoring/"
       features="ai-analytics"
     >
