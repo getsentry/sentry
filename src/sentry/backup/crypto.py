@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import IO, Any, NamedTuple
 
+import orjson
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -135,9 +136,7 @@ def create_encrypted_export_tarball(json_export: Any, encryptor: Encryptor) -> i
     pem = encryptor.get_public_key_pem()
     data_encryption_key = Fernet.generate_key()
     backup_encryptor = Fernet(data_encryption_key)
-    encrypted_json_export = backup_encryptor.encrypt(
-        json.dumps_experimental("backup.enable-orjson", json_export).encode()
-    )
+    encrypted_json_export = backup_encryptor.encrypt(orjson.dumps(json_export))
 
     # Encrypt the newly minted DEK using asymmetric public key encryption.
     dek_encryption_key = serialization.load_pem_public_key(pem, default_backend())
@@ -301,7 +300,7 @@ class GCPKMSDecryptor(Decryptor):
         gcp_kms_config_bytes = self.__fp.read()
 
         # Read the user supplied configuration into the proper format.
-        gcp_kms_config_json = json.loads_experimental("backup.enable-orjson", gcp_kms_config_bytes)
+        gcp_kms_config_json = orjson.loads(gcp_kms_config_bytes)
         try:
             crypto_key_version = CryptoKeyVersion(**gcp_kms_config_json)
         except TypeError:

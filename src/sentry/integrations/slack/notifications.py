@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping
 from copy import copy
 from typing import Any
 
+import orjson
 import sentry_sdk
 
 from sentry.integrations.mixins import NotifyBasicMixin
@@ -21,7 +22,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.slack import post_message, post_message_control
 from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
@@ -94,7 +95,7 @@ def _notify_recipient(
             "unfurl_links": False,
             "unfurl_media": False,
             "text": text if text else "",
-            "blocks": json.dumps_experimental("integrations.slack.enable-orjson", blocks),
+            "blocks": orjson.dumps(blocks).decode(),
         }
         callback_id = local_attachments.get("callback_id")
         if callback_id:
@@ -102,9 +103,7 @@ def _notify_recipient(
             if isinstance(callback_id, str):
                 payload["callback_id"] = callback_id
             else:
-                payload["callback_id"] = json.dumps_experimental(
-                    "integrations.slack.enable-orjson", local_attachments.get("callback_id")
-                )
+                payload["callback_id"] = orjson.dumps(local_attachments.get("callback_id")).decode()
 
         post_message_task = post_message
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
