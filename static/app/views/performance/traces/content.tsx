@@ -441,6 +441,7 @@ function useTraces<F extends string>({
       suggestedQuery,
       sort,
       per_page: limit,
+      breakdownSlices: 40,
       minBreakdownPercentage: 1 / 40,
       maxSpansPerTrace: 5,
       mri,
