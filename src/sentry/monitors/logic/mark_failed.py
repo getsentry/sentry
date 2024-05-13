@@ -265,7 +265,7 @@ def create_issue_platform_occurrence(
             ),
         ],
         evidence_data={},
-        culprit="incident",
+        culprit="",
         detection_time=current_timestamp,
         level="error",
         assignee=monitor_env.monitor.owner_actor,
