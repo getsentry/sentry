@@ -198,9 +198,6 @@ class Organization(
         # Disable org-members from creating new projects
         disable_member_project_creation: bool
 
-        # Disable superusers from accessing the organization
-        disable_superuser_access: bool
-
         bitfield_default = 1
 
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
