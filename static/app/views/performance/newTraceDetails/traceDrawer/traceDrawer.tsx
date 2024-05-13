@@ -21,7 +21,7 @@ import {
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -91,8 +91,8 @@ export function TraceDrawer(props: TraceDrawerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tagsQueryResults = useApiQuery<Tag[]>(
-    [
+  const tagsInfiniteQueryResults = useInfiniteApiQuery<Tag[]>({
+    queryKey: [
       `/organizations/${organization.slug}/events-facets/`,
       {
         query: {
@@ -102,10 +102,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         },
       },
     ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  });
 
   const traceStateRef = useRef(props.trace_state);
   traceStateRef.current = props.trace_state;
@@ -441,7 +438,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   node={props.trace.root.children[0]}
                   rootEventResults={props.rootEventResults}
                   traces={props.traces}
-                  tagsQueryResults={tagsQueryResults}
+                  tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                   traceEventView={props.traceEventView}
                 />
               ) : props.trace_state.tabs.current_tab.node === 'vitals' ? (
