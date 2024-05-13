@@ -16,12 +16,6 @@ export function hasCustomMetrics(organization: Organization) {
   );
 }
 
-export function hasMetricStats(organization: Organization) {
-  return (
-    hasCustomMetrics(organization) && organization.features.includes('metrics-stats')
-  );
-}
-
 /**
  * Returns the forceMetricsLayer query param for the alert
  * wrapped in an object so it can be spread into existing query params
