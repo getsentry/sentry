@@ -106,7 +106,7 @@ class JiraIssueHookTest(APITestCase):
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)
         assert response.status_code == 200
-        resp_content = str(response.content)
+        resp_content = response.content.decode()
         assert self.group.title in resp_content
         assert self.group.get_absolute_url() in resp_content
         assert self.first_seen.strftime("%b. %d, %Y") in resp_content
@@ -137,7 +137,7 @@ class JiraIssueHookTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        resp_content = str(response.content)
+        resp_content = response.content.decode()
         group_url = self.group.get_absolute_url()
         new_group_url = new_group.get_absolute_url()
 
