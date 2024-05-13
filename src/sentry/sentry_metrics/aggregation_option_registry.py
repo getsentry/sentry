@@ -8,6 +8,7 @@ from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
 class AggregationOption(Enum):
     HIST = "hist"
     TEN_SECOND = "ten_second"
+    NO_PERCENTILE = "no_percentile"
 
 
 class TimeWindow(Enum):
@@ -25,11 +26,14 @@ METRIC_ID_AGG_OPTION = {
 USE_CASE_AGG_OPTION = {UseCaseID.CUSTOM: {AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS}}
 
 
-def get_aggregation_options(mri: str) -> dict[AggregationOption, TimeWindow] | None:
+def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, TimeWindow] | None:
     use_case_id: UseCaseID = extract_use_case_id(mri)
 
-    # We check first if the particular metric ID has a specified aggregation
-    if mri in METRIC_ID_AGG_OPTION:
+    # We check first if the org ID has disabled percentiles
+    if org_id in options.get("sentry-metrics.drop-percentiles.per-org"):
+        return {AggregationOption.NO_PERCENTILE: TimeWindow.NINETY_DAYS}
+    # We then first if the particular metric ID has a specified aggregation
+    elif mri in METRIC_ID_AGG_OPTION:
         return METRIC_ID_AGG_OPTION.get(mri)
     # And move to the use case if not
     elif options.get("sentry-metrics.10s-granularity") and (use_case_id in USE_CASE_AGG_OPTION):

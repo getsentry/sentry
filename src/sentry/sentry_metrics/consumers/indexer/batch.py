@@ -488,7 +488,9 @@ class IndexerBatch:
                         "value": old_payload_value["value"],
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
-                    if aggregation_options := get_aggregation_options(old_payload_value["name"]):
+                    if aggregation_options := get_aggregation_options(
+                        old_payload_value["name"], old_payload_value["org_id"]
+                    ):
                         # TODO: This should eventually handle multiple aggregation options
                         option = list(aggregation_options.items())[0][0]
                         assert option is not None
