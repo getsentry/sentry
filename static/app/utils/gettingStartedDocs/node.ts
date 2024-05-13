@@ -85,7 +85,7 @@ export function getInstallConfig(
   ];
 }
 
-function getImports(
+function getImport(
   sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless'
 ): string[] {
   return [
@@ -97,10 +97,10 @@ function getImports(
 /**
  * Import Snippet for the Node and Serverless SDKs without other packages (like profiling).
  */
-export function getSentryImportsSnippet(
+export function getSentryImportSnippet(
   sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless'
 ): string {
-  return getImports(sdkPackage).join('\n');
+  return getImport(sdkPackage).join('\n');
 }
 
 /**
@@ -111,7 +111,7 @@ export function getDefaultNodeImports({
 }: {
   productSelection: ProductSelectionMap;
 }) {
-  const imports: string[] = getImports('node');
+  const imports: string[] = getImport('node');
 
   if (productSelection.profiling) {
     imports.push(`import { nodeProfilingIntegration } from "@sentry/profiling-node";`);
@@ -126,7 +126,7 @@ export function getDefaultServerlessImports({
   library: `google-cloud-serverless` | `aws-serverless`;
   productSelection: ProductSelectionMap;
 }) {
-  const imports: string[] = getImports(library);
+  const imports: string[] = getImport(library);
 
   if (productSelection.profiling) {
     imports.push(
@@ -142,6 +142,12 @@ node --require ./instrument.js app.js
 
 # If you are using ECMAScript Modules (ESM) - Note that this is only available from Node 18.19.0 onwards.
 node --import ./instrument.mjs app.mjs`;
+}
+
+export function getImportInstrumentSnippet(): string {
+  return `// IMPORTANT: Make sure to import \`instrument.js'\` at the top of your file.
+  // If you're using ECMAScript Modules (ESM), use \`import './instrument.js';\`
+  require('./instrument.js');`;
 }
 
 export const getSdkInitSnippet = (
