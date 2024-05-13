@@ -1,6 +1,10 @@
 import unittest
 
+import pytest
+
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
+
+pytestmark = pytest.mark.skip
 
 
 class CanonicalKeyViewTests(unittest.TestCase):

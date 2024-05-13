@@ -43,7 +43,11 @@ CANONICAL_KEY_MAPPING = {
 
 
 def get_canonical_name(key: str) -> str:
-    return CANONICAL_KEY_MAPPING.get(key, (key,))[0]
+    rv = CANONICAL_KEY_MAPPING.get(key)
+    if rv is None:
+        return key
+    else:
+        raise AssertionError(f"non canonical key?: {key}")
 
 
 class CanonicalKeyView(Mapping[str, V]):
