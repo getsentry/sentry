@@ -17,7 +17,9 @@ import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDo
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
+// IMPORTANT: Make sure to import Sentry at the top of your file.
 ${getSdkInitSnippet(params, 'gpc')}
+// Place any other require/import statements here
 
 // Use wrapHttpFunction to instrument your http functions
 exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
@@ -72,9 +74,13 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Use the Sentry SDK to wrap your functions:', {
-        code: <code />,
-      }),
+      description: tct(
+        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [require:require] or [import:import] statements. Then, use the Sentry SDK to wrap your functions:',
+        {
+          import: <code />,
+          require: <code />,
+        }
+      ),
       configurations: [
         {
           language: 'javascript',
