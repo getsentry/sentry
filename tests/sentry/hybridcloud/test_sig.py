@@ -21,7 +21,9 @@ class SerializableFunctionSignatureTest(TestCase):
         deserialized_arguments = sig.deserialize_arguments(serialized_arguments)
         assert isinstance(deserialized_arguments, pydantic.BaseModel)
         assert set(deserialized_arguments.__dict__.keys()) == {"arg1", "arg2"}
+        assert hasattr(deserialized_arguments, "arg1")
         assert deserialized_arguments.arg1 == AnObject(a=1, b="foo")
+        assert hasattr(deserialized_arguments, "arg2")
         assert deserialized_arguments.arg2 == AnObject(a=2, b="bar")
 
         deserialized_return_value = sig.deserialize_return_value(dict(a=3, b="qux"))
