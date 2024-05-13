@@ -1,4 +1,3 @@
-import os
 from collections.abc import Generator
 from contextlib import contextmanager
 
@@ -22,21 +21,6 @@ def catchable_atomic() -> Generator[None, None, None]:
             yield
     except RollbackLocally:
         pass
-
-
-def sync_docs() -> None:
-    click.echo("Forcing documentation sync")
-    from sentry.utils.integrationdocs import DOC_FOLDER, sync_docs
-
-    if os.access(DOC_FOLDER, os.W_OK):
-        try:
-            sync_docs()
-        except Exception as e:
-            click.echo(" - skipping, failure: %s" % e)
-    elif os.path.isdir(DOC_FOLDER):
-        click.echo(" - skipping, path cannot be written to: %r" % DOC_FOLDER)
-    else:
-        click.echo(" - skipping, path does not exist: %r" % DOC_FOLDER)
 
 
 @region_silo_function
@@ -71,23 +55,13 @@ def fix_group_counters() -> None:
 
 
 @click.command()
-@click.option(
-    "--with-docs/--without-docs",
-    default=False,
-    help="Synchronize and repair embedded documentation. This " "is disabled by default.",
-)
 @configuration
-def repair(with_docs: bool) -> None:
+def repair() -> None:
     """Attempt to repair any invalid data.
 
     This by default will correct some common issues like projects missing
-    DSNs or counters desynchronizing.  Optionally it can also synchronize
-    the current client documentation from the Sentry documentation server
-    (--with-docs).
+    DSNs or counters desynchronizing.
     """
-
-    if with_docs:
-        sync_docs()
 
     try:
         create_missing_dsns()

@@ -556,6 +556,7 @@ module = [
     "sentry.api.helpers.source_map_helper",
     "sentry.buffer.base",
     "sentry.buffer.redis",
+    "sentry.build.*",
     "sentry.eventstore.reprocessing.redis",
     "sentry.issues",
     "sentry.issues.analytics",
