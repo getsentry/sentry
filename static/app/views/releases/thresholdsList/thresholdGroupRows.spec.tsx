@@ -4,7 +4,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {Threshold} from 'sentry/views/releases/utils/types';
 
 import {ThresholdGroupRows, type ThresholdGroupRowsProps} from './thresholdGroupRows';
@@ -34,35 +33,21 @@ describe('ThresholdGroupRows', () => {
     ...thresholdData,
   });
 
-  const wrapper = (org: Organization = organization) => {
-    return function WrappedComponent({children}) {
-      return (
-        <OrganizationContext.Provider value={org}>
-          {children}
-        </OrganizationContext.Provider>
-      );
-    };
-  };
-
-  type RenderProps = ThresholdGroupRowsProps & {org: Organization};
-  const DEFAULT_PROPS: RenderProps = {
+  const DEFAULT_PROPS: ThresholdGroupRowsProps = {
     allEnvironmentNames: ['test'],
     project: ProjectFixture(),
     refetch: () => {},
     setTempError: () => {},
-    org: organization,
     threshold: undefined,
   };
 
-  const renderComponent = (props: Partial<RenderProps> = DEFAULT_PROPS) => {
-    const {org, ...thresholdProps} = props;
-    const Wrapper = wrapper(org);
-
-    return render(
-      <Wrapper>
-        <ThresholdGroupRows {...DEFAULT_PROPS} {...thresholdProps} />
-      </Wrapper>
-    );
+  const renderComponent = (
+    thresholdProps: Partial<ThresholdGroupRowsProps> = DEFAULT_PROPS,
+    org: Organization = organization
+  ) => {
+    return render(<ThresholdGroupRows {...DEFAULT_PROPS} {...thresholdProps} />, {
+      organization: org,
+    });
   };
 
   const mockThresholdApis = (data = {}) => {
@@ -145,7 +130,7 @@ describe('ThresholdGroupRows', () => {
     });
 
     const mocks = mockThresholdApis();
-    renderComponent({threshold, org});
+    renderComponent({threshold}, org);
 
     expect(await screen.findByText(threshold.value)).toBeInTheDocument();
 
@@ -183,7 +168,7 @@ describe('ThresholdGroupRows', () => {
     });
 
     const mocks = mockThresholdApis();
-    renderComponent({threshold, org});
+    renderComponent({threshold}, org);
 
     expect(await screen.findByText(threshold.value)).toBeInTheDocument();
 
@@ -229,7 +214,7 @@ describe('ThresholdGroupRows', () => {
       },
     });
 
-    renderComponent({threshold, org});
+    renderComponent({threshold}, org);
     await createThreshold();
 
     expect(mockApi).toHaveBeenCalled();
