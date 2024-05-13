@@ -126,7 +126,11 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             project=[self.project.id],
             useCase="transactions",
         )
-        assert response.content == b'{"detail":"Unknown metric or tag key"}'
+        assert response.status_code == 404
+        assert (
+            response.json()["detail"]
+            == "No data found for metric: d:transactions/duration@millisecond and tag: my_non_existent_tag"
+        )
 
     def test_non_existing_tag_for_custom_use_case(self):
         response = self.get_error_response(
@@ -136,7 +140,11 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             project=[self.project.id],
             useCase="custom",
         )
-        assert response.content == b'{"detail":"Unknown metric or tag key"}'
+        assert response.status_code == 404
+        assert (
+            response.json()["detail"]
+            == "No data found for metric: d:custom/my_test_metric@percent and tag: my_non_existent_tag"
+        )
 
     def test_tag_details_for_non_existent_metric(self):
         response = self.get_error_response(
@@ -146,7 +154,11 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             project=[self.project.id],
             useCase="custom",
         )
-        assert response.content == b'{"detail":"Unknown metric or tag key"}'
+        assert response.status_code == 404
+        assert (
+            response.json()["detail"]
+            == "No data found for metric: d:custom/my_non_existent_test_metric@percent and tag: my_non_existent_tag"
+        )
 
     def test_tag_details_for_multiple_supplied_metrics(self):
         response = self.get_error_response(
@@ -159,4 +171,8 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             project=[self.project.id],
             useCase="custom",
         )
-        assert response.content == b'{"detail":"Unknown metric or tag key"}'
+        assert response.status_code == 400
+        assert (
+            response.json()["detail"]
+            == "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
+        )

@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -244,8 +244,8 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization, tag_name) -> Response:
         metric_names = request.GET.getlist("metric") or []
         if len(metric_names) > 1:
-            raise InvalidParams(
-                "Please supply only a single metric name. More than one metric name is not supported for this endpoint."
+            raise ParseError(
+                "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
             )
         projects = self.get_projects(request, organization)
         if not projects:
@@ -264,12 +264,24 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                 )
                 tag_values = tag_values.union(mri_tag_values)
 
-        except (InvalidParams, DerivedMetricParseException) as exc:
+        except InvalidParams:
+            raise NotFound(self._generate_not_found_message(metric_names, tag_name))
+
+        except DerivedMetricParseException as exc:
             raise ParseError(str(exc))
 
         tag_values_formatted = [{"key": tag_name, "value": tag_value} for tag_value in tag_values]
 
-        return Response(tag_values_formatted, status=200)
+        if len(tag_values_formatted) > 0:
+            return Response(tag_values_formatted, status=200)
+        else:
+            raise NotFound(self._generate_not_found_message(metric_names, tag_name))
+
+    def _generate_not_found_message(self, metric_names: list[str], tag_name: str) -> str:
+        if len(metric_names) > 0:
+            return f"No data found for metric: {metric_names[0]} and tag: {tag_name}"
+        else:
+            return f"No data found for tag: {tag_name}"
 
 
 @region_silo_endpoint

@@ -98,7 +98,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             project=[self.project.id],
             useCase="transactions",
         )
-        assert response.data == [
+        assert sorted(response.data, key=lambda x: x["value"]) == [
             {"key": "transaction", "value": "/hello"},
             {"key": "transaction", "value": "/world"},
         ]
@@ -148,6 +148,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
         )
         assert response.content == b'{"detail":"Unknown metric or tag key"}'
 
+    # fix this
     def test_tag_details_for_multiple_supplied_metrics(self):
         response = self.get_error_response(
             self.project.organization.slug,
@@ -159,4 +160,8 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             project=[self.project.id],
             useCase="custom",
         )
-        assert response.content == b'{"detail":"Unknown metric or tag key"}'
+
+        assert (
+            response.content
+            == b'{"detail":"Please supply only a single metric name. More than one metric name is not supported for this endpoint."}'
+        )
