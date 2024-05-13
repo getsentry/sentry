@@ -56,7 +56,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
     const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
-    const hasAttachments = feedbackItem.hasAttachments;
+    const hasAttachments = feedbackItem.latestEventHasAttachments;
     const hasComments = feedbackItem.numComments > 0;
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
