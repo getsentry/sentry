@@ -59,7 +59,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -692,6 +691,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            block_id=json.dumps_experimental("integrations.slack.enable-orjson", block_id),
+            block_id=orjson.dumps(block_id).decode(),
             skip_fallback=self.skip_fallback,
         )

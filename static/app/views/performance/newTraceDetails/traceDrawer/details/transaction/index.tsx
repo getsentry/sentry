@@ -33,7 +33,6 @@ import {Measurements} from './sections/measurements';
 import ReplayPreview from './sections/replayPreview';
 import {Request} from './sections/request';
 import {Sdk} from './sections/sdk';
-import {EventTags} from './sections/tags';
 
 export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
   observerOptions: {rootMargin: '50px'},
@@ -149,11 +148,9 @@ export function TransactionNodeDetails({
         />
       ) : null}
 
-      <EventTags
-        node={node}
-        organization={organization}
+      <TraceDrawerComponents.EventTags
+        projectSlug={node.value.project_slug}
         event={event}
-        location={location}
       />
 
       <EventContexts event={event} />
