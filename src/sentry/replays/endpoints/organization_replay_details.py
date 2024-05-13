@@ -36,7 +36,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Replay Instance",
-        parameters=[GlobalParams.ORG_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("GetReplay", ReplayDetailsResponse),
             400: RESPONSE_BAD_REQUEST,

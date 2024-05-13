@@ -59,11 +59,11 @@ export function PageloadModule() {
             />
             <HeaderWrapper>
               <Layout.Title>{t('Screen Loads')}</Layout.Title>
-              {project && isCrossPlatform(project) && <PlatformSelector />}
             </HeaderWrapper>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
+              {project && isCrossPlatform(project) && <PlatformSelector />}
               <FeedbackWidgetButton />
             </ButtonBar>
           </Layout.HeaderActions>

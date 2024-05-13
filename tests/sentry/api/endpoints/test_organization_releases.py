@@ -373,14 +373,18 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         release.add_project(project)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.get(url + "?query=1.0+(1234)", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["version"] == release.version
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.get(url + "?query=1.0%2B1234", format="json")
 
         assert response.status_code == 200, response.content
@@ -739,7 +743,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-releases",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
         # test legacy status value of None (=open)
@@ -810,7 +814,7 @@ class OrganizationReleasesStatsTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-releases-stats",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -869,7 +873,7 @@ class OrganizationReleasesStatsTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-releases-stats",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -893,7 +897,9 @@ class OrganizationReleasesStatsTest(APITestCase):
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
 
         response = self.client.get(url, format="json")
 
@@ -1125,7 +1131,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.post(
             url, data={"version": "", "projects": [project.slug, project2.slug]}
         )
@@ -1145,7 +1153,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project.slug, project2.slug]},
@@ -1180,7 +1190,9 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         release = Release.objects.create(version="1.2.1", organization=org)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
 
         with self.tasks():
             response = self.client.post(
@@ -1272,7 +1284,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
 
         response = self.client.post(url, data={"version": "1.2.1", "projects": [project.slug]})
         assert response.status_code == 208, response.content
@@ -1308,7 +1322,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
 
         response = self.client.post(url, data={"version": "x" * 65, "projects": [project.slug]})
         assert response.status_code == 208, response.content
@@ -1338,7 +1354,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
 
         response = self.client.post(url, data={"version": "1.2.3\n", "projects": [project.slug]})
         assert response.status_code == 400, response.content
@@ -1375,7 +1393,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=self.user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.post(
             url, data={"version": "1.2.1", "owner": self.user.email, "projects": [project.slug]}
         )
@@ -1398,7 +1418,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.post(
             url,
             data={
@@ -1442,7 +1464,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         self.client.post(
             url,
             data={
@@ -1499,7 +1523,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         self.client.post(
             url,
             data={
@@ -1555,7 +1581,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10, name="release")
         lock.acquire()
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.post(
             url,
             data={
@@ -1579,7 +1607,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.post(
             url, data={"version": "1.2.1", "projects": [project.slug, "banana"]}
         )
@@ -1623,7 +1653,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         release3.add_project(project1)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.post(
             url, data={"version": "1.2.1", "projects": [project1.slug, project2.slug]}
         )
@@ -1651,7 +1683,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         release1.add_project(project1)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
 
         # test right org, wrong permissions level
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1703,7 +1737,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         release1.add_project(project1)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
 
         # test right org, wrong permissions level
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1794,7 +1830,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         release1.add_project(project1)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
 
         response = self.client.post(
             url,
@@ -1835,7 +1873,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
 
-        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
         response = self.client.post(
             url,
             data={
@@ -1852,7 +1892,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
     def setUp(self):
         super().setUp()
         self.url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
 
     @patch("sentry.tasks.commits.fetch_commits")
@@ -2046,7 +2086,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
     def test_environments_filter(self):
         url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
         response = self.client.get(url + "?environment=" + self.env1.name, format="json")
         self.assert_releases(response, [self.release1, self.release5])
@@ -2056,7 +2096,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
     def test_empty_environment(self):
         url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
         env = self.make_environment("", self.project2)
         ReleaseProjectEnvironment.objects.create(
@@ -2067,7 +2107,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
     def test_all_environments(self):
         url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
         response = self.client.get(url, format="json")
         self.assert_releases(
@@ -2076,14 +2116,14 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
     def test_invalid_environment(self):
         url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
         response = self.client.get(url + "?environment=" + "invalid_environment", format="json")
         assert response.status_code == 404
 
     def test_specify_project_ids(self):
         url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
         response = self.client.get(url, format="json", data={"project": self.project1.id})
         self.assert_releases(response, [self.release1, self.release3, self.release5])
@@ -2098,7 +2138,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
     def test_date_range(self):
         url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
         response = self.client.get(
             url,
@@ -2112,7 +2152,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
     def test_invalid_date_range(self):
         url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
         response = self.client.get(url, format="json", data={"start": "null", "end": "null"})
         assert response.status_code == 400
@@ -2122,7 +2162,7 @@ class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
     def url(self):
         return reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
 
     def test_commits_with_patch_set(self):
