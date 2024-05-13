@@ -12,14 +12,14 @@ class RpcMetricsTest(TestCase):
         super().setUp()
         assert len(RpcMetricTracker.get_local().spans) == 0
 
-    def test_single_thread(self):
+    def test_single_thread(self) -> None:
         with RpcMetricSpan() as span:
             for n in range(3):
                 with RpcMetricRecord.measure(f"service{n}", f"method{n}"):
                     pass
             assert len(span.records) == 3
 
-    def test_multithreaded(self):
+    def test_multithreaded(self) -> None:
         record_queue: Queue[RpcMetricRecord] = Queue()
 
         def make_thread(n: int) -> Thread:

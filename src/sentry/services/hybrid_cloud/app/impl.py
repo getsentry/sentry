@@ -271,7 +271,7 @@ class DatabaseBackedAppService(AppService):
         organization_id: int,
         integration_name: str,
         integration_scopes: list[str],
-        integration_creator_id,
+        integration_creator_id: int,
         metadata: dict[str, Any] | None = None,
     ) -> RpcSentryAppInstallation:
         admin_user = User.objects.get(id=integration_creator_id)

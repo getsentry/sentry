@@ -71,7 +71,7 @@ class RpcUser(RpcUserProfile):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
-    def __str__(self):  # API compatibility with ORM User
+    def __str__(self) -> str:  # API compatibility with ORM User
         return self.get_username()
 
     def by_email(self, email: str) -> "RpcUser":

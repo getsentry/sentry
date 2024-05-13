@@ -9,13 +9,13 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class RpcModelTest(TestCase):
-    def test_schema_generation(self):
+    def test_schema_generation(self) -> None:
         for api_type in self._get_rpc_model_subclasses():
             # We're mostly interested in whether an error occurs
             schema = api_type.schema_json()
             assert schema
 
-    def _get_rpc_model_subclasses(self):
+    def _get_rpc_model_subclasses(self) -> set[type[RpcModel]]:
         subclasses = set()
         stack = deque([RpcModel])
         while stack:
@@ -27,7 +27,7 @@ class RpcModelTest(TestCase):
         subclasses.remove(RpcModel)
         return subclasses
 
-    def test_rpc_model_equals_method(self):
+    def test_rpc_model_equals_method(self) -> None:
         orm_user = self.create_user()
         Authenticator.objects.create(user=orm_user, type=1)
 
