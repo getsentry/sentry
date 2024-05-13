@@ -40,25 +40,24 @@ export default storyBook('AssigneeBadge', story => {
     const [chevron1Toggle, setChevron1Toggle] = useState<'up' | 'down'>('down');
     const [chevron2Toggle, setChevron2Toggle] = useState<'up' | 'down'>('down');
 
-    const team: Team =
-      teams.length > 0
-        ? teams[0]
-        : {
-            id: '1',
-            slug: 'team-slug',
-            name: 'Team Name',
-            access: ['team:read'],
-            teamRole: null,
-            isMember: true,
-            memberCount: 0,
-            avatar: {avatarType: 'letter_avatar', avatarUuid: uuid4()},
-            flags: {
-              'idp:provisioned': false,
-            },
-            externalTeams: [],
-            hasAccess: false,
-            isPending: false,
-          };
+    const team: Team = teams.length
+      ? teams[0]
+      : {
+          id: '1',
+          slug: 'team-slug',
+          name: 'Team Name',
+          access: ['team:read'],
+          teamRole: null,
+          isMember: true,
+          memberCount: 0,
+          avatar: {avatarType: 'letter_avatar', avatarUuid: uuid4()},
+          flags: {
+            'idp:provisioned': false,
+          },
+          externalTeams: [],
+          hasAccess: false,
+          isPending: false,
+        };
 
     const teamActor: Actor = {
       type: 'team',
