@@ -1,6 +1,4 @@
 import logging
-from collections.abc import Sequence
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -34,28 +32,5 @@ def log_sample_rate_source(
 
     logger.info(
         "dynamic_sampling.sample_rate_source",
-        extra=extra,
-    )
-
-
-def log_custom_rule_progress(
-    org_id: int,
-    project_ids: Sequence[int],
-    rule_id: int,
-    samples_count: int,
-    min_samples_count: int,
-):
-    extra: dict[str, Any] = {
-        "org_id": org_id,
-        "rule_id": rule_id,
-        "samples_count": samples_count,
-        "min_samples_count": min_samples_count,
-    }
-
-    if project_ids:
-        extra["project_ids"] = project_ids
-
-    logger.info(
-        "dynamic_sampling.custom_rule_progress",
         extra=extra,
     )

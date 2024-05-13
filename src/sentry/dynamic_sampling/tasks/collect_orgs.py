@@ -3,7 +3,6 @@ from sentry_sdk import capture_message, set_extra
 from sentry import options
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, TimeoutException
 from sentry.dynamic_sampling.tasks.constants import MAX_PROJECTS_PER_QUERY, MAX_TASK_SECONDS
-from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.silo.base import SiloMode
@@ -35,9 +34,7 @@ def collect_orgs() -> None:
             pass
     except TimeoutException:
         set_extra("context-data", context.to_dict())
-        log_task_timeout(context)
         raise
     else:
         set_extra("context-data", context.to_dict())
         capture_message("Collect orgs")
-        log_task_execution(context)
