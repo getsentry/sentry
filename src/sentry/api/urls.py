@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.auth_test import AuthTestEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
@@ -821,6 +822,11 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^test/$",
+        AuthTestEndpoint.as_view(),
+        name="sentry-api-0-auth-test",
     ),
 ]
 
