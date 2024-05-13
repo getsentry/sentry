@@ -1,4 +1,5 @@
 from functools import wraps
+from random import random
 
 from sentry import features
 from sentry.dynamic_sampling.tasks.common import TimeoutException
@@ -6,6 +7,11 @@ from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_t
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.models.organization import Organization
 from sentry.utils import metrics
+
+
+def sample_function(block, sample_rate: float = 1.0, **kwargs):
+    if sample_rate >= 1.0 or 0.0 <= random() <= sample_rate:
+        return block(**kwargs)
 
 
 def has_dynamic_sampling(organization: Organization | None) -> bool:

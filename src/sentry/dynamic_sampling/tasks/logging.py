@@ -64,10 +64,6 @@ def log_query_timeout(query: str, offset: int, timeout_seconds: int) -> None:
     metrics.incr("dynamic_sampling.query_timeout", tags={"query": query})
 
 
-def log_skipped_job(org_id: int, job: str):
-    logger.info("dynamic_sampling.skipped_job", extra={"org_id": org_id, "job": job})
-
-
 def log_project_with_zero_root_count(org_id: int, project_id: int):
     logger.info(
         "dynamic_sampling.project_with_zero_root_count",

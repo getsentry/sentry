@@ -52,7 +52,6 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_win
 from sentry.dynamic_sampling.tasks.logging import (
     log_project_with_zero_root_count,
     log_sample_rate_source,
-    log_skipped_job,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
@@ -266,7 +265,6 @@ def adjust_sample_rates_of_projects(
 
     # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
     if not has_dynamic_sampling(organization):
-        log_skipped_job(org_id, "boost_low_volume_projects")
         return
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of

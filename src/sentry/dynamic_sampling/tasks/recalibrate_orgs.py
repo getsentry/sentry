@@ -20,7 +20,6 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_recalibrate_org_error,
     log_recalibrate_org_state,
     log_sample_rate_source,
-    log_skipped_job,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
@@ -92,7 +91,6 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
 
     # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
     if not has_dynamic_sampling(organization):
-        log_skipped_job(org_id, "recalibrate_orgs")
         return
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
