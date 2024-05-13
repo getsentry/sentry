@@ -397,7 +397,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item].update({"sentryAppIssues": sentry_app_issues})
 
-        if self._expand("hasAttachments"):
+        if self._expand("latestEventHasAttachments"):
             if not features.has(
                 "organizations:event-attachments",
                 item.project.organization,
@@ -405,9 +405,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             ):
                 return self.respond(status=404)
 
+            latest_event = item.get_latest_event()
             for item in item_list:
-                num_attachments = EventAttachment.objects.filter(group_id=item.id).count()
-                attrs[item].update({"hasAttachments": num_attachments > 0})
+                num_attachments = EventAttachment.objects.filter(
+                    project_id=latest_event.project_id, event_id=latest_event.event_id
+                ).count()
+                attrs[item].update({"latestEventHasAttachments": num_attachments > 0})
 
         return attrs
 
@@ -467,8 +470,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if self._expand("sentryAppIssues"):
             result["sentryAppIssues"] = attrs["sentryAppIssues"]
 
-        if self._expand("hasAttachments"):
-            result["hasAttachments"] = attrs["hasAttachments"]
+        if self._expand("latestEventHasAttachments"):
+            result["latestEventHasAttachments"] = attrs["latestEventHasAttachments"]
 
         return result
 
