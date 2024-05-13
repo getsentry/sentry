@@ -25,6 +25,14 @@ describe('fastify onboarding docs', function () {
     });
   });
 
+  it('includes error handler', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry\.setupFastifyErrorHandler\(app\)/))
+    ).toBeInTheDocument();
+  });
+
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
@@ -60,6 +68,13 @@ describe('fastify onboarding docs', function () {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
     });
 
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /import \{ nodeProfilingIntegration } from "@sentry\/profiling-node"/
+        )
+      )
+    ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
