@@ -118,6 +118,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
+        self.check_object_permissions(request, dashboard)
+
         tombstone = None
         if isinstance(dashboard, dict):
             tombstone = dashboard["id"]
