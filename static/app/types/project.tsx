@@ -228,7 +228,6 @@ export type PlatformKey =
   | 'node-koa'
   | 'node-nodeawslambda'
   | 'node-nodegcpfunctions'
-  | 'node-serverlesscloud'
   | 'objc'
   | 'other'
   | 'perl'

@@ -429,7 +429,6 @@ export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
   'node-azurefunctions',
   'node-connect',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'minidump',
   'python-asgi',
   'python-awslambda',
