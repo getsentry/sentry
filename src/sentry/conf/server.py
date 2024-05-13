@@ -1520,8 +1520,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enables experimental WIP custom metrics related features
-    "organizations:custom-metrics-experimental": False,
     # Delightful Developer Metrics (DDM):
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
