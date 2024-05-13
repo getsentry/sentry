@@ -16,11 +16,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     set_guarded_adjusted_factor,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import (
-    log_recalibrate_org_error,
-    log_recalibrate_org_state,
-    log_sample_rate_source,
-)
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
@@ -51,10 +47,6 @@ def recalibrate_orgs(context: TaskContext) -> None:
         for org_volume in org_volumes:
             if org_volume.is_valid_for_recalibration():
                 valid_orgs.append((org_volume.org_id, org_volume.total, org_volume.indexed))
-            else:
-                log_recalibrate_org_error(
-                    org_volume.org_id, "The organization is not valid for recalibration"
-                )
 
         # We run an asynchronous job for recalibrating a batch of orgs whose size is specified in
         # `GetActiveOrgsVolumes`.
@@ -126,25 +118,20 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
     # We get the previous factor that was used for the recalibration.
     previous_factor = get_adjusted_factor(org_id)
 
-    log_recalibrate_org_state(org_id, previous_factor, effective_sample_rate, target_sample_rate)
-
     # We want to compute the new adjusted factor.
     adjusted_factor = compute_adjusted_factor(
         previous_factor, effective_sample_rate, target_sample_rate
     )
     if adjusted_factor is None:
-        log_recalibrate_org_error(org_id, "The adjusted factor can't be computed")
+        sentry_sdk.capture_message(
+            "The adjusted factor for org recalibration could not be computed"
+        )
         return
 
     if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
         delete_adjusted_factor(org_id)
-        log_recalibrate_org_error(
-            org_id,
-            f"The adjusted factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
-            f"{MAX_REBALANCE_FACTOR}]",
-        )
         return
 
     # At the end we set the adjusted factor.

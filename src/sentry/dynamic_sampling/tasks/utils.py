@@ -9,9 +9,9 @@ from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 
-def sample_function(block, sample_rate: float = 1.0, **kwargs):
+def sample_function(function, sample_rate: float = 1.0, **kwargs):
     if sample_rate >= 1.0 or 0.0 <= random() <= sample_rate:
-        return block(**kwargs)
+        function(**kwargs)
 
 
 def has_dynamic_sampling(organization: Organization | None) -> bool:
