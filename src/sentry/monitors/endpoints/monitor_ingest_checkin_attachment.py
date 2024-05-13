@@ -86,15 +86,15 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
                 raise ResourceDoesNotExist
         else:
 
-            # When using DSN auth we're able to infer the organization slug
+            # When using DSN auth we're able to infer the organization slug (organization_id_or_slug is slug in this case)
             if not organization_id_or_slug and using_dsn_auth:
                 organization_id_or_slug = request.auth.project.organization.slug
 
-            # The only monitor endpoints that do not have the org slug in their
+            # The only monitor endpoints that do not have the org id or slug in their
             # parameters are the GUID-style checkin endpoints
             if organization_id_or_slug:
                 try:
-                    # Try lookup by slug first. This requires organization context.
+                    # Try lookup by id or slug first. This requires organization context.
                     if (
                         id_or_slug_path_params_enabled(
                             self.convert_args.__qualname__, str(organization_id_or_slug)
