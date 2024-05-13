@@ -17,8 +17,6 @@ interface Props {
   description: string;
   moduleName: ModuleName;
   projectId: number;
-  endpoint?: string;
-  endpointMethod?: string;
   group?: string;
   spanOp?: string;
 }
@@ -28,8 +26,6 @@ export function SpanDescriptionCell({
   group,
   moduleName,
   spanOp,
-  endpoint,
-  endpointMethod,
   projectId,
 }: Props) {
   const formatterDescription = useMemo(() => {
@@ -48,9 +44,7 @@ export function SpanDescriptionCell({
     <SpanGroupDetailsLink
       group={group}
       projectId={projectId}
-      endpoint={endpoint}
       spanOp={spanOp}
-      endpointMethod={endpointMethod}
       description={formatterDescription}
     />
   );

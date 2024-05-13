@@ -13,20 +13,11 @@ const {SPAN_OP} = SpanMetricsField;
 interface Props {
   description: React.ReactNode;
   projectId: number;
-  endpoint?: string;
-  endpointMethod?: string;
   group?: string;
   spanOp?: string;
 }
 
-export function SpanGroupDetailsLink({
-  group,
-  projectId,
-  endpoint,
-  endpointMethod,
-  spanOp,
-  description,
-}: Props) {
+export function SpanGroupDetailsLink({group, projectId, spanOp, description}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const routingContext = useRoutingContext();
@@ -34,8 +25,6 @@ export function SpanGroupDetailsLink({
   const queryString = {
     ...location.query,
     project: projectId,
-    endpoint,
-    endpointMethod,
     ...(spanOp ? {[SPAN_OP]: spanOp} : {}),
   };
 
