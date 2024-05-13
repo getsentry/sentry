@@ -50,7 +50,7 @@ type Query = {
   transaction: string;
 };
 
-function ScreenSummary() {
+export function ScreenSummary() {
   const organization = useOrganization();
   const location = useLocation<Query>();
   const router = useRouter();
