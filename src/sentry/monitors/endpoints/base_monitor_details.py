@@ -17,23 +17,18 @@ from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.monitors.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorStatus,
-)
-from sentry.monitors.serializers import MonitorSerializer
-from sentry.monitors.utils import (
+from sentry.utils.auth import AuthenticatedHttpRequest
+from sentry.utils.outcomes import Outcome
+
+from ..models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+from ..serializers import MonitorSerializer
+from ..utils import (
     create_issue_alert_rule,
     get_checkin_margin,
     get_max_runtime,
     update_issue_alert_rule,
 )
-from sentry.monitors.validators import MonitorValidator
-from sentry.utils.auth import AuthenticatedHttpRequest
-from sentry.utils.outcomes import Outcome
+from ..validators import MonitorValidator
 
 
 class MonitorDetailsMixin(BaseEndpointMixin):

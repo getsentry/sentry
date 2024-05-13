@@ -33,24 +33,14 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.monitors.models import (
-    Monitor,
-    MonitorEnvironment,
-    MonitorLimitsExceeded,
-    MonitorStatus,
-    MonitorType,
-)
-from sentry.monitors.serializers import (
-    MonitorBulkEditResponse,
-    MonitorSerializer,
-    MonitorSerializerResponse,
-)
-from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
-from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 
+from ..models import Monitor, MonitorEnvironment, MonitorLimitsExceeded, MonitorStatus, MonitorType
+from ..serializers import MonitorBulkEditResponse, MonitorSerializer, MonitorSerializerResponse
+from ..utils import create_issue_alert_rule, signal_monitor_created
+from ..validators import MonitorBulkEditValidator, MonitorValidator
 from .base import OrganizationMonitorPermission
 
 

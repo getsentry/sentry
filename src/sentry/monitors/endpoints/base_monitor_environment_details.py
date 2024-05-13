@@ -8,7 +8,8 @@ from sentry.api.base import BaseEndpointMixin
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.monitors.models import MonitorEnvironment, MonitorStatus
+
+from ..models import MonitorEnvironment, MonitorStatus
 
 
 class MonitorEnvironmentDetailsMixin(BaseEndpointMixin):

@@ -15,7 +15,8 @@ from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
+
+from ..models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int):

@@ -15,10 +15,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
-from sentry.monitors.models import ScheduleType
-from sentry.monitors.schedule import SCHEDULE_INTERVAL_MAP
-from sentry.monitors.types import IntervalUnit
-from sentry.monitors.validators import ConfigValidator
+
+from ..models import ScheduleType
+from ..schedule import SCHEDULE_INTERVAL_MAP
+from ..types import IntervalUnit
+from ..validators import ConfigValidator
 
 MAX_TICKS = 100
 

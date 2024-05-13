@@ -24,13 +24,10 @@ from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.endpoints.base import (
-    ProjectMonitorPermission,
-    get_monitor_by_org_id_or_slug,
-    try_checkin_lookup,
-)
-from sentry.monitors.models import Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context
+
+from ..models import Monitor, MonitorCheckIn
+from .base import ProjectMonitorPermission, get_monitor_by_org_id_or_slug, try_checkin_lookup
 
 MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
 

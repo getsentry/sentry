@@ -15,11 +15,10 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.monitors.endpoints.base import MonitorEndpoint
-from sentry.monitors.endpoints.base_monitor_environment_details import (
-    MonitorEnvironmentDetailsMixin,
-)
-from sentry.monitors.serializers import MonitorSerializer
+
+from ..serializers import MonitorSerializer
+from .base import MonitorEndpoint
+from .base_monitor_environment_details import MonitorEnvironmentDetailsMixin
 
 
 @region_silo_endpoint

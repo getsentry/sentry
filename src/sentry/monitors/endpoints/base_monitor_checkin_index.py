@@ -10,8 +10,9 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.models import MonitorCheckIn
-from sentry.monitors.serializers import MonitorCheckInSerializer
+
+from ..models import MonitorCheckIn
+from ..serializers import MonitorCheckInSerializer
 
 
 class MonitorCheckInMixin(BaseEndpointMixin):

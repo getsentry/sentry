@@ -10,7 +10,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import BaseEndpointMixin, StatsMixin
 from sentry.api.helpers.environments import get_environments
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+
+from ..models import CheckInStatus, MonitorCheckIn
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int):
