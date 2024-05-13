@@ -166,6 +166,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
         comparison_interval_option = self.get_option("comparisonInterval", "5m")
+        if comparison_interval_option == "":
+            return False
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
         _, duration = self.intervals[interval]
         try:
