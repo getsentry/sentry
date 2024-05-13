@@ -14,12 +14,24 @@ import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/getting
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {
+  getImportInstrumentSnippet,
   getInstallConfig,
-  getNodeRunCommandSnippet,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
+
+const getSdkSetupSnippet = () => `
+${getImportInstrumentSnippet()}
+
+const { createServer } = require('node:http');
+
+const server = createServer((req, res) => {
+  // server code
+});
+
+server.listen(3000, '127.0.0.1');
+`;
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
@@ -53,15 +65,15 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Modify the Node.js command to include the [code1:--require] option. This preloads [code2:instrument.(js|mjs)] at startup.',
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)].",
             {code1: <code />, code2: <code />}
           ),
           code: [
             {
-              label: 'Bash',
-              value: 'bash',
-              language: 'bash',
-              code: getNodeRunCommandSnippet(),
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(),
             },
           ],
         },
