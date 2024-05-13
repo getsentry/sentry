@@ -43,7 +43,7 @@ export function MessageSamplesPanel() {
       project: decodeScalar,
       destination: decodeScalar,
       transaction: decodeScalar,
-      op: decodeScalar,
+      'span.op': decodeScalar,
     },
   });
   const {projects} = useProjects();
@@ -65,7 +65,9 @@ export function MessageSamplesPanel() {
   const isPanelOpen = Boolean(detailKey);
 
   const messageActorType =
-    query.op === 'queue.publish' ? MessageActorType.PRODUCER : MessageActorType.CONSUMER;
+    query['span.op'] === 'queue.publish'
+      ? MessageActorType.PRODUCER
+      : MessageActorType.CONSUMER;
   const queryFilter =
     messageActorType === MessageActorType.PRODUCER
       ? PRODUCER_QUERY_FILTER
@@ -189,11 +191,17 @@ export function MessageSamplesPanel() {
 
           <ModuleLayout.Full>
             <MetricsRibbonContainer>
-              <MetricsRibbon
-                type={messageActorType}
-                metrics={transactionMetrics}
-                isLoading={aretransactionMetricsFetching}
-              />
+              {messageActorType === MessageActorType.PRODUCER ? (
+                <ProducerMetricsRibbon
+                  metrics={transactionMetrics}
+                  isLoading={aretransactionMetricsFetching}
+                />
+              ) : (
+                <ConsumerMetricsRibbon
+                  metrics={transactionMetrics}
+                  isLoading={aretransactionMetricsFetching}
+                />
+              )}
             </MetricsRibbonContainer>
           </ModuleLayout.Full>
           <ModuleLayout.Full>
@@ -256,25 +264,7 @@ export function MessageSamplesPanel() {
   );
 }
 
-function MetricsRibbon({
-  type,
-  metrics,
-  isLoading,
-}: {
-  isLoading: boolean;
-  metrics: Partial<SpanMetricsResponse>[];
-  type: MessageActorType;
-}) {
-  switch (type) {
-    case MessageActorType.PRODUCER:
-      return <MetricsRibbonProducer metrics={metrics} isLoading={isLoading} />;
-    case MessageActorType.CONSUMER:
-    default:
-      return <MetricsRibbonConsumer metrics={metrics} isLoading={isLoading} />;
-  }
-}
-
-function MetricsRibbonProducer({
+function ProducerMetricsRibbon({
   metrics,
   isLoading,
 }: {
@@ -301,7 +291,7 @@ function MetricsRibbonProducer({
   );
 }
 
-function MetricsRibbonConsumer({
+function ConsumerMetricsRibbon({
   metrics,
   isLoading,
 }: {

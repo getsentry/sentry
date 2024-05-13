@@ -92,7 +92,7 @@ describe('messageSamplesPanel', () => {
       query: {
         transaction: 'sentry.tasks.store.save_event',
         destination: 'event-queue',
-        op: 'queue.process',
+        'span.op': 'queue.process',
       },
       hash: '',
       state: undefined,
@@ -164,7 +164,7 @@ describe('messageSamplesPanel', () => {
       query: {
         transaction: 'sentry.tasks.store.save_event',
         destination: 'event-queue',
-        op: 'queue.publish',
+        'span.op': 'queue.publish',
       },
       hash: '',
       state: undefined,
