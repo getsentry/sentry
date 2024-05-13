@@ -15,9 +15,10 @@ import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
-import type {LazyRenderProps} from 'sentry/components/lazyRender';
+import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
@@ -28,6 +29,7 @@ import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined, formatBytesBase10} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -508,6 +510,22 @@ const ActionsContainer = styled('div')`
   }
 `;
 
+function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
+  return (
+    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+      <TagsWrapper>
+        <NewTagsUI event={event} projectSlug={projectSlug} />
+      </TagsWrapper>
+    </LazyRender>
+  );
+}
+
+const TagsWrapper = styled('div')`
+  h3 {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
 interface SectionCardContentConfig {
   disableErrors?: boolean;
   includeAliasInSubject?: boolean;
@@ -631,7 +649,7 @@ const CardsColumn = styled('div')`
   grid-column: span 1;
 `;
 
-function Description({
+function CardValueWithCopy({
   value,
   linkTarget,
   linkText,
@@ -641,27 +659,27 @@ function Description({
   linkText?: string;
 }) {
   return (
-    <DescriptionContainer>
-      <DescriptionText>
+    <CardValueContainer>
+      <CardValueText>
         {value}
-        <StyledCopuToClipboardButton borderless size="zero" iconSize="xs" text={value} />
-      </DescriptionText>
+        <StyledCopyToClipboardButton borderless size="zero" iconSize="xs" text={value} />
+      </CardValueText>
       {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
-    </DescriptionContainer>
+    </CardValueContainer>
   );
 }
 
-const StyledCopuToClipboardButton = styled(CopyToClipboardButton)`
+const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
   transform: translateY(2px);
 `;
 
-const DescriptionContainer = styled(FlexBox)`
+const CardValueContainer = styled(FlexBox)`
   justify-content: space-between;
   gap: ${space(1)};
   flex-wrap: wrap;
 `;
 
-const DescriptionText = styled('span')`
+const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
@@ -731,7 +749,8 @@ const TraceDrawerComponents = {
   TableValueRow,
   IssuesLink,
   SectionCard,
-  Description,
+  CardValueWithCopy,
+  EventTags,
   SectionCardGroup,
 };
 

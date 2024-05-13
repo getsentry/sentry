@@ -64,11 +64,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+import orjson
 from pydantic import BaseModel, Field, ValidationError, constr
 
 from flagpole.conditions import Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
-from sentry.utils import json
 
 
 class InvalidFeatureFlagConfiguration(Exception):
@@ -111,8 +111,8 @@ class Feature(BaseModel):
         cls, name: str, config_json: str, context_builder: ContextBuilder | None = None
     ) -> Feature:
         try:
-            config_data_dict = json.loads_experimental("flagpole.enable-orjson", config_json)
-        except json.JSONDecodeError as decode_error:
+            config_data_dict = orjson.loads(config_json)
+        except orjson.JSONDecodeError as decode_error:
             raise InvalidFeatureFlagConfiguration("Invalid feature json provided") from decode_error
 
         if not isinstance(config_data_dict, dict):

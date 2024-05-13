@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
+from sentry import features, projectoptions
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -30,12 +30,13 @@ from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
-from sentry.utils.services import build_instance_from_options
+from sentry.utils.services import build_instance_from_options_of_type
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
@@ -48,7 +49,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
+locks = LockManager(
+    build_instance_from_options_of_type(
+        LockBackend, settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS
+    )
+)
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
@@ -1302,8 +1307,8 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     if not hasattr(event, "occurrence") or event.occurrence is None:
         return False
 
-    if event.occurrence.evidence_data.get("is_spam") is True and options.get(
-        "feedback.spam-detection-actions"
+    if event.occurrence.evidence_data.get("is_spam") is True and features.has(
+        "organizations:user-feedback-spam-filter-actions", job["event"].project.organization
     ):
         metrics.incr("feedback.spam-detection-actions.dont-send-notification")
         return False

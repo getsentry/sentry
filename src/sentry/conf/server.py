@@ -793,7 +793,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
-    "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
@@ -1209,11 +1208,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.integrations.github_comment_reactions",
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
-    },
-    "dynamic-sampling-collect-orgs": {
-        "task": "sentry.dynamic_sampling.tasks.collect_orgs",
-        # Run every 20 minutes
-        "schedule": crontab(minute="*/20"),
     },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
@@ -1800,6 +1794,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:related-events": False,
     # Enable related issues feature
     "organizations:related-issues": False,
+    # Enable related issues in issue details page
+    "organizations:related-issues-issue-details-page": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1949,6 +1945,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ui": False,
     # Enable User Feedback spam auto filtering feature ingest
     "organizations:user-feedback-spam-filter-ingest": False,
+    # Enable User Feedback spam auto filtering feature actions
+    "organizations:user-feedback-spam-filter-actions": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
     # User Feedback Error Link Ingestion Changes
