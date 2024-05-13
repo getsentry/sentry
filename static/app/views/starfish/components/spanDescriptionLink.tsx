@@ -6,7 +6,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 
 const {SPAN_OP} = SpanMetricsField;
@@ -45,9 +44,7 @@ export function SpanDescriptionLink({
       {group ? (
         <Link
           to={normalizeUrl(
-            `/organizations/${organization.slug}${routingContext.baseURL}/${
-              extractRoute(location) ?? 'spans'
-            }/span/${group}/?${qs.stringify(queryString)}`
+            `/organizations/${organization.slug}${routingContext.baseURL}/spans/span/${group}/?${qs.stringify(queryString)}`
           )}
         >
           {description}
