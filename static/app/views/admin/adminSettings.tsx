@@ -71,7 +71,7 @@ type FieldDef = {
 
 export default function AdminSettings() {
   const {data, isLoading, isError} = useApiQuery<Record<string, FieldDef>>(
-    ['/internal/packages/'],
+    ['/internal/options/'],
     {
       staleTime: 0,
     }
