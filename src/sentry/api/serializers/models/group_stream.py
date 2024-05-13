@@ -405,8 +405,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             ):
                 return self.respond(status=404)
 
-            latest_event = item.get_latest_event()
             for item in item_list:
+                latest_event = item.get_latest_event()
                 num_attachments = EventAttachment.objects.filter(
                     project_id=latest_event.project_id, event_id=latest_event.event_id
                 ).count()
