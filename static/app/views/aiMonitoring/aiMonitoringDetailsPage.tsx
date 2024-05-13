@@ -10,6 +10,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CurrencyUnit, DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,13 +34,20 @@ import {
 interface Props {
   params: {
     groupId: string;
-    'span.description'?: string;
   };
 }
 
+type Query = {
+  'span.description'?: string;
+};
+
 export function AiMonitoringPage({params}: Props) {
+  const location = useLocation<Query>();
+
   const organization = useOrganization();
-  const {groupId, 'span.description': spanDescription} = params;
+  const {groupId} = params;
+
+  const spanDescription = decodeScalar(location.query?.['span.description']);
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -163,7 +171,7 @@ export function AiMonitoringPage({params}: Props) {
 }
 
 function PageWithProviders({params}: Props) {
-  const location = useLocation<Props['params']>();
+  const location = useLocation<Query>();
 
   const {'span.description': spanDescription} = location.query;
 
