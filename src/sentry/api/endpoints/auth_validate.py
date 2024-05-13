@@ -21,7 +21,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 class AuthValidateEndpoint(Endpoint):
     """Simple API endpoint to validate successful authentication"""
 
-    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.SECURITY
     authentication_classes = (
         SessionAuthentication,
