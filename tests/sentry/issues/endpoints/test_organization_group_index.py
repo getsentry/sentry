@@ -479,6 +479,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(environment="garbage")
         assert response.status_code == 404
 
+    @override_options({"issues.group_attributes.send_kafka": True})
     def test_project(self) -> None:
         self.store_event(
             data={
@@ -492,6 +493,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
         response = self.get_success_response(query=f"project:{project.slug}")
+        assert len(response.data) == 1
+
+        response = self.get_success_response(
+            query=f"project:{project.slug}", useGroupSnubaDataset=1
+        )
         assert len(response.data) == 1
 
     def test_auto_resolved(self) -> None:
