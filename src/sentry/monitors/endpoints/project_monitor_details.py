@@ -15,11 +15,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.monitors.endpoints.base import ProjectMonitorEndpoint
-from sentry.monitors.endpoints.base_monitor_details import MonitorDetailsMixin
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
+
+from .base import ProjectMonitorEndpoint
+from .base_monitor_details import MonitorDetailsMixin
 
 
 @region_silo_endpoint
