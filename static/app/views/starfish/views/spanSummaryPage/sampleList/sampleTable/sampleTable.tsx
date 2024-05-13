@@ -27,6 +27,7 @@ const SpanSamplesTableContainer = styled('div')`
 
 type Props = {
   groupId: string;
+  moduleName: string;
   transactionName: string;
   additionalFields?: string[];
   additionalFilters?: Record<string, string>;
@@ -41,6 +42,7 @@ type Props = {
 
 function SampleTable({
   groupId,
+  moduleName,
   transactionName,
   highlightedSpanId,
   onMouseLeaveSample,
@@ -152,6 +154,7 @@ function SampleTable({
         hasData={spans.length > 0}
       >
         <SpanSamplesTable
+          moduleName={moduleName}
           onMouseLeaveSample={onMouseLeaveSample}
           onMouseOverSample={onMouseOverSample}
           highlightedSpanId={highlightedSpanId}
@@ -167,7 +170,17 @@ function SampleTable({
           avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
         />
       </VisuallyCompleteWithData>
-      <Button onClick={() => refetch()}>{t('Try Different Samples')}</Button>
+      <Button
+        onClick={() => {
+          trackAnalytics('performance_views.sample_spans.try_different_samples_clicked', {
+            organization,
+            source: moduleName,
+          });
+          refetch();
+        }}
+      >
+        {t('Try Different Samples')}
+      </Button>
     </SpanSamplesTableContainer>
   );
 }

@@ -27,6 +27,7 @@ const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 
 type Props = {
   groupId: string;
+  moduleName: string;
   transactionName: string;
   additionalFields?: string[];
   onClose?: () => void;
@@ -37,6 +38,7 @@ type Props = {
 
 export function SampleList({
   groupId,
+  moduleName,
   transactionName,
   transactionMethod,
   spanDescription,
@@ -171,6 +173,7 @@ export function SampleList({
           onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
           onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
           groupId={groupId}
+          moduleName={moduleName}
           transactionName={transactionName}
           query={extraQuery}
           columnOrder={columnOrder}

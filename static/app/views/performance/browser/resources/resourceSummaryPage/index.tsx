@@ -149,6 +149,7 @@ function ResourceSummary() {
           <SampleList
             transactionRoute="/performance/browser/pageloads/"
             groupId={groupId}
+            moduleName="resources"
             transactionName={transaction as string}
             additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />

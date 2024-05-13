@@ -182,6 +182,7 @@ export function ScreenLoadSampleContainer({
         onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
         groupId={groupId}
         transactionName={transactionName}
+        moduleName="screenLoad"
         release={release}
         columnOrder={[
           {

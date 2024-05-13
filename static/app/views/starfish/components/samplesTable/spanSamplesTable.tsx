@@ -7,6 +7,7 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -67,6 +68,7 @@ type Props = {
   avg: number;
   data: SpanTableRow[];
   isLoading: boolean;
+  moduleName: string;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
@@ -77,6 +79,7 @@ export function SpanSamplesTable({
   isLoading,
   data,
   avg,
+  moduleName,
   highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
@@ -123,6 +126,12 @@ export function SpanSamplesTable({
     if (column.key === 'span_id') {
       return (
         <Link
+          onClick={() =>
+            trackAnalytics('performance_views.sample_spans.span_clicked', {
+              organization,
+              source: moduleName,
+            })
+          }
           to={generateLinkToEventInTraceView({
             eventId: row['transaction.id'],
             timestamp: row.timestamp,

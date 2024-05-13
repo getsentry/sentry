@@ -266,6 +266,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
           <SampleList
             groupId={span[SpanMetricsField.SPAN_GROUP]}
+            moduleName="database"
             transactionName={transaction}
             transactionMethod={transactionMethod}
           />
