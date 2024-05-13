@@ -1,10 +1,12 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {generateQueryWithTag} from 'sentry/utils';
@@ -79,24 +81,26 @@ export function TraceDetails(props: TraceDetailsProps) {
         metaResults={props.metaResults}
       />
       {rootEvent ? (
-        <Tags
-          tagsQueryResults={props.tagsQueryResults}
-          generateUrl={(key: string, value: string) => {
-            const url = props.traceEventView.getResultsViewUrlTarget(
-              organization.slug,
-              false
-            );
-            url.query = generateQueryWithTag(url.query, {
-              key: formatTagKey(key),
-              value,
-            });
-            return url;
-          }}
-          totalValues={props.tree.eventsCount}
-          eventView={props.traceEventView}
-          organization={organization}
-          location={location}
-        />
+        <TagsWrapper>
+          <Tags
+            tagsQueryResults={props.tagsQueryResults}
+            generateUrl={(key: string, value: string) => {
+              const url = props.traceEventView.getResultsViewUrlTarget(
+                organization.slug,
+                false
+              );
+              url.query = generateQueryWithTag(url.query, {
+                key: formatTagKey(key),
+                value,
+              });
+              return url;
+            }}
+            totalValues={props.tree.eventsCount}
+            eventView={props.traceEventView}
+            organization={organization}
+            location={location}
+          />
+        </TagsWrapper>
       ) : null}
     </Fragment>
   );
@@ -305,3 +309,7 @@ function GeneralInfo(props: GeneralInfoProps) {
     />
   );
 }
+
+const TagsWrapper = styled('div')`
+  padding-bottom: ${space(1)};
+`;
