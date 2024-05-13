@@ -103,13 +103,14 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
         # purpose at the integration/provider wide level, which is wrong/incorrect
         base_data = super().get_config_data()
 
+        # Add missing toggleable feature flags
         stored_flag_data = base_data.get(self._FLAGS_KEY, {})
-        flag_statuses = []
         for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS.items():
-            flag_value = stored_flag_data.get(flag_name, default_flag_value)
-            flag_statuses.append((flag_name, flag_value))
+            if flag_name not in stored_flag_data:
+                stored_flag_data[flag_name] = default_flag_value
 
-        return flag_statuses
+        base_data[self._FLAGS_KEY] = stored_flag_data
+        return base_data
 
     def _update_and_clean_flags_in_organization_config(
         self, data: MutableMapping[str, Any]
