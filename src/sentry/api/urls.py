@@ -651,6 +651,9 @@ __all__ = ("urlpatterns",)
 from ..monitors.endpoints.organization_monitor_processing_errors_index import (
     OrganizationMonitorProcessingErrorsIndexEndpoint,
 )
+from ..monitors.endpoints.project_processing_errors_details import (
+    ProjectProcessingErrorsDetailsEndpoint,
+)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -2758,6 +2761,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
         ProjectMonitorEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-environment-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/(?P<uuid>[^\/]+)/$",
+        ProjectProcessingErrorsDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-processing-errors-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/processing-errors/$",
