@@ -61,6 +61,7 @@ export function DurationChart({
         error={error}
         chartColors={[AVG_COLOR]}
         type={ChartType.LINE}
+        aggregateOutputFormat="duration"
       />
     </ChartPanel>
   );

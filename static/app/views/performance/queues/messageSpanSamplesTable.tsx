@@ -12,6 +12,7 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {MessageActorType} from 'sentry/views/performance/queues/settings';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
@@ -27,6 +28,7 @@ type DataRowKeys =
   | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
   | SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanIndexedField.MESSAGING_MESSAGE_ID
+  | SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT
   | SpanIndexedField.TRACE_STATUS
   | SpanIndexedField.SPAN_DURATION;
 
@@ -34,6 +36,7 @@ type ColumnKeys =
   | SpanIndexedField.ID
   | SpanIndexedField.MESSAGING_MESSAGE_ID
   | SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE
+  | SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT
   | SpanIndexedField.TRACE_STATUS
   | SpanIndexedField.SPAN_DURATION;
 
@@ -41,7 +44,7 @@ type DataRow = Pick<IndexedResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
-const COLUMN_ORDER: Column[] = [
+const CONSUMER_COLUMN_ORDER: Column[] = [
   {
     key: SpanIndexedField.ID,
     name: t('Span ID'),
@@ -55,6 +58,29 @@ const COLUMN_ORDER: Column[] = [
   {
     key: SpanIndexedField.SPAN_DURATION,
     name: t('Processing Time'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+    name: t('Retries'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: SpanIndexedField.TRACE_STATUS,
+    name: t('Status'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+];
+
+const PRODUCER_COLUMN_ORDER: Column[] = [
+  {
+    key: SpanIndexedField.ID,
+    name: t('Span ID'),
+    width: 150,
+  },
+  {
+    key: SpanIndexedField.MESSAGING_MESSAGE_ID,
+    name: t('Message ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -72,6 +98,7 @@ const COLUMN_ORDER: Column[] = [
 interface Props {
   data: DataRow[];
   isLoading: boolean;
+  type: MessageActorType;
   error?: Error | null;
   highlightedSpanId?: string;
   meta?: EventsMetaType;
@@ -87,6 +114,7 @@ export function MessageSpanSamplesTable({
   onSampleMouseOver,
   onSampleMouseOut,
   highlightedSpanId,
+  type,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -97,7 +125,9 @@ export function MessageSpanSamplesTable({
       isLoading={isLoading}
       error={error}
       data={data}
-      columnOrder={COLUMN_ORDER}
+      columnOrder={
+        type === MessageActorType.PRODUCER ? PRODUCER_COLUMN_ORDER : CONSUMER_COLUMN_ORDER
+      }
       columnSortBy={[]}
       grid={{
         renderHeadCell: col =>

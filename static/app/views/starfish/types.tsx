@@ -196,6 +196,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_ID = 'messaging.message.id',
   MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
+  MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
 }
 
 export type IndexedResponse = {
@@ -236,6 +237,7 @@ export type IndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_ID]: string;
   [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
 };
 
 export type IndexedProperty = keyof IndexedResponse;
