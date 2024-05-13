@@ -4,6 +4,7 @@ import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import orjson
 from django.core.cache import cache
 from urllib3 import HTTPResponse
 from urllib3.exceptions import MaxRetryError
@@ -21,7 +22,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -37,7 +37,7 @@ def make_event(**kwargs) -> dict[str, Any]:
 class TestGetEventSeverity(TestCase):
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
     @patch("sentry.event_manager.logger.info")
     def test_error_event_simple(
@@ -72,7 +72,7 @@ class TestGetEventSeverity(TestCase):
         mock_urlopen.assert_called_with(
             "POST",
             "/v0/issues/severity-score",
-            body=json.dumps(payload),
+            body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
             timeout=0.2,
         )
@@ -92,7 +92,7 @@ class TestGetEventSeverity(TestCase):
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
     @patch("sentry.event_manager.logger.info")
     def test_message_event_simple(
@@ -120,7 +120,7 @@ class TestGetEventSeverity(TestCase):
             mock_urlopen.assert_called_with(
                 "POST",
                 "/v0/issues/severity-score",
-                body=json.dumps(payload),
+                body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
                 timeout=0.2,
             )
@@ -140,7 +140,7 @@ class TestGetEventSeverity(TestCase):
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
     def test_uses_exception(
         self,
@@ -160,13 +160,13 @@ class TestGetEventSeverity(TestCase):
         _get_severity_score(event)
 
         assert (
-            json.loads(mock_urlopen.call_args.kwargs["body"])["message"]
+            orjson.loads(mock_urlopen.call_args.kwargs["body"])["message"]
             == "NopeError: Nopey McNopeface"
         )
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
     def test_short_circuit_level(
         self,
@@ -195,7 +195,7 @@ class TestGetEventSeverity(TestCase):
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
     @patch("sentry.event_manager.logger.warning")
     def test_unusable_event_title(
