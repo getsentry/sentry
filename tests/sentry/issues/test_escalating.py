@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -95,7 +95,7 @@ class HistoricGroupCounts(
 
     @with_feature("organizations:escalating-issues-v2")
     @mock.patch("sentry.issues.escalating.logger")
-    def test_query_single_group(self, mock_logger) -> None:
+    def test_query_single_group(self, mock_logger: MagicMock) -> None:
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
             self._create_hourly_bucket(1, event)
@@ -105,7 +105,7 @@ class HistoricGroupCounts(
     @with_feature("organizations:escalating-issues-v2")
     @freeze_time(TIME_YESTERDAY)
     @mock.patch("sentry.issues.escalating.logger")
-    def test_query_different_group_categories(self, mock_logger) -> None:
+    def test_query_different_group_categories(self, mock_logger: MagicMock) -> None:
         from django.utils import timezone
 
         timestamp = timezone.now() - timedelta(minutes=1)
@@ -165,7 +165,7 @@ class HistoricGroupCounts(
     @mock.patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_METRICS_QUERY", new=4)
     @mock.patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=4)
     @mock.patch("sentry.issues.escalating.logger")
-    def test_pagination(self, mock_logger) -> None:
+    def test_pagination(self, mock_logger: MagicMock) -> None:
         events = []
         for i in range(20):
             event = self._create_events_for_group(count=1, hours_ago=2, group=f"group-{i}")
@@ -205,7 +205,7 @@ class HistoricGroupCounts(
 
     @with_feature("organizations:escalating-issues-v2")
     @mock.patch("sentry.issues.escalating.logger")
-    def test_query_multiple_projects(self, mock_logger) -> None:
+    def test_query_multiple_projects(self, mock_logger: MagicMock) -> None:
         proj_x = self.create_project(organization=self.project.organization)
         proj_y = self.create_project(organization=self.project.organization)
 
@@ -228,7 +228,7 @@ class HistoricGroupCounts(
 
     @with_feature("organizations:escalating-issues-v2")
     @mock.patch("sentry.issues.escalating.logger")
-    def test_query_different_orgs(self, mock_logger) -> None:
+    def test_query_different_orgs(self, mock_logger: MagicMock) -> None:
         proj_a = self.create_project(organization=self.project.organization)
         org_b = self.create_organization()
         proj_b = self.create_project(organization=org_b)
@@ -259,7 +259,7 @@ def test_datetime_number_of_days() -> None:
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
     def save_mock_escalating_group_forecast(
-        self, group: Group, forecast_values=list[int], date_added=datetime
+        self, group: Group, forecast_values: list[int], date_added: datetime
     ) -> None:
         """Save mock data for escalating group forecast in nodestore"""
         escalating_forecast = EscalatingGroupForecast(

@@ -80,7 +80,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         return self._create_response(issue, data)
 
-    def _create_response(self, issue=None, data=None):
+    def _create_response(self, issue=None, data=None) -> Response:
         errors_list = []
         if issue:
             response = SourceMapProcessingIssue(issue, data=data).get_api_context()

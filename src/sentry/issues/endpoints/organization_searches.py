@@ -13,6 +13,7 @@ from sentry.api.serializers.rest_framework.savedsearch import (
     OrganizationSearchAdminSerializer,
     OrganizationSearchMemberSerializer,
 )
+from sentry.models.organization import Organization
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 
@@ -26,7 +27,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationSearchPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's saved searches
         `````````````````````````````````````
@@ -60,7 +61,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
 
         return Response(serialize(list(query), request.user))
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         serializer: BaseOrganizationSearchSerializer
         if request.access.has_scope("org:write"):
             serializer = OrganizationSearchAdminSerializer(data=request.data)
