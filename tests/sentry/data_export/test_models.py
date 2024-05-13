@@ -154,19 +154,19 @@ class ExportedDataTest(TestCase):
 
     def test_email_failure(self):
         with self.tasks():
-            self.data_export.email_failure(self.TEST_STRING)
+            self.data_export.email_failure("failed to export data!")
         assert len(mail.outbox) == 1
         assert not ExportedData.objects.filter(id=self.data_export.id).exists()
 
     @patch("sentry.utils.email.MessageBuilder")
     def test_email_failure_content(self, builder):
         with self.tasks():
-            self.data_export.email_failure(self.TEST_STRING)
+            self.data_export.email_failure("failed to export data!")
         expected_email_args = {
             "subject": "We couldn't export your data.",
             "context": {
                 "creation": ExportedData.format_date(date=self.data_export.date_added),
-                "error_message": self.TEST_STRING,
+                "error_message": "failed to export data!",
                 "payload": json.dumps(self.data_export.payload),
             },
             "type": "organization.export-data",
