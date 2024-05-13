@@ -224,7 +224,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[transaction, ROUTE_NAMES['app-startup']].join(' — ')}
-      baseURL="/performance/browser/app-startup"
+      baseURL="/performance/mobile/app-startup/spans"
       features="spans-first-ui"
     >
       <ScreenSummary />
