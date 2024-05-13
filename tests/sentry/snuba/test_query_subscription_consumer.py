@@ -26,7 +26,7 @@ from sentry.snuba.query_subscriptions.run import QuerySubscriptionStrategyFactor
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka, requires_snuba
-from sentry.utils import json
+from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -85,7 +85,8 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
     def test_arroyo_consumer(self):
         topic_defn = get_topic_definition(Topic.EVENTS)
-        admin_client = AdminClient(topic_defn["cluster"])
+        cluster_options = kafka_config.get_kafka_admin_cluster_options("default")
+        admin_client = AdminClient(cluster_options)
         print(admin_client.list_topics([topic_defn["real_topic_name"]]))  # noqa
         wait_for_topics(admin_client, [topic_defn["real_topic_name"]])
         print(admin_client.list_topics([topic_defn["real_topic_name"]]))  # noqa
