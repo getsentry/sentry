@@ -273,8 +273,10 @@ def sync(ctx: click.Context) -> None:
                                 )
                                 presenter_delegator.flush()
                                 raise
-
                         presenter_delegator.unset(opt.name)
+                    # if the option is set on disk, we can safely pass
+                    if options.lookup_key(opt.name).has_any_flag({options.FLAG_PRIORITIZE_DISK}):
+                        pass
                     else:
                         presenter_delegator.drift(opt.name, "")
                         drift_found = True
