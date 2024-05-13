@@ -48,7 +48,10 @@ class ReleaseDeploysDocs(APIDocsTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-release-deploys",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)

@@ -68,7 +68,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
         operation_id="List Clicked Nodes",
         parameters=[
             CursorQueryParam,
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
             ReplayParams.REPLAY_ID,

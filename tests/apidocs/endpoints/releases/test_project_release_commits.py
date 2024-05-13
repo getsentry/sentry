@@ -27,7 +27,7 @@ class ProjectReleaseCommitsListDocsTest(APIDocsTestCase):
         self.url = reverse(
             "sentry-api-0-project-release-commits",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "version": release.version,
             },

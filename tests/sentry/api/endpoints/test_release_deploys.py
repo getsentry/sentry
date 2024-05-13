@@ -57,7 +57,10 @@ class ReleaseDeploysListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-deploys",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -102,7 +105,10 @@ class ReleaseDeploysListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-deploys",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -152,7 +158,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-deploys",
             kwargs={
-                "organization_slug": self.org.slug,
+                "organization_id_or_slug": self.org.slug,
                 "version": release.version,
             },
         )
@@ -192,7 +198,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-deploys",
             kwargs={
-                "organization_slug": self.org.slug,
+                "organization_id_or_slug": self.org.slug,
                 "version": release.version,
             },
         )
@@ -240,7 +246,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-deploys",
             kwargs={
-                "organization_slug": self.org.slug,
+                "organization_id_or_slug": self.org.slug,
                 "version": release.version,
             },
         )
@@ -268,7 +274,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-deploys",
             kwargs={
-                "organization_slug": self.org.slug,
+                "organization_id_or_slug": self.org.slug,
                 "version": release.version,
             },
         )
