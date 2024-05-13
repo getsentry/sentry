@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -184,15 +184,6 @@ def _get_alert_metric_specs(
 
             if results := _convert_snuba_query_to_metrics(project, alert_snuba_query, prefilling):
                 for spec in results:
-                    _log_on_demand_metric_spec(
-                        project_id=project.id,
-                        spec_for="alert",
-                        spec=spec,
-                        id=alert.id,
-                        field=alert_snuba_query.aggregate,
-                        query=alert_snuba_query.query,
-                        prefilling=prefilling,
-                    )
                     metrics.incr(
                         "on_demand_metrics.on_demand_spec.for_alert",
                         tags={"prefilling": prefilling},
@@ -502,15 +493,6 @@ def _generate_metric_specs(
         organization_bulk_query_cache=organization_bulk_query_cache,
     ):
         for spec in results:
-            _log_on_demand_metric_spec(
-                project_id=project.id,
-                spec_for="widget",
-                spec=spec,
-                id=widget_query.id,
-                field=aggregate,
-                query=widget_query.conditions,
-                prefilling=prefilling,
-            )
             metrics.incr(
                 "on_demand_metrics.on_demand_spec.for_widget",
                 tags={"prefilling": prefilling},
@@ -818,33 +800,6 @@ def _convert_aggregate_and_query_to_metrics(
                 logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
-
-
-def _log_on_demand_metric_spec(
-    project_id: int,
-    spec_for: Literal["alert", "widget"],
-    spec: HashedMetricSpec,
-    id: int,
-    field: str,
-    query: str,
-    prefilling: bool,
-) -> None:
-    spec_query_hash, spec_dict, spec_version = spec
-
-    logger.info(
-        "on_demand_metrics.on_demand_metric_spec",
-        extra={
-            "project_id": project_id,
-            f"{spec_for}.id": id,
-            f"{spec_for}.field": field,
-            f"{spec_for}.query": query,
-            "spec_for": spec_for,
-            "spec_query_hash": spec_query_hash,
-            "spec": spec_dict,
-            "spec_version": spec_version,
-            "prefilling": prefilling,
-        },
-    )
 
 
 # CONDITIONAL TAGGING
