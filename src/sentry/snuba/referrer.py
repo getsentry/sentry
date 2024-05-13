@@ -475,7 +475,7 @@ class Referrer(Enum):
         "api.performance.cache.samples-cache-span-samples",
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES_TRANSACTION_DURATION = (
-        "api.performance.cache.samples-cache-span-samples",
+        "api.performance.cache.samples-cache-span-samples-transaction-duration",
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_HIT_MISS_CHART = (
         "api.performance.cache.samples-cache-hit-miss-chart",
