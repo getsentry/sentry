@@ -67,7 +67,6 @@ import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {searchInTraceTree} from './traceState/traceSearch';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
-import {TraceHeader} from './traceHeader';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import {TraceReducer, type TraceReducerState} from './traceState';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
@@ -802,14 +801,6 @@ function TraceViewContent(props: TraceViewContentProps) {
         traceSlug={props.traceSlug}
         traceEventView={props.traceEventView}
       />
-      <TraceHeader
-        tree={tree}
-        rootEventResults={rootEvent}
-        metaResults={props.metaResults}
-        organization={props.organization}
-        traces={props.trace}
-        traceID={props.traceSlug}
-      />
       <TraceInnerLayout>
         <TraceToolbar>
           <TraceSearchInput
@@ -845,6 +836,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            metaResults={props.metaResults}
             traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
@@ -893,7 +885,8 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: 0 ${space(2)} 0 ${space(2)};
+  padding: ${space(2)};
+
   background-color: ${p => p.theme.background};
 
   --info: ${p => p.theme.purple400};
@@ -920,8 +913,7 @@ const TraceGrid = styled('div')<{
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
   /* false positive for grid layout */

@@ -102,7 +102,7 @@ function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
     url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? []),
   });
 }
 
@@ -523,7 +523,7 @@ describe('trace view', () => {
       },
     });
     mockTraceMetaResponse();
-    mockTraceTagsResponse({});
+    mockTraceTagsResponse();
 
     render(<TraceViewWithProviders traceSlug="trace-id" />);
     expect(
