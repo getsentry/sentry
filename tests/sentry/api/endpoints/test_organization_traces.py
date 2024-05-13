@@ -1805,6 +1805,55 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
             id="merges spans at different depths",
         ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "sdk.name": "sentry.javascript.node",
+                    "parent_span": "a" * 16,
+                    "transaction": "foo1",
+                    "precise.start_ts": 0.003,
+                    "precise.finish_ts": 0.097,
+                },
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "sdk.name": "sentry.javascript.remix",
+                    "parent_span": "a" * 16,
+                    "transaction": "foo1",
+                    "precise.start_ts": 0.002,
+                    "precise.finish_ts": 0.098,
+                },
+            ],
+            {"a" * 32: (0, 100, 10)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "opCategory": None,
+                        "sdkName": "sentry.javascript.remix",
+                        "start": 0,
+                        "end": 100,
+                        "kind": "project",
+                        "duration": 96,
+                        "isRoot": False,
+                    },
+                    {
+                        "project": "foo",
+                        "opCategory": None,
+                        "sdkName": "sentry.javascript.node",
+                        "start": 0,
+                        "end": 100,
+                        "kind": "project",
+                        "duration": 94,
+                        "isRoot": False,
+                    },
+                ],
+            },
+            id="orders spans by precise timestamps",
+        ),
     ],
 )
 def test_process_breakdowns(data, traces_range, expected):

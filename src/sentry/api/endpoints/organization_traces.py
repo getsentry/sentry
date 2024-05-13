@@ -41,8 +41,8 @@ class TraceInterval(TypedDict):
     kind: Literal["project", "missing", "other"]
     opCategory: str | None
     duration: int
-    components: NotRequired[list[tuple[int, int]]]
     isRoot: bool
+    components: NotRequired[list[tuple[int, int]]]
 
 
 class TraceResult(TypedDict):
