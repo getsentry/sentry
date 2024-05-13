@@ -126,7 +126,7 @@ export function getDefaultServerlessImports({
   library: `google-cloud-serverless` | `aws-serverless`;
   productSelection: ProductSelectionMap;
 }) {
-  const imports: string[] = getImports(library);
+  const imports: string[] = getImport(library);
 
   if (productSelection.profiling) {
     imports.push(
@@ -140,6 +140,12 @@ export function getImportInstrumentSnippet(): string {
   return `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
   // If you're using ECMAScript Modules (ESM) syntax, use \`import "./instrument.js";\`
   require("./instrument.js");`;
+}
+
+export function getImportInstrumentSnippet(): string {
+  return `// IMPORTANT: Make sure to import \`instrument.js'\` at the top of your file.
+  // If you're using ECMAScript Modules (ESM), use \`import './instrument.js';\`
+  require('./instrument.js');`;
 }
 
 export const getSdkInitSnippet = (
