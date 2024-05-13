@@ -59,15 +59,14 @@ class ReleaseProjectEnvironmentManager(BaseManager["ReleaseProjectEnvironment"])
     def post_save(self, instance, created, **kwargs):
         if created:
             release = instance.release
-            projects = instance.project
+            project = instance.project
             environment = instance.environment
-            for project in projects:
-                self.subscribe_project_to_alert_rule(
-                    project=project,
-                    release=release,
-                    environment=environment,
-                    trigger="releaseprojectenvironment.post_save",
-                )
+            self.subscribe_project_to_alert_rule(
+                project=project,
+                release=release,
+                environment=environment,
+                trigger="releaseprojectenvironment.post_save",
+            )
 
 
 @region_silo_model
