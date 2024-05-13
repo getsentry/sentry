@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Sequence
 
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
@@ -41,10 +42,13 @@ def build_checkin_item(
 
 
 def build_checkin_processing_error(
-    processing_errors: list[ProcessingError] | None = None, **checkin_item_params
+    processing_errors: Sequence[ProcessingError] | None = None, **checkin_item_params
 ):
     if processing_errors is None:
         processing_errors = [
-            ProcessingError(ProcessingErrorType.MONITOR_DISABLED, {"some": "data"})
+            {
+                "type": ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
+                "existing_environment": "some-env",
+            },
         ]
     return CheckinProcessingError(processing_errors, build_checkin_item(**checkin_item_params))
