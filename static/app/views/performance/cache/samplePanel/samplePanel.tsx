@@ -107,11 +107,11 @@ export function CacheSamplePanel() {
   };
 
   const {
-    data: cacheSpanSamplesData,
-    isFetching: isCacheSpanSamplesFetching,
-    refetch: refetchSpanSamples,
+    data: cacheHitSamples,
+    isFetching: isCacheHitsFetching,
+    refetch: refetchCacheHits,
   } = useIndexedSpans({
-    search: MutableSearch.fromQueryObject(sampleFilters).addFreeText('has:cache.hit'),
+    search: MutableSearch.fromQueryObject({...sampleFilters, 'cache.hit': 'true'}),
     fields: [
       SpanIndexedField.PROJECT,
       SpanIndexedField.TRACE,
@@ -124,24 +124,49 @@ export function CacheSamplePanel() {
       SpanIndexedField.CACHE_ITEM_SIZE,
     ],
     sorts: [SPAN_SAMPLES_SORT],
-    limit: SPAN_SAMPLE_LIMIT,
+    limit: SPAN_SAMPLE_LIMIT / 2,
     enabled: isPanelOpen,
     referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
   });
+
+  const {
+    data: cacheMissSamples,
+    isFetching: isCacheMissesFetching,
+    refetch: refetchCacheMisses,
+  } = useIndexedSpans({
+    search: MutableSearch.fromQueryObject({...sampleFilters, 'cache.hit': 'false'}),
+    fields: [
+      SpanIndexedField.PROJECT,
+      SpanIndexedField.TRACE,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.ID,
+      SpanIndexedField.TIMESTAMP,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.CACHE_HIT,
+      SpanIndexedField.SPAN_OP,
+      SpanIndexedField.CACHE_ITEM_SIZE,
+    ],
+    sorts: [SPAN_SAMPLES_SORT],
+    limit: SPAN_SAMPLE_LIMIT / 2,
+    enabled: isPanelOpen,
+    referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
+  });
+
+  const cacheSamples = [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
 
   const {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
   } = useTransactions(
-    cacheSpanSamplesData?.map(span => span['transaction.id']) || [],
+    cacheSamples?.map(span => span['transaction.id']) || [],
     Referrer.SAMPLES_CACHE_SPAN_SAMPLES
   );
 
   const transactionDurationsMap = keyBy(transactionData, 'id');
 
   const spansWithDuration =
-    cacheSpanSamplesData?.map(span => ({
+    cacheSamples?.map(span => ({
       ...span,
       'transaction.duration':
         transactionDurationsMap[span['transaction.id']]?.['transaction.duration'],
@@ -159,6 +184,11 @@ export function CacheSamplePanel() {
         transactionMethod: undefined,
       },
     });
+  };
+
+  const handleRefetch = () => {
+    refetchCacheHits();
+    refetchCacheMisses();
   };
 
   return (
@@ -290,7 +320,9 @@ export function CacheSamplePanel() {
                   },
                   units: {[SpanIndexedField.CACHE_ITEM_SIZE]: 'byte'},
                 }}
-                isLoading={isCacheSpanSamplesFetching || isFetchingTransactions}
+                isLoading={
+                  isCacheHitsFetching || isCacheMissesFetching || isFetchingTransactions
+                }
                 highlightedSpanId={highlightedSpanId}
                 onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
                 onSampleMouseOut={() => setHighlightedSpanId(undefined)}
@@ -301,9 +333,7 @@ export function CacheSamplePanel() {
 
           <Fragment>
             <ModuleLayout.Full>
-              <Button onClick={() => refetchSpanSamples()}>
-                {t('Try Different Samples')}
-              </Button>
+              <Button onClick={handleRefetch}>{t('Try Different Samples')}</Button>
             </ModuleLayout.Full>
           </Fragment>
         </ModuleLayout.Layout>
