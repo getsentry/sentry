@@ -24,10 +24,10 @@ from sentry.snuba.query_subscriptions.consumer import (
 from sentry.snuba.query_subscriptions.run import QuerySubscriptionStrategyFactory
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils import json
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, requires_kafka]
 
 
 @pytest.mark.snuba_ci
