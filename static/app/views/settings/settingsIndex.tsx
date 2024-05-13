@@ -210,7 +210,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
       <HomePanelHeader>
         <HomeLinkIcon to={LINKS.API}>
           <HomeIconContainer>
-            <IconLock size="lg" isSolid />
+            <IconLock size="lg" locked />
           </HomeIconContainer>
           {t('API Keys')}
         </HomeLinkIcon>
