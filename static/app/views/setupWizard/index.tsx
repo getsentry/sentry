@@ -132,6 +132,7 @@ function SetupWizard({hash = false, organizations}: Props) {
 const MinWidthButtonBar = styled(ButtonBar)`
   width: min-content;
   margin-top: 20px;
+  margin-bottom: 20px;
 `;
 
 export default SetupWizard;
