@@ -29,7 +29,6 @@ __all__ = (
     "MetricMeta",
     "MetricMetaWithTagKeys",
     "OPERATIONS",
-    "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
     "UNIT_TO_TYPE",
     "DerivedMetricException",
@@ -67,12 +66,6 @@ MetricOperationType = Literal[
     "sum",
     "max",
     "min",
-    "p50",
-    "p75",
-    "p90",
-    "p95",
-    "p99",
-    "p100",
     "percentage",
     "histogram",
     "rate",
@@ -151,12 +144,6 @@ OP_TO_SNUBA_FUNCTION = {
         "count": "countIf",
         "max": "maxIf",
         "min": "minIf",
-        "p50": "quantilesIf(0.50)",
-        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
-        "p75": "quantilesIf(0.75)",
-        "p90": "quantilesIf(0.90)",
-        "p95": "quantilesIf(0.95)",
-        "p99": "quantilesIf(0.99)",
         "histogram": "histogramIf(250)",
         "sum": "sumIf",
         "min_timestamp": "minIf",
@@ -350,14 +337,8 @@ class MetricMetaWithTagKeys(MetricMeta):
     tags: Sequence[Tag]
 
 
-OPERATIONS_PERCENTILES = (
-    "p50",
-    "p75",
-    "p90",
-    "p95",
-    "p99",
-    "p100",
-)
+OPERATIONS_PERCENTILES = ()
+
 DERIVED_OPERATIONS = (
     "histogram",
     "rate",
@@ -379,11 +360,7 @@ DERIVED_OPERATIONS = (
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
 )
-OPERATIONS = (
-    ("avg", "count_unique", "count", "max", "min", "sum", "last")
-    + OPERATIONS_PERCENTILES
-    + DERIVED_OPERATIONS
-)
+OPERATIONS = ("avg", "count_unique", "count", "max", "min", "sum", "last") + DERIVED_OPERATIONS
 
 DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] = {
     "avg": None,
@@ -391,11 +368,6 @@ DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] =
     "count": 0,
     "min": None,
     "max": None,
-    "p50": None,
-    "p75": None,
-    "p90": None,
-    "p95": None,
-    "p99": None,
     "sum": 0,
     "percentage": None,
     "last": None,
