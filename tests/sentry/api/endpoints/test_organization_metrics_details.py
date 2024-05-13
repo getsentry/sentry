@@ -1,5 +1,3 @@
-from datetime import timedelta
-from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -84,7 +82,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.SESSIONS.value
         )
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=[UseCaseID.SESSIONS], start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=[UseCaseID.SESSIONS],
         )
 
         get_metrics_meta.reset_mock()
@@ -98,7 +98,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.SESSIONS.value
         )
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=[UseCaseID.SESSIONS], start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=[UseCaseID.SESSIONS],
         )
 
     @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
@@ -110,10 +112,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.METRIC_STATS.value
         )
         get_metrics_meta.assert_called_once_with(
+            organization=self.organization,
             projects=[self.project],
             use_case_ids=[UseCaseID.METRIC_STATS],
-            start=mock.ANY,
-            end=mock.ANY,
         )
 
         get_metrics_meta.reset_mock()
@@ -146,7 +147,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=self.user, superuser=True)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=all_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization, projects=[self.project], use_case_ids=all_use_case_ids
         )
 
         get_metrics_meta.reset_mock()
@@ -155,7 +156,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=self.user, staff=True)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=public_use_case_ids,
         )
 
         get_metrics_meta.reset_mock()
@@ -168,7 +171,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=normal_user)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=public_use_case_ids,
         )
 
     def test_metrics_details_for_custom_metrics(self):
@@ -215,30 +220,3 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert data[2]["blockingStatus"] == [
             {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]
-
-    def test_metrics_details_with_date_range(self):
-        metrics = (
-            ("c:custom/clicks_1@none", 0),
-            ("c:custom/clicks_2@none", 1),
-            ("c:custom/clicks_3@none", 7),
-        )
-        for mri, days in metrics:
-            self.store_metric(
-                self.project.organization.id,
-                self.project.id,
-                "counter",
-                mri,
-                {"transaction": "/hello"},
-                int((self.now - timedelta(days=days)).timestamp()),
-                10,
-                UseCaseID.CUSTOM,
-            )
-
-        for stats_period, expected_count in (("1d", 1), ("2d", 2), ("2w", 3)):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=self.project.id,
-                useCase="custom",
-                statsPeriod=stats_period,
-            )
-            assert len(response.data) == expected_count
