@@ -83,31 +83,25 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
     def get_client(self) -> SlackClient:
         return SlackClient(integration_id=self.model.id)
 
-    def get_config_data(self) -> Mapping[str, str]:
+    def get_config_data(self) -> Mapping[str, Any]:
+        base_data = super().get_config_data()
+
+        # Add installationType key to config data
         metadata_ = self.model.metadata
         # Classic bots had a user_access_token in the metadata.
         default_installation = (
             "classic_bot" if "user_access_token" in metadata_ else "workspace_app"
         )
-        return {"installationType": metadata_.get("installation_type", default_installation)}
+        base_data["installationType"] = metadata_.get("installation_type", default_installation)
 
-    def get_organization_config(self) -> Sequence[tuple[str, bool]]:
-        """
-        Not sure why the base class is restricted to a sequence type, doesn't really make sense, however, it is
-        sufficient to our needs for now, and we can utilize it to return toggleable flags/feature on the integration
-        """
-
-        # Specifically using the parent method because the overwritten method on current class is hacked for another
-        # purpose at the integration/provider wide level, which is wrong/incorrect
-        base_data = super().get_config_data()
-
+        # Add missing toggleable feature flags
         stored_flag_data = base_data.get(self._FLAGS_KEY, {})
-        flag_statuses = []
         for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS.items():
-            flag_value = stored_flag_data.get(flag_name, default_flag_value)
-            flag_statuses.append((flag_name, flag_value))
+            if flag_name not in stored_flag_data:
+                stored_flag_data[flag_name] = default_flag_value
 
-        return flag_statuses
+        base_data[self._FLAGS_KEY] = stored_flag_data
+        return base_data
 
     def _update_and_clean_flags_in_organization_config(
         self, data: MutableMapping[str, Any]

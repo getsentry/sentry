@@ -16,18 +16,19 @@ class _BaseTestCase(TestCase):
 
 
 @control_silo_test
-class TestGetOrganizationConfig(_BaseTestCase):
+class TestGetConfigData(_BaseTestCase):
     def test_gets_default_flags_when_no_data_exists(self) -> None:
         self.create_organization_integration(
             organization_id=self.organization.id,
             integration=self.slack_provider_integration,
             config={},
         )
-        results = self.slack_installation.get_organization_config()
-        assert results == [
-            ("ISSUE_ALERTS_THREAD_FLAG", True),
-            ("METRIC_ALERTS_THREAD_FLAG", True),
-        ]
+        data = self.slack_installation.get_config_data()
+        results = data.get("TOGGLEABLE_FLAGS")
+        assert results == {
+            "ISSUE_ALERTS_THREAD_FLAG": True,
+            "METRIC_ALERTS_THREAD_FLAG": True,
+        }
 
     def test_gets_missing_flags(self) -> None:
         self.create_organization_integration(
@@ -39,11 +40,12 @@ class TestGetOrganizationConfig(_BaseTestCase):
                 }
             },
         )
-        results = self.slack_installation.get_organization_config()
-        assert results == [
-            ("ISSUE_ALERTS_THREAD_FLAG", False),
-            ("METRIC_ALERTS_THREAD_FLAG", True),
-        ]
+        data = self.slack_installation.get_config_data()
+        results = data.get("TOGGLEABLE_FLAGS")
+        assert results == {
+            "ISSUE_ALERTS_THREAD_FLAG": False,
+            "METRIC_ALERTS_THREAD_FLAG": True,
+        }
 
     def test_gets_correct_data(self) -> None:
         self.create_organization_integration(
@@ -56,30 +58,12 @@ class TestGetOrganizationConfig(_BaseTestCase):
                 }
             },
         )
-        results = self.slack_installation.get_organization_config()
-        assert results == [
-            ("ISSUE_ALERTS_THREAD_FLAG", False),
-            ("METRIC_ALERTS_THREAD_FLAG", False),
-        ]
-
-    def test_ignores_unsupported_flags(self) -> None:
-        self.create_organization_integration(
-            organization_id=self.organization.id,
-            integration=self.slack_provider_integration,
-            config={
-                "TOGGLEABLE_FLAGS": {
-                    "ISSUE_ALERTS_THREAD_FLAG": False,
-                    "METRIC_ALERTS_THREAD_FLAG": False,
-                    "SOME_OTHER_KEY": True,
-                    "KEY": True,
-                }
-            },
-        )
-        results = self.slack_installation.get_organization_config()
-        assert results == [
-            ("ISSUE_ALERTS_THREAD_FLAG", False),
-            ("METRIC_ALERTS_THREAD_FLAG", False),
-        ]
+        data = self.slack_installation.get_config_data()
+        results = data.get("TOGGLEABLE_FLAGS")
+        assert results == {
+            "ISSUE_ALERTS_THREAD_FLAG": False,
+            "METRIC_ALERTS_THREAD_FLAG": False,
+        }
 
 
 @control_silo_test
