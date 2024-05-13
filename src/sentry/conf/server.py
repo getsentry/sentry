@@ -2755,6 +2755,11 @@ SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
+# This flags enables the `peanutbutter` realtime metrics backend.
+# See https://github.com/getsentry/peanutbutter.
+# TODO: we do not want/need this in normal devservices, but we need it for certain tests
+SENTRY_USE_PEANUTBUTTER = True
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -3019,7 +3024,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "image": "us.gcr.io/sentryio/peanutbutter:latest",
             "environment": {},
             "ports": {"4433/tcp": 4433},
-            "only_if": False,  # TODO: we do not want/need this in normal devservices, but we need it for certain tests
+            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
         }
     ),
 }
