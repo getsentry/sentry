@@ -23,7 +23,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={ROUTE_NAMES['app-startup']}
-      baseURL="/performance/browser/app-startup"
+      baseURL="/performance/mobile/app-startup"
       features="spans-first-ui"
     >
       <InitializationModule />
