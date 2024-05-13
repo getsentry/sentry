@@ -181,6 +181,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:related-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:related-issues-issue-details-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:releases-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
