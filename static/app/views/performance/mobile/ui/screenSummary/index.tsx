@@ -6,8 +6,6 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -18,6 +16,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
 import {ScreenLoadSpanSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/samples';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -72,72 +71,82 @@ function ScreenSummary() {
   ];
 
   return (
-    <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
-      <Layout.Page>
-        <PageAlertProvider>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs crumbs={crumbs} />
-              <Layout.Title>{transactionName}</Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
+    <Layout.Page>
+      <PageAlertProvider>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
+            <Layout.Title>{transactionName}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
 
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <PageAlert />
-              <PageFiltersContainer>
-                <HeaderContainer>
-                  <ControlsContainer>
-                    <PageFilterBar condensed>
-                      <DatePageFilter />
-                    </PageFilterBar>
-                    <ReleaseComparisonSelector />
-                  </ControlsContainer>
-                </HeaderContainer>
-                <SamplesContainer>
-                  <SamplesTables
-                    transactionName={transactionName}
-                    SpanOperationTable={SpanOperationTable}
-                    // TODO(nar): Add event samples component specific to ui module
-                    EventSamples={_props => <div />}
-                  />
-                </SamplesContainer>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <PageAlert />
+            <HeaderContainer>
+              <ControlsContainer>
+                <PageFilterBar condensed>
+                  <DatePageFilter />
+                </PageFilterBar>
+                <ReleaseComparisonSelector />
+              </ControlsContainer>
+            </HeaderContainer>
+            <SamplesContainer>
+              <SamplesTables
+                transactionName={transactionName}
+                SpanOperationTable={SpanOperationTable}
+                // TODO(nar): Add event samples component specific to ui module
+                EventSamples={_props => <div />}
+              />
+            </SamplesContainer>
 
-                {spanGroup && spanOp && (
-                  <ScreenLoadSpanSamples
-                    additionalFilters={{
-                      ...(deviceClass
-                        ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass}
-                        : {}),
-                    }}
-                    groupId={spanGroup}
-                    transactionName={transactionName}
-                    spanDescription={spanDescription}
-                    spanOp={spanOp}
-                    onClose={() => {
-                      router.replace({
-                        pathname: router.location.pathname,
-                        query: omit(
-                          router.location.query,
-                          'spanGroup',
-                          'transactionMethod',
-                          'spanDescription',
-                          'spanOp'
-                        ),
-                      });
-                    }}
-                  />
-                )}
-              </PageFiltersContainer>
-            </Layout.Main>
-          </Layout.Body>
-        </PageAlertProvider>
-      </Layout.Page>
-    </SentryDocumentTitle>
+            {spanGroup && spanOp && (
+              <ScreenLoadSpanSamples
+                additionalFilters={{
+                  ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+                }}
+                groupId={spanGroup}
+                transactionName={transactionName}
+                spanDescription={spanDescription}
+                spanOp={spanOp}
+                onClose={() => {
+                  router.replace({
+                    pathname: router.location.pathname,
+                    query: omit(
+                      router.location.query,
+                      'spanGroup',
+                      'transactionMethod',
+                      'spanDescription',
+                      'spanOp'
+                    ),
+                  });
+                }}
+              />
+            )}
+          </Layout.Main>
+        </Layout.Body>
+      </PageAlertProvider>
+    </Layout.Page>
   );
 }
 
-export default ScreenSummary;
+function PageWithProviders() {
+  const location = useLocation<Query>();
+
+  const {transaction} = location.query;
+
+  return (
+    <ModulePageProviders
+      title={[transaction, t('Screen Loads')].join(' — ')}
+      baseURL="/performance/browser/app-startup"
+      features={['spans-first-ui', 'starfish-mobile-ui-module']}
+    >
+      <ScreenSummary />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;
 
 const ControlsContainer = styled('div')`
   display: flex;
