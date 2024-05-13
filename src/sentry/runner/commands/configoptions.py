@@ -276,7 +276,9 @@ def sync(ctx: click.Context) -> None:
                         presenter_delegator.unset(opt.name)
                     else:
                         if (
-                            options.can_update(opt.name, opt.value, options.UpdateChannel.AUTOMATOR)
+                            options.can_update(
+                                opt.name, options.get(opt.name), options.UpdateChannel.AUTOMATOR
+                            )
                             == options.NotWritableReason.OPTION_ON_DISK
                         ):
                             continue
