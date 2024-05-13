@@ -333,12 +333,6 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     )
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
-    logger.info("delayed_processing.num_rules", extra={"rules": len(rules_to_groups.keys())})
-
-    num_groups = 0
-    for groups in rules_to_groups.values():
-        num_groups += len(groups)
-    logger.info("delayed_processing.num_groups", extra={"groups": num_groups})
 
     # STEP 3: Fetch the Rule models we need to check
     alert_rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
