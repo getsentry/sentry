@@ -2120,12 +2120,12 @@ ORGANIZATION_URLS = [
     ),
     # Unsubscribe from organization notifications
     re_path(
-        r"^(?P<organization_slug>[^/]+)/unsubscribe/project/(?P<id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/unsubscribe/project/(?P<id>\d+)/$",
         OrganizationUnsubscribeProject.as_view(),
         name="sentry-api-0-organization-unsubscribe-project",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/unsubscribe/issue/(?P<id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/unsubscribe/issue/(?P<id>\d+)/$",
         OrganizationUnsubscribeIssue.as_view(),
         name="sentry-api-0-organization-unsubscribe-issue",
     ),
