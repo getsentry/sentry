@@ -199,7 +199,7 @@ def _import(
             # matched orgs, and finally add those pks to a `User.pk` instance of `Filter`.
             filtered_org_pks = set()
             seen_first_org_member_model = False
-            user_filter: Filter[int] = Filter(model=User, field="pk")
+            user_filter: Filter[int] = Filter[int](model=User, field="pk")
             filters.append(user_filter)
 
             # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON
@@ -246,7 +246,7 @@ def _import(
             raise TypeError("Filter arguments must only apply to `Organization` or `User` models")
 
         user_filter = next(f for f in filters if f.model == User)
-        email_filter = Filter(
+        email_filter = Filter[str](
             model=Email,
             field="email",
             values={v for k, v in user_to_email.items() if k in user_filter.values},
@@ -481,7 +481,7 @@ def import_in_user_scope(
         ImportScope.User,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
@@ -512,7 +512,7 @@ def import_in_organization_scope(
         ImportScope.Organization,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        filter_by=Filter[str](Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
     )
 
@@ -544,7 +544,7 @@ def import_in_config_scope(
         ImportScope.Config,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
