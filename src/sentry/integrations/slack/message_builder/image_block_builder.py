@@ -122,7 +122,6 @@ class ImageBlockBuilder(BlockSlackMessageBuilder):
                     "dataset": "profileFunctions",
                     "referrer": Referrer.API_ALERTS_CHARTCUTERIE,
                     "project": self.group.project.id,
-                    "environment": event.get_environment().name,
                     "start": period["start"].strftime("%Y-%m-%d %H:%M:%S"),
                     "end": period["end"].strftime("%Y-%m-%d %H:%M:%S"),
                     "yAxis": ["p95()"],
@@ -130,6 +129,7 @@ class ImageBlockBuilder(BlockSlackMessageBuilder):
                 },
             )
 
+            # Convert the aggregate range from nanoseconds to milliseconds
             evidence_data = {
                 "aggregate_range_1": event.occurrence.evidence_data["aggregate_range_1"] / 1e6,
                 "aggregate_range_2": event.occurrence.evidence_data["aggregate_range_2"] / 1e6,
