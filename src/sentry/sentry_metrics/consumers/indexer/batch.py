@@ -152,7 +152,7 @@ class IndexerBatch:
                 self.invalid_msg_meta.add(broker_meta)
                 logger.exception(
                     str(e),
-                    extra={"payload_value": str(msg.payload.value)},
+                    extra={"payload_value": repr(msg.payload.value)},
                 )
 
         for namespace, cnt in skipped_msgs_cnt.items():
@@ -172,7 +172,7 @@ class IndexerBatch:
         except orjson.JSONDecodeError:
             logger.exception(
                 "process_messages.invalid_json",
-                extra={"payload_value": str(msg.payload.value)},
+                extra={"payload_value": repr(msg.payload.value)},
             )
             raise
 
@@ -186,7 +186,7 @@ class IndexerBatch:
                 raise
             logger.warning(
                 "process_messages.invalid_schema",
-                extra={"payload_value": str(msg.payload.value)},
+                extra={"payload_value": repr(msg.payload.value)},
                 exc_info=True,
             )
 
