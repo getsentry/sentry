@@ -17,7 +17,9 @@ import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDo
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
+// IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
 ${getSdkInitSnippet(params, 'aws')}
+// Place any other require/import statements here
 
 exports.handler = Sentry.wrapHandler(async (event, context) => {
   // Your handler code
@@ -50,8 +52,10 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        "Wrap your lambda handler with Sentry's [code:wraphandler] function:",
+        "Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [require:require] or [import:import] statements. Then, wrap your lambda handler with Sentry's [code:wraphandler] function:",
         {
+          import: <code />,
+          require: <code />,
           code: <code />,
         }
       ),

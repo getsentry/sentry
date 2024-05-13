@@ -18,7 +18,9 @@ type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
 "use strict";
+// IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
 ${getSdkInitSnippet(params, 'node')}
+// Place any other require/import statements here
 
 module.exports = async function (context, req) {
   try {
@@ -46,7 +48,10 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t('To set up Sentry error logging for an Azure Function:'),
+      description: tct(
+        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [require:require] or [import:import] statements.',
+        {import: <code />, require: <code />}
+      ),
       configurations: [
         {
           language: 'javascript',

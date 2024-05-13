@@ -153,22 +153,24 @@ export function getImportInstrumentSnippet(): string {
 export const getSdkInitSnippet = (
   params: DocsParams,
   sdkImport: 'node' | 'aws' | 'gpc'
-) => `
-${
-  sdkImport === 'node'
-    ? getDefaultNodeImports({productSelection: getProductSelectionMap(params)}).join('\n')
-    : sdkImport === 'aws'
-      ? getDefaultServerlessImports({
-          productSelection: getProductSelectionMap(params),
-          library: 'aws-serverless',
-        }).join('\n')
-      : sdkImport === 'gpc'
+) =>
+  `${
+    sdkImport === 'node'
+      ? getDefaultNodeImports({productSelection: getProductSelectionMap(params)}).join(
+          '\n'
+        )
+      : sdkImport === 'aws'
         ? getDefaultServerlessImports({
             productSelection: getProductSelectionMap(params),
-            library: 'google-cloud-serverless',
+            library: 'aws-serverless',
           }).join('\n')
-        : ''
-}
+        : sdkImport === 'gpc'
+          ? getDefaultServerlessImports({
+              productSelection: getProductSelectionMap(params),
+              library: 'google-cloud-serverless',
+            }).join('\n')
+          : ''
+  }
 
 Sentry.init({
   dsn: "${params.dsn}",
