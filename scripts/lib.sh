@@ -99,9 +99,6 @@ install-py-dev() {
 
     pip-install -r requirements-dev-frozen.txt
 
-    # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
-    # and acceptance tests, which webpack automatically if run.
     python3 -m tools.fast_editable --path .
 }
 
