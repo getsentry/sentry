@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
 from sentry import nodestore
-from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -292,7 +292,6 @@ def get_group_to_groupevent(
     return group_to_groupevent
 
 
-@redis_buffer_registry.add_handler(BufferHookEvent.FLUSH)
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
