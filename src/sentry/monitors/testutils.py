@@ -10,14 +10,19 @@ from sentry.monitors.processing_errors import (
 from sentry.monitors.types import CheckinItem, CheckinPayload
 
 
-def build_checkin_item(ts=None, partition=0, message_overrides=None, payload_overrides=None):
+def build_checkin_item(
+    ts: datetime | None = None,
+    partition: int = 0,
+    message_overrides=None,
+    payload_overrides=None,
+):
     if ts is None:
         ts = datetime.now()
 
     message: CheckIn = {
         "message_type": "check_in",
         "payload": {},
-        "start_time": ts,
+        "start_time": ts.timestamp(),
         "project_id": 1,
         "sdk": None,
         "retention_days": 10,
