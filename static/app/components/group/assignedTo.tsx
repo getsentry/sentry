@@ -180,7 +180,6 @@ function AssignedTo({
   const organization = useOrganization();
   const api = useApi();
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const [assigneeLoading, setAssigneeLoading] = useState<boolean>(false);
   const {data} = useCommitters(
     {
       eventId: event?.id ?? '',
@@ -192,7 +191,7 @@ function AssignedTo({
     }
   );
 
-  const {mutate: handleAssigneeChange} = useMutation<
+  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
     AssignableEntity | null,
     RequestError,
     AssignableEntity | null
@@ -200,7 +199,6 @@ function AssignedTo({
     mutationFn: async (
       newAssignee: AssignableEntity | null
     ): Promise<AssignableEntity | null> => {
-      setAssigneeLoading(true);
       if (newAssignee) {
         await assignToActor({
           id: group.id,
@@ -218,11 +216,9 @@ function AssignedTo({
       if (onAssign && newAssignee) {
         onAssign(newAssignee.type, newAssignee.assignee, newAssignee.suggestedAssignee);
       }
-      setAssigneeLoading(false);
     },
     onError: () => {
       addErrorMessage('Failed to update assignee');
-      setAssigneeLoading(false);
     },
   });
 
