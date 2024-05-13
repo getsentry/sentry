@@ -66,6 +66,10 @@ export interface AssigneeSelectorDropdownProps {
    */
   loading: boolean;
   /**
+   * Additional styles to apply to the dropdown
+   */
+  className?: string;
+  /**
    * Optional list of members to populate the dropdown with.
    */
   memberList?: User[];
@@ -87,10 +91,6 @@ export interface AssigneeSelectorDropdownProps {
    * Optional list of suggested owners of the group
    */
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
-  /**
-   * Additional styles to apply to the dropdown
-   */
-  style?: React.CSSProperties;
   /**
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
@@ -196,6 +196,7 @@ export function AssigneeAvatar({
 }
 
 export default function AssigneeSelectorDropdown({
+  className,
   group,
   loading,
   memberList,
@@ -203,7 +204,6 @@ export default function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
-  style,
   trigger,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
@@ -535,6 +535,7 @@ export default function AssigneeSelectorDropdown({
       <CompactSelect
         searchable
         clearable
+        className={className}
         menuWidth={275}
         disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
@@ -549,7 +550,6 @@ export default function AssigneeSelectorDropdown({
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
-        style={style}
         trigger={trigger ?? makeTrigger}
         menuFooter={makeFooterInviteButton()}
       />

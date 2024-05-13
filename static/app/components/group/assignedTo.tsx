@@ -308,13 +308,12 @@ function AssignedTo({
         </Access>
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>
-        <AssigneeSelectorDropdown
+        <StyledAssigneeSelectorDropdown
           group={group}
           owners={owners}
           loading={assigneeLoading}
           onAssign={handleAssigneeChange}
           onClear={() => handleAssigneeChange(null)}
-          style={{width: '100%'}}
           trigger={makeTrigger}
         />
       </StyledSidebarSectionContent>
@@ -323,6 +322,10 @@ function AssignedTo({
 }
 
 export default AssignedTo;
+
+const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
+  width: 100%;
+`;
 
 const DropdownButton = styled('div')`
   display: flex;
