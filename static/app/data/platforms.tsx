@@ -411,14 +411,6 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/koa/',
   },
   {
-    // this isn't supported anymore, not in docs, nor in project selector
-    id: 'node-serverlesscloud',
-    name: 'Serverless (Node)',
-    type: 'framework',
-    language: 'node',
-    link: 'https://docs.sentry.io/platforms/javascript/guides/serverless-cloud/',
-  },
-  {
     id: 'php',
     name: 'PHP',
     type: 'language',
