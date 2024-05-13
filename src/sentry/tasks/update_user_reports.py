@@ -8,7 +8,7 @@ from sentry import eventstore, features
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.iterators import chunked
 
@@ -70,6 +70,10 @@ def update_user_reports(**kwargs: Any) -> None:
                 if features.has(
                     "organizations:user-feedback-ingest", project.organization, actor=None
                 ):
+                    logger.info(
+                        "update_user_reports.shim_to_feedback",
+                        extra={"report_id": report.id, "event_id": event.event_id},
+                    )
                     shim_to_feedback(
                         {
                             "name": report.name,
@@ -80,7 +84,7 @@ def update_user_reports(**kwargs: Any) -> None:
                         },
                         event,
                         project,
-                        FeedbackCreationSource.USER_REPORT_ENVELOPE,
+                        FeedbackCreationSource.UPDATE_USER_REPORTS_TASK,
                     )
                 report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1

@@ -18,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -26,14 +27,12 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import GlobalParams, MonitorParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
@@ -49,6 +48,7 @@ from sentry.monitors.serializers import (
 from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
+from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 
 from .base import OrganizationMonitorPermission
@@ -105,6 +105,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_SLUG,
             OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
+            MonitorParams.OWNER,
         ],
         responses={
             200: inline_sentry_response_serializer("MonitorList", list[MonitorSerializerResponse]),
@@ -131,6 +132,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             ]
         )
         query = request.GET.get("query")
+        owners = request.GET.getlist("owner")
         is_asc = request.GET.get("asc", "1") == "1"
         sort = request.GET.get("sort", "status")
 
@@ -195,6 +197,35 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         if not is_asc:
             sort_fields = [flip_sort_direction(sort_field) for sort_field in sort_fields]
+
+        if owners:
+            owners = set(owners)
+
+            # Remove special values from owners, this can't be parsed as an Actor
+            include_myteams = "myteams" in owners
+            owners.discard("myteams")
+            include_unassigned = "unassigned" in owners
+            owners.discard("unassigned")
+
+            actors = [Actor.from_identifier(identifier) for identifier in owners]
+
+            user_ids = [actor.id for actor in actors if actor.is_user]
+            team_ids = [actor.id for actor in actors if actor.is_team]
+
+            teams = get_teams(
+                request,
+                organization,
+                teams=[*team_ids, *(["myteams"] if include_myteams else [])],
+            )
+            team_ids = [team.id for team in teams]
+
+            owner_filter = Q(owner_user_id__in=user_ids) | Q(owner_team_id__in=team_ids)
+
+            if include_unassigned:
+                unassigned_filter = Q(owner_user_id=None) & Q(owner_team_id=None)
+                queryset = queryset.filter(unassigned_filter | owner_filter)
+            else:
+                queryset = queryset.filter(owner_filter)
 
         if query:
             tokens = tokenize_query(query)
@@ -264,9 +295,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         owner = result.get("owner")
         owner_user_id = None
         owner_team_id = None
-        if owner and owner.type == User:
+        if owner and owner.is_user:
             owner_user_id = owner.id
-        elif owner and owner.type == Team:
+        elif owner and owner.is_team:
             owner_team_id = owner.id
 
         try:

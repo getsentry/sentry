@@ -1,14 +1,16 @@
 import logging
 from datetime import timedelta
+from typing import cast
 
 from django.utils import timezone
 
+from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -27,7 +29,6 @@ logger = logging.getLogger(__name__)
 def _process_suspect_commits(
     event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
 ):
-
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
 
@@ -60,18 +61,19 @@ def _process_suspect_commits(
                 committers = get_event_file_committers(
                     project, group_id, event_frames, event_platform, sdk_name=sdk_name
                 )
-            owner_scores = {}
+            owner_scores: dict[str, int] = {}
             for committer in committers:
-                if committer["author"] and "id" in committer["author"]:
-                    author_id = committer["author"]["id"]
-                    for commit, score in committer["commits"]:
+                author = cast(UserSerializerResponse, committer["author"])
+                if author and "id" in author:
+                    author_id = author["id"]
+                    for _, score in committer["commits"]:
                         if score >= MIN_COMMIT_SCORE:
                             owner_scores[author_id] = max(score, owner_scores.get(author_id, 0))
 
             if owner_scores:
-                for owner_id in sorted(owner_scores, reverse=True, key=owner_scores.get)[
-                    :PREFERRED_GROUP_OWNERS
-                ]:
+                for owner_id, _ in sorted(
+                    sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
+                )[:PREFERRED_GROUP_OWNERS]:
                     try:
                         go, created = GroupOwner.objects.update_or_create(
                             group_id=group_id,
@@ -158,7 +160,6 @@ def process_suspect_commits(
     )
     try:
         with lock.acquire():
-
             _process_suspect_commits(
                 event_id,
                 event_platform,

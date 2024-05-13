@@ -33,7 +33,7 @@ class ReleaseThresholdDetailsGETTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": 123,
             },
         )
@@ -46,7 +46,7 @@ class ReleaseThresholdDetailsGETTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": "kingdom_of_the_crystal_skull",
+                "project_id_or_slug": "kingdom_of_the_crystal_skull",
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -59,7 +59,7 @@ class ReleaseThresholdDetailsGETTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -100,7 +100,7 @@ class ReleaseThresholdDetailsDELETETest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": 123,
             },
         )
@@ -113,7 +113,7 @@ class ReleaseThresholdDetailsDELETETest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": "kingdom_of_the_crystal_skull",
+                "project_id_or_slug": "kingdom_of_the_crystal_skull",
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -126,7 +126,7 @@ class ReleaseThresholdDetailsDELETETest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -162,7 +162,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": 123,
             },
         )
@@ -175,7 +175,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -192,7 +192,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -213,7 +213,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -234,7 +234,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -255,7 +255,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": "kingdom_of_the_crystal_skull",
+                "project_id_or_slug": "kingdom_of_the_crystal_skull",
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -278,7 +278,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": self.basic_threshold.id,
             },
         )
@@ -309,7 +309,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
                 "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "release_threshold": self.basic_threshold.id,
             },
         )

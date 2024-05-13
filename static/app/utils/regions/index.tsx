@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization, Region} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Region} from 'sentry/types/system';
 
 const RegionDisplayName: Record<string, string> = {
   US: t('United States of America (US)'),
@@ -68,9 +69,5 @@ export function getRegionChoices(): [string, string][] {
 }
 
 export function shouldDisplayRegions(): boolean {
-  const regionCount = getRegions().length;
-  return (
-    ConfigStore.get('features').has('organizations:multi-region-selector') &&
-    regionCount > 1
-  );
+  return getRegions().length > 1;
 }

@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from dateutil.parser import parse as parse_date
@@ -34,13 +35,12 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
 from sentry.signals import project_created
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -556,7 +556,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         response_data = response.data.get("trustedRelays")
         assert response_data is not None
-        resp_str = json.dumps(response_data)
+        resp_str = orjson.dumps(response_data).decode()
         # check that we have the duplicate key specified somewhere in the error message
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 

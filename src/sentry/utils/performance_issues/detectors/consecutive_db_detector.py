@@ -7,7 +7,6 @@ from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -84,7 +83,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _add_problem_span(self, span: Span) -> None:
         self.consecutive_db_spans.append(span)
 
-    def _validate_and_store_performance_problem(self):
+    def _validate_and_store_performance_problem(self) -> None:
         self._set_independent_spans(self.consecutive_db_spans)
         if not len(self.independent_db_spans):
             return
@@ -189,7 +188,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         return self.consecutive_db_spans[0].get("description", "")
 
-    def _set_independent_spans(self, spans: list[Span]):
+    def _set_independent_spans(self, spans: list[Span]) -> None:
         """
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
         To start, we are just checking for a span in a list of consecutive span without a WHERE clause
@@ -256,15 +255,13 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self._validate_and_store_performance_problem()
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-consecutive-db-issue", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project | None = None) -> bool:
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         request = event.get("request", None) or None
         sdk_name = get_sdk_name(event) or ""
 

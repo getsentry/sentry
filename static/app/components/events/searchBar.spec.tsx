@@ -6,7 +6,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types/organization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {datasetSupportedTags} from 'sentry/views/alerts/wizard/options';
 
 const selectNthAutocompleteItem = async index => {
   await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
@@ -57,6 +59,18 @@ describe('Events > SearchBar', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/is/values/',
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/error.handled/values/',
+      method: 'GET',
       body: [],
     });
 
@@ -354,5 +368,53 @@ describe('Events > SearchBar', function () {
         'Invalid duration. Expected number followed by duration unit suffix'
       )
     ).toBeInTheDocument();
+  });
+
+  it('is query works for metric alert search bar when the flag is on', async function () {
+    const OrganizationIs = OrganizationFixture({
+      features: ['metric-alert-ignore-archived'],
+    });
+    render(
+      <SearchBar
+        {...props}
+        metricAlert
+        supportedTags={datasetSupportedTags(Dataset.ERRORS, OrganizationIs)}
+      />
+    );
+    await setQuery('is:');
+
+    const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
+    expect(autocomplete.at(0)).toHaveTextContent('is:');
+  });
+
+  it('handled query works for metric alert search bar when the flag is on', async function () {
+    const OrganizationIs = OrganizationFixture({
+      features: ['metric-alert-ignore-archived'],
+    });
+    render(
+      <SearchBar
+        {...props}
+        metricAlert
+        supportedTags={datasetSupportedTags(Dataset.ERRORS, OrganizationIs)}
+      />
+    );
+    await setQuery('error.handled:');
+
+    const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
+    expect(autocomplete.at(0)).toHaveTextContent('handled:');
+  });
+
+  it('is query does not work when the flag is off', async function () {
+    render(
+      <SearchBar
+        {...props}
+        metricAlert
+        supportedTags={datasetSupportedTags(Dataset.ERRORS, props.organization)}
+      />
+    );
+    await setQuery('is:');
+
+    const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
+    expect(autocomplete.at(0)).not.toHaveTextContent('is:');
   });
 });

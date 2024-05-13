@@ -47,16 +47,6 @@ export const formatVersion = (rawVersion: string, withPackage = false) => {
   }
 };
 
-function roundWithFixed(
-  value: number,
-  fixedDigits: number
-): {label: string; result: number} {
-  const label = value.toFixed(fixedDigits);
-  const result = fixedDigits <= 0 ? Math.round(value) : value;
-
-  return {label, result};
-}
-
 // in milliseconds
 export const MONTH = 2629800000;
 export const WEEK = 604800000;
@@ -67,118 +57,6 @@ export const SECOND = 1000;
 export const MILLISECOND = 1;
 export const MICROSECOND = 0.001;
 export const NANOSECOND = 0.000001;
-
-/**
- * Returns a human redable duration rounded to the largest unit.
- *
- * e.g. 2 days, or 3 months, or 25 seoconds
- *
- * Use `getExactDuration` for exact durations
- */
-
-const DURATION_LABELS = {
-  mo: t('mo'),
-  w: t('w'),
-  wk: t('wk'),
-  week: t('week'),
-  weeks: t('weeks'),
-  d: t('d'),
-  day: t('day'),
-  days: t('days'),
-  h: t('h'),
-  hr: t('hr'),
-  hour: t('hour'),
-  hours: t('hours'),
-  m: t('m'),
-  min: t('min'),
-  minute: t('minute'),
-  minutes: t('minutes'),
-  s: t('s'),
-  sec: t('sec'),
-  secs: t('secs'),
-  second: t('second'),
-  seconds: t('seconds'),
-  ms: t('ms'),
-  millisecond: t('millisecond'),
-  milliseconds: t('milliseconds'),
-};
-export function getDuration(
-  seconds: number,
-  fixedDigits: number = 0,
-  abbreviation: boolean = false,
-  extraShort: boolean = false,
-  absolute: boolean = false
-): string {
-  const absValue = Math.abs(seconds * 1000);
-
-  // value in milliseconds
-  const msValue = absolute ? absValue : seconds * 1000;
-
-  if (absValue >= MONTH && !extraShort) {
-    const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
-    return `${label}${
-      abbreviation ? DURATION_LABELS.mo : ` ${tn('month', 'months', result)}`
-    }`;
-  }
-
-  if (absValue >= WEEK) {
-    const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
-    if (extraShort) {
-      return `${label}${DURATION_LABELS.w}`;
-    }
-    if (abbreviation) {
-      return `${label}${DURATION_LABELS.wk}`;
-    }
-    return `${label} ${tn('week', 'weeks', result)}`;
-  }
-
-  if (absValue >= DAY) {
-    const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
-
-    if (extraShort || abbreviation) {
-      return `${label}${DURATION_LABELS.d}`;
-    }
-    return `${label} ${tn('day', 'days', result)}`;
-  }
-
-  if (absValue >= HOUR) {
-    const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
-    if (extraShort) {
-      return `${label}${DURATION_LABELS.h}`;
-    }
-    if (abbreviation) {
-      return `${label}${DURATION_LABELS.hr}`;
-    }
-    return `${label} ${tn('hour', 'hours', result)}`;
-  }
-
-  if (absValue >= MINUTE) {
-    const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
-    if (extraShort) {
-      return `${label}${DURATION_LABELS.m}`;
-    }
-    if (abbreviation) {
-      return `${label}${DURATION_LABELS.min}`;
-    }
-    return `${label} ${tn('minute', 'minutes', result)}`;
-  }
-
-  if (absValue >= SECOND) {
-    const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
-    if (extraShort || abbreviation) {
-      return `${label}${DURATION_LABELS.s}`;
-    }
-    return `${label} ${tn('second', 'seconds', result)}`;
-  }
-
-  const {label, result} = roundWithFixed(msValue, fixedDigits);
-
-  if (extraShort || abbreviation) {
-    return `${label}${DURATION_LABELS.ms}`;
-  }
-
-  return `${label} ${tn('millisecond', 'milliseconds', result)}`;
-}
 
 const SUFFIX_ABBR = {
   years: t('yr'),
@@ -373,10 +251,23 @@ export function formatFloat(number: number, places: number) {
 /**
  * Format a value between 0 and 1 as a percentage
  */
-export function formatPercentage(value: number, places: number = 2) {
+export function formatPercentage(
+  value: number,
+  places: number = 2,
+  options: {
+    minimumValue?: number;
+  } = {}
+) {
   if (value === 0) {
     return '0%';
   }
+
+  const minimumValue = options.minimumValue ?? 0;
+
+  if (Math.abs(value) <= minimumValue) {
+    return `<${minimumValue * 100}%`;
+  }
+
   return (
     round(value * 100, places).toLocaleString(undefined, {
       maximumFractionDigits: places,

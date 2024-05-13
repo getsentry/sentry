@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from functools import cached_property
 from typing import Any
 
+import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
@@ -20,7 +21,6 @@ from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region, RegionResolutionError
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
     def request_data(self):
         data = {}
         try:
-            data = json.loads(self.request.body.decode(encoding="utf-8"))
-        except Exception as err:
+            data = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError as err:
             sentry_sdk.capture_exception(err)
         return data
 
@@ -132,6 +132,6 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             "Scheduling event for request",
             extra={"request_data": self.request_data},
         )
-        return self.get_response_from_webhookpayload_for_integration(
-            regions=regions, integration=integration
+        return self.get_response_from_webhookpayload(
+            regions=regions, identifier=integration.id, integration_id=integration.id
         )

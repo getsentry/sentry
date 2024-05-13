@@ -5,6 +5,7 @@ from collections import OrderedDict as ordereddict
 from collections import defaultdict
 from copy import deepcopy
 from difflib import unified_diff
+from typing import Any
 
 from sentry.backup.comparators import ComparatorMap, ForeignKeyComparator, get_default_comparators
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap, get_model
@@ -15,7 +16,7 @@ from sentry.backup.findings import (
     InstanceID,
 )
 from sentry.backup.helpers import Side
-from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
+from sentry.utils.json import JSONEncoder, better_default_encoder
 
 JSON_PRETTY_PRINTER = JSONEncoder(
     default=better_default_encoder, indent=2, ignore_nan=True, sort_keys=True
@@ -23,8 +24,8 @@ JSON_PRETTY_PRINTER = JSONEncoder(
 
 
 def validate(
-    expect: JSONData,
-    actual: JSONData,
+    expect: Any,
+    actual: Any,
     comparators: ComparatorMap | None = None,
 ) -> ComparatorFindings:
     """Ensures that originally imported data correctly matches actual outputted data, and produces a
@@ -43,7 +44,7 @@ def validate(
             self.next_ordinal = 1
 
         def assign(
-            self, obj: JSONData, ordinal_value: int | tuple, side: Side
+            self, obj: Any, ordinal_value: int | tuple, side: Side
         ) -> tuple[InstanceID, list[ComparatorFinding]]:
             """Assigns the next available ordinal to the supplied `obj` model."""
 
@@ -76,10 +77,10 @@ def validate(
             return (InstanceID(str(model_name), obj["ordinal"]), findings if findings else [])
 
     OrdinalCounters = dict[NormalizedModelName, OrdinalCounter]
-    ModelMap = dict[NormalizedModelName, OrderedDict[InstanceID, JSONData]]
+    ModelMap = dict[NormalizedModelName, OrderedDict[InstanceID, Any]]
 
     def build_model_map(
-        models: JSONData, side: Side, findings: ComparatorFindings
+        models: Any, side: Side, findings: ComparatorFindings
     ) -> tuple[ModelMap, OrdinalCounters]:
         """Does two things in tandem: builds a map of InstanceID -> JSON model, and simultaneously builds a map of model name -> number of ordinals assigned."""
 
@@ -88,7 +89,7 @@ def validate(
 
         model_map: ModelMap = defaultdict(ordereddict)
         ordinal_counters: OrdinalCounters = defaultdict(OrdinalCounter)
-        need_ordering: dict[NormalizedModelName, dict[tuple, JSONData]] = defaultdict(dict)
+        need_ordering: dict[NormalizedModelName, dict[tuple, Any]] = defaultdict(dict)
         pks_to_usernames: dict[int, str] = dict()
 
         for model in models:
@@ -101,7 +102,7 @@ def validate(
             if model_type == User:
                 pks_to_usernames[pk] = model["fields"]["username"]
 
-            custom_ordinal_fields = model_type.get_relocation_ordinal_fields()
+            custom_ordinal_fields = model_type.get_relocation_ordinal_fields(model)
             if custom_ordinal_fields is None:
                 id, found = ordinal_counters[model_name].assign(model, pk, side)
                 findings.extend(found)
@@ -118,15 +119,18 @@ def validate(
 
             ordinal = tuple(custom_ordinal_parts)
             if need_ordering[model_name].get(ordinal) is not None:
-                findings.append(
-                    ComparatorFinding(
-                        kind=ComparatorFindingKind.DuplicateCustomOrdinal,
-                        on=InstanceID(str(model_name), None),
-                        left_pk=pk if side == Side.left else None,
-                        right_pk=pk if side == Side.right else None,
-                        reason=f"""custom ordinal value `{ordinal}` appears multiple times""",
+                # Special case: overwrites of custom ordinals for `useroption`, since it is okay to
+                # just use the latest one when there is a collision.
+                if str(model_name) != "sentry.useroption":
+                    findings.append(
+                        ComparatorFinding(
+                            kind=ComparatorFindingKind.DuplicateCustomOrdinal,
+                            on=InstanceID(str(model_name), None),
+                            left_pk=pk if side == Side.left else None,
+                            right_pk=pk if side == Side.right else None,
+                            reason=f"""custom ordinal value `{ordinal}` appears multiple times""",
+                        )
                     )
-                )
 
             need_ordering[model_name][ordinal] = model
 
@@ -139,10 +143,22 @@ def validate(
                 findings.extend(found)
                 model_map[model_name][id] = model
 
+        # TODO(azaslavsky): This is a temporary fix. Remove it once we have a more sustainable
+        # export-side solution.
+        user_option_model_name = NormalizedModelName("sentry.useroption")
+        user_option_model_map = model_map.get(user_option_model_name, None)
+        if user_option_model_map is not None:
+            counter = 1
+            model_map[user_option_model_name] = ordereddict()
+            for model in user_option_model_map.values():
+                id = InstanceID(str(user_option_model_name), counter)
+                model_map[user_option_model_name][id] = model
+                counter += 1
+
         return (model_map, ordinal_counters)
 
-    def json_lines(obj: JSONData) -> list[str]:
-        """Take a JSONData object and pretty-print it as JSON."""
+    def json_lines(obj: Any) -> list[str]:
+        """Take an object and pretty-print it as JSON."""
 
         return JSON_PRETTY_PRINTER.encode(obj).splitlines()
 

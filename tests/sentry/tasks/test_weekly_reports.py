@@ -11,14 +11,15 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import MonitorCheckInFailure, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import MonitorIncidentType, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
@@ -380,7 +381,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
-        self.create_group(type=MonitorCheckInFailure.type_id)
+        self.create_group(type=MonitorIncidentType.type_id)
         prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
@@ -457,7 +458,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
-        self.create_group(type=MonitorCheckInFailure.type_id)
+        self.create_group(type=MonitorIncidentType.type_id)
         prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:

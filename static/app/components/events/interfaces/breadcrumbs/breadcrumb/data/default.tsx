@@ -9,15 +9,15 @@ import type {
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 
 import Summary from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   searchTerm: string;
   event?: Event;
   meta?: Record<any, any>;
@@ -28,7 +28,7 @@ export function Default({
   meta,
   breadcrumb,
   event,
-  orgSlug,
+  organization,
   searchTerm,
   transactionEvents,
 }: Props) {
@@ -43,7 +43,7 @@ export function Default({
           <FormatMessage
             searchTerm={searchTerm}
             event={event}
-            orgSlug={orgSlug}
+            organization={organization}
             breadcrumb={breadcrumb}
             message={message}
             transactionEvents={transactionEvents}
@@ -64,16 +64,17 @@ function FormatMessage({
   event,
   message,
   breadcrumb,
-  orgSlug,
+  organization,
   transactionEvents,
 }: {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   message: string;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   searchTerm: string;
   event?: Event;
   transactionEvents?: BreadcrumbTransactionEvent[];
 }) {
+  const location = useLocation();
   const content = <Highlight text={searchTerm}>{message}</Highlight>;
 
   const isSentryTransaction =
@@ -95,12 +96,15 @@ function FormatMessage({
       return content;
     }
     const projectSlug = maybeProject.slug;
-    const eventSlug = generateEventSlug({project: projectSlug, id: message});
-
     const description = transactionData ? (
       <Link
-        to={getTransactionDetailsUrl(orgSlug, eventSlug, undefined, {
-          referrer: 'breadcrumbs',
+        to={generateLinkToEventInTraceView({
+          eventId: message,
+          timestamp: event?.endTimestamp ?? '',
+          traceSlug: event?.contexts?.trace?.trace_id ?? '',
+          projectSlug,
+          organization,
+          location: {...location, query: {...location.query, referrer: 'breadcrumbs'}},
         })}
       >
         <Highlight text={searchTerm}>{transactionData.title}</Highlight>

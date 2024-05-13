@@ -18,12 +18,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type Activity,
-  type AvatarUser,
-  GroupActivityType,
-  PriorityLevel,
-} from 'sentry/types';
+import type {Activity} from 'sentry/types/group';
+import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
+import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -225,14 +222,14 @@ export function GroupPriorityDropdown({
         </MenuTitleContainer>
       }
       minMenuWidth={230}
-      trigger={triggerProps => (
+      trigger={(triggerProps, isOpen) => (
         <DropdownButton
           {...triggerProps}
           aria-label={t('Modify issue priority')}
           size="zero"
         >
           <GroupPriorityBadge priority={value}>
-            <Chevron direction="down" size="small" />
+            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}

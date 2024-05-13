@@ -4,6 +4,7 @@ import logging
 import random
 from typing import Any
 
+import orjson
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
@@ -16,7 +17,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,6 @@ FUN_PROMPT_CHOICES = [
     "[hip hop rhyme about the error]",
     "[4 line rhyme about the error]",
     "[2 stanza rhyme about the error]",
-    "[anti joke about the error]",
 ]
 
 PROMPT = """\
@@ -276,10 +275,7 @@ def suggest_fix(event_data, model=settings.SENTRY_AI_SUGGESTED_FIX_MODEL, stream
         temperature=0.7,
         messages=[
             {"role": "system", "content": prompt},
-            {
-                "role": "user",
-                "content": json.dumps(event_info),
-            },
+            {"role": "user", "content": orjson.dumps(event_info).decode()},
         ],
         stream=stream,
     )
@@ -306,9 +302,9 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         },
     }
 
@@ -351,7 +347,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
 
         if policy_failure is not None:
             return HttpResponse(
-                json.dumps({"restriction": policy_failure}),
+                orjson.dumps({"restriction": policy_failure}),
                 content_type="application/json",
                 status=403,
             )
@@ -365,7 +361,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
                 suggestion = suggest_fix(event.data, stream=stream)
             except RateLimitError as err:
                 return HttpResponse(
-                    json.dumps({"error": err.response.json()["error"]}),
+                    orjson.dumps({"error": err.response.json()["error"]}),
                     content_type="text/plain; charset=utf-8",
                     status=429,
                 )
@@ -395,6 +391,6 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             )
 
         return HttpResponse(
-            json.dumps({"suggestion": suggestion}),
+            orjson.dumps({"suggestion": suggestion}),
             content_type="application/json",
         )

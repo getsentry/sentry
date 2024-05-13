@@ -93,14 +93,12 @@ function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
       </ControlsWrapper>
       <GroupList
         orgSlug={orgSlug}
-        endpointPath={`/organizations/${orgSlug}/issues/`}
         queryParams={{
           query: issueQuery,
           project: monitor.project.id,
           limit: 20,
           ...timeProps,
         }}
-        query=""
         renderEmptyMessage={MonitorIssuesEmptyMessage}
         canSelectGroups={false}
         withPagination={false}

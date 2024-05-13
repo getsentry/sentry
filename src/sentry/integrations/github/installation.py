@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 
+import orjson
 from django.http import HttpResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -13,7 +14,6 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -56,4 +56,4 @@ class GitHubIntegrationsInstallationEndpoint(Endpoint):
             "sender": integration.metadata["sender"],
         }
 
-        return HttpResponse(json.dumps(result), status=200, content_type="application/json")
+        return HttpResponse(orjson.dumps(result), status=200, content_type="application/json")

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+import orjson
 import sentry_sdk
 
 from sentry import features
@@ -21,7 +22,6 @@ from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response import BaseApiResponse, MappingApiResponse
-from sentry.utils import json
 
 from . import logger
 
@@ -63,7 +63,7 @@ def send_incident_alert_notification(
     payload = {
         "channel": channel,
         "text": text,
-        "attachments": json.dumps([blocks]),
+        "attachments": orjson.dumps([blocks]).decode(),
         # Prevent duplicate unfurl
         # https://api.slack.com/reference/messaging/link-unfurling#no_unfurling_please
         "unfurl_links": False,

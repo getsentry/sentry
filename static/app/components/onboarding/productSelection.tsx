@@ -14,7 +14,8 @@ import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, PlatformKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
 import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -76,6 +77,8 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
   dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
@@ -447,13 +450,13 @@ export function ProductSelection({
       </Products>
       {showPackageManagerInfo && lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
-          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere].', {
+          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
             npm: <strong />,
             yarn: <strong />,
             goHere: (
-              <Button onClick={skipLazyLoader} priority="link">
-                {t('Go here')}
-              </Button>
+              <SkipLazyLoaderButton onClick={skipLazyLoader} size="xs" priority="default">
+                {t('View npm instructions')}
+              </SkipLazyLoaderButton>
             ),
           })}
         </AlternativeInstallationAlert>
@@ -461,6 +464,10 @@ export function ProductSelection({
     </Fragment>
   );
 }
+
+const SkipLazyLoaderButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
 
 const Products = styled('div')`
   display: flex;

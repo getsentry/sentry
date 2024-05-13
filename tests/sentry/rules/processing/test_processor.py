@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -7,9 +8,11 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
+from sentry.buffer.redis import RedisBuffer
 from sentry.constants import ObjectStatus
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouprulestatus import GroupRuleStatus
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -17,9 +20,10 @@ from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
-from sentry.rules.processing.processor import RuleProcessor
-from sentry.testutils.cases import TestCase
+from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -43,10 +47,10 @@ class MockConditionTrue(EventCondition):
         return True
 
 
-class RuleProcessorTest(TestCase):
+class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -54,6 +58,16 @@ class RuleProcessorTest(TestCase):
             project=self.group_event.project,
             data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
         )
+        self.user_count_condition = {
+            "interval": "1h",
+            "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+            "value": 100,
+        }
+        self.event_frequency_condition = {
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "interval": "1h",
+            "value": 1,
+        }
 
     # this test relies on a few other tests passing
     def test_integrated(self):
@@ -97,6 +111,210 @@ class RuleProcessorTest(TestCase):
         assert rule_fire_histories.count() == 2
         for rule_fire_history in rule_fire_histories:
             assert getattr(rule_fire_history, "notification_uuid", None) is not None
+
+    @with_feature("organizations:process-slow-alerts")
+    def test_delayed_rule_match_any_slow_conditionss(self):
+        """
+        Test that a rule with only 'slow' conditions and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
+        """
+        self.rule.update(
+            data={
+                "conditions": [self.user_count_condition, self.event_frequency_condition],
+                "action_match": "any",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        self.rule.save()
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        buffer = RedisBuffer()
+        project_ids = buffer.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        )
+        assert len(project_ids) == 1
+        assert project_ids[0][0] == self.project.id
+        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        assert rulegroup_to_events == {
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
+                {"event_id": self.group_event.event_id, "occurrence_id": None}
+            )
+        }
+
+    @with_feature("organizations:process-slow-alerts")
+    def test_delayed_rule_match_any_slow_conditions_issue_platform(self):
+        """
+        Test that a rule with only 'slow' conditions and action match of 'any' for a performance issue gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
+        """
+        self.rule.update(
+            data={
+                "conditions": [self.user_count_condition, self.event_frequency_condition],
+                "action_match": "any",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        tags = [["foo", "guux"], ["sentry:release", "releaseme"]]
+        contexts = {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}}
+        with self.feature("organizations:issue-platform"):
+            for i in range(3):
+                perf_event = self.create_performance_issue(
+                    tags=tags,
+                    fingerprint="group-5",
+                    contexts=contexts,
+                )
+
+        rp = RuleProcessor(
+            perf_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        buffer = RedisBuffer()
+        project_ids = buffer.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        )
+        assert len(project_ids) == 1
+        assert project_ids[0][0] == self.project.id
+        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        assert rulegroup_to_events == {
+            f"{self.rule.id}:{perf_event.group.id}": json.dumps(
+                {"event_id": perf_event.event_id, "occurrence_id": perf_event.occurrence_id}
+            )
+        }
+
+    @with_feature("organizations:process-slow-alerts")
+    def test_delayed_rule_match_any_slow_fast_conditions(self):
+        """
+        Test that a rule with a 'slow' condition, a 'fast' condition, and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
+        """
+        first_seen_condition = {
+            "id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"
+        }
+        self.rule.update(
+            data={
+                "conditions": [first_seen_condition, self.event_frequency_condition],
+                "action_match": "any",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        buffer = RedisBuffer()
+        project_ids = buffer.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        )
+        assert len(project_ids) == 1
+        assert project_ids[0][0] == self.project.id
+        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        assert rulegroup_to_events == {
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
+                {"event_id": self.group_event.event_id, "occurrence_id": None}
+            )
+        }
+
+    @with_feature("organizations:process-slow-alerts")
+    def test_delayed_rule_match_error_slow_fast_conditions(self):
+        """
+        Test that a rule with a 'slow' condition, a 'fast' condition, and action match of 'garbage' errors and does not fire or get added to the Redis queue
+        """
+        first_seen_condition = {
+            "id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"
+        }
+        self.rule.update(
+            data={
+                "conditions": [first_seen_condition, self.event_frequency_condition],
+                "action_match": "garbage",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+
+    @with_feature("organizations:process-slow-alerts")
+    def test_rule_match_any_slow_fast_conditions_fast_passes(self):
+        """
+        Test that a rule with both 'slow' and 'fast' conditions and action match of 'any' where a fast condition passes fires and doesn't get enqueued
+        """
+        self.rule.update(
+            data={
+                "conditions": [EVERY_EVENT_COND_DATA, self.event_frequency_condition],
+                "action_match": "any",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 1
+
+    @with_feature("organizations:process-slow-alerts")
+    def test_delayed_rule_match_all(self):
+        """
+        Test that a rule with a 'slow' condition and action match of 'all' gets added to the Redis buffer and does not immediately fire
+        """
+        self.rule.update(
+            data={
+                "conditions": [
+                    EVERY_EVENT_COND_DATA,
+                    {
+                        "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                        "interval": "1h",
+                        "value": 1,
+                    },
+                ],
+                "action_match": "all",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        buffer = RedisBuffer()
+        project_ids = buffer.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        )
+        assert len(project_ids) == 1
+        assert project_ids[0][0] == self.project.id
+        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        assert rulegroup_to_events == {
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
+                {"event_id": self.group_event.event_id, "occurrence_id": None}
+            )
+        }
 
     def test_ignored_issue(self):
         self.group_event.group.status = GroupStatus.IGNORED
@@ -402,7 +620,7 @@ class RuleProcessorTestFilters(TestCase):
 
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
@@ -460,7 +678,7 @@ class RuleProcessorTestFilters(TestCase):
             assert len(results) == 0
 
     def test_no_filters(self):
-        # setup an alert rule with 1 conditions and no filters that passes
+        # setup an alert rule with 1 condition and no filters that passes
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
@@ -554,7 +772,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         with mock.patch(
-            "sentry.rules.processing.processor.RuleProcessor.bulk_get_rule_status",
+            "sentry.rules.processing.processor.bulk_get_rule_status",
             return_value={self.rule.id: grs},
         ):
             results = list(rp.apply())
@@ -591,7 +809,7 @@ class RuleProcessorTestFilters(TestCase):
         self.create_release(project=self.project, version="2021-02.newRelease")
 
         event = self.store_event(data={"release": "2021-02.newRelease"}, project_id=self.project.id)
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -639,7 +857,7 @@ class RuleProcessorTestFilters(TestCase):
             },
             project_id=self.project.id,
         )
-        self.group_event = next(event.build_group_events())
+        self.group_event = event.for_group(cast(Group, event.group))
 
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)

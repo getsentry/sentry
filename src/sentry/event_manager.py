@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -30,11 +31,12 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
-from sentry.conf.server import SEVERITY_DETECTION_RETRIES
+from sentry.conf.server import SEER_SEVERITY_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
+    PLACEHOLDER_EVENT_TITLES,
     DataCategory,
 )
 from sentry.culprit import generate_culprit
@@ -100,7 +102,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
@@ -118,7 +119,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
@@ -147,7 +148,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
 HIGH_SEVERITY_THRESHOLD = 0.1
 
@@ -387,11 +387,14 @@ class EventManager:
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
+            json_dumps=orjson.dumps,
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        self._data = CanonicalKeyDict(
+            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
+        )
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -542,14 +545,7 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded as err:
-            logger.info(
-                "event_manager.save.discard",
-                extra={
-                    "reason": err.reason,
-                    "tombstone_id": err.tombstone_id,
-                },
-            )
+        except HashDiscarded:
             discard_event(job, attachments)
             raise
 
@@ -575,10 +571,6 @@ class EventManager:
         _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs)
         _tsdb_record_all_metrics(jobs)
-
-        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-            group_id=group_info.group.id, environment_id=job["environment"].id
-        )
 
         if attachments:
             attachments = filter_attachments_for_group(attachments, job)
@@ -2126,6 +2118,48 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
     return is_regression
 
 
+def _is_placeholder_title(title):
+    return title in PLACEHOLDER_EVENT_TITLES
+
+
+def _is_real_title(title):
+    return bool(title) and title not in PLACEHOLDER_EVENT_TITLES
+
+
+def _get_updated_group_title(existing_container, incoming_container):
+    """
+    Given either `group.data` or `group.data["metadata"]`, in both existing and incoming forms, pick
+    the correct title to use when updating the group. Uses the incoming title (or `None` if there
+    isn't one) except in  the case where a placeholder title (`<unlabeled event>`, `<untitled>`,
+    etc) would be replacing a non-placeholder title (either `None` or a real title).
+
+    This stems from an incident during which we were interpreting error events as default-type
+    events and thereby overwriting good titles with placeholder ones and inserting placeholder
+    titles where there shouldn't have been a title at all. (The second case matters because
+    default-type and error-type events differ in where they include a `title` attribute, and we
+    count on the lack of a `title` attribute in certain cases as well as the presence of one.) This
+    prevents that from happening in the future and will delete errant placeholder titles by
+    overwriting them with `None`.
+    """
+
+    existing_title = existing_container.get("title")
+    incoming_title = incoming_container.get("title")
+
+    return (
+        incoming_title
+        if (
+            # Real titles beat both placeholder and non-existent titles
+            _is_real_title(incoming_title)
+            or
+            # Conversely, placeholder titles lose to both real titles and lack of a title (the
+            # latter in order to fix the regression caused by error events being interpreted as
+            # default-type events)
+            _is_placeholder_title(existing_title)
+        )
+        else existing_title
+    )
+
+
 def _process_existing_aggregate(
     group: Group,
     event: BaseEvent,
@@ -2141,6 +2175,7 @@ def _process_existing_aggregate(
     if (
         event.search_message
         and event.search_message != group.message
+        and not _is_placeholder_title(event.search_message)
         and event.get_event_type() != TransactionEvent.key
     ):
         updated_group_values["message"] = event.search_message
@@ -2157,19 +2192,25 @@ def _process_existing_aggregate(
 
     is_regression = _handle_regression(group, event, release)
 
-    # Merge new data with existing data
+    existing_data = group.data
+    existing_metadata = group.data.get("metadata", {})
+
     incoming_data = incoming_group_values["data"]
     incoming_metadata = incoming_group_values["data"].get("metadata", {})
 
-    existing_data = group.data
-    # Grab a reference to this before it gets clobbered when we update `existing_data`
-    existing_metadata = group.data.get("metadata", {})
-
-    existing_data.update(incoming_data)
-    existing_metadata.update(incoming_metadata)
-
-    updated_group_values["data"] = existing_data
-    updated_group_values["data"]["metadata"] = existing_metadata
+    # Merge old and new data/metadata, keeping the existing title if the incoming title is a
+    # placeholder (`<unlabeled event`, `<untitled>`, etc.) and the existing one isn't. See
+    # `_get_updated_group_title` docstring.
+    updated_group_values["data"] = {
+        **existing_data,
+        **incoming_data,
+        "title": _get_updated_group_title(existing_data, incoming_data),
+    }
+    updated_group_values["data"]["metadata"] = {
+        **existing_metadata,
+        **incoming_metadata,
+        "title": _get_updated_group_title(existing_metadata, incoming_metadata),
+    }
 
     update_kwargs = {"times_seen": 1}
 
@@ -2179,8 +2220,8 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEVERITY_DETECTION_URL,
-    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+    settings.SEER_SEVERITY_URL,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
 
@@ -2363,15 +2404,9 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         # Fall back to using just the title for events without an exception.
         title = event.title
 
-    # If the event hasn't yet been given a helpful title, attempt to calculate one
-    if title in NON_TITLE_EVENT_TITLES:
-        title = event_type.get_title(metadata)
-
-    # If there's still nothing helpful to be had, bail
-    if title in NON_TITLE_EVENT_TITLES:
-        logger_data.update(
-            {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
-        )
+    # If all we have is `<unlabeled event>` (or one of its equally unhelpful friends), bail
+    if title in PLACEHOLDER_EVENT_TITLES:
+        logger_data.update({"event_type": event_type.key, "title": title})
         logger.warning(
             "Unable to get severity score because of unusable `message` value '%s'",
             title,
@@ -2397,22 +2432,22 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             with metrics.timer(op):
                 timeout = options.get(
                     "issues.severity.seer-timout",
-                    settings.SEVERITY_DETECTION_TIMEOUT / 1000,
+                    settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
-                    body=json.dumps(payload),
+                    body=orjson.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
-                severity = json.loads(response.data).get("severity")
+                severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError as e:
             logger.warning(
                 "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEVERITY_DETECTION_RETRIES,
-                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                SEER_SEVERITY_RETRIES,
+                "ies" if SEER_SEVERITY_RETRIES > 1 else "y",
                 repr(e.reason),
                 extra=logger_data,
             )
@@ -2752,7 +2787,9 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event"].data["_metrics"] = event_metrics
 
         # Capture the actual size that goes into node store.
-        event_metrics["bytes.stored.event"] = len(json.dumps(dict(job["event"].data.items())))
+        event_metrics["bytes.stored.event"] = len(
+            orjson.dumps(dict(job["event"].data.items())).decode()
+        )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):

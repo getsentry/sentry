@@ -28,7 +28,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -183,7 +183,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
         return self.filter(role=role, user_id__in=[u.id for u in users_by_email])
 
 
-@region_silo_only_model
+@region_silo_model
 class OrganizationMember(ReplicatedRegionModel):
     """
     Identifies relationships between organizations and users.

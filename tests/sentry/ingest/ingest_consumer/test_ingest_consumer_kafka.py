@@ -5,6 +5,7 @@ import time
 import uuid
 
 import msgpack
+import orjson
 import pytest
 from django.conf import settings
 
@@ -15,7 +16,6 @@ from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
-from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -79,7 +79,7 @@ def get_test_message(default_project):
             "start_time": int(time.time()),
             "event_id": event_id,
             "project_id": int(project_id),
-            "payload": json.dumps(normalized_event),
+            "payload": orjson.dumps(normalized_event),
         }
 
         val = msgpack.packb(message)

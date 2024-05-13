@@ -1,4 +1,4 @@
-import {forwardRef, Fragment, useCallback, useContext, useMemo, useRef} from 'react';
+import {forwardRef, Fragment, useCallback, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
@@ -9,8 +9,6 @@ import {t} from 'sentry/locale';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from '../control';
-import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
 import type {SelectKey, SelectSection} from '../types';
 
@@ -46,6 +44,15 @@ interface ListBoxProps
   listState: ListState<any>;
   children?: CollectionChildren<any>;
   /**
+   * Whether the list is filtered by search query or not.
+   * Used to determine whether to show the size limit message or not.
+   */
+  hasSearch?: boolean;
+  /**
+   * Set of keys that are hidden from the user (e.g. because not matching search query)
+   */
+  hiddenOptions?: Set<SelectKey>;
+  /**
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
@@ -58,12 +65,21 @@ interface ListBoxProps
     section: SelectSection<SelectKey>,
     type: 'select' | 'unselect'
   ) => void;
+  /**
+   * Used to determine whether to render the list box items or not
+   */
+  overlayIsOpen?: boolean;
+  /**
+   * Size of the list box and its items.
+   */
   size?: FormSize;
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
 }
+
+const EMPTY_SET = new Set<never>();
 
 /**
  * A list box with accessibile behaviors & attributes.
@@ -85,6 +101,9 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
     sizeLimitMessage,
     keyDownHandler,
     label,
+    hiddenOptions = EMPTY_SET,
+    hasSearch,
+    overlayIsOpen,
     ...props
   }: ListBoxProps,
   forwarderdRef
@@ -111,8 +130,6 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
     [keyDownHandler, listBoxProps]
   );
 
-  const {overlayIsOpen, search} = useContext(SelectContext);
-  const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
     () =>
       [...listState.collection].filter(node => {
@@ -144,6 +161,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
                   key={item.key}
                   item={item}
                   listState={listState}
+                  hiddenOptions={hiddenOptions}
                   onToggle={onSectionToggle}
                   size={size}
                 />
@@ -160,7 +178,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
             );
           })}
 
-        {!search && hiddenOptions.size > 0 && (
+        {!hasSearch && hiddenOptions.size > 0 && (
           <SizeLimitMessage>
             {sizeLimitMessage ?? t('Use search to find more options…')}
           </SizeLimitMessage>

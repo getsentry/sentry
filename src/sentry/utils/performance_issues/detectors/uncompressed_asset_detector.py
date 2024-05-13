@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -128,19 +127,18 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 ],
             )
 
-    def _fingerprint(self, span) -> str:
+    def _fingerprint(self, span: Span) -> str:
         resource_span = fingerprint_resource_span(span)
         return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
-    def is_event_eligible(cls, event):
+    @classmethod
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         tags = event.get("tags", [])
         browser_name = next(
             (

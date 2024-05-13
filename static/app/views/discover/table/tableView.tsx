@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
@@ -17,6 +16,7 @@ import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -37,10 +37,7 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -198,12 +195,14 @@ function TableView(props: TableViewProps) {
         }
 
         target = generateLinkToEventInTraceView({
-          eventSlug: generateEventSlug(dataRow),
-          dataRow,
+          traceSlug: dataRow.trace,
+          eventId: dataRow.id,
+          projectSlug: dataRow.project || dataRow['project.name'],
+          timestamp: dataRow.timestamp,
           organization,
-          eventView,
           isHomepage,
           location,
+          eventView,
           type: 'discover',
         });
       } else {
@@ -324,12 +323,14 @@ function TableView(props: TableViewProps) {
         }
 
         target = generateLinkToEventInTraceView({
-          eventSlug: generateEventSlug(dataRow),
-          dataRow,
+          traceSlug: dataRow.trace?.toString(),
+          eventId: dataRow.id,
+          projectSlug: (dataRow.project || dataRow['project.name']).toString(),
+          timestamp: dataRow.timestamp,
           organization,
-          eventView,
           isHomepage,
           location,
+          eventView,
           type: 'discover',
         });
       } else {
@@ -384,7 +385,6 @@ function TableView(props: TableViewProps) {
           organization,
           String(dataRow.trace),
           dateSelection,
-          {},
           timestamp
         );
 

@@ -2,20 +2,20 @@ from functools import cached_property
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+import orjson
 import responses
 from django.core import mail
 
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 
 
 class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, HybridCloudTestMixin):
@@ -212,7 +212,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
 
         with outbox_runner():
             member = OrganizationMember.objects.get(email=self.email)
-        assert json.loads(data["callback_id"][0]) == {
+        assert orjson.loads(data["callback_id"][0]) == {
             "member_id": member.id,
             "member_email": self.email,
         }

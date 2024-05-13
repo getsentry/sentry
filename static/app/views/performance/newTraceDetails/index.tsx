@@ -8,12 +8,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
@@ -42,18 +43,20 @@ import {
   type DispatchingReducerMiddleware,
   useDispatchingReducer,
 } from 'sentry/utils/useDispatchingReducer';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
 import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -70,9 +73,26 @@ import {TraceReducer, type TraceReducerState} from './traceState';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
+function logTraceType(type: TraceType, organization: Organization) {
+  switch (type) {
+    case TraceType.BROKEN_SUBTRACES:
+    case TraceType.EMPTY_TRACE:
+    case TraceType.MULTIPLE_ROOTS:
+    case TraceType.ONE_ROOT:
+    case TraceType.NO_ROOT:
+    case TraceType.ONLY_ERRORS:
+      traceAnalytics.trackTraceShape(type, organization);
+      break;
+    default: {
+      Sentry.captureMessage('Unknown trace type');
+    }
+  }
+}
+
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
+  const hasNewTagsUI = useHasNewTagsUI();
 
   const traceSlug = useMemo(() => {
     const slug = params.traceSlug?.trim() ?? '';
@@ -87,6 +107,20 @@ export function TraceView() {
     return slug;
   }, [params.traceSlug]);
 
+  useLayoutEffect(() => {
+    if (hasNewTagsUI) {
+      return;
+    }
+
+    // Enables the new trace tags/contexts ui for the trace view
+    const queryString = qs.parse(window.location.search);
+    queryString.traceView = '1';
+    browserHistory.replace({
+      pathname: window.location.pathname,
+      query: queryString,
+    });
+  }, [traceSlug, hasNewTagsUI]);
+
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
       organization,
@@ -98,14 +132,34 @@ export function TraceView() {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
+    const timestamp = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-    return {start, end, statsPeriod, useSpans: 1};
+    return {start, end, statsPeriod, timestamp, useSpans: 1};
   }, []);
 
   const traceEventView = useMemo(() => {
-    const {start, end, statsPeriod} = queryParams;
+    const {start, end, statsPeriod, timestamp} = queryParams;
+
+    let startTimeStamp = start;
+    let endTimeStamp = end;
+
+    // If timestamp exists in the query params, we want to use it to set the start and end time
+    // with a buffer of 1.5 days, for retrieving events belonging to the trace.
+    if (timestamp) {
+      const parsedTimeStamp = Number(timestamp);
+
+      if (isNaN(parsedTimeStamp)) {
+        throw new Error('Invalid timestamp');
+      }
+
+      const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
+      const dateFromTimestamp = new Date(parsedTimeStamp * 1000);
+
+      startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
+      endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
+    }
 
     return EventView.fromSavedQuery({
       id: undefined,
@@ -115,9 +169,9 @@ export function TraceView() {
       query: `trace:${traceSlug}`,
       projects: [ALL_ACCESS_PROJECTS],
       version: 2,
-      start,
-      end,
-      range: statsPeriod,
+      start: startTimeStamp,
+      end: endTimeStamp,
+      range: !(startTimeStamp || endTimeStamp) ? statsPeriod : undefined,
     });
   }, [queryParams, traceSlug]);
 
@@ -125,7 +179,10 @@ export function TraceView() {
   const meta = useTraceMeta();
 
   return (
-    <SentryDocumentTitle title={t('Trace')} orgSlug={organization.slug}>
+    <SentryDocumentTitle
+      title={`${t('Trace')} - ${traceSlug}`}
+      orgSlug={organization.slug}
+    >
       <NoProjectMessage organization={organization}>
         <TraceViewContent
           status={trace.status}
@@ -299,6 +356,13 @@ function TraceViewContent(props: TraceViewContentProps) {
       });
     }
 
+    if (tree.profiled_events.size > 0) {
+      newTabs.push({
+        node: 'profiles',
+        label: 'Profiles',
+      });
+    }
+
     traceDispatch({
       type: 'initialize tabs reducer',
       payload: {
@@ -437,6 +501,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      if (traceStateRef.current.preferences.drawer.minimized) {
+        traceDispatch({type: 'minimize drawer', payload: false});
+      }
       setRowAsFocused(node, event, traceStateRef.current.search.resultsLookup, null, 0);
 
       if (traceStateRef.current.search.resultsLookup.has(node)) {
@@ -542,6 +609,41 @@ function TraceViewContent(props: TraceViewContentProps) {
     [api, organization, setRowAsFocused, scrollRowIntoView, tree, traceDispatch]
   );
 
+  // Unlike onTabScrollToNode, this function does not set the node as the current
+  // focused node, but rather scrolls the node into view and sets the roving index to the node.
+  const onScrollToNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      TraceTree.ExpandToPath(tree, node.path, rerender, {
+        api,
+        organization,
+      }).then(maybeNode => {
+        if (maybeNode) {
+          previouslyFocusedNodeRef.current = null;
+          scrollRowIntoView(maybeNode.node, maybeNode.index, 'center if outside', true);
+          traceDispatch({
+            type: 'set roving index',
+            node: maybeNode.node,
+            index: maybeNode.index,
+            action_source: 'click',
+          });
+
+          if (traceStateRef.current.search.resultsLookup.has(maybeNode.node)) {
+            traceDispatch({
+              type: 'set search iterator index',
+              resultIndex: maybeNode.index,
+              resultIteratorIndex: traceStateRef.current.search.resultsLookup.get(
+                maybeNode.node
+              )!,
+            });
+          } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
+            traceDispatch({type: 'clear search iterator index'});
+          }
+        }
+      });
+    },
+    [api, organization, scrollRowIntoView, tree, traceDispatch]
+  );
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
@@ -551,6 +653,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
+      const query = qs.parse(location.search);
+
+      if (query.fov && typeof query.fov === 'string') {
+        viewManager.maybeInitializeTraceViewFromQS(query.fov);
+      }
+
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
 
@@ -671,32 +779,18 @@ function TraceViewContent(props: TraceViewContentProps) {
     storeTraceViewPreferences(traceState.preferences);
   }, [traceState.preferences]);
 
-  // Setup outside click handler so that we can clear the currently clicked node
-  const onOutsideTraceContainerClick = useCallback(() => {
-    if (tree.type !== 'trace') {
-      // Dont clear the URL in case the trace is still loading or failed for some reason,
-      // we want to keep the eventId in the URL so the user can share the URL with support
-      return;
-    }
-    // we will drop eventId such that after users clicks outside and shares the URL
-    const {
-      node: _node,
-      eventId: _eventId,
-      ...queryParamsWithoutNode
-    } = qs.parse(location.search);
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query: queryParamsWithoutNode,
-    });
-
-    traceDispatch({type: 'clear'});
-  }, [tree, traceDispatch]);
-
-  const [clickOutsideRef, setClickOutsideRef] = useState<HTMLElement | null>(null);
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
-  useOnClickOutside(clickOutsideRef, onOutsideTraceContainerClick);
+  // Memoized because it requires tree traversal
+  const shape = useMemo(() => tree.shape, [tree]);
+
+  useEffect(() => {
+    if (tree.type !== 'trace') {
+      return;
+    }
+
+    logTraceType(shape, organization);
+  }, [tree, shape, organization]);
 
   return (
     <TraceExternalLayout>
@@ -716,14 +810,15 @@ function TraceViewContent(props: TraceViewContentProps) {
         traces={props.trace}
         traceID={props.traceSlug}
       />
-      <TraceInnerLayout ref={setClickOutsideRef}>
+      <TraceInnerLayout>
         <TraceToolbar>
           <TraceSearchInput
             trace_state={traceState}
             trace_dispatch={traceDispatch}
             onTraceSearch={onTraceSearch}
           />
-          <TraceResetZoomButton viewManager={viewManager} />
+          <TraceResetZoomButton viewManager={viewManager} organization={organization} />
+          <TraceShortcuts />
         </TraceToolbar>
         <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
           <Trace
@@ -750,6 +845,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
             traces={props.trace}
@@ -757,6 +853,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             trace_state={traceState}
             trace_dispatch={traceDispatch}
             onTabScrollToNode={onTabScrollToNode}
+            onScrollToNode={onScrollToNode}
             rootEventResults={rootEvent}
             traceEventView={props.traceEventView}
           />
@@ -766,9 +863,17 @@ function TraceViewContent(props: TraceViewContentProps) {
   );
 }
 
-function TraceResetZoomButton(props: {viewManager: VirtualizedViewManager}) {
+function TraceResetZoomButton(props: {
+  organization: Organization;
+  viewManager: VirtualizedViewManager;
+}) {
+  const onResetZoom = useCallback(() => {
+    traceAnalytics.trackResetZoom(props.organization);
+    props.viewManager.resetZoom();
+  }, [props.viewManager, props.organization]);
+
   return (
-    <Button size="xs" onClick={() => props.viewManager.resetZoom()}>
+    <Button size="xs" onClick={onResetZoom}>
       {t('Reset Zoom')}
     </Button>
   );
@@ -805,7 +910,7 @@ const TraceInnerLayout = styled('div')`
 const TraceToolbar = styled('div')`
   flex-grow: 0;
   display: grid;
-  grid-template-columns: 1fr min-content;
+  grid-template-columns: 1fr min-content min-content;
   gap: ${space(1)};
 `;
 
@@ -903,6 +1008,11 @@ function TraceLoading() {
 function TraceError() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
+
+  useEffect(() => {
+    traceAnalytics.trackFailedToFetchTraceState();
+  }, []);
+
   return (
     <LoadingContainer animate error>
       <div>{t('Ughhhhh, we failed to load your trace...')}</div>
@@ -925,6 +1035,11 @@ function TraceError() {
 function TraceEmpty() {
   const linkref = useRef<HTMLAnchorElement>(null);
   const feedback = useFeedbackWidget({buttonRef: linkref});
+
+  useEffect(() => {
+    traceAnalytics.trackEmptyTraceState();
+  }, []);
+
   return (
     <LoadingContainer animate>
       <div>{t('This trace does not contain any data?!')}</div>

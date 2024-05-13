@@ -5,7 +5,8 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
@@ -47,7 +48,7 @@ export default function FirstEventFooter({
           {
             sample: (
               <CreateSampleEventButton
-                aria-label="View a sample event"
+                aria-label={t('View a sample event')}
                 project={project}
                 source="onboarding"
                 priority="link"

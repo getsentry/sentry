@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from enum import Enum, IntEnum
 from typing import Any, ClassVar, Self
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -12,11 +13,12 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.types.actor import Actor
 from sentry.utils.cache import cache
 
 
@@ -32,7 +34,7 @@ class RuleSource(IntEnum):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class Rule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -56,7 +58,8 @@ class Rule(Model):
         default=RuleSource.ISSUE,
         choices=RuleSource.as_choices(),
     )
-    owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
+    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -65,7 +68,20 @@ class Rule(Model):
     class Meta:
         db_table = "sentry_rule"
         app_label = "sentry"
-        indexes = (models.Index(fields=("project", "status", "owner")),)
+        indexes = (
+            models.Index(fields=("project", "status", "owner_team")),
+            models.Index(fields=("project", "status", "owner_user_id")),
+        )
+        constraints = (
+            models.CheckConstraint(
+                check=(
+                    models.Q(owner_user_id__isnull=True, owner_team__isnull=False)
+                    | models.Q(owner_user_id__isnull=False, owner_team__isnull=True)
+                    | models.Q(owner_user_id__isnull=True, owner_team__isnull=True)
+                ),
+                name="rule_owner_user_or_team_check",
+            ),
+        )
 
     __repr__ = sane_repr("project_id", "label")
 
@@ -90,17 +106,34 @@ class Rule(Model):
 
         return None
 
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned Protocol"""
+        return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned Protocol"""
+        self.owner_team_id = None
+        self.owner_user_id = None
+        if actor and actor.is_user:
+            self.owner_user_id = actor.id
+        if actor and actor.is_team:
+            self.owner_team_id = actor.id
+
     def delete(self, *args, **kwargs):
         rv = super().delete(*args, **kwargs)
-        cache_key = f"project:{self.project_id}:rules"
-        cache.delete(cache_key)
+        self._clear_project_rule_cache()
         return rv
 
     def save(self, *args, **kwargs):
         rv = super().save(*args, **kwargs)
+        self._clear_project_rule_cache()
+        return rv
+
+    def _clear_project_rule_cache(self) -> None:
         cache_key = f"project:{self.project_id}:rules"
         cache.delete(cache_key)
-        return rv
 
     def get_audit_log_data(self):
         return {
@@ -135,7 +168,7 @@ class RuleActivityType(Enum):
     DISABLED = 5
 
 
-@region_silo_only_model
+@region_silo_model
 class RuleActivity(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -149,7 +182,7 @@ class RuleActivity(Model):
         db_table = "sentry_ruleactivity"
 
 
-@region_silo_only_model
+@region_silo_model
 class NeglectedRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 

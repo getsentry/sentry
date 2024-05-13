@@ -6,7 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ArchiveActions from 'sentry/components/actions/archive';
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 
 describe('ArchiveActions', () => {
   const onUpdate = jest.fn();

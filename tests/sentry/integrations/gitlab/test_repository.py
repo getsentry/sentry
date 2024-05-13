@@ -1,5 +1,6 @@
 from functools import cached_property
 
+import orjson
 import pytest
 import responses
 
@@ -9,11 +10,10 @@ from sentry.models.identity import Identity
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import IntegrationRepositoryTestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 
 
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
@@ -106,7 +106,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     @responses.activate
     def test_create_repository_verify_payload(self):
         def request_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             assert "url" in payload
             assert payload["push_events"]
             assert payload["merge_requests_events"]
@@ -115,7 +115,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             )
             assert payload["token"] == expected_token
 
-            return (201, {}, json.dumps({"id": 99}))
+            return 201, {}, orjson.dumps({"id": 99}).decode()
 
         responses.add_callback(
             responses.POST,
@@ -234,19 +234,19 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/compare?from=abc&to=xyz"
             % self.gitlab_id,
-            json=json.loads(COMPARE_RESPONSE),
+            json=orjson.loads(COMPARE_RESPONSE),
         )
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/commits/12d65c8dd2b2676fa3ac47d955accc085a37a9c1/diff"
             % self.gitlab_id,
-            json=json.loads(COMMIT_DIFF_RESPONSE),
+            json=orjson.loads(COMMIT_DIFF_RESPONSE),
         )
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/commits/8b090c1b79a14f2bd9e8a738f717824ff53aebad/diff"
             % self.gitlab_id,
-            json=json.loads(COMMIT_DIFF_RESPONSE),
+            json=orjson.loads(COMMIT_DIFF_RESPONSE),
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
         repo = self.get_repository(pk=response.data["id"])
@@ -279,19 +279,19 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/commits?until=2018-09-19T13:14:15Z"
             % self.gitlab_id,
-            json=json.loads(COMMIT_LIST_RESPONSE),
+            json=orjson.loads(COMMIT_LIST_RESPONSE),
         )
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/commits/ed899a2f4b50b4370feeea94676502b42383c746/diff"
             % self.gitlab_id,
-            json=json.loads(COMMIT_DIFF_RESPONSE),
+            json=orjson.loads(COMMIT_DIFF_RESPONSE),
         )
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s/repository/commits/6104942438c14ec7bd21c6cd5bd995272b3faff6/diff"
             % self.gitlab_id,
-            json=json.loads(COMMIT_DIFF_RESPONSE),
+            json=orjson.loads(COMMIT_DIFF_RESPONSE),
         )
 
         response = self.create_repository(self.default_repository_config, self.integration.id)

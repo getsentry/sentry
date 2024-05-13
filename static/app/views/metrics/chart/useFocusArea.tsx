@@ -10,8 +10,9 @@ import moment from 'moment';
 import {Button} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {IconClose, IconZoom} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import type {ValueRect} from 'sentry/views/metrics/chart/chartUtils';
@@ -321,9 +322,14 @@ function FocusAreaOverlay({
           size="xs"
           onClick={onZoom}
           icon={<IconZoom isZoomIn />}
-          aria-label="zoom"
+          aria-label={t('zoom')}
         />
-        <Button size="xs" onClick={onRemove} icon={<IconClose />} aria-label="remove" />
+        <Button
+          size="xs"
+          onClick={onRemove}
+          icon={<IconClose />}
+          aria-label={t('remove')}
+        />
       </FocusAreaRectActions>
     </Fragment>
   );
