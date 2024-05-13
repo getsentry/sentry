@@ -256,7 +256,10 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         auto_ignore_spam_feedbacks(project, issue_fingerprint)
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
-        tags={"referrer": source.value},
+        tags={
+            "referrer": source.value,
+            "client_source": event["contexts"]["feedback"].get("source"),
+        },
         sample_rate=1.0,
     )
     track_outcome(
