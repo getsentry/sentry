@@ -31,7 +31,7 @@ import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCel
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -266,6 +266,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
           <SampleList
             groupId={span[SpanMetricsField.SPAN_GROUP]}
+            moduleName={ModuleName.DB}
             transactionName={transaction}
             transactionMethod={transactionMethod}
           />

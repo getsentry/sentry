@@ -26,7 +26,7 @@ import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 const {
@@ -149,6 +149,7 @@ function ResourceSummary() {
           <SampleList
             transactionRoute="/performance/browser/pageloads/"
             groupId={groupId}
+            moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
             additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />

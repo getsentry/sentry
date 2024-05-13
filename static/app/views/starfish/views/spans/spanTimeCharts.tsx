@@ -87,6 +87,11 @@ export function SpanTimeCharts({
       {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
+    [ModuleName.CACHE]: [],
+    [ModuleName.VITAL]: [],
+    [ModuleName.QUEUE]: [],
+    [ModuleName.SCREEN]: [],
+    [ModuleName.STARTUP]: [],
     [ModuleName.RESOURCE]: features.includes(
       'starfish-browser-resource-module-bundle-analysis'
     )

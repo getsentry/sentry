@@ -1,3 +1,4 @@
+import type {FieldValue} from 'sentry/components/forms/model';
 import type {Organization, PlatformKey} from 'sentry/types';
 
 type SampleTransactionParam = {
@@ -127,6 +128,24 @@ export type PerformanceEventParameters = {
   'performance_views.relative_breakdown.selection': {
     action: string;
   };
+  'performance_views.sample_spans.filter_updated': {
+    filter: string;
+    new_state: FieldValue;
+    organization: Organization;
+    source: string;
+  };
+  'performance_views.sample_spans.opened': {
+    organization: Organization;
+    source: string;
+  };
+  'performance_views.sample_spans.span_clicked': {
+    organization: Organization;
+    source: string;
+  };
+  'performance_views.sample_spans.try_different_samples_clicked': {
+    organization: Organization;
+    source: string;
+  };
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
   };
@@ -253,6 +272,12 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.landingv3.table_pagination':
     'Performance Views: Landing Page Transactions Table Page Changed',
   'performance_views.overview.change_chart': 'Performance Views: Change Overview Chart',
+  'performance_views.sample_spans.opened': 'Performance Views: Sample spans panel opened',
+  'performance_views.sample_spans.span_clicked': 'Performance Views: Sample span clicked',
+  'performance_views.sample_spans.try_different_samples_clicked':
+    'Performance Views: Try Different Samples clicked',
+  'performance_views.sample_spans.filter_updated':
+    'Performance Views: Sample spans panel filter updated',
   'performance_views.span_summary.change_chart':
     'Performance Views: Span Summary displayed chart changed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',

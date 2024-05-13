@@ -10,6 +10,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -161,7 +162,17 @@ function renderBodyCell(
 
     return (
       <OverflowEllipsisTextContainer>
-        <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
+        <Link
+          onClick={() =>
+            trackAnalytics('performance_views.sample_spans.opened', {
+              organization,
+              source: 'database',
+            })
+          }
+          to={`${pathname}?${qs.stringify(query)}`}
+        >
+          {label}
+        </Link>
       </OverflowEllipsisTextContainer>
     );
   }
