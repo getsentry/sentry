@@ -49,12 +49,12 @@ def get_tag_values(
     """
     Get all available tag values for an MRI and tag key from metrics.
     """
+    project_ids = [project.id for project in projects]
     tag_values: set[str] = set()
-    for project in projects:
-        for use_case_id in use_case_ids:
-            use_case_tag_values = fetch_metric_tag_values(
-                organization.id, project.id, use_case_id, mri, tag_key
-            )
-            tag_values = tag_values.union(use_case_tag_values)
+    for use_case_id in use_case_ids:
+        use_case_tag_values = fetch_metric_tag_values(
+            organization.id, project_ids, use_case_id, mri, tag_key
+        )
+        tag_values = tag_values.union(use_case_tag_values)
 
     return list(tag_values)
