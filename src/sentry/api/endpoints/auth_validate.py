@@ -14,7 +14,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @control_silo_endpoint
-class AuthTestEndpoint(Endpoint):
+class AuthValidateEndpoint(Endpoint):
     """Simple API endpoint to validate successful authentication"""
 
     publish_status = {"GET": ApiPublishStatus.PUBLIC}
