@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_403_FORBIDDEN
@@ -11,6 +13,8 @@ from sentry.api.authentication import (
 )
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @control_silo_endpoint
