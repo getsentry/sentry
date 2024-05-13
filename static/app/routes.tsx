@@ -1669,27 +1669,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const starfishRoutes = (
-    <Route
-      path="/starfish/"
-      component={make(() => import('sentry/views/starfish'))}
-      withOrgPath
-    >
-      <Redirect from="database/" to="/performance/database" />
-      <Route path="appStartup/">
-        <IndexRoute
-          component={make(() => import('sentry/views/performance/mobile/appStarts'))}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/performance/mobile/appStarts/screenSummary')
-          )}
-        />
-      </Route>
-    </Route>
-  );
-
   const userFeedbackRoutes = (
     <Route
       path="/user-feedback/"
@@ -2097,7 +2076,6 @@ function buildRoutes() {
       {discoverRoutes}
       {performanceRoutes}
       {aiMonitoringRoutes}
-      {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}
       {gettingStartedRoutes}
