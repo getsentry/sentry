@@ -362,6 +362,10 @@ export default class ReplayReader {
   toJSON = () => this._cacheKey;
 
   processingErrors = memoize(() => {
+    console.log('isFetching: processing errors?', {
+      rrwebframes: this.getRRWebFrames().length,
+      hasMeta: this.getRRWebFrames().some(frame => frame.type === EventType.Meta),
+    });
     return [
       this.getRRWebFrames().length < 2
         ? `Replay has ${this.getRRWebFrames().length} frames`

@@ -115,7 +115,7 @@ function ReplayClipPreviewPlayer({
 
   return (
     <PlayerContainer data-test-id="player-container" isLarge={isLarge}>
-      {replay?.hasProcessingErrors() ? (
+      {replay.hasProcessingErrors() ? (
         <ReplayProcessingError processingErrors={replay.processingErrors()} />
       ) : (
         <ReplayPreviewPlayer

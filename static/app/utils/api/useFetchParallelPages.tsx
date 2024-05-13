@@ -162,11 +162,13 @@ export default function useFetchParallelPages<Data>({
     [api, cursors, getQueryKey, perPage, queryClient]
   );
 
+  console.log('willFetch isFetching', {willFetch});
   useEffect(() => {
     if (!willFetch) {
       return;
     }
 
+    console.log('setting parallel pages isFetching = true');
     setState(prev => ({
       ...prev,
       isFetching: true,
@@ -175,5 +177,12 @@ export default function useFetchParallelPages<Data>({
     fetch();
   }, [willFetch, fetch]);
 
-  return state;
+  return useMemo(
+    () => ({
+      ...state,
+      isFetching:
+        (pages && !state.isError && state.pages.length !== pages) || state.isFetching,
+    }),
+    [state, pages]
+  );
 }

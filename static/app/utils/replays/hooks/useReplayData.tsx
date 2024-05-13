@@ -120,6 +120,7 @@ function useReplayData({
     [orgSlug, projectSlug, replayId]
   );
 
+  console.log('isFetching?', {fetchReplayError, projectSlug, replayRecord});
   const {pages: attachmentPages, isFetching: isFetchingAttachments} =
     useFetchParallelPages({
       enabled: !fetchReplayError && Boolean(projectSlug) && Boolean(replayRecord),
@@ -238,6 +239,14 @@ function useReplayData({
       isFetchingErrors ||
       isFetchingExtraErrors ||
       isFetchingPlatformErrors;
+    console.log({
+      fetching,
+      isFetchingReplay,
+      isFetchingAttachments,
+      isFetchingErrors,
+      isFetchingExtraErrors,
+      isFetchingPlatformErrors,
+    });
 
     const allErrors = errorPages
       .concat(extraErrorPages)
