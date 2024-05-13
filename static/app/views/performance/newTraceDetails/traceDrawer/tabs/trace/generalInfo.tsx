@@ -1,17 +1,11 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 
-import type {Tag} from 'sentry/actionCreators/events';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
-import {generateQueryWithTag} from 'sentry/utils';
-import type EventView from 'sentry/utils/discover/eventView';
-import {formatTagKey} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
@@ -22,89 +16,13 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import Tags from 'sentry/views/discover/tags';
-import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
-import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 import {SpanTimeRenderer} from 'sentry/views/performance/traces/fieldRenderers';
 
-import {isTraceNode} from '../../guards';
-import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
-import {IssueList} from '../details/issues/issues';
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../details/styles';
-
-type TraceDetailsProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  tagsQueryResults: UseApiQueryResult<Tag[], RequestError>;
-  traceEventView: EventView;
-  traceType: TraceType;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
-  tree: TraceTree;
-};
-
-export function TraceDetails(props: TraceDetailsProps) {
-  const location = useLocation();
-  const organization = useOrganization();
-  const issues = useMemo(() => {
-    if (!props.node) {
-      return [];
-    }
-
-    return [...props.node.errors, ...props.node.performance_issues];
-  }, [props.node]);
-
-  if (!props.node) {
-    return null;
-  }
-
-  if (!(props.node && isTraceNode(props.node))) {
-    throw new Error('Expected a trace node');
-  }
-
-  const {data: rootEvent} = props.rootEventResults;
-
-  return (
-    <Fragment>
-      {props.tree.type === 'trace' ? <TraceWarnings type={props.traceType} /> : null}
-      <IssueList issues={issues} node={props.node} organization={organization} />
-      <GeneralInfo
-        organization={organization}
-        traces={props.traces}
-        tree={props.tree}
-        node={props.node}
-        rootEventResults={props.rootEventResults}
-        metaResults={props.metaResults}
-      />
-      {rootEvent ? (
-        <TagsWrapper>
-          <Tags
-            tagsQueryResults={props.tagsQueryResults}
-            generateUrl={(key: string, value: string) => {
-              const url = props.traceEventView.getResultsViewUrlTarget(
-                organization.slug,
-                false
-              );
-              url.query = generateQueryWithTag(url.query, {
-                key: formatTagKey(key),
-                value,
-              });
-              return url;
-            }}
-            totalValues={props.tree.eventsCount}
-            eventView={props.traceEventView}
-            organization={organization}
-            location={location}
-          />
-        </TagsWrapper>
-      ) : null}
-    </Fragment>
-  );
-}
+import {isTraceNode} from '../../../guards';
+import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
@@ -115,7 +33,7 @@ type GeneralInfoProps = {
   tree: TraceTree;
 };
 
-function GeneralInfo(props: GeneralInfoProps) {
+export function GeneralInfo(props: GeneralInfoProps) {
   const params = useParams<{traceSlug?: string}>();
 
   const traceNode = props.tree.root.children[0];
@@ -309,7 +227,3 @@ function GeneralInfo(props: GeneralInfoProps) {
     />
   );
 }
-
-const TagsWrapper = styled('div')`
-  padding-bottom: ${space(1)};
-`;
