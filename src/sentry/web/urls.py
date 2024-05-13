@@ -719,12 +719,6 @@ urlpatterns += [
         react_page_view,
         name="performance",
     ),
-    # Starfish
-    re_path(
-        r"^starfish/",
-        react_page_view,
-        name="starfish",
-    ),
     # Profiling
     re_path(
         r"^profiling/",
