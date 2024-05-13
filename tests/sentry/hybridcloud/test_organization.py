@@ -60,9 +60,10 @@ def basic_filled_out_org() -> tuple[Organization, list[User]]:
     return org, [owner, other_user]
 
 
-def parameterize_with_orgs(
-    f: Callable[[Callable[[], tuple[Organization, list[User]]]], None]
-) -> Callable[[Callable[[], tuple[Organization, list[User]]]], None]:
+WithOrgsCallback = Callable[[Callable[[], tuple[Organization, list[User]]]], None]
+
+
+def parameterize_with_orgs(f: WithOrgsCallback) -> WithOrgsCallback:
     return pytest.mark.parametrize("org_factory", [pytest.param(basic_filled_out_org)])(f)
 
 
