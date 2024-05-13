@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
+from sentry import features, projectoptions
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -990,6 +990,12 @@ def process_replay_link(job: PostProcessJob) -> None:
 
 
 def process_rules(job: PostProcessJob) -> None:
+    from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
+    from sentry.rules.processing.delayed_processing import process_delayed_alert_conditions
+
+    if not redis_buffer_registry.has(BufferHookEvent.FLUSH):
+        redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
+
     if job["is_reprocessed"]:
         return
 
@@ -1307,8 +1313,8 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     if not hasattr(event, "occurrence") or event.occurrence is None:
         return False
 
-    if event.occurrence.evidence_data.get("is_spam") is True and options.get(
-        "feedback.spam-detection-actions"
+    if event.occurrence.evidence_data.get("is_spam") is True and features.has(
+        "organizations:user-feedback-spam-filter-actions", job["event"].project.organization
     ):
         metrics.incr("feedback.spam-detection-actions.dont-send-notification")
         return False

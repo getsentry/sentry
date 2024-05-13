@@ -169,7 +169,7 @@ class NodeField(GzippedDictField):
         self.ref_func = kwargs.pop("ref_func", None)
         self.ref_version = kwargs.pop("ref_version", None)
         self.wrapper = kwargs.pop("wrapper", None)
-        self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes))
+        self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes).decode())
         super().__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):

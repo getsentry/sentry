@@ -64,7 +64,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         scope_type: NotificationScopeEnum,
         scope_identifier: int,
         value: NotificationSettingsOptionEnum,
-    ):
+    ) -> None:
         kwargs = {}
         if actor.is_user:
             kwargs["user_id"] = actor.id

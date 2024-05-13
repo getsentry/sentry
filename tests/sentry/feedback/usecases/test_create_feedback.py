@@ -14,9 +14,10 @@ from sentry.feedback.usecases.create_feedback import (
     fix_for_issue_platform,
     validate_issue_platform_event_schema,
 )
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.group import GroupSubStatus
 
 
 @pytest.fixture
@@ -546,7 +547,7 @@ def test_create_feedback_spam_detection_adds_field(
                     mock_produce_occurrence_to_kafka.call_args_list[1]
                     .kwargs["status_change"]
                     .new_status
-                    == GroupStatus.RESOLVED
+                    == GroupStatus.IGNORED
                 )
 
             if not (expected_result and feature_flag):
@@ -688,3 +689,87 @@ def test_create_feedback_adds_associated_event_id(
     ]
     associated_event_id = associated_event_id_evidence[0] if associated_event_id_evidence else None
     assert associated_event_id == "56b08cf7852c42cbb95e4a6998c66ad6"
+
+
+@django_db_all
+def test_create_feedback_spam_detection_adds_field_calls(
+    default_project,
+    monkeypatch,
+):
+    with Feature(
+        {
+            "organizations:user-feedback-spam-filter-actions": True,
+            "organizations:user-feedback-spam-filter-ingest": True,
+            "organizations:issue-platform": True,
+            "organizations:feedback-ingest": True,
+            "organizations:feedback-post-process-group": True,
+        }
+    ):
+        event = {
+            "project_id": default_project.id,
+            "request": {
+                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                "headers": {
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+                },
+            },
+            "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+            "timestamp": 1698255009.574,
+            "received": "2021-10-24T22:23:29.574000+00:00",
+            "environment": "prod",
+            "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+            "user": {
+                "ip_address": "72.164.175.154",
+                "email": "josh.ferge@sentry.io",
+                "id": 880461,
+                "isStaff": False,
+                "name": "Josh Ferge",
+            },
+            "contexts": {
+                "feedback": {
+                    "contact_email": "josh.ferge@sentry.io",
+                    "name": "Josh Ferge",
+                    "message": "This is definitely spam",
+                    "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                    "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                },
+            },
+            "breadcrumbs": [],
+            "platform": "javascript",
+        }
+
+        def dummy_response(*args, **kwargs):
+            return ChatCompletion(
+                id="test",
+                choices=[
+                    Choice(
+                        index=0,
+                        message=ChatCompletionMessage(
+                            content=(
+                                "spam"
+                                if "This is definitely spam" in kwargs["messages"][0]["content"]
+                                else "not spam"
+                            ),
+                            role="assistant",
+                        ),
+                        finish_reason="stop",
+                    )
+                ],
+                created=time.time(),
+                model="gpt3.5-trubo",
+                object="chat.completion",
+            )
+
+        mock_openai = Mock()
+        mock_openai().chat.completions.create = dummy_response
+
+        monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
+
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        assert Group.objects.all().count() == 1
+        group = Group.objects.first()
+        assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.FOREVER
