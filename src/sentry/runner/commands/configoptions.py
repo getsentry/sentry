@@ -37,7 +37,7 @@ def _attempt_update(
     last_update_channel = options.get_last_update_channel(key)
     if db_value == value:
         # This script is making changes with UpdateChannel.AUTOMATOR
-        # channel. Thus, if the laast update channel was already
+        # channel. Thus, if the last update channel was already
         # UpdateChannel.AUTOMATOR, and the value we are trying to set
         # is the same as the value already stored we do nothing.
         if last_update_channel is None:
@@ -275,8 +275,11 @@ def sync(ctx: click.Context) -> None:
                                 raise
                         presenter_delegator.unset(opt.name)
                     # if the option is set on disk, we can safely pass
-                    if options.lookup_key(opt.name).has_any_flag({options.FLAG_PRIORITIZE_DISK}):
-                        pass
+                    if (
+                        options.can_update(opt.name, opt.value, options.UpdateChannel.AUTOMATOR)
+                        == options.NotWritableReason.OPTION_ON_DISK
+                    ):
+                        continue
                     else:
                         presenter_delegator.drift(opt.name, "")
                         drift_found = True
