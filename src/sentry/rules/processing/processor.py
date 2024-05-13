@@ -26,7 +26,7 @@ from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -275,6 +275,7 @@ class RuleProcessor:
             field=f"{rule.id}:{self.group.id}",
             value=value,
         )
+        metrics.incr("delayed_rule.group_added")
 
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
