@@ -274,15 +274,15 @@ def sync(ctx: click.Context) -> None:
                                 presenter_delegator.flush()
                                 raise
                         presenter_delegator.unset(opt.name)
-                    # if the option is set on disk, we can safely pass
-                    if (
-                        options.can_update(opt.name, opt.value, options.UpdateChannel.AUTOMATOR)
-                        == options.NotWritableReason.OPTION_ON_DISK
-                    ):
-                        continue
                     else:
-                        presenter_delegator.drift(opt.name, "")
-                        drift_found = True
+                        if (
+                            options.can_update(opt.name, opt.value, options.UpdateChannel.AUTOMATOR)
+                            == options.NotWritableReason.OPTION_ON_DISK
+                        ):
+                            continue
+                        else:
+                            presenter_delegator.drift(opt.name, "")
+                            drift_found = True
 
     if invalid_options:
         status = "update_failed"
