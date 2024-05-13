@@ -376,7 +376,10 @@ export default function AssigneeSelectorDropdown({
             data-test-id="assignee-option"
             displayName={`${assignee.name}${isCurrentUser ? ' (You)' : ''}`}
             user={assignee.assignee as User}
-            description={suggestedReasonTable[assignee.suggestedReason]}
+            description={
+              assignee.suggestedReasonText ??
+              suggestedReasonTable[assignee.suggestedReason]
+            }
           />
         ),
         value: `user:${assignee.id}`,
@@ -389,7 +392,9 @@ export default function AssigneeSelectorDropdown({
         <TeamBadge
           data-test-id="assignee-option"
           team={assignedTeam.team}
-          description={suggestedReasonTable[assignee.suggestedReason]}
+          description={
+            assignee.suggestedReasonText ?? suggestedReasonTable[assignee.suggestedReason]
+          }
         />
       ),
       value: `team:${assignee.id}`,
