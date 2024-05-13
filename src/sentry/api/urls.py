@@ -390,7 +390,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
-from .endpoints.organization_id_or_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_issues import OrganizationIntegrationIssuesEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
@@ -472,6 +471,7 @@ from .endpoints.organization_sdk_updates import (
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
+from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
