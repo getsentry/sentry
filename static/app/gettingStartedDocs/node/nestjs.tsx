@@ -17,13 +17,13 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getSdkInitSnippet,
-  getSentryImportsSnippet,
+  getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-${getSentryImportsSnippet('node')}${params.isProfilingSelected ? `\nimport { nodeProfilingIntegration } from "@sentry/profiling-node";` : ''}
+${getSentryImportSnippet('node')}${params.isProfilingSelected ? `\nimport { nodeProfilingIntegration } from "@sentry/profiling-node";` : ''}
 import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
@@ -51,9 +51,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: t('Add the Sentry Node SDK as a dependency:'),
-      configurations: getInstallConfig(params, {
-        additionalPackages: params.isPerformanceSelected ? ['@sentry/utils'] : [],
-      }),
+      configurations: getInstallConfig(params),
     },
   ],
   configure: params => [

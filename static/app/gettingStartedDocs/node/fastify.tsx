@@ -14,16 +14,18 @@ import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/getting
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {
+  getImportInstrumentSnippet,
   getInstallConfig,
-  getNodeRunCommandSnippet,
   getSdkInitSnippet,
-  getSentryImportsSnippet,
+  getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
 const getSdkSetupSnippet = () => `
-${getSentryImportsSnippet('node')}
+${getImportInstrumentSnippet()}
+
+${getSentryImportSnippet('node')}
 const Fastify = require('fastify')
 
 const app = Fastify();
@@ -69,22 +71,8 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Modify the Node.js command to include the [code1:--require] option. This preloads [code2:instrument.(js|mjs)] at startup.',
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)].",
             {code1: <code />, code2: <code />}
-          ),
-          code: [
-            {
-              label: 'Bash',
-              value: 'bash',
-              language: 'bash',
-              code: getNodeRunCommandSnippet(),
-            },
-          ],
-        },
-        {
-          description: tct(
-            "Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)].",
-            {code: <code />}
           ),
           code: [
             {
