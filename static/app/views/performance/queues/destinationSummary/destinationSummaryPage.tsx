@@ -32,6 +32,7 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
+import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
   const organization = useOrganization();
@@ -40,7 +41,7 @@ function DestinationSummaryPage() {
   const {query} = useLocation();
   const destination = decodeScalar(query.destination);
 
-  const {data} = useQueuesMetricsQuery({destination});
+  const {data, isLoading} = useQueuesMetricsQuery({destination});
   return (
     <Fragment>
       <Layout.Header>
@@ -94,37 +95,40 @@ function DestinationSummaryPage() {
                       title={t('Avg Time In Queue')}
                       value={data[0]?.['avg(messaging.message.receive.latency)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={false}
+                      isLoading={isLoading}
                     />
                     <MetricReadout
                       title={t('Avg Processing Time')}
                       value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={false}
+                      isLoading={isLoading}
                     />
                     <MetricReadout
                       title={t('Error Rate')}
                       value={undefined}
                       unit={'percentage'}
-                      isLoading={false}
+                      isLoading={isLoading}
                     />
                     <MetricReadout
                       title={t('Published')}
                       value={data[0]?.['count_op(queue.publish)']}
                       unit={'count'}
-                      isLoading={false}
+                      isLoading={isLoading}
                     />
                     <MetricReadout
                       title={t('Processed')}
                       value={data[0]?.['count_op(queue.process)']}
                       unit={'count'}
-                      isLoading={false}
+                      isLoading={isLoading}
                     />
                     <MetricReadout
                       title={t('Time Spent')}
                       value={data[0]?.['sum(span.duration)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={false}
+                      tooltip={getTimeSpentExplanation(
+                        data[0]?.['time_spent_percentage(app,span.duration)']
+                      )}
+                      isLoading={isLoading}
                     />
                   </MetricsRibbon>
                 )}
