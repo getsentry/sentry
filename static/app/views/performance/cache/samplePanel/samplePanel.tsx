@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
 import {BASE_FILTERS} from 'sentry/views/performance/cache/settings';
@@ -27,6 +28,7 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
@@ -71,6 +73,14 @@ export function CacheSamplePanel() {
     transaction: query.transaction,
     'project.id': query.project,
   };
+
+  const {data: cacheHitRateData, isLoading: isCacheHitRateLoading} = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters satisfies SpanMetricsQueryFilters),
+      yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
+    },
+    Referrer.SAMPLES_CACHE_HIT_MISS_CHART
+  );
 
   const {data: cacheTransactionMetrics, isFetching: areCacheTransactionMetricsFetching} =
     useSpanMetrics(
@@ -280,35 +290,38 @@ export function CacheSamplePanel() {
               />
             </MetricsRibbon>
           </ModuleLayout.Full>
+          <ModuleLayout.Half>
+            <CacheHitMissChart
+              isLoading={isCacheHitRateLoading}
+              series={cacheHitRateData[`cache_miss_rate()`]}
+            />
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <TransactionDurationChart
+              samples={spansWithDuration}
+              averageTransactionDuration={
+                transactionDurationData?.[0]?.[
+                  `avg(${MetricsFields.TRANSACTION_DURATION})`
+                ]
+              }
+              highlightedSpanId={highlightedSpanId}
+              onHighlight={highlights => {
+                const firstHighlight = highlights[0];
 
-          <Fragment>
-            <ModuleLayout.Full>
-              <TransactionDurationChart
-                samples={spansWithDuration}
-                averageTransactionDuration={
-                  transactionDurationData?.[0]?.[
-                    `avg(${MetricsFields.TRANSACTION_DURATION})`
-                  ]
+                if (!firstHighlight) {
+                  setHighlightedSpanId(undefined);
+                  return;
                 }
-                highlightedSpanId={highlightedSpanId}
-                onHighlight={highlights => {
-                  const firstHighlight = highlights[0];
 
-                  if (!firstHighlight) {
-                    setHighlightedSpanId(undefined);
-                    return;
-                  }
-
-                  const sample = findSampleFromDataPoint<(typeof spansWithDuration)[0]>(
-                    firstHighlight.dataPoint,
-                    spansWithDuration,
-                    'transaction.duration'
-                  );
-                  setHighlightedSpanId(sample?.span_id);
-                }}
-              />
-            </ModuleLayout.Full>
-          </Fragment>
+                const sample = findSampleFromDataPoint<(typeof spansWithDuration)[0]>(
+                  firstHighlight.dataPoint,
+                  spansWithDuration,
+                  'transaction.duration'
+                );
+                setHighlightedSpanId(sample?.span_id);
+              }}
+            />
+          </ModuleLayout.Half>
           <Fragment>
             <ModuleLayout.Full>
               <SpanSamplesTable
