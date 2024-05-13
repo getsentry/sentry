@@ -697,6 +697,7 @@ module = [
     "tests.sentry.issues.test_status_change_consumer",
     "tests.sentry.issues.test_update_inbox",
     "tests.sentry.relay.config.test_metric_extraction",
+    "tests.sentry.services.hybrid_cloud.*",
     "tests.sentry.tasks.test_on_demand_metrics",
     "tools.*",
 ]
