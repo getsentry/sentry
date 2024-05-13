@@ -18,7 +18,7 @@ type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
 "use strict";
-// IMPORTANT: Make sure to import Sentry at the top of your file.
+// IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
 ${getSdkInitSnippet(params, 'node')}
 // Place any other require/import statements here
 

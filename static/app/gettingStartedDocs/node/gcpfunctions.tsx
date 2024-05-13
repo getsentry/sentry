@@ -17,7 +17,7 @@ import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDo
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-// IMPORTANT: Make sure to import Sentry at the top of your file.
+// IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
 ${getSdkInitSnippet(params, 'gpc')}
 // Place any other require/import statements here
 
