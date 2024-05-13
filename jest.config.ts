@@ -275,7 +275,7 @@ const config: Config.InitialOptions = {
   clearMocks: true,
 
   // To disable the sentry jest integration, set this to 'jsdom'
-  testEnvironment: '@sentry/jest-environment-sentry/jsdom',
+  testEnvironment: '@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
     sentryConfig: {
       init: {
