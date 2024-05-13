@@ -35,7 +35,7 @@ class SlugMismatchException(Exception):
 
 def create_post_provision_outbox(
     provisioning_options: OrganizationProvisioningOptions, org_id: int
-):
+) -> RegionOutbox:
     return RegionOutbox(
         shard_scope=OutboxScope.ORGANIZATION_SCOPE,
         shard_identifier=org_id,
@@ -49,7 +49,7 @@ def create_organization_provisioning_outbox(
     organization_id: int,
     region_name: str,
     org_provision_payload: OrganizationProvisioningOptions | None,
-):
+) -> ControlOutbox:
     payload = org_provision_payload.json() if org_provision_payload is not None else None
     return ControlOutbox(
         region_name=region_name,
