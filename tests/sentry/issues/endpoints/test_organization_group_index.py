@@ -953,6 +953,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(limit=10, query="assigned:[me, none]")
         assert len(response.data) == 4
 
+    @override_options({"issues.group_attributes.send_kafka": True})
     def test_seen_stats(self) -> None:
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -965,7 +966,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=self.project.id,
         )
         group2 = event2.group
-        group2.first_seen = before_now_350_seconds
+        group2.first_seen = datetime.fromisoformat(before_now_350_seconds)
         group2.times_seen = 55
         group2.save()
         before_now_250_seconds = iso_format(before_now(seconds=250))
@@ -1048,6 +1049,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
             before_now_100_seconds
         ).replace(tzinfo=UTC)
+
+        # now with useGroupSnubaDataset = 1
+        response = self.get_response(
+            sort_by="date", limit=10, query="server:example.com", useGroupSnubaDataset=1
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == group2.id
 
     def test_semver_seen_stats(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")

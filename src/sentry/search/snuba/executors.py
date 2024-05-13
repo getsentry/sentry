@@ -57,7 +57,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.rules.conditions.event_attribute import ATTR_CHOICES
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
@@ -110,15 +109,8 @@ def map_field_name_from_format_search_filter(field: str) -> str:
     """
     Maps the field name we get from the format_search_filter to the field used in Suba
     """
-    field = field.replace("stack.", "stacktrace.")
     if field == "date":
         return "timestamp"
-    if field == "trace":
-        return "trace_id"
-    if field == "issue.id":
-        return "group_id"
-    if ATTR_CHOICES.get(field) is not None:
-        return ATTR_CHOICES.get(field).value.event_name
     return field
 
 
@@ -1221,19 +1213,24 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if not isinstance(item, list):
             raw_conditions = [raw_conditions]
 
+        query_builder = self.def_get_query_builder(joined_entity)
+        query_builder.default_filter_converter(search_filter)
+
         conver_value_to_date = False
         output_conditions = []
         for item in raw_conditions:
             lhs = item[0]
             if isinstance(lhs, str):
-                lhs = Column(map_field_name_from_format_search_filter(lhs), joined_entity)
+                raw_column = map_field_name_from_format_search_filter(lhs)
+                lhs = query_builder.resolve_column(raw_column)
             else:
                 # need to convert dates to timestamps
                 if lhs[1][0] == "date":
                     conver_value_to_date = True
                 # right now we are assuming lhs looks like ['isNull', ['user']]
                 # if there are more complex expressions we will need to handle them
-                rhs = [Column(map_field_name_from_format_search_filter(lhs[1][0]), joined_entity)]
+                raw_column = map_field_name_from_format_search_filter(lhs[1][0])
+                rhs = [query_builder.resolve_column(raw_column)]
                 if len(lhs[1]) > 1:
                     rhs.append(lhs[1][1])
                 lhs = Function(lhs[0], rhs)
