@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
-from sentry.monitors.processing_errors import (
+from sentry.monitors.processing_errors.errors import (
     CheckinProcessingError,
     ProcessingError,
     ProcessingErrorType,

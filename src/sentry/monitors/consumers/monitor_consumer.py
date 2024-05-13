@@ -42,12 +42,12 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.processing_errors import (
+from sentry.monitors.processing_errors.errors import (
     CheckinValidationError,
     ProcessingError,
     ProcessingErrorType,
-    handle_processing_errors,
 )
+from sentry.monitors.processing_errors.manager import handle_processing_errors
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,

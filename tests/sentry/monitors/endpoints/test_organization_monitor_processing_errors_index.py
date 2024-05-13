@@ -1,9 +1,6 @@
 from sentry.api.serializers import serialize
-from sentry.monitors.processing_errors import (
-    CheckinProcessErrorsManager,
-    ProcessingError,
-    ProcessingErrorType,
-)
+from sentry.monitors.processing_errors.errors import ProcessingError, ProcessingErrorType
+from sentry.monitors.processing_errors.manager import store_error
 from sentry.monitors.testutils import build_checkin_processing_error
 from sentry.testutils.cases import APITestCase, MonitorTestCase
 from sentry.utils import json
@@ -24,7 +21,6 @@ class OrganizationMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APIT
         monitor = self.create_monitor()
         project_2 = self.create_project()
 
-        manager = CheckinProcessErrorsManager()
         monitor_error = build_checkin_processing_error(
             [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
             message_overrides={"project_id": self.project.id},
@@ -46,9 +42,9 @@ class OrganizationMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APIT
             ),
         ]
 
-        manager.store(monitor_error, monitor)
+        store_error(monitor_error, monitor)
         for error in project_errors:
-            manager.store(error, None)
+            store_error(error, None)
 
         resp = self.get_success_response(
             self.organization.slug, project=[self.project.id, project_2.id]

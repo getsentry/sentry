@@ -29,7 +29,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.processing_errors import (
+from sentry.monitors.processing_errors.errors import (
     CheckinValidationError,
     ProcessingError,
     ProcessingErrorType,
