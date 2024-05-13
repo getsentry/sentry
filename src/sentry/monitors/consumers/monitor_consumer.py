@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import logging
 import uuid
 from collections import defaultdict
@@ -9,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Literal
+from typing import Literal
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -26,10 +25,9 @@ from sentry_sdk.tracing import Span, Transaction
 from sentry import quotas, ratelimits
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -44,7 +42,12 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.processing_errors import ProcessingErrorType
+from sentry.monitors.processing_errors import (
+    CheckinValidationError,
+    ProcessingError,
+    ProcessingErrorType,
+    handle_processing_errors,
+)
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
@@ -54,8 +57,8 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
+from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import json, metrics
-from sentry.utils.actor import parse_and_validate_actor
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -100,9 +103,9 @@ def _ensure_monitor_with_config(
             },
         )
     else:
-        if owner_actor and owner_actor.type == User:
+        if owner_actor and owner_actor.is_user:
             owner_user_id = owner_actor.id
-        elif owner_actor and owner_actor.type == Team:
+        elif owner_actor and owner_actor.is_team:
             owner_team_id = owner_actor.id
 
     validator = ConfigValidator(data=config)
@@ -244,19 +247,6 @@ def transform_checkin_uuid(
         check_in_guid = uuid.uuid4()
 
     return check_in_guid, use_latest_checkin
-
-
-@dataclasses.dataclass(frozen=True)
-class ProcessingError:
-    type: ProcessingErrorType
-    data: dict[str, Any] = dataclasses.field(default_factory=dict)
-
-
-class CheckinValidationError(Exception):
-    def __init__(self, processing_errors: list[ProcessingError], monitor: Monitor | None = None):
-        # Monitor is optional, since we don't always have the monitor related to the checkin available
-        self.processing_errors = processing_errors
-        self.monitor = monitor
 
 
 def update_existing_check_in(
@@ -833,7 +823,8 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                     )
                 else:
                     txn.set_tag("outcome", "create_new_checkin")
-                    signal_first_checkin(project, monitor)
+                    with in_test_hide_transaction_boundary():
+                        signal_first_checkin(project, monitor)
                     metrics.incr(
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "created_new_checkin"},
@@ -907,22 +898,6 @@ def process_checkin(item: CheckinItem):
         handle_processing_errors(item, e)
     except Exception:
         logger.exception("Failed to process check-in")
-
-
-def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):
-    try:
-        # TODO: Duration converted back to seconds
-        # TODO: Get this value
-        sdk_platform = ""
-        metric_kwargs = {
-            "source": "consumer",
-            "sdk_platform": sdk_platform,
-        }
-
-        metrics.incr("monitors.checkin.handle_processing_error", tags=metric_kwargs)
-        # TODO: Do something with the errors to display to user
-    except Exception:
-        logger.exception("Failed to log processing error")
 
 
 def process_checkin_group(items: list[CheckinItem]):
@@ -1031,11 +1006,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     Does the consumer process unrelated check-ins in parallel?
     """
 
-    max_workers: int | None = None
-    """
-    Number of Executor workers to use when running in parallel
-    """
-
     max_batch_size = 500
     """
     How many messages will be batched at once when in parallel mode.
@@ -1055,21 +1025,19 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     ) -> None:
         if mode == "parallel":
             self.parallel = True
+            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
         if max_batch_time is not None:
             self.max_batch_time = max_batch_time
-        if max_workers is not None:
-            self.max_workers = max_workers
 
     def shutdown(self) -> None:
         if self.parallel_executor:
             self.parallel_executor.shutdown()
 
     def create_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
-        self.parallel_executor = ThreadPoolExecutor(max_workers=self.max_workers)
-
+        assert self.parallel_executor is not None
         batch_processor = RunTask(
             function=partial(process_batch, self.parallel_executor),
             next_step=CommitOffsets(commit),

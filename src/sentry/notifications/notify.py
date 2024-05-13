@@ -4,16 +4,16 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from typing import Any, Optional, TypeVar
 
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 # Shortcut so that types don't explode.
 NotifyCallable = Callable[
     [
         BaseNotification,
-        Iterable[RpcActor],
+        Iterable[Actor],
         Mapping[str, Any],
-        Optional[Mapping[RpcActor, Mapping[str, Any]]],
+        Optional[Mapping[Actor, Mapping[str, Any]]],
     ],
     None,
 ]
@@ -46,9 +46,9 @@ def register_notification_provider(
 def notify(
     provider: ExternalProviders,
     notification: Any,
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Actor],
     shared_context: Mapping[str, Any],
-    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None = None,
+    extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None = None,
 ) -> None:
     """Send notifications to these users or team."""
 

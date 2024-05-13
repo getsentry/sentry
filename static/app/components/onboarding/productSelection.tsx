@@ -77,6 +77,8 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
   dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],

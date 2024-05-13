@@ -8,7 +8,6 @@ from django.db import transaction
 from django.utils.functional import cached_property
 
 import sentry
-from sentry.utils.functional import compact
 
 from .param import Param
 
@@ -232,13 +231,15 @@ class Mediator:
 
         request_params = env.request.resolver_match.kwargs
 
-        return compact(
-            {
+        return {
+            k: v
+            for k, v in {
                 "org": request_params.get("organization_slug"),
                 "team": request_params.get("team_slug"),
                 "project": request_params.get("project_slug"),
-            }
-        )
+            }.items()
+            if v is not None
+        }
 
     @property
     def _logging_context(self):

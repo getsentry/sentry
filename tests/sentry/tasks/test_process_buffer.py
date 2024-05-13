@@ -42,7 +42,7 @@ class ProcessPendingBatchTest(TestCase):
     @mock.patch("sentry.buffer.backend.process_batch")
     def test_process_pending_batch_locked_out(self, mock_process_pending_batch):
         with self.assertLogs("sentry.tasks.process_buffer", level="WARNING") as logger:
-            lock = get_process_lock("process_pending_batch", None)
+            lock = get_process_lock("process_pending_batch")
             with lock.acquire():
                 process_pending_batch()
                 self.assertEqual(len(logger.output), 1)

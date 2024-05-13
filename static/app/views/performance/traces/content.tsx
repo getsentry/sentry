@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -18,12 +19,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeInteger, decodeList} from 'sentry/utils/queryString';
+import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -33,13 +34,14 @@ import {
   ProjectRenderer,
   SpanBreakdownSliceRenderer,
   SpanIdRenderer,
+  SpanTimeRenderer,
   TraceBreakdownContainer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
   TraceIssuesRenderer,
 } from './fieldRenderers';
 import {TracesSearchBar} from './tracesSearchBar';
-import {normalizeTraces} from './utils';
+import {getSecondaryNameFromSpan, getStylingSliceName, normalizeTraces} from './utils';
 
 const DEFAULT_PER_PAGE = 20;
 
@@ -53,6 +55,10 @@ export function Content() {
   const limit = useMemo(() => {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
   }, [location.query.perPage]);
+
+  const metricsOp = decodeScalar(location.query.metricsOp);
+  const mri = decodeScalar(location.query.mri);
+  const metricsQuery = decodeScalar(location.query.metricsQuery);
 
   const handleSearch = useCallback(
     (searchIndex: number, searchQuery: string) => {
@@ -94,6 +100,8 @@ export function Content() {
     [location, queries]
   );
 
+  const hasMetric = metricsOp && mri;
+
   const traces = useTraces<Field>({
     fields: [
       ...FIELDS,
@@ -104,6 +112,8 @@ export function Content() {
     limit,
     query: queries,
     sort: SORTS,
+    mri: hasMetric ? mri : undefined,
+    metricsQuery: hasMetric ? metricsQuery : undefined,
   });
 
   const isLoading = traces.isFetching;
@@ -118,6 +128,18 @@ export function Content() {
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
+      {hasMetric && (
+        <StyledAlert type="info" showIcon>
+          {tct('The metric query [metricQuery] is filtering the results below.', {
+            metricQuery: <strong>{`${metricsOp}(${mri}){${metricsQuery || ''}}`}</strong>,
+          })}
+        </StyledAlert>
+      )}
+      {isError && typeof traces.error?.responseJSON?.detail === 'string' ? (
+        <StyledAlert type="error" showIcon>
+          {traces.error?.responseJSON?.detail}
+        </StyledAlert>
+      ) : null}
       <TracesSearchBar
         queries={queries}
         handleSearch={handleSearch}
@@ -135,15 +157,17 @@ export function Content() {
             {t('Total Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Breakdown')}
+            {t('Timeline')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Trace Duration')}
+            {t('Duration')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
+            {t('Timestamp')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Issues')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText style={{padding: '5px'}} />
           {isLoading && (
             <StyledPanelItem span={7} overflow>
               <LoadingIndicator />
@@ -177,20 +201,22 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
       }),
     [_setHighlightedSliceName]
   );
+
+  const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+
   return (
     <Fragment>
-      <StyledPanelItem align="center" center>
+      <StyledPanelItem align="center" center onClick={onClickExpand}>
         <Button
           icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
           aria-label={t('Toggle trace details')}
           aria-expanded={expanded}
           size="zero"
           borderless
-          onClick={() => setExpanded(e => !e)}
         />
         <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
       </StyledPanelItem>
-      <StyledPanelItem align="left" overflow>
+      <StyledPanelItem align="left" overflow onClick={onClickExpand}>
         <Description>
           {trace.project ? (
             <ProjectRenderer projectSlug={trace.project} hideName />
@@ -219,9 +245,11 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         <PerformanceDuration milliseconds={trace.duration} abbreviation />
       </StyledPanelItem>
       <StyledPanelItem align="right">
+        <SpanTimeRenderer timestamp={trace.end} tooltipShowSeconds />
+      </StyledPanelItem>
+      <StyledPanelItem align="right">
         <TraceIssuesRenderer trace={trace} />
       </StyledPanelItem>
-      <StyledPanelItem style={{padding: '5px'}} />
       {expanded && (
         <SpanTable
           spans={trace.spans}
@@ -257,9 +285,8 @@ function SpanTable({
             {t('Span Duration')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Issues')}
+            {t('Timestamp')}
           </StyledPanelHeader>
-
           {spans.map(span => (
             <SpanRow
               key={span.id}
@@ -308,25 +335,34 @@ function SpanRow({
         <TraceBreakdownContainer>
           <SpanBreakdownSliceRenderer
             sliceName={span.project}
+            sliceSecondaryName={getSecondaryNameFromSpan(span)}
             sliceStart={Math.ceil(span['precise.start_ts'] * 1000)}
             sliceEnd={Math.floor(span['precise.finish_ts'] * 1000)}
             trace={trace}
             theme={theme}
-            onMouseEnter={() => setHighlightedSliceName(span.project)}
+            onMouseEnter={() =>
+              setHighlightedSliceName(
+                getStylingSliceName(span.project, getSecondaryNameFromSpan(span)) ?? ''
+              )
+            }
           />
         </TraceBreakdownContainer>
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right">
         <PerformanceDuration milliseconds={span['span.duration']} abbreviation />
       </StyledSpanPanelItem>
+
       <StyledSpanPanelItem align="right">
-        <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>
+        <SpanTimeRenderer
+          timestamp={span['precise.finish_ts'] * 1000}
+          tooltipShowSeconds
+        />
       </StyledSpanPanelItem>
     </Fragment>
   );
 }
 
-type SpanResult<F extends string> = Record<F, any>;
+export type SpanResult<F extends string> = Record<F, any>;
 
 export interface TraceResult<F extends string> {
   breakdowns: TraceBreakdownResult[];
@@ -343,7 +379,10 @@ export interface TraceResult<F extends string> {
 }
 
 interface TraceBreakdownBase {
+  duration: number; // Contains the accurate duration for display. Start and end may be quantized.
   end: number;
+  opCategory: string | null;
+  sdkName: string | null;
   start: number;
 }
 
@@ -369,6 +408,8 @@ interface UseTracesOptions<F extends string> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
+  metricsQuery?: string;
+  mri?: string;
   query?: string | string[];
   sort?: string[];
   suggestedQuery?: string;
@@ -379,6 +420,8 @@ function useTraces<F extends string>({
   datetime,
   enabled,
   limit,
+  mri,
+  metricsQuery,
   query,
   suggestedQuery,
   sort,
@@ -398,7 +441,10 @@ function useTraces<F extends string>({
       suggestedQuery,
       sort,
       per_page: limit,
-      maxSpansPerTrace: 10,
+      minBreakdownPercentage: 1 / 40,
+      maxSpansPerTrace: 5,
+      mri,
+      metricsQuery,
     },
   };
 
@@ -423,13 +469,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 120px 66px 10px;
+  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 85px 66px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 120px 66px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 141px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
@@ -484,21 +530,28 @@ const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string
   ${p =>
     p.highlightedSliceName
       ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
-         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(-1px);
+         --highlightedSlice-${p.highlightedSliceName}-saturate: saturate(1.0) contrast(1.0);
+         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
        `
       : null}
   ${p =>
     p.highlightedSliceName
       ? `
-        --defaultSlice-opacity: 0.3;
-        --defaultSlice-transform: translateY(1px);
+        --defaultSlice-opacity: 1.0;
+        --defaultSlice-saturate: saturate(0.7) contrast(0.9) brightness(1.2);
+        --defaultSlice-transform: translateY(0px);
         `
       : `
         --defaultSlice-opacity: 1.0;
+        --defaultSlice-saturate: saturate(1.0) contrast(1.0);
         --defaultSlice-transform: translateY(0px);
         `}
 `;
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: 0;
 `;

@@ -218,7 +218,6 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
-        # TODO: determine whether concatenating query_extra is proper
         snql_query = build_query_builder(
             entity_subscription=entity_subscription,
             query=f'{snuba_query.query}{f" and {subscription.query_extra}" if subscription.query_extra else ""}',
@@ -262,8 +261,7 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
 
-    with sentry_sdk.start_span(op="sentry.utils.json.loads"):
-        return orjson.loads(response.data)["subscription_id"]
+    return orjson.loads(response.data)["subscription_id"]
 
 
 def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: EntityKey) -> None:

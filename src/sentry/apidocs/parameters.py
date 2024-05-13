@@ -25,6 +25,13 @@ class GlobalParams:
         type=str,
         location="path",
     )
+    ORG_ID_OR_SLUG = OpenApiParameter(
+        name="organization_id_or_slug",
+        description="The id or slug of the organization the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
         description="The id or slug of the project the resource belongs to.",
@@ -223,6 +230,13 @@ class MonitorParams:
         required=False,
         type=str,
         description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
+    )
+    PROCESSING_ERROR_ID = OpenApiParameter(
+        name="processing_error_id",
+        location="path",
+        required=False,
+        type=OpenApiTypes.UUID,
+        description="The id of the processing error.",
     )
 
 

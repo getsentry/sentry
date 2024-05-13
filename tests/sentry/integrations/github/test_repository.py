@@ -2,6 +2,7 @@ import datetime
 from functools import cached_property
 from unittest import mock
 
+import orjson
 import pytest
 import responses
 from django.utils import timezone
@@ -15,7 +16,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 
 
 @control_silo_test
@@ -74,18 +74,18 @@ class GitHubAppsProviderTest(TestCase):
             "url": "https://github.com/getsentry/example-repo",
         }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_compare_commits_no_start(self, get_jwt):
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef",
-            json=json.loads(GET_LAST_COMMITS_EXAMPLE),
+            json=orjson.loads(GET_LAST_COMMITS_EXAMPLE),
         )
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
-            json=json.loads(GET_COMMIT_EXAMPLE),
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
         )
         result = self.provider.compare_commits(self.repository, None, "abcdef")
         for commit in result:
@@ -101,35 +101,35 @@ class GitHubAppsProviderTest(TestCase):
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, None, "abcdef")
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_compare_commits(self, get_jwt):
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
-            json=json.loads(COMPARE_COMMITS_EXAMPLE),
+            json=orjson.loads(COMPARE_COMMITS_EXAMPLE),
         )
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
-            json=json.loads(GET_COMMIT_EXAMPLE),
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
         )
         result = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
         for commit in result:
             assert_commit_shape(commit)
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_compare_commits_patchset_handling(self, get_jwt):
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
-            json=json.loads(COMPARE_COMMITS_EXAMPLE),
+            json=orjson.loads(COMPARE_COMMITS_EXAMPLE),
         )
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
-            json=json.loads(GET_COMMIT_EXAMPLE),
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
         )
         result = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
 
@@ -140,13 +140,13 @@ class GitHubAppsProviderTest(TestCase):
         assert patchset[3] == {"path": "old_name.txt", "type": "D"}
         assert patchset[4] == {"path": "renamed.txt", "type": "A"}
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_patchset_caching(self, get_jwt):
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits/abcdef",
-            json=json.loads(GET_COMMIT_EXAMPLE),
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
         )
         client = self.integration.get_installation(self.repository.organization_id).get_client()
 

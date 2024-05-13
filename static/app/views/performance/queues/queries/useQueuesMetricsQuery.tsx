@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 type Props = {
   destination?: string;
@@ -16,23 +16,25 @@ export function useQueuesMetricsQuery({destination, transaction, enabled}: Props
   if (transaction) {
     mutableSearch.addFilterValue('transaction', transaction);
   }
-  const response = useSpanMetrics({
-    search: mutableSearch,
-    fields: [
-      'count()',
-      'count_op(queue.publish)',
-      'count_op(queue.process)',
-      'sum(span.self_time)',
-      'avg(span.self_time)',
-      'avg_if(span.self_time,span.op,queue.publish)',
-      'avg_if(span.self_time,span.op,queue.process)',
-      'avg(messaging.message.receive.latency)',
-    ],
-    enabled,
-    sorts: [],
-    limit: 10,
-    referrer: 'api.performance.queues.destination-summary',
-  });
+  const response = useSpanMetrics(
+    {
+      search: mutableSearch,
+      fields: [
+        'count()',
+        'count_op(queue.publish)',
+        'count_op(queue.process)',
+        'sum(span.duration)',
+        'avg(span.duration)',
+        'avg_if(span.duration,span.op,queue.publish)',
+        'avg_if(span.duration,span.op,queue.process)',
+        'avg(messaging.message.receive.latency)',
+      ],
+      enabled,
+      sorts: [],
+      limit: 10,
+    },
+    'api.performance.queues.destination-summary'
+  );
 
   return response;
 }

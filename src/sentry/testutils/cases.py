@@ -857,13 +857,15 @@ class TwoFactorAPITestCase(APITestCase):
     def api_enable_org_2fa(self, organization, user):
         self.login_as(user)
         url = reverse(
-            "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug}
+            "sentry-api-0-organization-details",
+            kwargs={"organization_id_or_slug": organization.slug},
         )
         return self.client.put(url, data={"require2FA": True})
 
     def api_disable_org_2fa(self, organization, user):
         url = reverse(
-            "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug}
+            "sentry-api-0-organization-details",
+            kwargs={"organization_id_or_slug": organization.slug},
         )
         return self.client.put(url, data={"require2FA": False})
 
@@ -1193,7 +1195,10 @@ class IntegrationTestCase(TestCase):
 
         self.init_path = reverse(
             "sentry-organization-integrations-setup",
-            kwargs={"organization_slug": self.organization.slug, "provider_id": self.provider.key},
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "provider_id": self.provider.key,
+            },
         )
 
         self.setup_path = reverse(
@@ -1487,6 +1492,7 @@ class BaseSpansTestCase(SnubaTestCase):
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+        sdk_name: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1520,6 +1526,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
+        if sdk_name is not None:
+            payload["sentry_tags"]["sdk.name"] = sdk_name
 
         self.store_span(payload)
 

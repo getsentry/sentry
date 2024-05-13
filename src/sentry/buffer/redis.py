@@ -63,12 +63,11 @@ class BufferHookRegistry:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
 
-    def add_handler(self, key: BufferHookEvent) -> Callable[..., Any]:
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            self._registry[key] = func
-            return func
+    def add_handler(self, key: BufferHookEvent, func: Callable[..., Any]) -> None:
+        self._registry[key] = func
 
-        return decorator
+    def has(self, key: BufferHookEvent) -> bool:
+        return self._registry.get(key) is not None
 
     def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
         try:
@@ -84,7 +83,7 @@ redis_buffer_registry = BufferHookRegistry()
 
 class RedisOperation(Enum):
     SORTED_SET_ADD = "zadd"
-    SORTED_SET_GET_RANGE = "zrange"
+    SORTED_SET_GET_RANGE = "zrangebyscore"
     SORTED_SET_DELETE_RANGE = "zremrangebyscore"
     HASH_ADD = "hset"
     HASH_GET_ALL = "hgetall"
@@ -253,9 +252,13 @@ class RedisBuffer(Buffer):
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
 
-    def get_set(self, key: str) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         redis_set = self._execute_redis_operation(
-            key, RedisOperation.SORTED_SET_GET_RANGE, start=0, end=-1, withscores=True
+            key,
+            RedisOperation.SORTED_SET_GET_RANGE,
+            min=min,
+            max=max,
+            withscores=True,
         )
         decoded_set = []
         for items in redis_set:
@@ -266,17 +269,21 @@ class RedisBuffer(Buffer):
             decoded_set.append(data_and_timestamp)
         return decoded_set
 
-    def delete_key(self, key: str, min: int, max: int) -> None:
+    def delete_key(self, key: str, min: float, max: float) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
 
     def delete_hash(
         self,
         model: type[models.Model],
         filters: dict[str, models.Model | str | int],
-        field: str,
+        fields: list[str],
     ) -> None:
         key = self._make_key(model, filters)
-        self._execute_redis_operation(key, RedisOperation.HASH_DELETE, field)
+        pipe = self.get_redis_connection(self.pending_key)
+        for field in fields:
+            getattr(pipe, RedisOperation.HASH_DELETE.value)(key, field)
+        pipe.expire(key, self.key_expire)
+        pipe.execute()
 
     def push_to_hash(
         self,
@@ -303,16 +310,11 @@ class RedisBuffer(Buffer):
 
         return decoded_hash
 
-    def process_batch(self, partition: int | None = None) -> None:
-        client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._lock_key(client, self.pending_key, ex=10)
-        if not lock_key:
-            return
-
+    def process_batch(self) -> None:
         try:
             redis_buffer_registry.callback(BufferHookEvent.FLUSH, self)
-        finally:
-            client.delete(lock_key)
+        except Exception:
+            logger.exception("process_batch.error")
 
     def incr(
         self,
@@ -371,9 +373,7 @@ class RedisBuffer(Buffer):
             tags={"module": model.__module__, "model": model.__name__},
         )
 
-    # TODO: `partition` is unused, remove after a deploy
-
-    def process_pending(self, partition: int | None = None) -> None:
+    def process_pending(self) -> None:
         client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
         lock_key = self._lock_key(client, self.pending_key, ex=60)
         if not lock_key:

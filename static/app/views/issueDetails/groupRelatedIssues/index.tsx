@@ -19,17 +19,19 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}>;
 
 type RelatedIssuesResponse = {
-  data: [
-    {
-      data: number[];
-      meta: {
-        event_id: string;
-        trace_id: string;
-      };
-      type: string;
-    },
-  ];
+  data: number[];
+  meta: {
+    event_id: string;
+    trace_id: string;
+  };
+  type: string;
 };
+
+interface RelatedIssuesSectionProps {
+  groupId: string;
+  orgSlug: string;
+  relationType: string;
+}
 
 function GroupRelatedIssues({params}: Props) {
   const {groupId} = params;
@@ -37,37 +39,89 @@ function GroupRelatedIssues({params}: Props) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
+  return (
+    <Fragment>
+      <RelatedIssuesSection
+        groupId={groupId}
+        orgSlug={orgSlug}
+        relationType="same_root_cause"
+      />
+      <RelatedIssuesSection
+        groupId={groupId}
+        orgSlug={orgSlug}
+        relationType="trace_connected"
+      />
+    </Fragment>
+  );
+}
+
+function RelatedIssuesSection({
+  groupId,
+  orgSlug,
+  relationType,
+}: RelatedIssuesSectionProps) {
   // Fetch the list of related issues
   const {
     isLoading,
     isError,
     data: relatedIssues,
     refetch,
-  } = useApiQuery<RelatedIssuesResponse>([`/issues/${groupId}/related-issues/`], {
-    staleTime: 0,
-  });
-
-  let traceMeta = {
-    trace_id: '',
-    event_id: '',
-  };
-  const {
-    same_root_cause: sameRootCauseIssues = [],
-    trace_connected: traceConnectedIssues = [],
-  } = (relatedIssues?.data ?? []).reduce(
-    (mapping, item) => {
-      if (item.type === 'trace_connected') {
-        traceMeta = {...item.meta};
-      }
-      const issuesList = item.data;
-      mapping[item.type] = issuesList;
-      return mapping;
-    },
-    {same_root_cause: [], trace_connected: []}
+  } = useApiQuery<RelatedIssuesResponse>(
+    [`/issues/${groupId}/related-issues/?type=${relationType}`],
+    {
+      staleTime: 0,
+    }
   );
 
+  const traceMeta = relationType === 'trace_connected' ? relatedIssues?.meta : undefined;
+  const issues = relatedIssues?.data ?? [];
+  const query = `issue.id:[${issues}]`;
+  // project=-1 allows ensuring that the query will show issues from any projects for the org
+  // This is important for traces since issues can be for any project in the org
+  const baseUrl = `/organizations/${orgSlug}/issues/?project=-1`;
+  let title;
+  let linkToTrace;
+  let openIssuesButton;
+  if (relationType === 'trace_connected' && traceMeta) {
+    title = t('Issues in the same trace');
+    linkToTrace = (
+      <small>
+        {t('These issues were all found within ')}
+        <Link
+          to={`/organizations/${orgSlug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
+        >
+          {t('this trace')}
+        </Link>
+        .
+      </small>
+    );
+    openIssuesButton = (
+      <LinkButton
+        to={`${baseUrl}&query=trace:${traceMeta.trace_id}`}
+        size="xs"
+        analyticsEventName="Clicked Open Issues from trace-connected related issues"
+        analyticsEventKey="similar_issues.trace_connected_issues_clicked_open_issues"
+      >
+        {t('Open in Issues')}
+      </LinkButton>
+    );
+  } else {
+    title = t('Issues caused by the same root cause');
+    openIssuesButton = (
+      <LinkButton
+        to={`${baseUrl}&query=issue.id:[${groupId},${issues}]`}
+        size="xs"
+        analyticsEventName="Clicked Open Issues from same-root related issues"
+        analyticsEventKey="similar_issues.same_root_cause_clicked_open_issues"
+      >
+        {t('Open in Issues')}
+      </LinkButton>
+    );
+  }
+
   return (
-    <Fragment>
+    <HeaderWrapper>
+      <Title>{title}</Title>
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
@@ -75,77 +129,26 @@ function GroupRelatedIssues({params}: Props) {
           message={t('Unable to load related issues, please try again later')}
           onRetry={refetch}
         />
-      ) : (
+      ) : issues.length > 0 ? (
         <Fragment>
-          <div>
-            <HeaderWrapper>
-              <Title>{t('Issues caused by the same root cause')}</Title>
-              {sameRootCauseIssues.length > 0 ? (
-                <div>
-                  <TextButtonWrapper>
-                    <div />
-                    <LinkButton
-                      to={`/organizations/${orgSlug}/issues/?query=issue.id:[${groupId},${sameRootCauseIssues}]`}
-                      size="xs"
-                      analyticsEventName="Clicked Open Issues from same-root related issues"
-                      analyticsEventKey="similar_issues.same_root_cause_clicked_open_issues"
-                    >
-                      {t('Open in Issues')}
-                    </LinkButton>
-                  </TextButtonWrapper>
-                  <GroupList
-                    orgSlug={orgSlug}
-                    queryParams={{query: `issue.id:[${sameRootCauseIssues}]`}}
-                    source="similar-issues-tab"
-                    canSelectGroups={false}
-                    withChart={false}
-                  />
-                </div>
-              ) : (
-                <small>{t('No same-root-cause related issues were found.')}</small>
-              )}
-            </HeaderWrapper>
-          </div>
-          <div>
-            <HeaderWrapper>
-              <Title>{t('Issues in the same trace')}</Title>
-              {traceConnectedIssues.length > 0 ? (
-                <div>
-                  <TextButtonWrapper>
-                    <small>
-                      {t('These issues were all found within ')}
-                      <Link
-                        to={`/organizations/${orgSlug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
-                      >
-                        {t('this trace')}
-                      </Link>
-                      .
-                    </small>
-                    <LinkButton
-                      to={`/organizations/${orgSlug}/issues/?query=trace:${traceMeta.trace_id}`}
-                      size="xs"
-                      analyticsEventName="Clicked Open Issues from trace-connected related issues"
-                      analyticsEventKey="similar_issues.trace_connected_issues_clicked_open_issues"
-                    >
-                      {t('Open in Issues')}
-                    </LinkButton>
-                  </TextButtonWrapper>
-                  <GroupList
-                    orgSlug={orgSlug}
-                    queryParams={{query: `issue.id:[${traceConnectedIssues}]`}}
-                    source="similar-issues-tab"
-                    canSelectGroups={false}
-                    withChart={false}
-                  />
-                </div>
-              ) : (
-                <small>{t('No trace-connected related issues were found.')}</small>
-              )}
-            </HeaderWrapper>
-          </div>
+          <TextButtonWrapper>
+            {linkToTrace ?? null}
+            {openIssuesButton ?? null}
+          </TextButtonWrapper>
+          <GroupList
+            orgSlug={orgSlug}
+            queryParams={{query: query}}
+            source="similar-issues-tab"
+            canSelectGroups={false}
+            withChart={false}
+          />
         </Fragment>
+      ) : relationType === 'trace_connected' ? (
+        <small>{t('No trace-connected related issues were found.')}</small>
+      ) : (
+        <small>{t('No same-root-cause related issues were found.')}</small>
       )}
-    </Fragment>
+    </HeaderWrapper>
   );
 }
 
