@@ -20,6 +20,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
@@ -88,7 +89,7 @@ def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: boo
     evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
 
     if is_message_spam is True:
-        evidence_data["is_spam"] = str(is_message_spam)
+        evidence_data["is_spam"] = is_message_spam
         evidence_display.append(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
@@ -360,6 +361,6 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
                 fingerprint=issue_fingerprint,
                 project_id=project.id,
                 new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
-                new_substatus=None,
+                new_substatus=GroupSubStatus.FOREVER,
             ),
         )
