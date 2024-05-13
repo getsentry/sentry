@@ -90,7 +90,7 @@ export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as
 
 export type Aggregate = (typeof AGGREGATES)[number];
 
-export type ConditionalAggregate = `avg_if` | `count_op`;
+export type ConditionalAggregate = `avg_if` | `count_op` | 'time_spent_percentage';
 
 export const SPAN_FUNCTIONS = [
   'sps',
@@ -192,6 +192,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
+  MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
 }
 
 export type IndexedResponse = {
@@ -233,6 +234,7 @@ export type IndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
 };
 
 export type IndexedProperty = keyof IndexedResponse;

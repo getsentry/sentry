@@ -31,7 +31,7 @@ import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/queues/setti
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'time_spent_percentage(app,span.duration)' as const,
   kind: 'desc' as const,
 };
 
@@ -43,13 +43,14 @@ function QueuesLandingPage() {
   const query = useLocationQuery({
     fields: {
       destination: decodeScalar,
-      [QueryParameterNames.DOMAINS_SORT]: decodeScalar,
+      [QueryParameterNames.DESTINATIONS_SORT]: decodeScalar,
     },
   });
 
   const sort =
-    decodeSorts(query[QueryParameterNames.DOMAINS_SORT]).filter(isAValidSort).at(0) ??
-    DEFAULT_SORT;
+    decodeSorts(query[QueryParameterNames.DESTINATIONS_SORT])
+      .filter(isAValidSort)
+      .at(0) ?? DEFAULT_SORT;
 
   const handleSearch = (newDestination: string) => {
     browserHistory.push({
