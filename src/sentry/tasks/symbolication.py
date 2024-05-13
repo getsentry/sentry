@@ -33,9 +33,7 @@ info_logger = logging.getLogger("sentry.symbolication")
 SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 
 
-def should_demote_symbolication(
-    project_id: int, lpq_projects: set[int] | None = None, emit_metrics=True
-) -> bool:
+def should_demote_symbolication(project_id: int, emit_metrics=True) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
 
@@ -72,10 +70,7 @@ def should_demote_symbolication(
         return True
     elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE:
         try:
-            if lpq_projects:
-                return project_id in lpq_projects
-            else:
-                return realtime_metrics.is_lpq_project(project_id)
+            return realtime_metrics.is_lpq_project(project_id)
         # realtime_metrics is empty in getsentry
         except AttributeError:
             return False

@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Iterable
 from urllib.parse import urljoin
 
 from requests import RequestException
@@ -51,25 +50,3 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
             return response.json()["exceeds_budget"]
         except RequestException:
             return False
-
-    # NOTE: The functions below are just default impls copy-pasted from `DummyRealtimeMetricsStore`.
-    # They are not used in the actual implementation of recording budget spend,
-    # and checking if a project is within its budget.
-
-    def validate(self) -> None:
-        pass
-
-    def projects(self) -> Iterable[int]:
-        yield from ()
-
-    def get_used_budget_for_project(self, project_id: int) -> float:
-        return 0.0
-
-    def get_lpq_projects(self) -> set[int]:
-        return set()
-
-    def add_project_to_lpq(self, project_id: int) -> bool:
-        return False
-
-    def remove_projects_from_lpq(self, project_ids: set[int]) -> int:
-        return 0
