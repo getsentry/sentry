@@ -5,7 +5,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
-import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
+import {SpanGroupDetailsLink} from 'sentry/views/starfish/components/spanGroupDetailsLink';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
@@ -45,7 +45,7 @@ export function SpanDescriptionCell({
   }
 
   const descriptionLink = (
-    <SpanDescriptionLink
+    <SpanGroupDetailsLink
       group={group}
       projectId={projectId}
       endpoint={endpoint}

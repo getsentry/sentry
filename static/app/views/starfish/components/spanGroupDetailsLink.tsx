@@ -19,7 +19,7 @@ interface Props {
   spanOp?: string;
 }
 
-export function SpanDescriptionLink({
+export function SpanGroupDetailsLink({
   group,
   projectId,
   endpoint,
