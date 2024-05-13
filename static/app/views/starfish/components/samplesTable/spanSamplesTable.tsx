@@ -20,7 +20,7 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {type ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 
@@ -68,7 +68,7 @@ type Props = {
   avg: number;
   data: SpanTableRow[];
   isLoading: boolean;
-  moduleName: string;
+  moduleName: ModuleName;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
