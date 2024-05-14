@@ -1,16 +1,13 @@
 import logging
 
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_403_FORBIDDEN
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import (
-    OrgAuthTokenAuthentication,
-    SessionAuthentication,
-    UserAuthTokenAuthentication,
-)
+from sentry.api.authentication import OrgAuthTokenAuthentication, UserAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
