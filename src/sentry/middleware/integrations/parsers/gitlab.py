@@ -6,9 +6,7 @@ from typing import Any
 
 import orjson
 from django.http.response import HttpResponseBase
-from django.urls import resolve
 
-from sentry import options
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
@@ -46,16 +44,6 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         if not self.is_json_request():
             return None
         try:
-            if not options.get("api.remove-non-webhook-control-path-gitlab-parser"):
-                _view, _args, kwargs = resolve(self.request.path)
-                # Non-webhook endpoints
-                if "integration_id" in kwargs and "organization_slug" in kwargs:
-                    self._integration = Integration.objects.filter(
-                        id=kwargs["integration_id"],
-                        organization_slug=kwargs["organization_slug"],
-                    ).first()
-                    return self._integration
-
             # Webhook endpoints
             result = self._resolve_external_id()
             if isinstance(result, tuple):
