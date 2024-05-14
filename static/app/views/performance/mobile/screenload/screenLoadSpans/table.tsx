@@ -14,6 +14,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -46,7 +47,7 @@ import {
 } from 'sentry/views/starfish/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -180,7 +181,15 @@ export function ScreenLoadSpansTable({
       };
 
       return (
-        <Link to={`${pathname}?${qs.stringify(query)}`}>
+        <Link
+          onClick={() =>
+            trackAnalytics('performance_views.sample_spans.opened', {
+              organization,
+              source: ModuleName.SCREEN,
+            })
+          }
+          to={`${pathname}?${qs.stringify(query)}`}
+        >
           <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
       );
