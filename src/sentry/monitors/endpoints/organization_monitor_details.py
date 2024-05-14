@@ -36,7 +36,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
     @extend_schema(
         operation_id="Retrieve a Monitor",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
         ],
@@ -56,7 +56,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
     @extend_schema(
         operation_id="Update a Monitor",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
         ],
         request=MonitorValidator,
@@ -77,7 +77,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
     @extend_schema(
         operation_id="Delete a Monitor or Monitor Environments",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
         ],

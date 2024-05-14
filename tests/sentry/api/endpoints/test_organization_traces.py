@@ -77,7 +77,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         project_2 = self.create_project()
 
         # Hack: ensure that no span ids with leading 0s are generated for the test
-        span_ids = ["1" + uuid4().hex[:15] for _ in range(12)]
+        span_ids = ["1" + uuid4().hex[:15] for _ in range(13)]
         tags = ["", "bar", "bar", "baz", "", "bar", "baz"]
         timestamps = []
 
@@ -245,6 +245,21 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         }
         error_data["tags"] = [["transaction", "foo"]]
         self.store_event(error_data, project_id=project_1.id)
+
+        timestamps.append(before_now(days=0, minutes=21, seconds=0).replace(microsecond=0))
+        self.store_indexed_span(
+            project_id=project_1.id,
+            trace_id=trace_id_2,
+            transaction_id=None,  # mock an INP span
+            span_id=span_ids[12],
+            parent_span_id=span_ids[4],
+            timestamp=timestamps[-1],
+            transaction="",
+            duration=1_000,
+            exclusive_time=1_000,
+            op="ui.navigation.click",
+            category="ui",
+        )
 
         return (
             project_1,
