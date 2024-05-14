@@ -299,7 +299,7 @@ def delete_grouping_records(
     try:
         response = seer_grouping_connection_pool.urlopen(
             "GET",
-            SEER_GROUPING_RECORDS_DELETE_URL + f"/{project_id}",
+            f"{SEER_GROUPING_RECORDS_DELETE_URL}/{project_id}",
             headers={"Content-Type": "application/json;charset=utf-8"},
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )

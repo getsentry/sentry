@@ -3959,7 +3959,7 @@ SEER_GROUPING_RECORDS_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
 )
 SEER_GROUPING_RECORDS_DELETE_URL = (
-    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete/"
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
 
 # Devserver configuration overrides.
