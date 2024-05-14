@@ -20,12 +20,14 @@ from snuba_sdk import (
     OrderBy,
     Query,
     Request,
+    Storage,
     Timeseries,
 )
 from snuba_sdk.formula import FormulaParameterGroup
 from snuba_sdk.mql.mql import parse_mql
 
 from sentry.exceptions import InvalidParams
+from sentry.features.rollout import in_random_rollout
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     bulk_reverse_resolve,
@@ -584,19 +586,34 @@ def _query_meta_table(
     if extra_condition:
         conditions.append(extra_condition)
 
-    counters_query = (
-        Query(Entity("generic_metrics_counters_meta"))
-        .set_select([Column("project_id"), Column(column_name)])
-        .set_groupby([Column("project_id"), Column(column_name)])
-        .set_where(conditions)
-        .set_orderby(
-            [
-                OrderBy(Column("project_id"), Direction.ASC),
-                OrderBy(Column(column_name), Direction.ASC),
-            ]
+    if in_random_rollout("sentry-metrics.metrics-layer.use-storage-direct-meta-queries"):
+        counters_query = (
+            Query(Storage("generic_metrics_counters_meta"))
+            .set_select([Column("project_id"), Column(column_name)])
+            .set_groupby([Column("project_id"), Column(column_name)])
+            .set_where(conditions)
+            .set_orderby(
+                [
+                    OrderBy(Column("project_id"), Direction.ASC),
+                    OrderBy(Column(column_name), Direction.ASC),
+                ]
+            )
+            .set_limit(1000)
         )
-        .set_limit(1000)
-    )
+    else:
+        counters_query = (
+            Query(Entity("generic_metrics_counters_meta"))
+            .set_select([Column("project_id"), Column(column_name)])
+            .set_groupby([Column("project_id"), Column(column_name)])
+            .set_where(conditions)
+            .set_orderby(
+                [
+                    OrderBy(Column("project_id"), Direction.ASC),
+                    OrderBy(Column(column_name), Direction.ASC),
+                ]
+            )
+            .set_limit(1000)
+        )
 
     def build_request(query: Query) -> Request:
         return Request(
@@ -649,7 +666,7 @@ def fetch_metric_tag_values(
     if parsed_mri is None:
         raise InvalidParams(f"'{mri}' is not a valid MRI")
 
-    entity = {
+    metric_type = {
         "c": "counters",
         "d": "distributions",
         "g": "gauges",
@@ -672,14 +689,24 @@ def fetch_metric_tag_values(
     if tag_value_prefix:
         conditions.append(Condition(Column("tag_value"), Op.LIKE, f"{tag_value_prefix}%"))
 
-    tag_values_query = (
-        Query(Entity(f"generic_metrics_{entity}_meta_tag_values"))
-        .set_select([Column("tag_value")])
-        .set_groupby([Column("tag_value")])
-        .set_where(conditions)
-        .set_orderby([OrderBy(Column("tag_value"), Direction.ASC)])
-        .set_limit(1000)
-    )
+    if in_random_rollout("sentry-metrics.metrics-layer.use-storage-direct-meta-queries"):
+        tag_values_query = (
+            Query(Storage(f"generic_metrics_{metric_type}_meta_tag_values"))
+            .set_select([Column("tag_value")])
+            .set_groupby([Column("tag_value")])
+            .set_where(conditions)
+            .set_orderby([OrderBy(Column("tag_value"), Direction.ASC)])
+            .set_limit(1000)
+        )
+    else:
+        tag_values_query = (
+            Query(Entity(f"generic_metrics_{metric_type}_meta_tag_values"))
+            .set_select([Column("tag_value")])
+            .set_groupby([Column("tag_value")])
+            .set_where(conditions)
+            .set_orderby([OrderBy(Column("tag_value"), Direction.ASC)])
+            .set_limit(1000)
+        )
 
     request = Request(
         dataset="generic_metrics",
