@@ -60,7 +60,7 @@ class GroupStacktraceData(TypedDict):
 )
 @metrics.wraps(f"{BACKFILL_NAME}.task")
 def backfill_seer_grouping_records(
-    project_id: int, last_processed_id: int | None, *args: Any, **kwargs: Any
+    project_id: int, last_processed_id: int | None, dry_run=True, *args: Any, **kwargs: Any
 ) -> None:
     """
     Task to backfill seer grouping_records table.
@@ -160,7 +160,8 @@ def backfill_seer_grouping_records(
                             "group_hash": json.dumps([group_hashes_dict[group.id]]),
                         }
                     }
-            Group.objects.bulk_update(groups, ["data"])
+            if not dry_run:
+                Group.objects.bulk_update(groups, ["data"])
 
         last_processed_id = group_id_message_data_batch[len(group_id_message_data_batch) - 1][0]
         redis_client.set(
