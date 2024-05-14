@@ -1,5 +1,5 @@
 {
-  "sentry.interfaces.Exception": {
+  "exception": {
     "values": [
       {
         "stacktrace": {
@@ -144,7 +144,7 @@
       }
     ]
   },
-  "sentry.interfaces.Breadcrumbs": {
+  "breadcrumbs": {
     "values": [
       {
         "type": "navigation",
@@ -217,7 +217,7 @@
       "name": "Chrome"
     }
   },
-  "sentry.interfaces.User": {
+  "user": {
     "ip_address": "127.0.0.1",
     "email": "mail@example.org",
     "id": "1"

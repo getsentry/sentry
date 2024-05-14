@@ -4,7 +4,7 @@
     ["server_name", "web01.example.org"],
     ["environment", "prod"]
   ],
-  "sentry.interfaces.Stacktrace": {
+  "stacktrace": {
     "frames": [
       {
         "function": "build_msg",

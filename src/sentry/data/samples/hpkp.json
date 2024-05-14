@@ -1,5 +1,5 @@
 {
-  "message": "Public key pinning validation failed for 'example.com'",
+  "logentry": {"formatted": "Public key pinning validation failed for 'example.com'"},
   "hpkp": {
     "date_time": "2014-04-06T13:00:50Z",
     "hostname": "example.com",
@@ -16,7 +16,7 @@
       "pin-sha256=\"E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g=\""
     ]
   },
-  "sentry.interfaces.Http": {
+  "request": {
     "url": "https://example.com/welcome/",
     "headers": [
       ["Referer", "https://www.google.com/"],
@@ -26,7 +26,7 @@
       ]
     ]
   },
-  "sentry.interfaces.User": {
+  "user": {
     "ip_address": "127.0.0.1"
   }
 }

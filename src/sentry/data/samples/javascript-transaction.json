@@ -1,6 +1,6 @@
 {
   "platform": "transaction",
-  "message": "",
+  "logentry": {},
   "tags": [
     ["application", "countries"],
     ["browser", "Firefox 81.0"],

@@ -265,9 +265,9 @@ def load_data(
         data["event_id"] = event_id
 
     data["platform"] = platform
-    # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
-    if "message" not in data:
-        data["message"] = f"This is an example {sample_name or platform} exception"
+    data.setdefault(
+        "logentry", {"formatted": f"This is an example {sample_name or platform} exception"}
+    )
     data.setdefault(
         "user",
         generate_user(ip_address="127.0.0.1", username="sentry", id=1, email="sentry@example.com"),
