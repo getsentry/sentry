@@ -530,6 +530,7 @@ describe('ProjectAlertsCreate', function () {
               filters: [],
               frequency: 60 * 24,
               endpoint: null,
+              environment: null,
             },
           })
         );
