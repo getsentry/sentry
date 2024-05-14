@@ -447,7 +447,7 @@ def test_process_messages_invalid_messages(
                     orjson.dumps(
                         __translated_payload(counter_payload), option=orjson.OPT_NON_STR_KEYS
                     ),
-                    [("metric_type", "c")],
+                    [("metric_type", b"c")],
                 ),
                 expected_msg.committable,
             )
@@ -520,7 +520,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
                     orjson.dumps(
                         __translated_payload(counter_payload), option=orjson.OPT_NON_STR_KEYS
                     ),
-                    [("metric_type", "c")],
+                    [("metric_type", b"c")],
                 ),
                 expected_msg.value.partition,
                 expected_msg.value.offset,
