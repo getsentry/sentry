@@ -51,6 +51,7 @@ export interface DocsParams<
   feedbackOptions?: {
     email?: boolean;
     name?: boolean;
+    screenshot?: boolean;
   };
   newOrg?: boolean;
   replayOptions?: {

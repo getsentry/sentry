@@ -9,11 +9,15 @@ function FeedbackConfigToggle({
   onEmailToggle,
   nameToggle,
   onNameToggle,
+  screenshotToggle,
+  onScreenshotToggle,
 }: {
   emailToggle: boolean;
   nameToggle: boolean;
   onEmailToggle: () => void;
   onNameToggle: () => void;
+  onScreenshotToggle: () => void;
+  screenshotToggle: boolean;
 }) {
   return (
     <SwitchWrapper>
@@ -24,6 +28,15 @@ function FeedbackConfigToggle({
       <SwitchItem htmlFor="email">
         {t('Email Required')}
         <Switch id="email" toggle={onEmailToggle} size="lg" isActive={emailToggle} />
+      </SwitchItem>
+      <SwitchItem htmlFor="screenshot">
+        {t('Enable Screenshots')}
+        <Switch
+          id="screenshot"
+          toggle={onScreenshotToggle}
+          size="lg"
+          isActive={screenshotToggle}
+        />
       </SwitchItem>
     </SwitchWrapper>
   );
