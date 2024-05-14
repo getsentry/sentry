@@ -298,8 +298,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
-    default_rate_limit = RateLimit(limit=200, window=5)
+    # 60 req/s to allow for metric dashboard loading
+    default_rate_limit = RateLimit(limit=60, window=1)
 
     rate_limits = {
         "GET": {
