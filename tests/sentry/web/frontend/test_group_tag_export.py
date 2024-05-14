@@ -57,7 +57,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         url = reverse(
             "sentry-group-tag-export",
             kwargs={
-                "organization_id_or_slug": self.project.organization.slug,
+                "organization_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "group_id": self.group.id,
                 "key": self.key,
