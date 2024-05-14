@@ -8,11 +8,6 @@ export function InitializationModule() {
   return (
     <ScreensTemplate
       additionalSelectors={<StartTypeSelector />}
-      compatibilityProps={{
-        compatibleSDKNames: ['sentry.cocoa', 'sentry.java.android'],
-        docsUrl:
-          'https://docs.sentry.io/product/performance/mobile-vitals/app-starts/#minimum-sdk-requirements',
-      }}
       content={<AppStartup chartHeight={200} />}
       title={ROUTE_NAMES['app-startup']}
     />

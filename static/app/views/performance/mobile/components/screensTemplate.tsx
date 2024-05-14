@@ -20,14 +20,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import Onboarding from 'sentry/views/performance/onboarding';
-import {PlatformCompatibilityChecker} from 'sentry/views/performance/platformCompatibilityChecker';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 
 type ScreensTemplateProps = {
-  compatibilityProps: {
-    compatibleSDKNames: string[];
-    docsUrl: string;
-  };
   content: ReactNode;
   title: string;
   additionalSelectors?: ReactNode;
@@ -36,7 +31,6 @@ type ScreensTemplateProps = {
 export default function ScreensTemplate({
   title,
   additionalSelectors,
-  compatibilityProps,
   content,
 }: ScreensTemplateProps) {
   const organization = useOrganization();
@@ -91,12 +85,10 @@ export default function ScreensTemplate({
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
-              <PlatformCompatibilityChecker {...compatibilityProps}>
-                {onboardingProject && (
-                  <Onboarding organization={organization} project={onboardingProject} />
-                )}
-                {!onboardingProject && content}
-              </PlatformCompatibilityChecker>
+              {onboardingProject && (
+                <Onboarding organization={organization} project={onboardingProject} />
+              )}
+              {!onboardingProject && content}
             </ErrorBoundary>
           </Layout.Main>
         </Layout.Body>

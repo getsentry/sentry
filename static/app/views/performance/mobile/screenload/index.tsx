@@ -23,7 +23,6 @@ import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/scree
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
-import {PlatformCompatibilityChecker} from 'sentry/views/performance/platformCompatibilityChecker';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
@@ -81,29 +80,18 @@ export function PageloadModule() {
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
-              <PlatformCompatibilityChecker
-                compatibleSDKNames={[
-                  'sentry.java.android',
-                  'sentry.cocoa',
-                  'sentry.javascript.react-native',
-                  'sentry.dart.flutter',
-                  'sentry.dart',
-                ]}
-                docsUrl="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#minimum-sdk-requirements"
-              >
-                {onboardingProject && (
-                  <OnboardingContainer>
-                    <Onboarding organization={organization} project={onboardingProject} />
-                  </OnboardingContainer>
-                )}
-                {!onboardingProject && (
-                  <ScreensView
-                    yAxes={[YAxis.TTID, YAxis.TTFD]}
-                    chartHeight={240}
-                    project={project}
-                  />
-                )}
-              </PlatformCompatibilityChecker>
+              {onboardingProject && (
+                <OnboardingContainer>
+                  <Onboarding organization={organization} project={onboardingProject} />
+                </OnboardingContainer>
+              )}
+              {!onboardingProject && (
+                <ScreensView
+                  yAxes={[YAxis.TTID, YAxis.TTFD]}
+                  chartHeight={240}
+                  project={project}
+                />
+              )}
             </ErrorBoundary>
           </Layout.Main>
         </Layout.Body>

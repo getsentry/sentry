@@ -24,10 +24,7 @@ export default function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
 
-  const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
-  const filteredMailboxes = hasSpamFeature
-    ? MAILBOXES
-    : MAILBOXES.filter(i => i.key !== 'ignored');
+  const filteredMailboxes = MAILBOXES;
 
   return (
     <Flex justify="flex-end" flex="1 0 auto">

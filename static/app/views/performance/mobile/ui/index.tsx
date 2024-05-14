@@ -4,16 +4,7 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
 export function ResponsivenessModule() {
-  return (
-    <ScreensTemplate
-      content={<UIScreens />}
-      compatibilityProps={{
-        compatibleSDKNames: ['sentry.cocoa', 'sentry.java.android'],
-        docsUrl: 'www.docs.sentry.io', // TODO: Add real docs URL
-      }}
-      title={ROUTE_NAMES.mobileUI}
-    />
-  );
+  return <ScreensTemplate content={<UIScreens />} title={ROUTE_NAMES.mobileUI} />;
 }
 
 function PageWithProviders() {
