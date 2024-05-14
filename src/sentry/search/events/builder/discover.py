@@ -1322,6 +1322,9 @@ class BaseQueryBuilder:
                 1,
             )
         else:
+            # pull out the aliased expression if it exists
+            if isinstance(lhs, AliasedExpression):
+                lhs = lhs.exp
             condition = Condition(lhs, Op(search_filter.operator), value)
 
         if is_null_condition:
