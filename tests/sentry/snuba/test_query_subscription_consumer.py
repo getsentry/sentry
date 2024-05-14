@@ -87,9 +87,9 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         topic_defn = get_topic_definition(Topic.EVENTS)
         cluster_options = kafka_config.get_kafka_admin_cluster_options("default")
         admin_client = AdminClient(cluster_options)
-        print(admin_client.list_topics([topic_defn["real_topic_name"]]))  # noqa
+        print(admin_client.list_topics(topic_defn["real_topic_name"]))  # noqa
         wait_for_topics(admin_client, [topic_defn["real_topic_name"]])
-        print(admin_client.list_topics([topic_defn["real_topic_name"]]))  # noqa
+        print(admin_client.list_topics(topic_defn["real_topic_name"]))  # noqa
 
         registration_key = "registered_test_2"
         mock_callback = mock.Mock()
