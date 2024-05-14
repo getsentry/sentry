@@ -29,7 +29,7 @@ type Props = {
 };
 
 function GroupStatusChart({
-  stats = EMPTY_STATS,
+  stats,
   groupStatus,
   height = 24,
   secondaryStats = EMPTY_STATS,
