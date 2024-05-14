@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -10,7 +11,7 @@ from sentry.seer.utils import (
     SimilarGroupNotFoundError,
     SimilarIssuesEmbeddingsRequest,
     detect_breakpoints,
-    get_similar_issues_embeddings,
+    get_similarity_data_from_seer,
 )
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -85,7 +86,7 @@ def test_simple_similar_issues_embeddings_only_group_id_returned(
         "stacktrace": "string",
         "message": "message",
     }
-    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
+    assert get_similarity_data_from_seer(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
 
 
 @django_db_all
@@ -118,7 +119,7 @@ def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, 
         "parent_group_id": similar_event.group_id,
     }
 
-    assert get_similar_issues_embeddings(params) == [
+    assert get_similarity_data_from_seer(params) == [
         SeerSimilarIssueData(**similar_issue_data)  # type: ignore[arg-type]
     ]
 
@@ -150,7 +151,7 @@ def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, defau
         "message": "message",
     }
 
-    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
+    assert get_similarity_data_from_seer(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
 
 
 @django_db_all
@@ -168,7 +169,54 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
         "stacktrace": "string",
         "message": "message",
     }
-    assert get_similar_issues_embeddings(params) == []
+    assert get_similarity_data_from_seer(params) == []
+
+
+@django_db_all
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+def test_returns_sorted_similarity_results(mock_seer_request, default_project):
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
+    similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
+    less_similar_event = save_new_event({"message": "Charlie is goofy"}, default_project)
+
+    raw_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.05,
+        "parent_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+    }
+    raw_less_similar_issue_data: RawSeerSimilarIssueData = {
+        "message_distance": 0.10,
+        "parent_hash": NonNone(less_similar_event.get_primary_hash()),
+        "should_group": False,
+        "stacktrace_distance": 0.05,
+    }
+
+    # Note that the less similar issue is first in the list as it comes back from Seer
+    seer_return_value = {"responses": [raw_less_similar_issue_data, raw_similar_issue_data]}
+    mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+    params: SimilarIssuesEmbeddingsRequest = {
+        "hash": NonNone(event.get_primary_hash()),
+        "project_id": default_project.id,
+        "stacktrace": "string",
+        "message": "message",
+    }
+
+    similar_issue_data: Any = {
+        **raw_similar_issue_data,
+        "parent_group_id": similar_event.group_id,
+    }
+    less_similar_issue_data: Any = {
+        **raw_less_similar_issue_data,
+        "parent_group_id": less_similar_event.group_id,
+    }
+
+    # The results have been reordered so that the more similar issue comes first
+    assert get_similarity_data_from_seer(params) == [
+        SeerSimilarIssueData(**similar_issue_data),
+        SeerSimilarIssueData(**less_similar_issue_data),
+    ]
 
 
 # TODO: Remove once switch is complete
