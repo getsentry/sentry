@@ -1439,8 +1439,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:performance-span-histogram-view": "Enable histogram view in span details",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1854,10 +1852,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:settings-legal-tos-ui": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
-    # Enable the new flat file indexing system for sourcemaps.
-    "organizations:sourcemaps-bundle-flat-file-indexing": False,
-    # Upload release bundles as artifact bundles.
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
