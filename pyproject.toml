@@ -596,6 +596,7 @@ module = [
     "sentry.llm.*",
     "sentry.mediators.sentry_app_installations.installation_notifier",
     "sentry.migrations.*",
+    "sentry.models.eventattachment",
     "sentry.nodestore.base",
     "sentry.nodestore.bigtable.backend",
     "sentry.nodestore.django.backend",
