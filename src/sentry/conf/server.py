@@ -793,7 +793,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
-    "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
@@ -1210,11 +1209,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
     },
-    "dynamic-sampling-collect-orgs": {
-        "task": "sentry.dynamic_sampling.tasks.collect_orgs",
-        # Run every 20 minutes
-        "schedule": crontab(minute="*/20"),
-    },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         # Run every 1 hour
@@ -1527,8 +1521,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-sidebar-item-hidden": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
-    # Enables category "metrics" in stats_v2 endpoint
-    "organizations:metrics-stats": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
@@ -1800,6 +1792,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:related-events": False,
     # Enable related issues feature
     "organizations:related-issues": False,
+    # Enable related issues in issue details page
+    "organizations:related-issues-issue-details-page": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1949,6 +1943,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ui": False,
     # Enable User Feedback spam auto filtering feature ingest
     "organizations:user-feedback-spam-filter-ingest": False,
+    # Enable User Feedback spam auto filtering feature actions
+    "organizations:user-feedback-spam-filter-actions": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
     # User Feedback Error Link Ingestion Changes
@@ -3668,15 +3664,24 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # constraints instead of setting the column to not null.
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
-ANOMALY_DETECTION_URL = "http://127.0.0.1:9091"
-ANOMALY_DETECTION_TIMEOUT = 30
+SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
+SEER_DEFAULT_TIMEOUT = 5
 
-# TODO: Once this moves to its own service, this URL will need to be updated
-SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
-SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
-SEVERITY_DETECTION_RETRIES = 1
+SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
-SEER_AUTOFIX_URL = ANOMALY_DETECTION_URL  # In local development this is the same as ANOMALY_DETECTION_URL, for prod check getsentry.
+SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
+SEER_SEVERITY_RETRIES = 1
+
+SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+
+SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_GROUPING_TIMEOUT = 1
+
+SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_ANOMALY_DETECTION_TIMEOUT = 5
+
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3949,6 +3954,11 @@ COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
 # Disable DDM entirely
 SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
+
+SEER_SIMILARITY_MODEL_VERSION = "v0"
+SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
+SEER_MAX_GROUPING_DISTANCE = 0.01
+SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this right now
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

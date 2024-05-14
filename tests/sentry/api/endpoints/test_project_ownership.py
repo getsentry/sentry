@@ -39,7 +39,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         self.path = reverse(
             "sentry-api-0-project-ownership",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )

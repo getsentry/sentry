@@ -11,6 +11,7 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
     get_stacktrace_string,
 )
 from sentry.api.serializers.base import serialize
+from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.group import Group
 from sentry.seer.utils import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
@@ -694,7 +695,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     # TODO: Remove once switch is complete
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
     def test_simple_only_group_id_returned(self, mock_logger, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
@@ -730,7 +731,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
@@ -741,7 +742,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
     def test_simple_only_hash_returned(self, mock_logger, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
@@ -777,7 +778,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
@@ -789,7 +790,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     # TODO: Remove once switch is complete
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
     def test_simple_group_id_and_hash_returned(self, mock_logger, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
@@ -826,7 +827,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(expected_seer_request_params).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
@@ -838,7 +839,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_multiple(self, mock_seer_request, mock_record):
         over_threshold_group_event = save_new_event({"message": "Maisey is silly"}, self.project)
         under_threshold_group_event = save_new_event({"message": "Charlie is goofy"}, self.project)
@@ -898,7 +899,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.logger")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_incomplete_return_data(self, mock_seer_request, mock_logger):
         # Two suggested groups, one with valid data, one missing both parent group id and parent hash.
         # We should log the second and return the first.
@@ -945,7 +946,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.logger")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_nonexistent_group(self, mock_seer_request, mock_logger):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
@@ -999,7 +1000,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_empty_seer_return(self, mock_seer_request, mock_record):
         mock_seer_request.return_value = HTTPResponse([])
         response = self.client.get(self.path)
@@ -1069,7 +1070,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == []
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
         Test that optional parameters, k and threshold, can not be included.
@@ -1096,7 +1097,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "group_id": self.group.id,
@@ -1120,7 +1121,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "group_id": self.group.id,
@@ -1145,7 +1146,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_seer_request.assert_called_with(
             "POST",
-            "/v0/issues/similar-issues",
+            SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
                     "group_id": self.group.id,

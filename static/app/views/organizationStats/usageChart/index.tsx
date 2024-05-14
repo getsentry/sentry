@@ -89,8 +89,8 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_INFO.metricSecond.titleName,
-    value: DATA_CATEGORY_INFO.metricSecond.plural,
+    label: DATA_CATEGORY_INFO.metrics.titleName,
+    value: DATA_CATEGORY_INFO.metrics.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
@@ -360,12 +360,10 @@ function UsageChartBody({
 
   const filteredOptions = useMemo(() => {
     return categoryOptions.filter(option => {
-      if (option.value !== DATA_CATEGORY_INFO.metricSecond.plural) {
+      if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
         return true;
       }
-      return (
-        hasCustomMetrics(organization) && organization.features.includes('metrics-stats')
-      );
+      return hasCustomMetrics(organization);
     });
   }, [organization, categoryOptions]);
 

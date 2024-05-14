@@ -9,7 +9,6 @@ from .rules.helpers.latest_releases import (
     ProjectBoostedReleases,
 )
 from .rules.helpers.time_to_adoptions import LATEST_RELEASE_TTAS, Platform
-from .rules.logging import should_log_rules_change
 from .rules.utils import (
     DEFAULT_BIASES,
     RESERVED_IDS,
@@ -28,7 +27,6 @@ __all__ = [
     "get_enabled_user_biases",
     "get_redis_client_for_ds",
     "get_rule_hash",
-    "should_log_rules_change",
     "RuleType",
     "ExtendedBoostedRelease",
     "ProjectBoostedReleases",

@@ -72,12 +72,15 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
   width: 100%;
   height: 15px;
   ${p => `
+    filter: var(--highlightedSlice-${p.sliceName}-saturate, var(--defaultSlice-saturate));
+  `}
+  ${p => `
     opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
   `}
   ${p => `
     transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
   `}
-  transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export function TraceBreakdownRenderer({
@@ -104,6 +107,7 @@ export function TraceBreakdownRenderer({
             sliceName={breakdown.project}
             sliceStart={breakdown.start}
             sliceEnd={breakdown.end}
+            sliceDurationReal={breakdown.duration}
             sliceSecondaryName={breakdown.sdkName}
             trace={trace}
             theme={theme}
@@ -124,7 +128,8 @@ export function TraceBreakdownRenderer({
 }
 
 const BREAKDOWN_BAR_SIZE = 200;
-const BREAKDOWN_QUANTIZE_STEP = 5;
+const BREAKDOWN_QUANTIZE_STEP = 1;
+const BREAKDOWN_NUM_SLICES = BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP; // 200
 
 export function SpanBreakdownSliceRenderer({
   trace,
@@ -132,6 +137,7 @@ export function SpanBreakdownSliceRenderer({
   sliceName,
   sliceStart,
   sliceEnd,
+  sliceDurationReal,
   sliceSecondaryName,
   onMouseEnter,
   offset,
@@ -144,8 +150,10 @@ export function SpanBreakdownSliceRenderer({
   theme: Theme;
   trace: TraceResult<Field>;
   offset?: number;
+  sliceDurationReal?: number;
 }) {
-  const traceDuration = trace.end - trace.start;
+  const traceSliceSize = (trace.end - trace.start) / BREAKDOWN_NUM_SLICES;
+  const traceDuration = BREAKDOWN_NUM_SLICES * traceSliceSize;
 
   const sliceDuration = sliceEnd - sliceStart;
 
@@ -158,16 +166,11 @@ export function SpanBreakdownSliceRenderer({
 
   const sliceWidth =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.ceil(
-      (BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * (sliceDuration / traceDuration)
-    );
+    Math.ceil(BREAKDOWN_NUM_SLICES * (sliceDuration / traceDuration));
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.floor(
-      ((BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * relativeSliceStart) /
-        traceDuration
-    );
+    Math.floor((BREAKDOWN_NUM_SLICES * relativeSliceStart) / traceDuration);
   return (
     <BreakdownSlice
       sliceName={sliceName}
@@ -184,7 +187,10 @@ export function SpanBreakdownSliceRenderer({
               <Subtext>({getShortenedSdkName(sliceSecondaryName)})</Subtext>
             </FlexContainer>
             <div>
-              <PerformanceDuration milliseconds={sliceDuration} abbreviation />
+              <PerformanceDuration
+                milliseconds={sliceDurationReal ?? sliceDuration}
+                abbreviation
+              />
             </div>
           </div>
         }
