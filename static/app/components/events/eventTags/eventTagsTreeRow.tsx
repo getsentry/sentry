@@ -24,7 +24,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 interface EventTagTreeRowConfig {
+  // Omits the dropdown of actions applicable to this tag
   disableActions?: boolean;
+  // Omit error styling from being displayed, even if context is invalid
+  disableErrors?: boolean;
+  // Displays tag value as plain text, rather than a hyperlink if applicable
   disableRichValue?: boolean;
 }
 
@@ -50,7 +54,7 @@ export default function EventTagsTreeRow({
 }: EventTagsTreeRowProps) {
   const originalTag = content.originalTag;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
-  const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
+  const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
   const hasStem = !isLast && objectIsEmpty(content.subtree);
 
   if (!originalTag) {

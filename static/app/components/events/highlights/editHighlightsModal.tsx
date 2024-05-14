@@ -107,7 +107,7 @@ function EditPreviewHighlightSection({
         event={event}
         tagKey={content.originalTag.key}
         project={project}
-        config={{disableActions: true, disableRichValue: true}}
+        config={{disableActions: true, disableRichValue: true, disableErrors: true}}
         data-test-id="highlights-preview-tag"
       />
     </Fragment>
