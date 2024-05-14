@@ -28,7 +28,7 @@ class AuthValidateEndpoint(Endpoint):
     permission_classes = ()
 
     enforce_rate_limit = True
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=1250, window=1)}}
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=1250, window=60)}}
 
     def get(self, request: Request) -> Response:
         if request.auth or request.user.is_authenticated:
