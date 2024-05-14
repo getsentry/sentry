@@ -1,5 +1,5 @@
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -69,7 +69,7 @@ class RegionDirectoryTest(TestCase):
 
     @staticmethod
     @contextmanager
-    def _in_global_state(directory: RegionDirectory) -> Any:
+    def _in_global_state(directory: RegionDirectory) -> Generator[None, None, None]:
         with get_test_env_directory().swap_state(tuple(directory.regions)):
             yield
 
