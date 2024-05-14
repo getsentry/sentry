@@ -430,6 +430,10 @@ class TraceSamplesExecutor:
             )
             all_queries.append(query)
 
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            for query in all_queries:
+                query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
+
         assert timestamp_column is not None
 
         all_raw_results = bulk_snuba_queries(
@@ -783,7 +787,7 @@ class TraceSamplesExecutor:
     ) -> QueryBuilder:
         trace_ids_str = ",".join(trace_ids)
         trace_ids_condition = f"trace:[{trace_ids_str}]"
-        return SpansIndexedQueryBuilder(
+        query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
             snuba_params=snuba_params,
@@ -801,6 +805,11 @@ class TraceSamplesExecutor:
                 transform_alias_to_input_format=True,
             ),
         )
+
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
+
+        return query
 
     def get_traces_errors_query(
         self,
