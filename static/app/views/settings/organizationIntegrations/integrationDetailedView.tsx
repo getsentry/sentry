@@ -425,6 +425,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     }
 
     const flags = configurations[0].configData.toggleableFlags;
+
+    if (!flags) {
+      return null;
+    }
+
     const features: ToggleableFeature[] = [
       {
         name: 'issueAlertsThreadFlag',
