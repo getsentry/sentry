@@ -26,13 +26,19 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
     def test_simple(self):
         self.store_spans(
             [
-                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
-                self.create_span({"description": "bar"}, start_ts=self.ten_mins_ago),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
             ]
         )
         response = self.do_request(
             {
-                "field": ["description", "count()"],
+                "field": ["span.status", "description", "count()"],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -44,8 +50,18 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 2
-        assert data[0]["description"] == "bar"
-        assert data[1]["description"] == "foo"
+        assert data == [
+            {
+                "span.status": "invalid_argument",
+                "description": "bar",
+                "count()": 1,
+            },
+            {
+                "span.status": "ok",
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
         assert meta["dataset"] == "spansIndexed"
 
     def test_sentry_tags_vs_tags(self):
