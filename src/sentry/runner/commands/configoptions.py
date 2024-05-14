@@ -283,7 +283,7 @@ def sync(ctx: click.Context) -> None:
                         ):
                             continue
                         else:
-                            presenter_delegator.drift(opt.name, "")
+                            presenter_delegator.drift(opt.name, options.get(opt.name))
                             drift_found = True
 
     if invalid_options:
