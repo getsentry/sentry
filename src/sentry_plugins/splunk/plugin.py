@@ -102,7 +102,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         if host:
             return host
 
-        user_interface = event.interfaces.get("sentry.interfaces.User")
+        user_interface = event.interfaces.get("user")
         if user_interface:
             host = user_interface.ip_address
             if host:
