@@ -45,6 +45,7 @@ import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSer
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
+  ModuleName,
   SpanFunction,
   SpanIndexedField,
   SpanMetricsField,
