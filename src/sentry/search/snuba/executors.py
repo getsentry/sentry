@@ -1697,11 +1697,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     else:
                         raise InvalidQueryForExecutor(f"Invalid clause {clause}")
                 else:
-                    conditon = self.get_basic_event_snuba_condition(
+                    condition = self.get_basic_event_snuba_condition(
                         search_filter, joined_entity, organization.id, project_ids, environments
                     )
-                    if conditon is not None:
-                        where_conditions.append(conditon)
+                    if condition is not None:
+                        where_conditions.append(condition)
 
             # handle types based on issue.type and issue.category
             if not is_errors:
