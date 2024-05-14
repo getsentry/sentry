@@ -1216,7 +1216,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         query_builder = self.def_get_query_builder(joined_entity)
         query_builder.default_filter_converter(search_filter)
 
-        convert_value_to_date = False
         output_conditions = []
         for item in raw_conditions:
             lhs = item[0]
@@ -1224,9 +1223,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 raw_column = map_field_name_from_format_search_filter(lhs)
                 lhs = query_builder.resolve_column(raw_column)
             else:
-                # need to convert dates to timestamps
-                if lhs[1][0] == "date":
-                    convert_value_to_date = True
                 # right now we are assuming lhs looks like ['isNull', ['user']]
                 # if there are more complex expressions we will need to handle them
                 raw_column = map_field_name_from_format_search_filter(lhs[1][0])
@@ -1240,8 +1236,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
             operator = Op(item[1])
             value = item[2]
-            if convert_value_to_date:
-                value = datetime.fromtimestamp(int(value / 1000.0))
             output_conditions.append(Condition(lhs, operator, value))
 
         for entity in [joined_entity, self.entities["attrs"]]:
@@ -1691,7 +1685,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 clause = lookup[1] if lookup else Clauses.WHERE
 
                 # skip these
-                if search_filter.key.name in ["issue.category", "issue.type"]:
+                if search_filter.key.name in ["issue.category", "issue.type", "date"]:
                     pass
                 elif fn:
                     # dynamic lookup of what clause to use
