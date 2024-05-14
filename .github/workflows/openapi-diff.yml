@@ -68,7 +68,8 @@ jobs:
         id: oldschema
         if: steps.changes.outputs.api_docs == 'true'
         run: |
-          git checkout master
+          git fetch origin
+          git switch master
           sentry rpcschema --partial > schemas/old_schema.json
 
       - name: Invoke oasdiff on RPC schemas
