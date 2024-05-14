@@ -1232,6 +1232,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 raw_column = map_field_name_from_format_search_filter(lhs[1][0])
                 rhs = [query_builder.resolve_column(raw_column)]
                 if len(lhs[1]) > 1:
+                    # example item here: [['ifNull', ['date', "''"]], '>=', 1715707188000]
+                    # which has lhs ['ifNull', ['date', "''"]]
+                    # we need this to become Function('ifNull', [Column('date', entity), ''])
                     rhs.append(lhs[1][1])
                 lhs = Function(lhs[0], rhs)
 
