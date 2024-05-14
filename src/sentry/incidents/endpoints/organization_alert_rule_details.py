@@ -319,11 +319,6 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
             except Exception:
                 pass
 
-            # TODO - Cleanup Subscription Project Mapping
-            # if not, check to see if there's a project associated with the snuba query
-            if project is None:
-                project = alert_rule.snuba_query.subscriptions.get().project
-
             if not request.access.has_project_access(project):
                 return Response(status=status.HTTP_403_FORBIDDEN)
 
