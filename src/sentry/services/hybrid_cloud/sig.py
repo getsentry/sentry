@@ -138,13 +138,3 @@ class SerializableFunctionSignature:
     def deserialize_return_value(self, value: Any) -> Any:
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
-
-    def get_schemas(self) -> tuple[type[pydantic.BaseModel], type[pydantic.BaseModel]]:
-        """Access the schema representations directly.
-
-        This generally should be needed only for reflective operations such as
-        checking for cross-version compatibility. Routine operations on the parameter
-        and return values should be done through the "serialize" and "deserialize"
-        methods.
-        """
-        return self._parameter_model, self._return_model

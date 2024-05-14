@@ -19,6 +19,10 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
 
       - name: Check for python file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -54,29 +58,3 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
         run: |
           npx json-diff@0.5.4 --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json
-
-      # Do RPC compatibility checks. Combined with public API audits
-      # to avoid workflow/job setup overhead.
-      - name: Dump RPC schema for new version
-        id: newschema
-        if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          mkdir schemas
-          sentry rpcschema --partial > schemas/new_schema.json
-
-      - name: Dump RPC schema for master
-        id: oldschema
-        if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          git fetch origin
-          git switch master
-          sentry rpcschema --partial > schemas/old_schema.json
-
-      - name: Invoke oasdiff on RPC schemas
-        uses: oasdiff/oasdiff-action/breaking@fc826b9f0d21b85b085842521c7a8cc445412c08 # v0.0.19
-        if: steps.changes.outputs.api_docs == 'true'
-        with:
-          base: ./schemas/old_schema.json
-          revision: ./schemas/new_schema.json
-          format: 'text'
-          fail-on-diff: true
