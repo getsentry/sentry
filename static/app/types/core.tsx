@@ -80,7 +80,7 @@ export enum DataCategory {
   REPLAYS = 'replays',
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
-  SPAN = 'span',
+  SPANS = 'spans',
   METRIC_SECOND = 'metricSecond',
 }
 
