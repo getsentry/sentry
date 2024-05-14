@@ -54,7 +54,7 @@ class OrganizationIncidentSeenTest(APITestCase):
             url = reverse(
                 "sentry-api-0-organization-incident-details",
                 kwargs={
-                    "organization_slug": incident.organization.slug,
+                    "organization_id_or_slug": incident.organization.slug,
                     "incident_identifier": incident.identifier,
                 },
             )

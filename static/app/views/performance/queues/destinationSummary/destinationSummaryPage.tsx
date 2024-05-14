@@ -138,11 +138,11 @@ function DestinationSummaryPage() {
             {!onboardingProject && (
               <Fragment>
                 <ModuleLayout.Half>
-                  <LatencyChart />
+                  <LatencyChart destination={destination} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <ThroughputChart />
+                  <ThroughputChart destination={destination} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
@@ -160,7 +160,7 @@ function DestinationSummaryPage() {
   );
 }
 
-function DestinationSummaryPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -171,7 +171,7 @@ function DestinationSummaryPageWithProviders() {
     </ModulePageProviders>
   );
 }
-export default DestinationSummaryPageWithProviders;
+export default PageWithProviders;
 
 const Flex = styled('div')`
   display: flex;
