@@ -92,7 +92,7 @@ type ValidSort = Sort & {
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
+  return (SORTABLE_FIELDS as ReadonlyArray<string>).includes(sort.field);
 }
 
 interface Props {

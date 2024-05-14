@@ -63,6 +63,8 @@ function QueuesLandingPage() {
     });
   };
 
+  // The QueuesTable component queries using the destination prop.
+  // We wrap the user input in wildcards to allow for partial matches.
   const wildCardDestinationFilter = query.destination
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
