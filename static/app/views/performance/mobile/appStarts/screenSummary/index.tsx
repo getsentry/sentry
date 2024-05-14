@@ -24,16 +24,19 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+<<<<<<< HEAD
 import {BASE_URL} from 'sentry/views/performance/mobile/appStarts/settings';
+=======
+import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
+>>>>>>> 16c919f580 (ref(insights): abstract ScreenLoadSpans side panel for mobile modules)
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
-import {ScreenLoadSpanSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/samples';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
@@ -187,12 +190,13 @@ export function ScreenSummary() {
               <SamplesTables transactionName={transactionName} />
             </SamplesContainer>
             {spanGroup && spanOp && appStartType && (
-              <ScreenLoadSpanSamples
+              <SpanSamplesPanel
                 additionalFilters={{
                   [SpanMetricsField.APP_START_TYPE]: appStartType,
                   ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
                 }}
                 groupId={spanGroup}
+                moduleName={ModuleName.STARTUP}
                 transactionName={transactionName}
                 spanDescription={spanDescription}
                 spanOp={spanOp}
