@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import mimetypes
 from dataclasses import dataclass
 from hashlib import sha1
 from io import BytesIO
-from typing import IO
+from typing import IO, Any
 
 import zstandard
 from django.conf import settings
@@ -21,7 +23,7 @@ from sentry.models.files.utils import get_size_and_checksum, get_storage
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
 
 
-def get_crashreport_key(group_id):
+def get_crashreport_key(group_id: int) -> str:
     """
     Returns the ``django.core.cache`` key for groups that have exceeded their
     configured crash report limit.
@@ -29,7 +31,9 @@ def get_crashreport_key(group_id):
     return f"cr:{group_id}"
 
 
-def event_attachment_screenshot_filter(queryset):
+def event_attachment_screenshot_filter(
+    queryset: models.QuerySet[EventAttachment],
+) -> models.QuerySet[EventAttachment]:
     # Intentionally a hardcoded list instead of a regex since current usecases do not have more 3 screenshots
     return queryset.filter(
         name__in=[
@@ -92,7 +96,7 @@ class EventAttachment(Model):
 
     __repr__ = sane_repr("event_id", "name")
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         rv = super().delete(*args, **kwargs)
 
         if self.group_id and self.type in CRASH_REPORT_TYPES:
@@ -125,7 +129,7 @@ class EventAttachment(Model):
 
         return rv
 
-    def getfile(self) -> IO:
+    def getfile(self) -> IO[bytes]:
         if self.size == 0:
             return BytesIO(b"")
 
