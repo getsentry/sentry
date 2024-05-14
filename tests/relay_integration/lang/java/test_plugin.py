@@ -406,7 +406,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )
@@ -937,7 +937,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )

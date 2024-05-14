@@ -1574,6 +1574,12 @@ function buildRoutes() {
           <IndexRoute
             component={make(() => import('sentry/views/performance/mobile/ui'))}
           />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/performance/mobile/ui/screenSummary')
+            )}
+          />
         </Route>
       </Route>
       <Route path="traces/">
@@ -1663,27 +1669,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const starfishRoutes = (
-    <Route
-      path="/starfish/"
-      component={make(() => import('sentry/views/starfish'))}
-      withOrgPath
-    >
-      <Redirect from="database/" to="/performance/database" />
-      <Route path="appStartup/">
-        <IndexRoute
-          component={make(() => import('sentry/views/performance/mobile/appStarts'))}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/performance/mobile/appStarts/screenSummary')
-          )}
-        />
-      </Route>
-    </Route>
-  );
-
   const userFeedbackRoutes = (
     <Route
       path="/user-feedback/"
@@ -1705,12 +1690,9 @@ function buildRoutes() {
   );
 
   const issueListRoutes = (
-    <Route
-      path="/issues/(searches/:searchId/)"
-      component={errorHandler(IssueListContainer)}
-      withOrgPath
-    >
+    <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
       <IndexRoute component={errorHandler(IssueListOverview)} />
+      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
     </Route>
   );
 
@@ -2094,7 +2076,6 @@ function buildRoutes() {
       {discoverRoutes}
       {performanceRoutes}
       {aiMonitoringRoutes}
-      {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}
       {gettingStartedRoutes}

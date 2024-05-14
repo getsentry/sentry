@@ -15,11 +15,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.monitors.endpoints.base import ProjectMonitorEndpoint
-from sentry.monitors.endpoints.base_monitor_details import MonitorDetailsMixin
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
+
+from .base import ProjectMonitorEndpoint
+from .base_monitor_details import MonitorDetailsMixin
 
 
 @region_silo_endpoint
@@ -35,7 +36,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
     @extend_schema(
         operation_id="Retrieve a Monitor for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
         ],
@@ -55,7 +56,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
     @extend_schema(
         operation_id="Update a Monitor for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
         ],
@@ -77,7 +78,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
     @extend_schema(
         operation_id="Delete a Monitor or Monitor Environments for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,

@@ -31,7 +31,7 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
-from sentry.conf.server import SEVERITY_DETECTION_RETRIES
+from sentry.conf.server import SEER_SEVERITY_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -119,7 +119,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
@@ -2220,8 +2220,8 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEVERITY_DETECTION_URL,
-    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+    settings.SEER_SEVERITY_URL,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
 
@@ -2432,24 +2432,22 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             with metrics.timer(op):
                 timeout = options.get(
                     "issues.severity.seer-timout",
-                    settings.SEVERITY_DETECTION_TIMEOUT / 1000,
+                    settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
-                    body=json.dumps_experimental("event-manager.enable-orjson", payload),
+                    body=orjson.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
-                severity = json.loads_experimental(
-                    "event-manager.enable-orjson", response.data
-                ).get("severity")
+                severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError as e:
             logger.warning(
                 "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEVERITY_DETECTION_RETRIES,
-                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                SEER_SEVERITY_RETRIES,
+                "ies" if SEER_SEVERITY_RETRIES > 1 else "y",
                 repr(e.reason),
                 extra=logger_data,
             )
@@ -2790,7 +2788,7 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
 
         # Capture the actual size that goes into node store.
         event_metrics["bytes.stored.event"] = len(
-            json.dumps_experimental("event-manager.enable-orjson", dict(job["event"].data.items()))
+            orjson.dumps(dict(job["event"].data.items())).decode()
         )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):

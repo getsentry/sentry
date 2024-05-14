@@ -31,7 +31,6 @@ from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.types.region import find_regions_for_user
-from sentry.utils.json import JSONData
 
 
 class AuthenticatorManager(BaseManager["Authenticator"]):
@@ -197,7 +196,7 @@ class Authenticator(ControlOutboxProducingModel):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

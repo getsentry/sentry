@@ -132,6 +132,9 @@ from sentry.monitors.endpoints.organization_monitor_index import OrganizationMon
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
 )
+from sentry.monitors.endpoints.organization_monitor_processing_errors_index import (
+    OrganizationMonitorProcessingErrorsIndexEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import (
     OrganizationMonitorScheduleSampleDataEndpoint,
 )
@@ -146,7 +149,13 @@ from sentry.monitors.endpoints.project_monitor_details import ProjectMonitorDeta
 from sentry.monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
+from sentry.monitors.endpoints.project_monitor_processing_errors_index import (
+    ProjectMonitorProcessingErrorsIndexEndpoint,
+)
 from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
+from sentry.monitors.endpoints.project_processing_errors_details import (
+    ProjectProcessingErrorsDetailsEndpoint,
+)
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -645,6 +654,7 @@ from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
 
+
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
 
@@ -1108,7 +1118,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organizations",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/$",
         OrganizationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-details",
     ),
@@ -1118,7 +1128,7 @@ ORGANIZATION_URLS = [
     ),
     # Alert Rules
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/alert-rules/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/$",
         OrganizationAlertRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rules",
     ),
@@ -1128,12 +1138,12 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-alert-rule-available-actions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
         OrganizationAlertRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
         OrganizationAlertRuleActivationsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-activations",
     ),
@@ -1206,13 +1216,13 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-derive-code-mappings",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/$",
         OrganizationCodeMappingDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-code-mapping-details",
     ),
     # Codeowners
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/codeowners/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/code-mappings/(?P<config_id>[^\/]+)/codeowners/$",
         OrganizationCodeMappingCodeOwnersEndpoint.as_view(),
         name="sentry-api-0-organization-code-mapping-codeowners",
     ),
@@ -1274,22 +1284,22 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-dashboard-widget-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$",
         OrganizationDashboardDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/visit/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/visit/$",
         OrganizationDashboardVisitEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-visit",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
         ShortIdLookupEndpoint.as_view(),
         name="sentry-api-0-short-id-lookup",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/eventids/(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/eventids/(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         EventIdLookupEndpoint.as_view(),
         name="sentry-api-0-event-id-lookup",
     ),
@@ -1379,7 +1389,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sdks",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/events/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/events/$",
         OrganizationEventsEndpoint.as_view(),
         name="sentry-api-0-organization-events",
     ),
@@ -1556,7 +1566,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-group-index-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/integrations/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/integrations/$",
         OrganizationIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-integrations",
     ),
@@ -1586,7 +1596,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-integration-serverless-functions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/members/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/members/$",
         OrganizationMemberIndexEndpoint.as_view(),
         name="sentry-api-0-organization-member-index",
     ),
@@ -1596,7 +1606,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-external-user",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/external-users/(?P<external_user_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/external-users/(?P<external_user_id>[^\/]+)/$",
         ExternalUserDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-external-user-details",
     ),
@@ -1617,58 +1627,63 @@ ORGANIZATION_URLS = [
     ),
     # Notification Actions
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/notifications/actions/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/notifications/actions/$",
         NotificationActionsIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notification-actions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/notifications/actions/(?P<action_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/notifications/actions/(?P<action_id>[^\/]+)/$",
         NotificationActionsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notification-actions-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/notifications/available-actions/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/notifications/available-actions/$",
         NotificationActionsAvailableEndpoint.as_view(),
         name="sentry-api-0-organization-notification-available-actions",
     ),
     # Monitors
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors/$",
         OrganizationMonitorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors-stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors-stats/$",
         OrganizationMonitorIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-index-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors-schedule-data/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/processing-errors/$",
+        OrganizationMonitorProcessingErrorsIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-processing-errors-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors-schedule-data/$",
         OrganizationMonitorScheduleSampleDataEndpoint.as_view(),
         name="sentry-api-0-organization-monitors-schedule-sample-data",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/$",
         OrganizationMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
         OrganizationMonitorEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-environment-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/stats/$",
         OrganizationMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/$",
         OrganizationMonitorCheckInIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-check-in-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
         method_dispatch(
             GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
             OPTIONS=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
@@ -1689,7 +1704,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-recent-searches",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/searches/(?P<search_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/searches/(?P<search_id>[^\/]+)/$",
         OrganizationSearchDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-search-details",
     ),
@@ -1699,7 +1714,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-searches",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/sessions/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/sessions/$",
         OrganizationSessionsEndpoint.as_view(),
         name="sentry-api-0-organization-sessions",
     ),
@@ -1734,7 +1749,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-processing-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/projects/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
     ),
@@ -1759,17 +1774,17 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sent-first-event",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/repos/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/repos/$",
         OrganizationRepositoriesEndpoint.as_view(),
         name="sentry-api-0-organization-repositories",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/$",
         OrganizationRepositoryDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/commits/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/commits/$",
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-commits",
     ),
@@ -1784,68 +1799,68 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-plugins-configs",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/$",
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/release-thresholds/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/release-thresholds/$",
         ReleaseThresholdIndexEndpoint.as_view(),
         name="sentry-api-0-organization-release-thresholds",
     ),
     # TODO: also integrate release threshold status into the releases response?
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/release-threshold-statuses/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/release-threshold-statuses/$",
         ReleaseThresholdStatusIndexEndpoint.as_view(),
         name="sentry-api-0-organization-release-threshold-statuses",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/stats/$",
         OrganizationReleasesStatsEndpoint.as_view(),
         name="sentry-api-0-organization-releases-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",
         OrganizationReleaseDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-release-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/meta/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/meta/$",
         OrganizationReleaseMetaEndpoint.as_view(),
         name="sentry-api-0-organization-release-meta",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/assemble/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/assemble/$",
         OrganizationReleaseAssembleEndpoint.as_view(),
         name="sentry-api-0-organization-release-assemble",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
         OrganizationReleaseFilesEndpoint.as_view(),
         name="sentry-api-0-organization-release-files",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
         OrganizationReleaseFileDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-release-file-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$",
         CommitFileChangeEndpoint.as_view(),
         name="sentry-api-0-release-commitfilechange",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/deploys/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/deploys/$",
         ReleaseDeploysEndpoint.as_view(),
         name="sentry-api-0-organization-release-deploys",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
         OrganizationReleaseCommitsEndpoint.as_view(),
         name="sentry-api-0-organization-release-commits",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/previous-with-commits/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/previous-with-commits/$",
         OrganizationReleasePreviousCommitsEndpoint.as_view(),
         name="sentry-api-0-organization-release-previous-with-commits",
     ),
@@ -1900,17 +1915,17 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/stats_v2/$",
         OrganizationStatsEndpointV2.as_view(),
         name="sentry-api-0-organization-stats-v2",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/stats-summary/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/stats-summary/$",
         OrganizationStatsSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-stats-summary",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/teams/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/teams/$",
         OrganizationTeamsEndpoint.as_view(),
         name="sentry-api-0-organization-teams",
     ),
@@ -1951,42 +1966,42 @@ ORGANIZATION_URLS = [
     ),
     # relay usage
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/relay_usage/$",
         OrganizationRelayUsage.as_view(),
         name="sentry-api-0-organization-relay-usage",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/replays/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/replays/$",
         OrganizationReplayIndexEndpoint.as_view(),
         name="sentry-api-0-organization-replay-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/replay-selectors/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/replay-selectors/$",
         OrganizationReplaySelectorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-replay-selectors-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/replay-count/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/replay-count/$",
         OrganizationReplayCountEndpoint.as_view(),
         name="sentry-api-0-organization-replay-count",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/replays/(?P<replay_id>[\w-]+)/$",
         OrganizationReplayDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-replay-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/replays-events-meta/$",
         OrganizationReplayEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-replay-events-meta",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/request-project-creation/$",
         OrganizationRequestProjectCreation.as_view(),
         name="sentry-api-0-organization-request-project-creation",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/scim/v2/",
+        r"^(?P<organization_id_or_slug>[^\/]+)/scim/v2/",
         include(
             [
                 re_path(
@@ -2105,12 +2120,12 @@ ORGANIZATION_URLS = [
     ),
     # Unsubscribe from organization notifications
     re_path(
-        r"^(?P<organization_slug>[^/]+)/unsubscribe/project/(?P<id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/unsubscribe/project/(?P<id>\d+)/$",
         OrganizationUnsubscribeProject.as_view(),
         name="sentry-api-0-organization-unsubscribe-project",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/unsubscribe/issue/(?P<id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/unsubscribe/issue/(?P<id>\d+)/$",
         OrganizationUnsubscribeIssue.as_view(),
         name="sentry-api-0-organization-unsubscribe-issue",
     ),
@@ -2120,7 +2135,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-prompts-activity",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/region/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/region/$",
         OrganizationRegionEndpoint.as_view(),
         name="sentry-api-0-organization-region",
     ),
@@ -2138,7 +2153,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-agnostic-rule-conditions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/$",
         ProjectDetailsEndpoint.as_view(),
         name="sentry-api-0-project-details",
     ),
@@ -2188,17 +2203,17 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-platform-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/$",
         ProjectEventsEndpoint.as_view(),
         name="sentry-api-0-project-events",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$",
         ProjectEventDetailsEndpoint.as_view(),
         name="sentry-api-0-project-event-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/grouping-info/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/grouping-info/$",
         EventGroupingInfoEndpoint.as_view(),
         name="sentry-api-0-event-grouping-info",
     ),
@@ -2233,7 +2248,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-event-file-committers",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/json/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/json/$",
         EventJsonEndpoint.as_view(),
         name="sentry-api-0-event-json",
     ),
@@ -2243,12 +2258,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-event-owners",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
         SourceMapDebugEndpoint.as_view(),
         name="sentry-api-0-event-source-map-debug",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug-blue-thunder-edition/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug-blue-thunder-edition/$",
         SourceMapDebugBlueThunderEditionEndpoint.as_view(),
         name="sentry-api-0-event-source-map-debug-blue-thunder-edition",
     ),
@@ -2258,12 +2273,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-event-actionable-items",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/$",
         DebugFilesEndpoint.as_view(),
         name="sentry-api-0-dsym-files",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/source-maps/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/source-maps/$",
         SourceMapsEndpoint.as_view(),
         name="sentry-api-0-source-maps",
     ),
@@ -2288,7 +2303,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-unknown-dsym-files",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/associate/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/associate/$",
         AssociateDSymFilesEndpoint.as_view(),
         name="sentry-api-0-associate-dsym-files",
     ),
@@ -2298,22 +2313,22 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-filters",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$",
         ProjectFilterDetailsEndpoint.as_view(),
         name="sentry-api-0-project-filters-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/hooks/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/hooks/$",
         ProjectServiceHooksEndpoint.as_view(),
         name="sentry-api-0-service-hooks",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/$",
         ProjectServiceHookDetailsEndpoint.as_view(),
         name="sentry-api-0-project-service-hook-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/stats/$",
         ProjectServiceHookStatsEndpoint.as_view(),
     ),
     re_path(
@@ -2327,12 +2342,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-group-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/$",
         ProjectKeysEndpoint.as_view(),
         name="sentry-api-0-project-keys",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/$",
         ProjectKeyDetailsEndpoint.as_view(),
         name="sentry-api-0-project-key-details",
     ),
@@ -2356,12 +2371,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-releases",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/release-thresholds/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/release-thresholds/$",
         ReleaseThresholdEndpoint.as_view(),
         name="sentry-api-0-project-release-thresholds",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/release-thresholds/(?P<release_threshold>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/release-thresholds/(?P<release_threshold>[^/]+)/$",
         ReleaseThresholdDetailsEndpoint.as_view(),
         name="sentry-api-0-project-release-thresholds-details",
     ),
@@ -2386,7 +2401,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-release-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
         ProjectReleaseCommitsEndpoint.as_view(),
         name="sentry-api-0-project-release-commits",
     ),
@@ -2416,57 +2431,57 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-artifact-bundle-file-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
         ProjectReleaseFilesEndpoint.as_view(),
         name="sentry-api-0-project-release-files",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
         ProjectReleaseFileDetailsEndpoint.as_view(),
         name="sentry-api-0-project-release-file-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/artifact-lookup/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/artifact-lookup/$",
         ProjectArtifactLookupEndpoint.as_view(),
         name="sentry-api-0-project-artifact-lookup",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/$",
         ProjectRulesEndpoint.as_view(),
         name="sentry-api-0-project-rules",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/$",
         ProjectReplayDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/viewed-by/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/viewed-by/$",
         ProjectReplayViewedByEndpoint.as_view(),
         name="sentry-api-0-project-replay-viewed-by",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/accessibility-issues/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/accessibility-issues/$",
         ProjectReplayAccessibilityIssuesEndpoint.as_view(),
         name="sentry-api-0-project-replay-accessibility-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/clicks/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/clicks/$",
         ProjectReplayClicksIndexEndpoint.as_view(),
         name="sentry-api-0-project-replay-clicks-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/$",
         ProjectReplayRecordingSegmentIndexEndpoint.as_view(),
         name="sentry-api-0-project-replay-recording-segment-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/(?P<segment_id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/(?P<segment_id>\d+)/$",
         ProjectReplayRecordingSegmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-recording-segment-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/videos/(?P<segment_id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/videos/(?P<segment_id>\d+)/$",
         ProjectReplayVideoDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-video-details",
     ),
@@ -2476,7 +2491,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-rules-configuration",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/(?P<rule_id>\d+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/(?P<rule_id>\d+)/$",
         ProjectRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-details",
     ),
@@ -2506,42 +2521,42 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-rule-actions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",
         ProjectRuleGroupHistoryIndexEndpoint.as_view(),
         name="sentry-api-0-project-rule-group-history-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/stats/$",
         ProjectRuleStatsIndexEndpoint.as_view(),
         name="sentry-api-0-project-rule-stats-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
         ProjectRuleTaskDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-task-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/stats/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/stats/$",
         ProjectStatsEndpoint.as_view(),
         name="sentry-api-0-project-stats",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/symbol-sources/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/symbol-sources/$",
         ProjectSymbolSourcesEndpoint.as_view(),
         name="sentry-api-0-project-symbol-sources",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tags/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tags/$",
         ProjectTagsEndpoint.as_view(),
         name="sentry-api-0-project-tags",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tags/(?P<key>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tags/(?P<key>[^/]+)/$",
         ProjectTagKeyDetailsEndpoint.as_view(),
         name="sentry-api-0-project-tagkey-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tags/(?P<key>[^/]+)/values/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tags/(?P<key>[^/]+)/values/$",
         ProjectTagKeyValuesEndpoint.as_view(),
         name="sentry-api-0-project-tagkey-values",
     ),
@@ -2561,7 +2576,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-transfer",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/users/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/users/$",
         ProjectUsersEndpoint.as_view(),
         name="sentry-api-0-project-users",
     ),
@@ -2591,7 +2606,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-discard-processing-issues",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/ownership/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/ownership/$",
         ProjectOwnershipEndpoint.as_view(),
         name="sentry-api-0-project-ownership",
     ),
@@ -2728,27 +2743,37 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-statistical-detector",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
         ProjectMonitorCheckInAttachmentEndpoint.as_view(),
         name="sentry-api-0-project-monitor-check-in-attachment",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/$",
         ProjectMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/$",
         ProjectMonitorCheckInIndexEndpoint.as_view(),
         name="sentry-api-0-project-monitor-check-in-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
         ProjectMonitorEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-environment-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/stats/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/(?P<uuid>[^\/]+)/$",
+        ProjectProcessingErrorsDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-processing-errors-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/processing-errors/$",
+        ProjectMonitorProcessingErrorsIndexEndpoint.as_view(),
+        name="sentry-api-0-project-monitor-processing-errors-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/stats/$",
         ProjectMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-stats",
     ),
@@ -3154,7 +3179,7 @@ urlpatterns = [
     ),
     # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     re_path(
-        r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
+        r"^organizations/(?P<organization_id_or_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-shared-group-details",
     ),

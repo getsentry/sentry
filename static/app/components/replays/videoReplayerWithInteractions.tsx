@@ -99,6 +99,8 @@ export class VideoReplayerWithInteractions {
       }
     });
 
+    const hasGestures = events?.some(e => e.type === 3);
+
     this.replayer = new Replayer(eventsWithSnapshots, {
       root: root as Element,
       blockClass: 'sentry-block',
@@ -112,6 +114,12 @@ export class VideoReplayerWithInteractions {
       skipInactive: false,
       speed: this.config.speed,
     });
+
+    if (!hasGestures) {
+      // If the replay has no gestures, we should hide the mouse
+      // @ts-expect-error private
+      this.replayer.mouse.classList.remove('replayer-mouse');
+    }
   }
 
   public destroy() {

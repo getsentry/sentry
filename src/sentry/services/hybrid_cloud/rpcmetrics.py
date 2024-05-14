@@ -52,7 +52,7 @@ class RpcMetricTracker:
             new_tracker = _LOCAL_TRACKER.tracker = cls()
             return new_tracker
 
-    def save_record(self, record: RpcMetricRecord):
+    def save_record(self, record: RpcMetricRecord) -> None:
         for span in self.spans:
             span.records.append(record)
 

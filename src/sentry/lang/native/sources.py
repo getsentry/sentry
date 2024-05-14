@@ -231,7 +231,7 @@ def get_internal_source(project: Project):
         reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         ),
@@ -261,7 +261,7 @@ def get_internal_artifact_lookup_source_url(project: Project):
         reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         ),
@@ -434,7 +434,7 @@ def backfill_source(source, original_sources_by_id):
 
 def redact_source_secrets(config_sources: Any) -> Any:
     """
-    Returns a JSONData with all of the secrets redacted from every source.
+    Returns a json data with all of the secrets redacted from every source.
 
     The original value is not mutated in the process; A clone is created
     and returned by this function.

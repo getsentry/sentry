@@ -7,6 +7,7 @@ from sentry.models.useremail import UserEmail
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
@@ -43,6 +44,7 @@ class UserHybridCloudDeletionTest(TestCase):
     def get_user_saved_search_count(self) -> int:
         return SavedSearch.objects.filter(owner_id=self.user_id).count()
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_simple(self):
         assert not self.user_tombstone_exists(user_id=self.user_id)
         with outbox_runner():
@@ -59,6 +61,7 @@ class UserHybridCloudDeletionTest(TestCase):
         # Ensure they are all now gone.
         assert self.get_user_saved_search_count() == 0
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_unrelated_saved_search_is_not_deleted(self):
         another_user = self.create_user()
         self.create_member(user=another_user, organization=self.organization)
@@ -74,6 +77,7 @@ class UserHybridCloudDeletionTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert SavedSearch.objects.filter(owner_id=another_user.id).exists()
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_cascades_to_multiple_regions(self):
         eu_org = self.create_organization(region=_TEST_REGIONS[1])
         self.create_member(user=self.user, organization=eu_org)
@@ -87,6 +91,7 @@ class UserHybridCloudDeletionTest(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
         assert self.get_user_saved_search_count() == 0
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_deletions_create_tombstones_in_regions_for_user_with_no_orgs(self):
         # Create a user with no org memberships
         user_to_delete = self.create_user("foo@example.com")
@@ -96,6 +101,7 @@ class UserHybridCloudDeletionTest(TestCase):
 
         assert self.user_tombstone_exists(user_id=user_id)
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_cascades_to_regions_even_if_user_ownership_revoked(self):
         eu_org = self.create_organization(region=_TEST_REGIONS[1])
         self.create_member(user=self.user, organization=eu_org)

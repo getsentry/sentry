@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Union, cast
+from typing import Any, Union, cast
 from uuid import uuid4
 
+import orjson
 from django.conf import settings
 
-from sentry.utils import json
-from sentry.utils.json import JSONData
 from sentry.utils.redis import redis_clusters
 
 SLACK_FAILED_MESSAGE = (
@@ -35,18 +34,16 @@ class RedisRuleStatus:
         value = self._format_value(status, rule_id, error_message)
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60)
 
-    def get_value(self) -> JSONData:
+    def get_value(self) -> Any:
         key = self._get_redis_key()
         value = self.client.get(key)
-        return json.loads_experimental(
-            "integrations.slack.enable-orjson", cast(Union[str, bytes], value)
-        )
+        return orjson.loads(cast(Union[str, bytes], value))
 
     def _generate_uuid(self) -> str:
         return uuid4().hex
 
     def _set_initial_value(self) -> None:
-        value = json.dumps_experimental("integrations.slack.enable-orjson", {"status": "pending"})
+        value = orjson.dumps({"status": "pending"}).decode()
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60, nx=True)
 
     def _get_redis_key(self) -> str:
@@ -66,4 +63,4 @@ class RedisRuleStatus:
         elif status == "failed":
             value["error"] = SLACK_FAILED_MESSAGE
 
-        return json.dumps_experimental("integrations.slack.enable-orjson", value)
+        return orjson.dumps(value).decode()

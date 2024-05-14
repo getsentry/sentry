@@ -26,7 +26,7 @@ from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -259,6 +259,10 @@ class RuleProcessor:
         return fast_conditions, slow_conditions
 
     def enqueue_rule(self, rule: Rule) -> None:
+        logger.info(
+            "rule_processor.rule_enqueued",
+            extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
+        )
         self.buffer = RedisBuffer()
         self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
@@ -271,6 +275,7 @@ class RuleProcessor:
             field=f"{rule.id}:{self.group.id}",
             value=value,
         )
+        metrics.incr("delayed_rule.group_added")
 
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
