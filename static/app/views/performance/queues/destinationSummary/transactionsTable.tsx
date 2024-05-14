@@ -12,6 +12,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -23,7 +24,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/starfish/types';
+import {
+  SpanFunction,
+  ModuleName,
+  type SpanMetricsResponse,
+} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
@@ -232,6 +237,12 @@ function TransactionCell({transaction, op}: {op: string; transaction: string}) {
   return (
     <NoOverflow>
       <Link
+        onClick={() =>
+          trackAnalytics('performance_views.sample_spans.opened', {
+            organization,
+            source: ModuleName.QUEUE,
+          })
+        }
         to={normalizeUrl(
           `/organizations/${organization.slug}/performance/queues/destination/?${qs.stringify(queryString)}`
         )}
