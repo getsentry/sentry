@@ -287,5 +287,23 @@ describe('SearchQueryBuilder', function () {
         screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-2)
       ).toHaveFocus();
     });
+
+    it('has a single tab stop', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      expect(document.body).toHaveFocus();
+
+      // Tabbing in should focus the last input
+      await userEvent.keyboard('{Tab}');
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
+
+      // Shift-tabbing should exit the component
+      await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+      expect(document.body).toHaveFocus();
+    });
   });
 });
