@@ -561,7 +561,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         )
 
     @django_db_all
-    @with_feature("projects:similarity-embeddings-grouping")
+    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_success(self, mock_post_bulk_grouping_records):
         """

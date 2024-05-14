@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contextSummary/utils';
@@ -16,7 +17,7 @@ interface ContextDataSectionProps {
   project?: Project;
 }
 
-function ContextDataSection({event, group, project}: ContextDataSectionProps) {
+function ContextData({event, group, project}: ContextDataSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   const columns: React.ReactNode[] = [];
@@ -40,6 +41,14 @@ function ContextDataSection({event, group, project}: ContextDataSectionProps) {
     columns.push(<CardColumn key={i}>{cards.slice(i, i + columnSize)}</CardColumn>);
   }
   return (
+    <CardWrapper columnCount={columnCount} ref={containerRef}>
+      {columns}
+    </CardWrapper>
+  );
+}
+
+export default function ContextDataSection(props: ContextDataSectionProps) {
+  return (
     <EventDataSection
       key={'context'}
       type={'context'}
@@ -52,9 +61,9 @@ function ContextDataSection({event, group, project}: ContextDataSectionProps) {
       )}
       isHelpHoverable
     >
-      <CardWrapper columnCount={columnCount} ref={containerRef}>
-        {columns}
-      </CardWrapper>
+      <ErrorBoundary mini message={t('There was a problem loading event context.')}>
+        <ContextData {...props} />
+      </ErrorBoundary>
     </EventDataSection>
   );
 }
@@ -69,5 +78,3 @@ const CardWrapper = styled('div')<{columnCount: number}>`
 const CardColumn = styled('div')`
   grid-column: span 1;
 `;
-
-export default ContextDataSection;

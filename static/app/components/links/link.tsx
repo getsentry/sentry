@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -22,7 +22,7 @@ export interface LinkProps
    * work in environments that do have customer-domains (saas) and those without
    * customer-domains (single-tenant).
    */
-  to: ((location: Location) => LocationDescriptor) | LocationDescriptor;
+  to: LocationDescriptor;
   /**
    * Style applied to the component's root
    */

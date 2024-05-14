@@ -56,13 +56,49 @@ type AssignableTeam = {
 };
 
 export interface AssigneeSelectorDropdownProps {
+  /**
+   * The group (issue) that the assignee selector is for
+   * TODO: generalize this for alerts
+   */
   group: Group;
+  /**
+   * If true, there will be a loading indicator in the menu header.
+   */
   loading: boolean;
+  /**
+   * Additional styles to apply to the dropdown
+   */
+  className?: string;
+  /**
+   * Optional list of members to populate the dropdown with.
+   */
   memberList?: User[];
+  /**
+   * If true, the chevron to open the dropdown will not be shown
+   */
   noDropdown?: boolean;
+  /**
+   * Callback for when an assignee is selected from the dropdown.
+   * The parent component should update the group with the new assignee
+   * in this callback.
+   */
   onAssign?: (assignedActor: AssignableEntity | null) => void;
+  /**
+   * Callback for when the assignee is cleared
+   */
   onClear?: (clearedAssignee: User | Actor) => void;
+  /**
+   * Optional list of suggested owners of the group
+   */
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
+  /**
+   * Optional trigger for the assignee selector. If nothing passed in,
+   * the default trigger will be used
+   */
+  trigger?: (
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
+  ) => React.ReactNode;
 }
 
 export function AssigneeAvatar({
@@ -160,6 +196,7 @@ export function AssigneeAvatar({
 }
 
 export default function AssigneeSelectorDropdown({
+  className,
   group,
   loading,
   memberList,
@@ -167,6 +204,7 @@ export default function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
+  trigger,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
@@ -338,7 +376,10 @@ export default function AssigneeSelectorDropdown({
             data-test-id="assignee-option"
             displayName={`${assignee.name}${isCurrentUser ? ' (You)' : ''}`}
             user={assignee.assignee as User}
-            description={suggestedReasonTable[assignee.suggestedReason]}
+            description={
+              assignee.suggestedReasonText ??
+              suggestedReasonTable[assignee.suggestedReason]
+            }
           />
         ),
         value: `user:${assignee.id}`,
@@ -351,7 +392,9 @@ export default function AssigneeSelectorDropdown({
         <TeamBadge
           data-test-id="assignee-option"
           team={assignedTeam.team}
-          description={suggestedReasonTable[assignee.suggestedReason]}
+          description={
+            assignee.suggestedReasonText ?? suggestedReasonTable[assignee.suggestedReason]
+          }
         />
       ),
       value: `team:${assignee.id}`,
@@ -470,28 +513,27 @@ export default function AssigneeSelectorDropdown({
     );
   };
 
-  const makeFooterInviteButton = () => {
-    return (
-      <Button
-        size="xs"
-        aria-label={t('Invite Member')}
-        disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-          event.preventDefault();
-          openInviteMembersModal({source: 'assignee_selector'});
-        }}
-        icon={<IconAdd isCircled />}
-      >
-        {t('Invite Member')}
-      </Button>
-    );
-  };
+  const footerInviteButton = (
+    <Button
+      size="xs"
+      aria-label={t('Invite Member')}
+      disabled={loading}
+      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        event.preventDefault();
+        openInviteMembersModal({source: 'assignee_selector'});
+      }}
+      icon={<IconAdd isCircled />}
+    >
+      {t('Invite Member')}
+    </Button>
+  );
 
   return (
     <AssigneeWrapper>
       <CompactSelect
         searchable
         clearable
+        className={className}
         menuWidth={275}
         disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
@@ -506,8 +548,8 @@ export default function AssigneeSelectorDropdown({
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
-        trigger={makeTrigger}
-        menuFooter={makeFooterInviteButton()}
+        trigger={trigger ?? makeTrigger}
+        menuFooter={footerInviteButton}
       />
     </AssigneeWrapper>
   );

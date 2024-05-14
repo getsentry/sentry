@@ -1,12 +1,12 @@
 from typing import Any
 
-from sentry.utils import json
+import orjson
 
 
 def get_old_json_paths(filename: str) -> Any:
     try:
-        with open(filename) as f:
-            old_raw_paths = json.load(f)["paths"]
+        with open(filename, "rb") as f:
+            old_raw_paths = orjson.loads(f.read())["paths"]
     except OSError:
         raise Exception(
             "Generate old OpenAPI files before running this command. Run `make build-api-docs` directly."
@@ -16,8 +16,8 @@ def get_old_json_paths(filename: str) -> Any:
 
 def get_old_json_components(filename: str) -> Any:
     try:
-        with open(filename) as f:
-            old_raw_components = json.load(f)["components"]
+        with open(filename, "rb") as f:
+            old_raw_components = orjson.loads(f.read())["components"]
     except OSError:
         raise Exception(
             "Generate old OpenAPI files before running this command. Run `make build-api-docs` directly."

@@ -67,7 +67,7 @@ def backfill_seer_grouping_records(
     Pass in last_processed_id = 0 if running project for the first time, else None
     """
     project = Project.objects.get_from_cache(id=project_id)
-    if not features.has("projects:similarity-embeddings-grouping", project):
+    if not features.has("projects:similarity-embeddings-backfill", project):
         return
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)

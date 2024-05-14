@@ -119,7 +119,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
@@ -338,7 +338,7 @@ class EventManager:
         project_config: Any | None = None,
         sent_at: datetime | None = None,
     ):
-        self._data = CanonicalKeyDict(data)
+        self._data: MutableMapping[str, Any] = data
         self.version = version
         self._project = project
         # if not explicitly specified try to get the grouping from project_config
@@ -401,7 +401,7 @@ class EventManager:
         if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
-    def get_data(self) -> CanonicalKeyDict:
+    def get_data(self) -> MutableMapping[str, Any]:
         return self._data
 
     @sentry_sdk.tracing.trace
@@ -2437,13 +2437,11 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
-                    body=json.dumps_experimental("event-manager.enable-orjson", payload),
+                    body=orjson.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
-                severity = json.loads_experimental(
-                    "event-manager.enable-orjson", response.data
-                ).get("severity")
+                severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError as e:
             logger.warning(
@@ -2790,7 +2788,7 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
 
         # Capture the actual size that goes into node store.
         event_metrics["bytes.stored.event"] = len(
-            json.dumps_experimental("event-manager.enable-orjson", dict(job["event"].data.items()))
+            orjson.dumps(dict(job["event"].data.items())).decode()
         )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):

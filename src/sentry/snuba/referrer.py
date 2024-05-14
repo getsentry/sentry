@@ -451,6 +451,36 @@ class Referrer(Enum):
     API_PERFORMANCE_MOBILE_UI_SERIES = "api.performance.mobile.ui.series"
     API_PERFORMANCE_MOBILE_UI_SPAN_TABLE = "api.performance.mobile.ui.span-table"
 
+    # Performance Cache Module
+    API_PERFORMANCE_CACHE_LANDING_CACHE_THROUGHPUT_CHART = (
+        "api.performance.cache.landing-cache-throughput-chart",
+    )
+    API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST = (
+        "api.performance.cache.landing-cache-transaction-list",
+    )
+    API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_DURATION = (
+        "api.performance.cache.landing-cache-transaction-duration",
+    )
+
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_METRICS_RIBBON = (
+        "api.performance.cache.samples-cache-metrics-ribbon",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION_CHART = (
+        "api.performance.cache.samples-cache-transaction-duration-chart",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION = (
+        "api.performance.cache.samples-cache-transaction-duration",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES = (
+        "api.performance.cache.samples-cache-span-samples",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES_TRANSACTION_DURATION = (
+        "api.performance.cache.samples-cache-span-samples-transaction-duration",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_HIT_MISS_CHART = (
+        "api.performance.cache.samples-cache-hit-miss-chart",
+    )
+
     # Performance Requests Module
     API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"
     API_PERFORMANCE_HTTP_LANDING_DURATION_CHART = "api.performance.http.landing-duration-chart"
