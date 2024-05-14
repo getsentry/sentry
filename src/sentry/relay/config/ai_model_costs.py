@@ -4,7 +4,7 @@ from typing import TypedDict
 class AIModelCost(TypedDict):
     modelId: str
     forCompletion: bool
-    costPer1KTokens: float
+    costPer1kTokens: float
 
 
 class AIModelCosts(TypedDict):
