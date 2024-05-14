@@ -1984,7 +1984,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         for event in events:
             data["event_id"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
@@ -2027,7 +2027,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         for event in events:
             data["event_id"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
@@ -2163,7 +2163,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for event in events:
             data["event_id"] = event[0]
             data["transaction"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
@@ -2716,7 +2716,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data = load_data("transaction")
             data["timestamp"] = iso_format(self.one_min_ago)
             data["transaction"] = val * 32
-            data["message"] = val * 32
+            data["logentry"] = {"formatted": val * 32}
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
             self.store_event(data=data, project_id=self.project.id)
 
@@ -2764,7 +2764,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(self.one_min_ago)
                 data["transaction"] = f"{val}-{i}"
-                data["message"] = val
+                data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
@@ -2796,7 +2796,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(self.one_min_ago)
                 data["transaction"] = f"{val}-{i}"
-                data["message"] = val
+                data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 

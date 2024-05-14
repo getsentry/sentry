@@ -1963,7 +1963,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         project = self.create_project()
         prototype = load_data("android-ndk")
         prototype["event_id"] = "f" * 32
-        prototype["message"] = "not handled"
+        prototype["logentry"] = {"formatted": "not handled"}
         prototype["exception"]["values"][0]["value"] = "not handled"
         prototype["exception"]["values"][0]["mechanism"]["handled"] = False
         prototype["timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
