@@ -380,8 +380,8 @@ export interface Integration extends CommonIntegration {
 }
 
 type ConfigData = {
-  toggleableFlags: Record<string, boolean>;
   installationType?: string;
+  toggleableFlags?: Record<string, boolean>;
 };
 
 export interface OrganizationIntegration extends CommonIntegration {
