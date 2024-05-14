@@ -7,9 +7,10 @@
 import enum
 import inspect as insp
 import sys
+from typing import Any
 
-control = None
-inspect = None
+control: Any = None
+inspect: Any = None
 
 _initialized = False
 
@@ -25,6 +26,10 @@ Initialized objects:
 Functions:
 
 {functions_help}
+
+Additional documentation:
+  * https://docs.celeryq.dev/en/latest/userguide/workers.html#inspecting-workers
+
 """
 
 
@@ -81,17 +86,18 @@ def get_reserved_task_ids_by_name(task_name: str) -> list[str]:
     return _get_task_ids_by_name_and_status(task_name, TaskStatus.RESERVED)
 
 
-def revoke_active_tasks_by_name(task_name: str, dry_run: bool = False):
+def revoke_active_tasks_by_name(task_name: str, dry_run: bool = False) -> None:
     """Revoke and terminate all tasks with the given name. Dangerous!"""
     _ensure_initialized()
 
     task_ids = get_active_task_ids_by_name(task_name)
+    task_num = len(task_ids)
 
     if dry_run:
-        print(f"!!![dry-run] Would revoke tasks: {num}")  # NOQA
+        print(f"!!![dry-run] Would revoke tasks: {task_num}")  # NOQA
     else:
         control.revoke(task_ids, terminate=True)
-        print(f"Revoked tasks: {num}")  # NOQA
+        print(f"Revoked tasks: {task_num}")  # NOQA
 
 
 def generate_help() -> str:
@@ -103,7 +109,7 @@ def generate_help() -> str:
         revoke_active_tasks_by_name,
     ]:
         functions_help += f"    {func.__name__} - {func.__doc__}\n"
-        functions_help += f"        {insp.signature(func)}\n\n"
+        functions_help += f"        {insp.signature(func)}\n\n"  # type: ignore[arg-type]
     return HELP.format(functions_help=functions_help)
 
 
