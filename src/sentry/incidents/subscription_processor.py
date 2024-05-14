@@ -216,14 +216,19 @@ class SubscriptionProcessor:
                     "end": end,
                 },
             )
-            time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
+            entity_key = get_entity_key_from_query_builder(query_builder)
+            time_col = ENTITY_TIME_COLUMNS[entity_key]
             query_builder.add_conditions(
                 [
                     Condition(
-                        Column(time_col, entity=Entity("events", alias="events")), Op.GTE, start
+                        Column(time_col, entity=Entity(entity_key.value, alias="entity")),
+                        Op.GTE,
+                        start,
                     ),
                     Condition(
-                        Column(time_col, entity=Entity("events", alias="events")), Op.LT, end
+                        Column(time_col, entity=Entity(entity_key.value, alias="entity")),
+                        Op.LT,
+                        end,
                     ),
                 ]
             )
