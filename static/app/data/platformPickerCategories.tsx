@@ -47,6 +47,7 @@ const browser: Set<PlatformKey> = new Set([
 
 const server: Set<PlatformKey> = new Set([
   'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',

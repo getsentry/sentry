@@ -596,7 +596,7 @@ function SectionCard({
   title: React.ReactNode;
   disableTruncate?: boolean;
 }) {
-  const [showingAll, setShowingAll] = useState(disableTruncate ?? false);
+  const [showingAll, setShowingAll] = useState(false);
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   if (items.length === 0) {
@@ -606,7 +606,7 @@ function SectionCard({
   return (
     <Card>
       <CardContentTitle>{title}</CardContentTitle>
-      {items.slice(0, showingAll ? items.length : 5).map(item => (
+      {items.slice(0, showingAll || disableTruncate ? items.length : 5).map(item => (
         <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
       ))}
       {items.length > 5 && !disableTruncate ? (

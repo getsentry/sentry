@@ -20,8 +20,9 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.models.project import Project
-from sentry.monitors.endpoints.base import ProjectMonitorPermission
-from sentry.monitors.processing_errors import CheckinProcessErrorsManager, InvalidProjectError
+from sentry.monitors.processing_errors.manager import InvalidProjectError, delete_error
+
+from .base import ProjectMonitorPermission
 
 
 @region_silo_endpoint
@@ -54,7 +55,7 @@ class ProjectProcessingErrorsDetailsEndpoint(ProjectEndpoint):
         except ValueError:
             raise ValidationError("Invalid UUID")
         try:
-            CheckinProcessErrorsManager().delete(project, parsed_uuid)
+            delete_error(project, parsed_uuid)
         except InvalidProjectError:
             raise ValidationError("Invalid uuid for project")
         return self.respond(status=204)

@@ -268,7 +268,7 @@ export function fetchInfiniteQuery<TResponseData>(api: Client) {
 function parsePageParam(dir: 'previous' | 'next') {
   return ([, , resp]: ApiResult<unknown>) => {
     const parsed = parseLinkHeader(resp?.getResponseHeader('Link') ?? null);
-    return parsed[dir].results ? parsed[dir] : null;
+    return parsed[dir]?.results ? parsed[dir] : null;
   };
 }
 

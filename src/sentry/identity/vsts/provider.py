@@ -1,3 +1,4 @@
+import orjson
 from django.core.exceptions import PermissionDenied
 from rest_framework.request import Request
 
@@ -117,7 +118,6 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         from urllib.parse import parse_qsl
 
         from sentry.http import safe_urlopen, safe_urlread
-        from sentry.utils import json
         from sentry.utils.http import absolute_uri
 
         req = safe_urlopen(
@@ -134,4 +134,4 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body))
-        return json.loads(body)
+        return orjson.loads(body)
