@@ -1,5 +1,7 @@
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule_trigger import DetailedAlertRuleTriggerSerializer
+from sentry.incidents.endpoints.serializers.alert_rule_trigger import (
+    DetailedAlertRuleTriggerSerializer,
+)
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.testutils.cases import TestCase

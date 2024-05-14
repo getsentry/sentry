@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import (
+from sentry.incidents.endpoints.serializers.alert_rule import (
     CombinedRuleSerializer,
     DetailedAlertRuleSerializer,
 )
