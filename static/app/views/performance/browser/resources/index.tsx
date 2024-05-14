@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -35,11 +36,7 @@ function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources')].join(' — ')}
-      baseURL="/performance/browser/resources"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -86,12 +83,24 @@ function ResourcesLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </PageAlertProvider>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Resources')].join(' — ')}
+      baseURL="/performance/browser/resources"
+      features="spans-first-ui"
+    >
+      <ResourcesLandingPage />
     </ModulePageProviders>
   );
 }
 
+export default PageWithProviders;
+
 export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
-
-export default ResourcesLandingPage;
