@@ -6,11 +6,15 @@ import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
-from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VERSION
+from sentry.conf.server import (
+    SEER_MAX_GROUPING_DISTANCE,
+    SEER_SIMILAR_ISSUES_URL,
+    SEER_SIMILARITY_MODEL_VERSION,
+)
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -174,14 +178,19 @@ class SeerSimilarIssueData:
         return cls(**similar_issue_data)
 
 
-def get_similar_issues_embeddings(
+# TODO: Handle non-200 responses
+def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
-    """Request similar issues data from seer and normalize the results."""
+    """
+    Request similar issues data from seer and normalize the results. Returns similar groups
+    sorted in order of descending similarity.
+    """
+
     response = seer_grouping_connection_pool.urlopen(
         "POST",
         SEER_SIMILAR_ISSUES_URL,
-        body=json.dumps(similar_issues_request),
+        body=json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
 
@@ -210,7 +219,11 @@ def get_similar_issues_embeddings(
                     similar_issues_request["project_id"], raw_similar_issue_data
                 )
             )
-        except (IncompleteSeerDataError, SimilarGroupNotFoundError) as err:
+            metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "found"})
+        except IncompleteSeerDataError as err:
+            metrics.incr(
+                "seer.similar_issue_request.parent_issue", tags={"outcome": "incomplete_data"}
+            )
             logger.exception(
                 str(err),
                 extra={
@@ -218,5 +231,10 @@ def get_similar_issues_embeddings(
                     "raw_similar_issue_data": raw_similar_issue_data,
                 },
             )
+        except SimilarGroupNotFoundError:
+            metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "not_found"})
 
-    return normalized
+    return sorted(
+        normalized,
+        key=lambda issue_data: issue_data.stacktrace_distance,
+    )
