@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -26,7 +27,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceResult} from './content';
 import type {Field} from './data';
-import {getStylingSliceName} from './utils';
+import {getShortenedSdkName, getStylingSliceName} from './utils';
 
 interface ProjectRendererProps {
   projectSlug: string;
@@ -52,29 +53,34 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
   );
 }
 
-export const TraceBreakdownContainer = styled('div')`
+export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   position: relative;
   display: flex;
   min-width: 200px;
   height: 15px;
   background-color: ${p => p.theme.gray100};
+  ${p => `--hoveredSlice-${p.hoveredIndex ?? -1}-translateY: translateY(-3px)`};
 `;
 
 const RectangleTraceBreakdown = styled(RowRectangle)<{
   sliceColor: string;
   sliceName: string | null;
+  offset?: number;
 }>`
   background-color: ${p => p.sliceColor};
   position: relative;
   width: 100%;
   height: 15px;
   ${p => `
+    filter: var(--highlightedSlice-${p.sliceName}-saturate, var(--defaultSlice-saturate));
+  `}
+  ${p => `
     opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
   `}
   ${p => `
-    transform: var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0));
+    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
   `}
-  transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export function TraceBreakdownRenderer({
@@ -86,26 +92,34 @@ export function TraceBreakdownRenderer({
   trace: TraceResult<Field>;
 }) {
   const theme = useTheme();
+  const [hoveredIndex, setHoveredIndex] = useState(-1);
 
   return (
-    <TraceBreakdownContainer data-test-id="relative-ops-breakdown">
-      {trace.breakdowns.map(breakdown => {
+    <TraceBreakdownContainer
+      data-test-id="relative-ops-breakdown"
+      hoveredIndex={hoveredIndex}
+      onMouseLeave={() => setHoveredIndex(-1)}
+    >
+      {trace.breakdowns.map((breakdown, index) => {
         return (
           <SpanBreakdownSliceRenderer
             key={breakdown.start + (breakdown.project ?? t('missing instrumentation'))}
             sliceName={breakdown.project}
             sliceStart={breakdown.start}
             sliceEnd={breakdown.end}
+            sliceDurationReal={breakdown.duration}
             sliceSecondaryName={breakdown.sdkName}
             trace={trace}
             theme={theme}
-            onMouseEnter={() =>
+            offset={index}
+            onMouseEnter={() => {
+              setHoveredIndex(index);
               breakdown.project
                 ? setHighlightedSliceName(
                     getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
                   )
-                : null
-            }
+                : null;
+            }}
           />
         );
       })}
@@ -114,7 +128,8 @@ export function TraceBreakdownRenderer({
 }
 
 const BREAKDOWN_BAR_SIZE = 200;
-const BREAKDOWN_QUANTIZE_STEP = 5;
+const BREAKDOWN_QUANTIZE_STEP = 1;
+const BREAKDOWN_NUM_SLICES = BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP; // 200
 
 export function SpanBreakdownSliceRenderer({
   trace,
@@ -122,8 +137,10 @@ export function SpanBreakdownSliceRenderer({
   sliceName,
   sliceStart,
   sliceEnd,
+  sliceDurationReal,
   sliceSecondaryName,
   onMouseEnter,
+  offset,
 }: {
   onMouseEnter: () => void;
   sliceEnd: number;
@@ -132,8 +149,11 @@ export function SpanBreakdownSliceRenderer({
   sliceStart: number;
   theme: Theme;
   trace: TraceResult<Field>;
+  offset?: number;
+  sliceDurationReal?: number;
 }) {
-  const traceDuration = trace.end - trace.start;
+  const traceSliceSize = (trace.end - trace.start) / BREAKDOWN_NUM_SLICES;
+  const traceDuration = BREAKDOWN_NUM_SLICES * traceSliceSize;
 
   const sliceDuration = sliceEnd - sliceStart;
 
@@ -146,16 +166,11 @@ export function SpanBreakdownSliceRenderer({
 
   const sliceWidth =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.ceil(
-      (BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * (sliceDuration / traceDuration)
-    );
+    Math.ceil(BREAKDOWN_NUM_SLICES * (sliceDuration / traceDuration));
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.floor(
-      ((BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * relativeSliceStart) /
-        traceDuration
-    );
+    Math.floor((BREAKDOWN_NUM_SLICES * relativeSliceStart) / traceDuration);
   return (
     <BreakdownSlice
       sliceName={sliceName}
@@ -169,28 +184,32 @@ export function SpanBreakdownSliceRenderer({
             <FlexContainer>
               {sliceName ? <ProjectRenderer projectSlug={sliceName} hideName /> : null}
               <strong>{sliceName}</strong>
-
-              {sliceSecondaryName ? (
-                <span>
-                  {'\u2014'}
-                  &nbsp;
-                  {sliceSecondaryName}
-                </span>
-              ) : null}
+              <Subtext>({getShortenedSdkName(sliceSecondaryName)})</Subtext>
             </FlexContainer>
             <div>
-              <PerformanceDuration milliseconds={sliceDuration} abbreviation />
+              <PerformanceDuration
+                milliseconds={sliceDurationReal ?? sliceDuration}
+                abbreviation
+              />
             </div>
           </div>
         }
         containerDisplayMode="block"
       >
-        <RectangleTraceBreakdown sliceColor={sliceColor} sliceName={stylingSliceName} />
+        <RectangleTraceBreakdown
+          sliceColor={sliceColor}
+          sliceName={stylingSliceName}
+          offset={offset}
+        />
       </Tooltip>
     </BreakdownSlice>
   );
 }
 
+const Subtext = styled('span')`
+  font-weight: 400;
+  color: ${p => p.theme.gray300};
+`;
 const FlexContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -314,7 +333,7 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
       to={normalizeUrl({
         pathname: `/organizations/${organization.slug}/issues`,
         query: {
-          query: `is:unresolved trace:"${trace.trace}"`,
+          query: `trace:"${trace.trace}"`,
         },
       })}
       size="xs"

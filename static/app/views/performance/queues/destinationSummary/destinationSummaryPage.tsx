@@ -10,7 +10,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -26,7 +25,7 @@ import Onboarding from 'sentry/views/performance/onboarding';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
-import {MessageConsumerSamplesPanel} from 'sentry/views/performance/queues/messageConsumerSamplesPanel';
+import {MessageSamplesPanel} from 'sentry/views/performance/queues/messageSamplesPanel';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {
   DESTINATION_TITLE,
@@ -98,8 +97,8 @@ function DestinationSummaryPage() {
                       isLoading={false}
                     />
                     <MetricReadout
-                      title={t('Avg Processing Latency')}
-                      value={data[0]?.['avg_if(span.self_time,span.op,queue.process)']}
+                      title={t('Avg Processing Time')}
+                      value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={false}
                     />
@@ -123,7 +122,7 @@ function DestinationSummaryPage() {
                     />
                     <MetricReadout
                       title={t('Time Spent')}
-                      value={data[0]?.['sum(span.self_time)']}
+                      value={data[0]?.['sum(span.duration)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={false}
                     />
@@ -148,8 +147,6 @@ function DestinationSummaryPage() {
 
                 <ModuleLayout.Full>
                   <Flex>
-                    {/* TODO: Make search bar work */}
-                    <SmartSearchBar />
                     <TransactionsTable />
                   </Flex>
                 </ModuleLayout.Full>
@@ -158,7 +155,7 @@ function DestinationSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
-      <MessageConsumerSamplesPanel />
+      <MessageSamplesPanel />
     </Fragment>
   );
 }

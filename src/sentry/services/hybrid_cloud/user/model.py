@@ -71,7 +71,7 @@ class RpcUser(RpcUserProfile):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
-    def __str__(self):  # API compatibility with ORM User
+    def __str__(self) -> str:  # API compatibility with ORM User
         return self.get_username()
 
     def by_email(self, email: str) -> "RpcUser":
@@ -131,12 +131,25 @@ class UserSerializeType(IntEnum):  # annoying
 
 class UserFilterArgs(TypedDict, total=False):
     user_ids: list[int]
+    """List of user ids to search with"""
+
     is_active: bool
+    """Whether the user needs to be active"""
+
     organization_id: int
+    """Organization to check membership in"""
+
     emails: list[str]
+    """list of emails to match with"""
+
     email_verified: bool
+    """Whether emails have to be verified or not"""
+
     query: str
+    """Filter by email or name"""
+
     authenticator_types: list[int] | None
+    """The type of MFA authenticator you want to query by"""
 
 
 class UserUpdateArgs(TypedDict, total=False):

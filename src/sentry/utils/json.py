@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import datetime
 import decimal
 import uuid
@@ -12,7 +11,6 @@ from typing import IO, TYPE_CHECKING, Any, NoReturn, TypeVar, overload
 
 import orjson
 import rapidjson
-import sentry_sdk
 from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
@@ -110,17 +108,14 @@ _default_escaped_encoder = JSONEncoderForHTML(
 )
 
 
-JSONData = Any  # https://github.com/python/typing/issues/182
-
-
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def dump(value: JSONData, fp: IO[str], **kwargs: NoReturn) -> None:
+def dump(value: Any, fp: IO[str], **kwargs: NoReturn) -> None:
     for chunk in _default_encoder.iterencode(value):
         fp.write(chunk)
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def dumps(value: JSONData, escape: bool = False, **kwargs: NoReturn) -> str:
+def dumps(value: Any, escape: bool = False, **kwargs: NoReturn) -> str:
     # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
@@ -128,40 +123,21 @@ def dumps(value: JSONData, escape: bool = False, **kwargs: NoReturn) -> str:
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> JSONData:
+def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> Any:
     return loads(fp.read())
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def loads(
-    value: str | bytes, use_rapid_json: bool = False, skip_trace: bool = False, **kwargs: NoReturn
-) -> JSONData:
-    with contextlib.ExitStack() as ctx:
-        if not skip_trace:
-            ctx.enter_context(sentry_sdk.start_span(op="sentry.utils.json.loads"))
-        if use_rapid_json is True:
-            return rapidjson.loads(value)
-        else:
-            return _default_decoder.decode(value)
-
-
-# loads JSON with `orjson` or the default function depending on `option_name`
-# TODO: remove this once we're confident that orjson is working as expected
-def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = False) -> JSONData:
-    from sentry.features.rollout import in_random_rollout
-
-    if in_random_rollout(option_name):
-        with contextlib.ExitStack() as ctx:
-            if not skip_trace:
-                ctx.enter_context(sentry_sdk.start_span(op="sentry.utils.json.loads"))
-            return orjson.loads(data)
+def loads(value: str | bytes, use_rapid_json: bool = False, **kwargs: NoReturn) -> Any:
+    if use_rapid_json is True:
+        return rapidjson.loads(value)
     else:
-        return loads(data, skip_trace)
+        return _default_decoder.decode(value)
 
 
 # dumps JSON with `orjson` or the default function depending on `option_name`
 # TODO: remove this when orjson experiment is successful
-def dumps_experimental(option_name: str, data: JSONData) -> str:
+def dumps_experimental(option_name: str, data: Any) -> str:
     from sentry.features.rollout import in_random_rollout
 
     if in_random_rollout(option_name):
@@ -202,7 +178,6 @@ def prune_empty_keys(obj: Mapping[TKey, TValue | None] | None) -> dict[TKey, TVa
 
 
 __all__ = (
-    "JSONData",
     "JSONDecodeError",
     "JSONEncoder",
     "dump",
@@ -211,6 +186,4 @@ __all__ = (
     "load",
     "loads",
     "prune_empty_keys",
-    "loads_experimental",
-    "dumps_experimental",
 )

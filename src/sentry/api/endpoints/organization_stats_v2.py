@@ -151,7 +151,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
-        parameters=[GlobalParams.ORG_SLUG, OrgStatsQueryParamsSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),
@@ -167,7 +167,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         """
         with self.handle_query_errors():
 
-            if features.has("organizations:metrics-stats", organization):
+            if features.has("organizations:custom-metrics", organization):
                 if (
                     request.GET.get("category") == "metrics"
                     or request.GET.get("category") == "metricSecond"

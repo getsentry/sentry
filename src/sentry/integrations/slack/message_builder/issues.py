@@ -53,13 +53,12 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.referrer import Referrer
+from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -102,7 +101,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
-    actor = RpcActor.from_identifier(assignee)
+    actor = Actor.from_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
@@ -292,7 +291,7 @@ def get_suggested_assignees(
     ):  # we don't want every user in the project to be a suggested assignee
         suggested_assignees = issue_owners
     try:
-        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
+        suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
         suggested_assignees.extend(suspect_commit_users)
     except (Release.DoesNotExist, Commit.DoesNotExist):
         logger.info("Skipping suspect committers because release does not exist.")
@@ -454,7 +453,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
-        recipient: RpcActor | None = None,
+        recipient: Actor | None = None,
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
@@ -692,6 +691,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            block_id=json.dumps_experimental("integrations.slack.enable-orjson", block_id),
+            block_id=orjson.dumps(block_id).decode(),
             skip_fallback=self.skip_fallback,
         )

@@ -48,7 +48,7 @@ from sentry.monitors.serializers import (
 from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 
 from .base import OrganizationMonitorPermission
@@ -102,7 +102,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Retrieve Monitors for an Organization",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
             MonitorParams.OWNER,
@@ -201,13 +201,13 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         if owners:
             owners = set(owners)
 
-            # Remove special values from owners, this can't be parsed as an RpcActor
+            # Remove special values from owners, this can't be parsed as an Actor
             include_myteams = "myteams" in owners
             owners.discard("myteams")
             include_unassigned = "unassigned" in owners
             owners.discard("unassigned")
 
-            actors = [RpcActor.from_identifier(identifier) for identifier in owners]
+            actors = [Actor.from_identifier(identifier) for identifier in owners]
 
             user_ids = [actor.id for actor in actors if actor.is_user]
             team_ids = [actor.id for actor in actors if actor.is_team]
@@ -270,7 +270,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Create a Monitor",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=MonitorValidator,
         responses={
             201: MonitorSerializer,
@@ -346,7 +346,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Bulk Edit Monitors",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=MonitorBulkEditValidator,
         responses={
             200: inline_sentry_response_serializer(

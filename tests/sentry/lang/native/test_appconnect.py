@@ -1,15 +1,15 @@
 import pathlib
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest import mock
 
+import orjson
 import pytest
 from django.utils import timezone
 
 from sentry.lang.native import appconnect
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ class TestAppStoreConnectConfig:
         return timezone.now()
 
     @pytest.fixture
-    def data(self, now: datetime) -> json.JSONData:
+    def data(self, now: datetime) -> Any:
         return {
             "type": "appStoreConnect",
             "id": "abc123",
@@ -36,7 +36,7 @@ class TestAppStoreConnectConfig:
             "bundleId": "com.example.app",
         }
 
-    def test_from_json_basic(self, data: json.JSONData, now: datetime) -> None:
+    def test_from_json_basic(self, data: Any, now: datetime) -> None:
         config = appconnect.AppStoreConnectConfig.from_json(data)
         assert config.type == "appStoreConnect"
         assert config.id == data["id"]
@@ -46,13 +46,13 @@ class TestAppStoreConnectConfig:
         assert config.appName == data["appName"]
         assert config.bundleId == data["bundleId"]
 
-    def test_to_json(self, data: json.JSONData, now: datetime) -> None:
+    def test_to_json(self, data: Any, now: datetime) -> None:
         config = appconnect.AppStoreConnectConfig.from_json(data)
         new_data = config.to_json()
 
         assert new_data == data
 
-    def test_to_redacted_json(self, data: json.JSONData, now: datetime) -> None:
+    def test_to_redacted_json(self, data: Any, now: datetime) -> None:
         config = appconnect.AppStoreConnectConfig.from_json(data)
         new_data = config.to_redacted_json()
 
@@ -62,9 +62,7 @@ class TestAppStoreConnectConfig:
         assert new_data == data
 
     @django_db_all
-    def test_from_project_config_empty_sources(
-        self, default_project: "Project", data: json.JSONData
-    ) -> None:
+    def test_from_project_config_empty_sources(self, default_project: "Project", data: Any) -> None:
         with pytest.raises(KeyError):
             appconnect.AppStoreConnectConfig.from_project_config(default_project, "not-an-id")
 
@@ -94,16 +92,16 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         assert cfg == config
 
         raw = default_project.get_option(appconnect.SYMBOL_SOURCES_PROP_NAME, default="[]")
-        stored_sources = json.loads(raw)
+        stored_sources = orjson.loads(raw)
         assert stored_sources == sources
 
     @django_db_all
     def test_new_sources_with_existing(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig
     ) -> None:
-        old_sources = json.dumps(
+        old_sources = orjson.dumps(
             [{"type": "not-this-one", "id": "a"}, {"type": "not-this-one", "id": "b"}]
-        )
+        ).decode()
         default_project.update_option(appconnect.SYMBOL_SOURCES_PROP_NAME, old_sources)
 
         sources = config.update_project_symbol_source(default_project, allow_multiple=False)
@@ -112,10 +110,10 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         assert cfg == config
 
         raw = default_project.get_option(appconnect.SYMBOL_SOURCES_PROP_NAME, default="[]")
-        stored_sources = json.loads(raw)
+        stored_sources = orjson.loads(raw)
         assert stored_sources == sources
 
-        new_sources = json.loads(old_sources)
+        new_sources = orjson.loads(old_sources)
         new_sources.append(cfg.to_json())
         assert stored_sources == new_sources
 

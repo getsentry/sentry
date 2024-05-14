@@ -6,12 +6,12 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
+from sentry.types.actor import Actor, ActorType
 
 pytestmark = requires_snuba
 
@@ -98,7 +98,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "foo.py"}]}}
             ),
-            ([RpcActor(id=self.team.id, actor_type=ActorType.TEAM)], [rule_a]),
+            ([Actor(id=self.team.id, actor_type=ActorType.TEAM)], [rule_a]),
         )
 
         # Match only rule_b
@@ -106,7 +106,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/thing.txt"}]}}
             ),
-            ([RpcActor(id=self.user.id, actor_type=ActorType.USER)], [rule_b]),
+            ([Actor(id=self.user.id, actor_type=ActorType.USER)], [rule_b]),
         )
 
         # Matches both rule_a and rule_b
@@ -116,8 +116,8 @@ class ProjectOwnershipTestCase(TestCase):
             ),
             (
                 [
-                    RpcActor(id=self.team.id, actor_type=ActorType.TEAM),
-                    RpcActor(id=self.user.id, actor_type=ActorType.USER),
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.user.id, actor_type=ActorType.USER),
                 ],
                 [rule_a, rule_b],
             ),
@@ -138,8 +138,8 @@ class ProjectOwnershipTestCase(TestCase):
             ),
             (
                 [
-                    RpcActor(id=self.team.id, actor_type=ActorType.TEAM),
-                    RpcActor(id=self.user.id, actor_type=ActorType.USER),
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.user.id, actor_type=ActorType.USER),
                 ],
                 [rule_a, rule_b],
             ),
@@ -163,7 +163,7 @@ class ProjectOwnershipTestCase(TestCase):
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.js"}]}}
             ),
             (
-                [RpcActor(id=self.team.id, actor_type=ActorType.TEAM)],
+                [Actor(id=self.team.id, actor_type=ActorType.TEAM)],
                 [rule_a],
             ),
         )
@@ -189,8 +189,8 @@ class ProjectOwnershipTestCase(TestCase):
             ),
             (
                 [
-                    RpcActor(id=self.team.id, actor_type=ActorType.TEAM),
-                    RpcActor(id=self.team2.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.team2.id, actor_type=ActorType.TEAM),
                 ],
                 [rule_a, rule_c],
             ),
@@ -603,7 +603,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
         assert ProjectOwnership.get_owners(
             self.project.id, {"stacktrace": {"frames": [frame]}}
-        ) == ([RpcActor(id=self.team.id, actor_type=ActorType.TEAM)], [rule])
+        ) == ([Actor(id=self.team.id, actor_type=ActorType.TEAM)], [rule])
 
     def test_saves_without_either_auto_assignment_option(self):
         self.group = self.create_group(project=self.project)
@@ -705,14 +705,14 @@ class ResolveActorsTestCase(TestCase):
     def test_basic(self):
         owners = [Owner("user", self.user.email), Owner("team", self.team.slug)]
         assert resolve_actors(owners, self.project.id) == {
-            owners[0]: RpcActor(id=self.user.id, actor_type=ActorType.USER),
-            owners[1]: RpcActor(id=self.team.id, actor_type=ActorType.TEAM),
+            owners[0]: Actor(id=self.user.id, actor_type=ActorType.USER),
+            owners[1]: Actor(id=self.team.id, actor_type=ActorType.TEAM),
         }
 
     def test_teams(self):
         # Normal team
         owner1 = Owner("team", self.team.slug)
-        actor1 = RpcActor(id=self.team.id, actor_type=ActorType.TEAM)
+        actor1 = Actor(id=self.team.id, actor_type=ActorType.TEAM)
 
         # Team that doesn't exist
         owner2 = Owner("team", "nope")
@@ -733,7 +733,7 @@ class ResolveActorsTestCase(TestCase):
     def test_users(self):
         # Normal user
         owner1 = Owner("user", self.user.email)
-        actor1 = RpcActor(id=self.user.id, actor_type=ActorType.USER)
+        actor1 = Actor(id=self.user.id, actor_type=ActorType.USER)
 
         # An extra secondary email
         email1 = self.create_useremail(self.user, None, is_verified=True).email

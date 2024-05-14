@@ -8,7 +8,7 @@ from sentry.digests.utils import get_groups
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.notifications.notifications.digest import DigestNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 
 from .base import SlackNotificationsMessageBuilder
 
@@ -18,7 +18,7 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         self,
         notification: DigestNotification,
         context: Mapping[str, Any],
-        recipient: RpcActor,
+        recipient: Actor,
     ) -> None:
         super().__init__(notification, context, recipient)
         self.notification: DigestNotification = notification

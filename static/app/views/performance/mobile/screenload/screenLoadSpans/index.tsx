@@ -11,6 +11,7 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -41,7 +42,6 @@ import {
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
-import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
@@ -124,7 +124,7 @@ function ScreenLoadSpans() {
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageAlert />
-              <StarfishPageFiltersContainer>
+              <PageFiltersContainer>
                 <Container>
                   <FilterContainer>
                     <PageFilterBar condensed>
@@ -176,7 +176,7 @@ function ScreenLoadSpans() {
                     referrer="api.starfish.mobile-screen-totals"
                   />
                 </Container>
-              </StarfishPageFiltersContainer>
+              </PageFiltersContainer>
               <ErrorBoundary mini>
                 <ScreenCharts
                   yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}

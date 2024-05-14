@@ -32,7 +32,6 @@ from sentry.notifications.utils.participants import (
 )
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -41,6 +40,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
@@ -64,12 +64,12 @@ STACKTRACE = {
 class _ParticipantsTest(TestCase):
     def assert_recipients_are(
         self,
-        actual: Mapping[ExternalProviders, set[RpcActor]],
+        actual: Mapping[ExternalProviders, set[Actor]],
         *,
         email: Iterable[int] = (),
         slack: Iterable[int] = (),
     ) -> None:
-        expected: dict[ExternalProviders, set[RpcActor]] = collections.defaultdict(set)
+        expected: dict[ExternalProviders, set[Actor]] = collections.defaultdict(set)
         for provider, user_ids in [
             (ExternalProviders.EMAIL, email),
             (ExternalProviders.SLACK, slack),
@@ -78,14 +78,14 @@ class _ParticipantsTest(TestCase):
                 for user_id in user_ids:
                     user = user_service.get_user(user_id)
                     assert user is not None
-                    expected[provider].add(RpcActor.from_rpc_user(user))
+                    expected[provider].add(Actor.from_rpc_user(user))
         assert actual == expected
 
 
 class GetSendToMemberTest(_ParticipantsTest):
     def get_send_to_member(
         self, project: Project | None = None, user_id: int | None = None
-    ) -> Mapping[ExternalProviders, set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, set[Actor]]:
         return get_send_to(
             project=project or self.project,
             target_type=ActionTargetType.MEMBER,
@@ -161,7 +161,7 @@ class GetSendToTeamTest(_ParticipantsTest):
 
     def get_send_to_team(
         self, project: Project | None = None, team_id: int | None = None
-    ) -> Mapping[ExternalProviders, set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, set[Actor]]:
         return get_send_to(
             project=project or self.project,
             target_type=ActionTargetType.TEAM,
@@ -196,7 +196,7 @@ class GetSendToTeamTest(_ParticipantsTest):
                 type="alerts",
             ).update(value="always")
         assert self.get_send_to_team() == {
-            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
+            ExternalProviders.SLACK: {Actor.from_orm_team(self.team)}
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -229,7 +229,7 @@ class GetSendToTeamTest(_ParticipantsTest):
             target_identifier=self.team.id,
             notification_type_enum=NotificationSettingEnum.WORKFLOW,
         ) == {
-            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)},
+            ExternalProviders.SLACK: {Actor.from_orm_team(self.team)},
         }
 
     def test_other_project_team(self):
@@ -255,7 +255,7 @@ class GetSendToTeamTest(_ParticipantsTest):
 
 
 class GetSendToOwnersTest(_ParticipantsTest):
-    def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, set[RpcActor]]:
+    def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, set[Actor]]:
         return get_send_to(
             self.project,
             target_type=ActionTargetType.ISSUE_OWNERS,
@@ -674,10 +674,8 @@ class GetOwnersCase(_ParticipantsTest):
             fallthrough=fallthrough,
         )
 
-    def assert_recipients(
-        self, expected: Iterable[Team | User], received: Iterable[RpcActor]
-    ) -> None:
-        assert {RpcActor.from_object(recipient) for recipient in expected} == set(received)
+    def assert_recipients(self, expected: Iterable[Team | User], received: Iterable[Actor]) -> None:
+        assert {Actor.from_object(recipient) for recipient in expected} == set(received)
 
     # If no event to match, we assume fallthrough is enabled
     def test_get_owners_no_event(self):
@@ -826,7 +824,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         event: Event,
         project: Project,
         fallthrough_choice: FallthroughChoiceType | None = None,
-    ) -> Mapping[ExternalProviders, set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, set[Actor]]:
         return get_send_to(
             project,
             target_type=ActionTargetType.ISSUE_OWNERS,
@@ -956,7 +954,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
                 )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {RpcActor.from_orm_user(user) for user in notifiable_users}
+        expected_notified_users = {Actor.from_orm_user(user) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
@@ -985,7 +983,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
                 )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {RpcActor.from_orm_user(user) for user in notifiable_users}
+        expected_notified_users = {Actor.from_orm_user(user) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]

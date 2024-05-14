@@ -99,9 +99,6 @@ install-py-dev() {
 
     pip-install -r requirements-dev-frozen.txt
 
-    # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
-    # and acceptance tests, which webpack automatically if run.
     python3 -m tools.fast_editable --path .
 }
 
@@ -168,9 +165,10 @@ create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
-    echo "--> Creating 'control' and 'region' database"
+    echo "--> Creating 'control', 'region' and 'secondary' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 secondary || true
 }
 
 apply-migrations() {
@@ -191,7 +189,7 @@ create-superuser() {
 
 build-platform-assets() {
     echo "--> Building platform assets"
-    echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    python3 -m sentry.build._integration_docs
     # make sure this didn't silently do nothing
     test -f src/sentry/integration-docs/android.json
 }
@@ -227,6 +225,7 @@ drop-db() {
     echo "--> Dropping 'control' and 'region' database"
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres secondary
 }
 
 reset-db() {

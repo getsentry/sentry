@@ -21,8 +21,8 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS_AS_INT, ExternalProviderEnum
 
 if TYPE_CHECKING:
@@ -102,23 +102,23 @@ def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, 
     }
 
 
-def recipient_is_user(recipient: RpcActor | Team | RpcUser | User) -> bool:
+def recipient_is_user(recipient: Actor | Team | RpcUser | User) -> bool:
     from sentry.models.user import User
 
-    if isinstance(recipient, RpcActor) and recipient.is_user:
+    if isinstance(recipient, Actor) and recipient.is_user:
         return True
     return isinstance(recipient, (RpcUser, User))
 
 
-def recipient_is_team(recipient: RpcActor | Team | RpcUser | User) -> bool:
+def recipient_is_team(recipient: Actor | Team | RpcUser | User) -> bool:
     from sentry.models.team import Team
 
-    if isinstance(recipient, RpcActor) and recipient.is_team:
+    if isinstance(recipient, Actor) and recipient.is_team:
         return True
     return isinstance(recipient, Team)
 
 
-def team_is_valid_recipient(team: Team | RpcActor) -> bool:
+def team_is_valid_recipient(team: Team | Actor) -> bool:
     """
     A team is a valid recipient if it has a linked integration (ie. linked Slack channel)
     for any one of the providers allowed for personal notifications.
@@ -133,12 +133,12 @@ def team_is_valid_recipient(team: Team | RpcActor) -> bool:
     return False
 
 
-def get_team_members(team: Team | RpcActor) -> list[RpcActor]:
+def get_team_members(team: Team | Actor) -> list[Actor]:
     if recipient_is_team(team):  # handles type error below
         team_id = team.id
-    else:  # team is either Team or RpcActor, so if recipient_is_team returns false it is because RpcActor has a different type
+    else:  # team is either Team or Actor, so if recipient_is_team returns false it is because Actor has a different type
         raise Exception(
-            "RpcActor team has ActorType %s, expected ActorType Team", team.actor_type  # type: ignore[union-attr]
+            "Actor team has ActorType %s, expected ActorType Team", team.actor_type  # type: ignore[union-attr]
         )
 
     # get organization member IDs of all members in the team
@@ -157,7 +157,7 @@ def get_team_members(team: Team | RpcActor) -> list[RpcActor]:
     )
 
     return [
-        RpcActor(id=user_id, actor_type=ActorType.USER)
+        Actor(id=user_id, actor_type=ActorType.USER)
         for user_id in members.values_list("user_id", flat=True)
         if user_id
     ]
