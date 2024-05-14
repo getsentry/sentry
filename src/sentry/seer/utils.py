@@ -18,7 +18,7 @@ from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
-from sentry.utils.json import JSONDecodeError
+from sentry.utils.json import JSONDecodeError, apply_key_filter
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +139,8 @@ class SeerSimilarIssueData:
     # Unfortunately, we have to hardcode this separately from the `RawSeerSimilarIssueData` type
     # definition because Python has no way to derive it from the type (nor vice-versa)
     required_incoming_keys: ClassVar = {"stacktrace_distance", "message_distance", "should_group"}
+    optional_incoming_keys: ClassVar = {"parent_hash", "parent_group_id"}
+    expected_incoming_keys: ClassVar = {*required_incoming_keys, *optional_incoming_keys}
 
     @classmethod
     def from_raw(cls, project_id: int, raw_similar_issue_data: Mapping[str, Any]) -> Self:
@@ -154,6 +156,10 @@ class SeerSimilarIssueData:
 
         """
 
+        # Filter out any data we're not expecting, and then make sure what's left isn't missing anything
+        raw_similar_issue_data = apply_key_filter(
+            raw_similar_issue_data, keep_keys=cls.expected_incoming_keys
+        )
         missing_keys = cls.required_incoming_keys - raw_similar_issue_data.keys()
         if missing_keys:
             raise IncompleteSeerDataError(
