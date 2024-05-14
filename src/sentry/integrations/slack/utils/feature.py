@@ -1,6 +1,5 @@
 import logging
 
-from sentry.integrations.slack import SlackIntegration
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 
@@ -13,6 +12,7 @@ def organization_integration_has_feature_enabled(
     """
     Helper function to check if an integration's installation has a specific feature flag
     """
+    from sentry.integrations.slack.integration import SlackIntegration
 
     base_logs = {
         "organization_id": organization_id,
@@ -33,12 +33,14 @@ def organization_integration_has_feature_enabled(
         )
         return False
 
-    return installation.has_feature(feature)
+    return installation.has_feature(feature_name=feature)
 
 
 def organization_integration_has_metric_alerts_flag_enabled(
     integration: Integration | RpcIntegration, organization_id: int
 ) -> bool:
+    from sentry.integrations.slack.integration import SlackIntegration
+
     return organization_integration_has_feature_enabled(
         integration=integration,
         organization_id=organization_id,
@@ -49,6 +51,8 @@ def organization_integration_has_metric_alerts_flag_enabled(
 def organization_integration_has_issue_alerts_flag_enabled(
     integration: Integration | RpcIntegration, organization_id: int
 ) -> bool:
+    from sentry.integrations.slack.integration import SlackIntegration
+
     return organization_integration_has_feature_enabled(
         integration=integration,
         organization_id=organization_id,
