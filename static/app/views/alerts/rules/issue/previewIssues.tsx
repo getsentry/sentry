@@ -7,11 +7,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import type {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
+import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Member, Project} from 'sentry/types';
-import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
+import type {UnsavedIssueAlertRule} from 'sentry/types/alerts';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,7 +49,7 @@ function PreviewText({issueCount, previewError}) {
 interface PreviewIssuesProps {
   members: Member[] | undefined;
   project: Project;
-  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
+  rule?: UnsavedIssueAlertRule | null;
 }
 
 export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
@@ -75,6 +76,10 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
             actionMatch: rule.actionMatch || 'all',
             filterMatch: rule.filterMatch || 'all',
             frequency: rule.frequency || 60,
+            environment:
+              rule.environment && rule.environment !== ALL_ENVIRONMENTS_KEY
+                ? rule.environment
+                : null,
           }
         : {},
     [rule]
