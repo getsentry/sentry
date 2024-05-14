@@ -178,6 +178,7 @@ class SeerSimilarIssueData:
         return cls(**similar_issue_data)
 
 
+# TODO: Handle non-200 responses
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
